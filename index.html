@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GM Dashboard V6.6 - Final Ordem</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <header class="header-bar">
+        <div style="font-weight: bold; color: var(--accent-gold); font-size: 1.2rem; display:flex; align-items:center; gap:10px;">
+            <i class="fas fa-dungeon"></i> GM TOOL V6.6
+            <div class="dropdown">
+                <button class="btn-outline" style="border:none; font-weight:bold;"><i class="fas fa-file"></i> Arquivo <i class="fas fa-caret-down"></i></button>
+                <div class="dropdown-content">
+                    <a class="dropdown-item" onclick="persistenceSystem.newCanvas()"><i class="fas fa-file-medical"></i> Novo</a>
+                    <a class="dropdown-item" onclick="document.getElementById('loadFileInput').click()"><i class="fas fa-folder-open"></i> Abrir Arquivo</a>
+                    <a class="dropdown-item" onclick="persistenceSystem.saveCanvas()"><i class="fas fa-download"></i> Salvar</a>
+                    <a class="dropdown-item" onclick="persistenceSystem.saveCanvasAs()"><i class="fas fa-file-export"></i> Salvar Como</a>
+                </div>
+            </div>
+        </div>
+        <div class="token-roster" id="tokenRoster"></div>
+        <div style="display:flex; gap:10px;">
+            <button class="btn-icon" onclick="tutorialSystem.open()" title="Ajuda"><i class="fas fa-question-circle"></i></button>
+            <button class="btn btn-outline" onclick="tokenManager.createToken()"><i class="fas fa-plus"></i> Novo Token</button>
+        </div>
+    </header>
+
+    <div id="tutorialModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-title">Bem-vindo ao GM Dashboard <button class="btn-icon" onclick="tutorialSystem.close()"><i class="fas fa-times"></i></button></div>
+            <div class="step-indicators" id="tutorialSteps"></div>
+            
+            <div class="tutorial-step active" id="step-0">
+                <i class="fas fa-dungeon tutorial-icon"></i>
+                <h3>O Painel Definitivo do Mestre</h3>
+                <p style="color:var(--text-sec); margin-top:10px;">Uma ferramenta Canvas-First focada em liberdade, organização e performance, adaptada perfeitamente para <strong>Ordem Paranormal</strong>.</p>
+            </div>
+            
+            <div class="tutorial-step" id="step-1">
+                <i class="fas fa-map-marked-alt tutorial-icon"></i>
+                <h3>Mapa, Zonas e Marcadores</h3>
+                <ul style="text-align:left; color:var(--text-sec); margin: 20px 40px; list-style:none;">
+                    <li style="margin-bottom:10px;"><i class="fas fa-hand-paper" style="color:var(--accent-gold)"></i> <strong>Mover (Pan):</strong> Arraste o mapa. Use Scroll para Zoom.</li>
+                    <li style="margin-bottom:10px;"><i class="fas fa-vector-square" style="color:var(--accent-gold)"></i> <strong>Zonas:</strong> Desenhe áreas no mapa para anexar Lore, Pontos de Interesse (POIs) e Contar Visitas (Barra Esquerda).</li>
+                    <li><i class="fas fa-map-pin" style="color:var(--accent-gold)"></i> <strong>Marcadores:</strong> Clique com botão direito no mapa para criar pinos de anotação rápida (Barra Direita).</li>
+                </ul>
+            </div>
+            
+            <div class="tutorial-step" id="step-2">
+                <i class="fas fa-id-card tutorial-icon"></i>
+                <h3>Tokens e Fichas de Ordem</h3>
+                <ul style="text-align:left; color:var(--text-sec); margin: 20px 40px; list-style:none;">
+                    <li style="margin-bottom:10px;"><strong>Criar:</strong> Botão "Novo Token" no topo, arraste-o para o mapa.</li>
+                    <li style="margin-bottom:10px;"><strong>Fichas Dinâmicas:</strong> Dê um duplo clique num token no mapa para abrir sua Ficha completa.</li>
+                    <li><strong>Jogadores vs Ameaças:</strong> Alterne entre fichas de Investigador (PE, SAN, PD) e Ameaças (Presença Perturbadora, Elementos, Habilidades e Enigma do Medo).</li>
+                </ul>
+            </div>
+
+            <div class="tutorial-step" id="step-3">
+                <i class="fas fa-list-ol tutorial-icon"></i>
+                <h3>Sistema de Iniciativa</h3>
+                <p style="color:var(--text-sec); margin: 15px 20px;">Organize combates rapidamente. Clique no botão <strong>Iniciativa</strong> no rodapé, insira os valores e clique em Aplicar.</p>
+                <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:4px; margin: 0 40px; color:var(--text-main); font-size: 0.9rem;">
+                    A ordem aparecerá no canto inferior esquerdo. Ao avançar os turnos, o token atual ganhará um brilho dourado de destaque no mapa!
+                </div>
+            </div>
+            
+            <div class="tutorial-step" id="step-4">
+                <i class="fas fa-clock tutorial-icon"></i>
+                <h3>Tempo, Cronômetro e Urgência</h3>
+                <ul style="text-align:left; color:var(--text-sec); margin: 20px 40px; list-style:none;">
+                    <li style="margin-bottom:10px;"><strong>Contadores (Rodapé):</strong> Avance Turnos (incrementa a rodada automaticamente) e Cenas.</li>
+                    <li style="margin-bottom:10px;"><strong>Cronômetro Real:</strong> Defina um timer (ex: 5m). O sistema piscará vermelho e apitará quando o tempo acabar.</li>
+                    <li><strong>Urgência:</strong> Configure um limite de rodadas (ex: Fuga). A cada rodada que passa ele diminui e soa um alarme no zero.</li>
+                </ul>
+            </div>
+
+            <div class="tutorial-step" id="step-5">
+                <i class="fas fa-save tutorial-icon"></i>
+                <h3>Salvar e Carregar</h3>
+                <p style="color:var(--text-sec);">Nunca perca seu progresso. Use o menu <strong>Arquivo</strong> no topo esquerdo para criar backups (.json) da sua campanha contendo os mapas, fichas, imagens e zonas. Abra-os nas sessões futuras.</p>
+            </div>
+            
+            <div class="modal-actions" style="justify-content: space-between; margin-top:30px;">
+                <button class="btn-outline" id="tutPrevBtn" onclick="tutorialSystem.prev()" style="visibility:hidden;">Anterior</button>
+                <button class="btn" id="tutNextBtn" onclick="tutorialSystem.next()">Próximo</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="initModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-title">Fila de Iniciativa <button class="btn-icon" onclick="initSystem.closeModal()"><i class="fas fa-times"></i></button></div>
+            <p style="color:var(--text-sec); font-size:0.85rem; margin-bottom:15px;">Insira o valor da iniciativa (ex: 15.02). Deixe em branco para ignorar/remover.</p>
+            <div id="initTokenList" style="max-height: 400px; overflow-y:auto; padding-right:10px;"></div>
+            <div class="modal-actions" style="justify-content: space-between; margin-top:20px;">
+                <button class="btn-outline" style="color:var(--danger); border-color:var(--danger);" onclick="initSystem.clear()"><i class="fas fa-trash"></i> Limpar Fila</button>
+                <div>
+                    <button class="btn-outline" onclick="initSystem.closeModal()">Cancelar</button>
+                    <button class="btn" onclick="initSystem.save()">Aplicar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tokenCtxMenu" class="ctx-menu">
+        <div class="ctx-item" id="ctxLocate" onclick="tokenManager.locateActiveToken()"><i class="fas fa-search-location"></i> Localizar</div>
+        <div class="ctx-item" id="ctxEdit" onclick="tokenManager.editActiveToken()"><i class="fas fa-edit"></i> Cor e Nome</div>
+        <div class="ctx-item" id="ctxDup" onclick="tokenManager.duplicateActiveToken()"><i class="fas fa-clone"></i> Duplicar</div>
+        <div class="ctx-item" onclick="tokenManager.openPeculiarities()"><i class="fas fa-id-card"></i> Ficha</div>
+        <div class="ctx-separator"></div>
+        <div class="ctx-item" style="color:var(--danger);" onclick="tokenManager.promptDelete()"><i class="fas fa-trash-alt"></i> Apagar</div>
+    </div>
+
+    <div id="tokenModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle">Criar Novo Token</div>
+            <div class="form-group"><label>Nome do Personagem</label><input type="text" id="tokenNameInput" placeholder="Ex: Gandalf"></div>
+            <div class="form-group"><label>Iniciais (Max 4)</label><input type="text" id="tokenInitialsInput" maxlength="4" placeholder="GAN" style="text-transform: uppercase;"></div>
+            <div class="form-group"><label>Cores</label><div class="color-picker-group"><div class="color-picker-item"><input type="color" id="tokenColorText" value="#ffffff"><span>Letra</span></div><div class="color-picker-item"><input type="color" id="tokenColorBorder" value="#ffffff"><span>Borda</span></div><div class="color-picker-item"><input type="color" id="tokenColorFill" value="#8257e5"><span>Fundo</span></div></div></div>
+            <div class="modal-actions"><button class="btn-outline" onclick="tokenManager.closeModal()">Cancelar</button><button class="btn" onclick="tokenManager.confirmToken()">Salvar Token</button></div>
+        </div>
+    </div>
+
+    <div id="deleteConfirmModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content" style="width:300px;">
+            <div class="modal-title" style="color:var(--danger)"><i class="fas fa-exclamation-triangle"></i> Excluir Token</div>
+            <p style="margin-bottom:20px;">Tem certeza que quer apagar este token?</p>
+            <div class="modal-actions"><button class="btn-outline" onclick="$('deleteConfirmModal').style.display='none'">Cancelar</button><button class="btn" style="background:var(--danger);" onclick="tokenManager.confirmDelete()">Confirmar</button></div>
+        </div>
+    </div>
+
+    <div id="peculiaritiesModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+                <div>
+                    <h2 id="fichaMainTitle" style="color:var(--accent-gold); margin:0;">Ficha</h2>
+                    <div id="fichaSubtitle" style="margin-top:5px; display:flex; gap:5px; flex-wrap:wrap;"></div>
+                </div>
+                <div>
+                    <button class="btn-icon" id="btnToggleFichaEdit" onclick="tokenManager.toggleFichaEditMode()" title="Editar Ficha"><i class="fas fa-edit"></i></button>
+                    <button class="btn-icon" onclick="$('peculiaritiesModal').style.display='none'"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+            
+            <div id="peculReadMode" class="read-view" style="display:none;">
+                <div id="peculReadStats"></div>
+                <div id="peculReadLists"></div>
+                <h3>Anotações / Lore</h3>
+                <div id="peculReadDesc" style="color:var(--text-sec); white-space:pre-wrap; margin-bottom:20px;"></div>
+                <h3>Condições Adquiridas</h3>
+                <div id="peculReadConditions"></div>
+            </div>
+            
+            <div id="peculEditMode" style="display:none;">
+                <div class="form-group" style="display:flex; gap:10px; margin-bottom: 20px;">
+                    <select id="fichaType" onchange="tokenManager.handleTypeChange()" style="flex:1;">
+                        <option value="player">Personagem (Jogador)</option>
+                        <option value="threat">Ameaça (Monstro/NPC)</option>
+                    </select>
+                    <select id="fichaSystem" onchange="tokenManager.toggleFichaUI()" style="flex:1;">
+                        <option value="san">Usar Sanidade e PE</option>
+                        <option value="det">Usar Determinação (PD)</option>
+                    </select>
+                    <select id="fichaThreatType" onchange="tokenManager.toggleFichaUI()" style="flex:1; display:none;">
+                        <option value="realidade">Ameaça da Realidade</option>
+                        <option value="paranormal">Ameaça Paranormal</option>
+                    </select>
+                </div>
+
+                <div id="threatSettingsBlock" style="display:none; background:rgba(0,0,0,0.2); padding:10px; border-radius:6px; margin-bottom:15px; border:1px solid var(--border);">
+                    <div style="display:flex; gap:10px; margin-bottom:10px;">
+                        <div style="flex:1;">
+                            <label style="font-size:0.7rem;">Tamanho</label>
+                            <select id="fSize">
+                                <option value="Minúsculo">Minúsculo</option><option value="Pequeno">Pequeno</option><option value="Médio" selected>Médio</option><option value="Grande">Grande</option><option value="Enorme">Enorme</option><option value="Colossal">Colossal</option>
+                            </select>
+                        </div>
+                        <div style="flex:1;">
+                            <label style="font-size:0.7rem;">Deslocamento</label>
+                            <input type="text" id="fSpeed" placeholder="ex: 9m">
+                        </div>
+                    </div>
+                    
+                    <div id="paranormalSettingsBlock" style="display:none;">
+                        <label style="font-size:0.7rem;">Elementos (Selecione e Adicione)</label>
+                        <div style="display:flex; gap:5px; margin-bottom:10px;">
+                            <select id="fElemSelect" style="flex:1; margin:0;"><option value="Sangue">Sangue</option><option value="Morte">Morte</option><option value="Conhecimento">Conhecimento</option><option value="Energia">Energia</option><option value="Medo">Medo</option></select>
+                            <button class="btn-outline" onclick="tokenManager.addArrayItem('elements', $('fElemSelect').value)">Adicionar</button>
+                        </div>
+                        <div id="fElementsList" style="display:flex; gap:5px; flex-wrap:wrap; margin-bottom:15px;"></div>
+
+                        <label style="font-size:0.7rem; font-weight:bold; color:var(--accent-purple);">Presença Perturbadora</label>
+                        <div style="display:flex; gap:5px; margin-bottom:10px;">
+                            <div style="flex:1;"><label style="font-size:0.6rem;">DT</label><input type="number" id="fPresDt"></div>
+                            <div style="flex:2;"><label style="font-size:0.6rem;">Dano Mental</label><input type="text" id="fPresDano" placeholder="1d6"></div>
+                            <div style="flex:1;"><label style="font-size:0.6rem;">Imune (NEX%)</label><input type="number" id="fPresNex"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <label style="color:var(--text-sec); display:block; margin-bottom:5px; font-weight:bold; font-size:0.8rem; text-transform:uppercase;">Atributos</label>
+                <div style="display:flex; gap:5px; margin-bottom:15px;">
+                   <div style="flex:1; text-align:center"><label style="font-size:0.7rem;">AGI</label><input type="number" id="fAgi"></div>
+                   <div style="flex:1; text-align:center"><label style="font-size:0.7rem;">FOR</label><input type="number" id="fFor"></div>
+                   <div style="flex:1; text-align:center"><label style="font-size:0.7rem;">INT</label><input type="number" id="fInt"></div>
+                   <div style="flex:1; text-align:center"><label style="font-size:0.7rem;">PRE</label><input type="number" id="fPre"></div>
+                   <div style="flex:1; text-align:center"><label style="font-size:0.7rem;">VIG</label><input type="number" id="fVig"></div>
+                </div>
+
+                <label style="color:var(--text-sec); display:block; margin-bottom:5px; font-weight:bold; font-size:0.8rem; text-transform:uppercase;">Defesas e Resistências</label>
+                <div style="display:flex; gap:5px; margin-bottom:10px;">
+                   <div style="flex:1; text-align:center"><label style="font-size:0.7rem;">Defesa</label><input type="number" id="fDef"></div>
+                   <div style="flex:1; text-align:center" id="colBloq"><label style="font-size:0.7rem;">Bloqueio</label><input type="number" id="fBloq"></div>
+                   <div style="flex:1; text-align:center"><label style="font-size:0.7rem;" id="lblEsq">Esquiva</label><input type="text" id="fEsq"></div>
+                   <div style="flex:1; text-align:center; display:none;" id="colFort"><label style="font-size:0.7rem;">Fortitude</label><input type="text" id="fFort"></div>
+                   <div style="flex:1; text-align:center; display:none;" id="colVon"><label style="font-size:0.7rem;">Vontade</label><input type="text" id="fVon"></div>
+                </div>
+
+                <label style="color:var(--text-sec); display:block; margin-bottom:5px; font-weight:bold; font-size:0.8rem; text-transform:uppercase;">Status Vitais</label>
+                <div style="display:flex; gap:5px; margin-bottom:10px;">
+                   <div style="flex:1;"><label style="color:var(--danger)">PV Atual</label><input type="number" id="fPvCurr"></div>
+                   <div style="flex:1;"><label style="color:var(--danger)">PV Máximo</label><input type="number" id="fPvMax"></div>
+                </div>
+                <div id="rowPe" style="display:flex; gap:5px; margin-bottom:10px;">
+                   <div style="flex:1;"><label style="color:var(--success)">PE Atual</label><input type="number" id="fPeCurr"></div>
+                   <div style="flex:1;"><label style="color:var(--success)">PE Máximo</label><input type="number" id="fPeMax"></div>
+                </div>
+                <div id="rowSan" style="display:flex; gap:5px; margin-bottom:10px;">
+                   <div style="flex:1;"><label style="color:var(--info)">SAN Atual</label><input type="number" id="fSanCurr"></div>
+                   <div style="flex:1;"><label style="color:var(--info)">SAN Máxima</label><input type="number" id="fSanMax"></div>
+                </div>
+                <div id="rowDet" style="display:flex; gap:5px; margin-bottom:10px; display:none;">
+                   <div style="flex:1;"><label style="color:#20b2aa">PD Atual</label><input type="number" id="fPdCurr"></div>
+                   <div style="flex:1;"><label style="color:#20b2aa">PD Máximo</label><input type="number" id="fPdMax"></div>
+                </div>
+
+                <div id="threatDynamicLists" style="display:none; margin-top:20px;">
+                    <hr style="border-color:var(--border); margin: 15px 0;">
+                    <div id="editSenses"></div>
+                    <div id="editResistances"></div>
+                    <div id="editVulnerabilities"></div>
+                    <div id="editAbilities"></div>
+                    <div id="editActions"></div>
+                    
+                    <div id="editEnigmaBlock" style="display:none; margin-top:15px;">
+                        <label style="color:var(--text-sec); font-weight:bold; font-size:0.8rem; text-transform:uppercase;">Enigma do Medo</label>
+                        <textarea id="fEnigma" style="min-height:60px;" placeholder="Descrição do enigma..."></textarea>
+                    </div>
+                </div>
+
+                <hr style="border-color:var(--border); margin: 20px 0 15px 0;">
+                <div class="form-group"><label style="font-weight:bold; font-size:0.8rem; text-transform:uppercase;">Anotações / Lore</label><textarea id="peculDescInput" style="min-height:80px;"></textarea></div>
+                <hr style="border-color:var(--border); margin: 15px 0;">
+                
+                <div class="form-group">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <label style="color:var(--text-sec); margin:0; font-weight:bold; font-size:0.8rem; text-transform:uppercase;">Condições Adquiridas</label>
+                    </div>
+                    <div id="containerConditions" style="margin-top:5px;"></div>
+                    <div style="display:flex; gap:5px; margin-top:5px;">
+                        <button class="btn-outline" style="flex:1; border-style:dashed;" onclick="tokenManager.addConditionItem()">+ Nova Manual</button>
+                        <select id="presetConditionSelect" style="flex:2; margin:0; background:var(--bg-panel);" onchange="if(this.value !== '') { tokenManager.addPresetCondition(this.value); this.value=''; }">
+                            <option value="">Carregar do Compêndio...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-actions"><button class="btn" onclick="tokenManager.savePeculiarities()">Salvar Ficha</button></div>
+            </div>
+        </div>
+    </div>
+
+    <aside class="sidebar sidebar-left" id="sidebarLeft">
+        <div class="sidebar-content">
+            <div class="sidebar-header">
+                <span><i class="fas fa-map"></i> Dados da Zona</span>
+                <div><button class="btn-icon" id="btnToggleEditZone" onclick="ui.toggleEditMode()" title="Alternar Leitura/Edição"><i class="fas fa-lock"></i></button><button class="btn-outline" onclick="ui.toggleSidebar('left')" style="border:none;"><i class="fas fa-chevron-left"></i></button></div>
+            </div>
+            <div id="zoneContent" style="display:none;">
+                <div id="viewRead" class="read-view">
+                    <h2 id="readTitle" style="color:var(--text-main); margin-bottom:5px;">Título</h2>
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:10px;">
+                        <p id="readDesc" style="color:var(--text-sec); font-style:italic; margin:0; flex:1;">Descrição...</p>
+                        <div style="background:rgba(0,0,0,0.2); padding:5px 10px; border-radius:4px; text-align:center; min-width:60px;">
+                            <span style="font-size:0.7rem; color:var(--text-sec); display:block; text-transform:uppercase;">Visitas</span>
+                            <span id="readVisits" style="font-size:1.2rem; font-weight:bold; color:var(--accent-gold);">0</span>
+                        </div>
+                    </div>
+                    <h3 style="color:var(--text-sec);">Pontos de Interesse</h3> <div id="readPois"></div>
+                    <h3 style="color:var(--text-sec);">Eventos e Personagens</h3> <div id="readEvents"></div>
+                </div>
+                
+                <div id="viewEdit" style="display:none;">
+                    <div style="display:flex; gap:10px; margin-bottom:15px; align-items:flex-end;">
+                        <div class="form-group" style="flex:1; margin:0;"><label>Nome da Zona</label><input type="text" id="zoneTitle"></div>
+                        <div class="form-group" style="width:90px; margin:0;">
+                            <label>Visitas</label>
+                            <div style="display:flex; align-items:center; background:var(--bg-input); border:1px solid var(--border); border-radius:4px; height:34px;">
+                                <button class="btn-icon" style="padding:0 5px;" onclick="ui.changeVisits(-1)"><i class="fas fa-minus"></i></button>
+                                <span id="editVisits" style="flex:1; text-align:center; font-weight:bold; color:var(--text-main);">0</span>
+                                <button class="btn-icon" style="padding:0 5px;" onclick="ui.changeVisits(1)"><i class="fas fa-plus"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group"><label>Descrição Geral</label><textarea id="zoneDesc" style="min-height:80px;"></textarea></div>
+                    <hr style="border-color:var(--border); margin: 15px 0;">
+                    <div class="form-group"><label style="color:var(--text-sec);">Pontos de Interesse (POIs)</label><div id="containerPois"></div><button class="btn-outline" style="width:100%; margin-top:5px; border-style:dashed;" onclick="ui.addPoiCategory()">+ Adicionar Categoria</button></div>
+                    <hr style="border-color:var(--border); margin: 15px 0;">
+                    
+                    <div class="form-group">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <label style="color:var(--text-sec); margin:0;">Eventos e Personagens</label>
+                            <button class="btn-icon" style="font-size:0.9rem;" onclick="ui.clearPresets()" title="Limpar Predefinições Salvas"><i class="fas fa-broom"></i></button>
+                        </div>
+                        <div id="containerEvents" style="margin-top:5px;"></div>
+                        <div style="display:flex; gap:5px; margin-top:5px;">
+                            <button class="btn-outline" style="flex:1; border-style:dashed;" onclick="ui.addEventItem()">+ Novo</button>
+                            <select id="presetEventSelect" style="flex:2; margin:0; background:var(--bg-panel);" onchange="if(this.value !== '') { ui.addPresetEvent(this.value); this.value=''; }">
+                                <option value="">Carregar Predefinição...</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button class="btn" style="background:var(--danger); width: 100%; margin-top:20px;" onclick="mapSystem.deleteSelectedZone()">Excluir Zona</button>
+                </div>
+            </div>
+            <div id="zoneEmptyState" style="color: var(--text-sec); text-align: center; margin-top: 50px;"><i class="fas fa-vector-square" style="font-size: 30px; margin-bottom: 10px;"></i><br>Selecione ou desenhe uma zona.</div>
+        </div>
+    </aside>
+
+    <main class="viewport" id="viewport">
+        <input type="file" id="extraImageUpload" accept="image/*" style="display:none;">
+        <input type="file" id="loadFileInput" accept=".json" style="display:none;">
+
+        <div class="map-container" id="mapContainer">
+            <div id="bgLayer"></div> 
+            <img src="" alt="" class="map-image" id="mapImage" style="display:none;"> 
+            <svg class="drawing-svg" id="drawingSvg"></svg> 
+        </div>
+
+        <div class="initiative-bar" id="initiativeBar"></div>
+
+        <div class="tools-overlay">
+            <div class="tool-group">
+                <button class="tool-btn" id="toolEditBg" onclick="mapSystem.setTool('edit-bg')" title="Editar Imagens/Fundo"><i class="fas fa-image"></i></button>
+                <div class="sub-tools">
+                    <button class="sub-btn" onclick="document.getElementById('extraImageUpload').click()" title="Adicionar Imagem"><i class="fas fa-plus"></i></button>
+                </div>
+            </div>
+            <div class="tool-group">
+                <button class="tool-btn" id="toolDraw" title="Ferramentas de Zona"><i class="fas fa-pencil-alt"></i></button>
+                <div class="sub-tools">
+                    <button class="sub-btn" onclick="mapSystem.setTool('draw-rect')" title="Retângulo"><i class="far fa-square"></i></button>
+                    <button class="sub-btn" onclick="mapSystem.setTool('draw-ellipse')" title="Elipse"><i class="far fa-circle"></i></button>
+                    <button class="sub-btn" onclick="mapSystem.setTool('draw-poly')" title="Polígono"><i class="fas fa-draw-polygon"></i></button>
+                </div>
+            </div>
+            <button class="tool-btn active" id="toolPan" onclick="mapSystem.setTool('pan')" title="Mover Mapa (Espaço)"><i class="fas fa-hand-paper"></i></button>
+        </div>
+    </main>
+
+    <aside class="sidebar sidebar-right" id="sidebarRight">
+        <div class="sidebar-content">
+            <div class="sidebar-header">
+                <button class="btn-outline" onclick="ui.toggleSidebar('right')" style="border:none;"><i class="fas fa-chevron-right"></i></button>
+                <div style="display:flex; align-items:center; gap:10px;"><span>Marcadores</span><button class="btn-icon" id="btnToggleEditMarker" onclick="ui.toggleEditMarkerMode()" title="Bloquear/Desbloquear"><i class="fas fa-lock"></i></button></div>
+            </div>
+            <div id="markerList"></div>
+        </div>
+    </aside>
+
+    <footer class="footer-bar" id="footerBar">
+        
+        <div class="real-timer" id="realTimerBox" style="display:flex; align-items:center; gap:10px;">
+            <div class="timer-display" id="timerDisplay" onclick="timerSystem.toggleMinimize(event)" style="min-width:70px; text-align:left;">00:00</div>
+            <div class="timer-presets" style="display:flex; gap:5px;">
+                <button class="btn-outline" style="font-size:0.7rem; padding:2px 6px;" onclick="timerSystem.setTimer(1)">1m</button>
+                <button class="btn-outline" style="font-size:0.7rem; padding:2px 6px;" onclick="timerSystem.setTimer(3)">3m</button>
+                <button class="btn-outline" style="font-size:0.7rem; padding:2px 6px;" onclick="timerSystem.setTimer(5)">5m</button>
+            </div>
+            <div class="timer-controls" style="display:flex; gap:5px;">
+                <button class="btn-outline" onclick="timerSystem.togglePlay()" id="timerPlayBtn"><i class="fas fa-play"></i></button>
+                <button class="btn-outline" onclick="timerSystem.stop()"><i class="fas fa-stop"></i></button>
+                <button class="btn-outline" onclick="timerSystem.promptManual()"><i class="fas fa-keyboard"></i></button>
+            </div>
+        </div>
+        
+        <div style="width: 1px; height: 30px; background: var(--border); margin-left: 10px;"></div>
+        
+        <div class="counter-group"><span style="color:var(--text-sec)">Cena</span><span class="counter-value" id="valScene">1</span></div>
+        <div style="width: 1px; height: 30px; background: var(--border);"></div>
+        
+        <div class="counter-group"><span style="color:var(--text-sec)">Rodada</span><span class="counter-value" id="valRound">1</span></div>
+        <div class="counter-group"><span style="color:var(--text-sec)">Turno</span><span class="counter-value" id="valTurn">1</span></div>
+        
+        <div style="width: 1px; height: 30px; background: var(--border);"></div>
+        
+        <div class="urgency-group">
+            <span style="color:var(--text-sec); font-size:0.8rem; text-transform:uppercase;">Urgência</span>
+            <div style="display:flex; flex-direction:column; margin-left:5px;">
+                <button class="btn-icon" style="font-size:0.6rem; padding:0; height:10px;" onclick="urgencySystem.change(1)"><i class="fas fa-chevron-up"></i></button>
+                <span class="urgency-val" id="valUrgency">---</span>
+                <button class="btn-icon" style="font-size:0.6rem; padding:0; height:10px;" onclick="urgencySystem.change(-1)"><i class="fas fa-chevron-down"></i></button>
+            </div>
+            <div style="display:flex; gap:2px; margin-left:10px;">
+                <button class="btn-outline" style="font-size:0.7rem; padding:2px 6px;" onclick="urgencySystem.set(3)">3</button>
+                <button class="btn-outline" style="font-size:0.7rem; padding:2px 6px;" onclick="urgencySystem.set(5)">5</button>
+                <button class="btn-outline" style="font-size:0.7rem; padding:2px 6px;" onclick="urgencySystem.set(7)">7</button>
+            </div>
+        </div>
+
+        <div class="footer-controls">
+            <button class="btn btn-outline" onclick="initSystem.openModal()" title="Gerenciar Iniciativa"><i class="fas fa-list-ol"></i> Iniciativa</button>
+            <button class="btn btn-outline" onclick="timeSystem.addTurn()" title="Próximo Turno"><i class="fas fa-step-forward"></i></button>
+            <div style="display: flex; flex-direction: column; align-items: center;"><label style="font-size: 0.6rem; margin:0; color:var(--text-sec);">T/Rodada</label><input type="number" id="turnsPerRound" value="10" style="width: 40px; text-align: center; padding: 2px; height: 25px;"></div>
+            <button class="btn btn-outline" onclick="timeSystem.nextScene()" title="Nova Cena (Reset)"><i class="fas fa-film"></i> Cena</button>
+        </div>
+    </footer>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
