@@ -4,127 +4,136 @@ export type DamageType = 'Balístico' | 'Impacto' | 'Perfuração' | 'Corte' | '
 
 export type ActionType = 'Padrão' | 'Movimento' | 'Reação' | 'Ação Livre' | 'Completa';
 
-export interface BaseToken {
-  id: string;
-  name: string;
-  initials: string;
-  type: 'player' | 'threat';
-  colorText: string;
-  colorBorder: string;
-  colorFill: string;
-  x: number;
-  y: number;
-  onMap: boolean;
-  notes: string;
-  conditions: Condition[];
-}
+// --- Token Types (matching DM_tool_6v AppState.tokens) ---
 
-export interface PlayerStats {
-  system: 'san' | 'det'; // sanidade or determinação
+export interface TokenStats {
+  type: 'player' | 'threat';
+  system: 'san' | 'det';
+  threatType?: 'realidade' | 'paranormal';
+
+  // Attributes
   agi: number;
   for: number;
   int: number;
   pre: number;
   vig: number;
-  
-  defesa: number;
-  bloqueio: number;
-  esquiva: number;
-  
-  pvAtual: number;
-  pvMax: number;
-  
-  peAtual: number;
-  peMax: number;
-  
-  sanAtual?: number;
-  sanMax?: number;
-  
-  pdAtual?: number;
-  pdMax?: number;
-}
 
-export interface ThreatStats extends PlayerStats {
-  threatType: 'realidade' | 'paranormal';
-  size: 'Minúsculo' | 'Pequeno' | 'Médio' | 'Grande' | 'Enorme' | 'Colossal';
-  speed: string;
-  
-  // Paranormal specific
+  // Defenses
+  def: number;
+  bloq: number | string;
+  esq: number | string;
+  fort?: string;
+  von?: string;
+
+  // Vitals
+  pv: number;
+  maxPv: number;
+  pe: number;
+  maxPe: number;
+  san: number;
+  maxSan: number;
+  pd: number;
+  maxPd: number;
+
+  // Threat-specific
+  size?: string;
+  speed?: string;
   elements?: ElementType[];
   presDt?: number;
-  presDamage?: string;
-  presImmuneNex?: number;
-  
-  fortitude?: string;
-  vontade?: string;
-  
+  presDano?: string;
+  presNex?: number;
   enigma?: string;
-  
-  senses: string[];
-  resistances: string[];
-  vulnerabilities: string[];
-  abilities: string[];
-  actions: string[];
+  senses?: string[];
+  resistances?: { type: string; val: number }[];
+  vulnerabilities?: string[];
+  abilities?: { title: string; desc: string }[];
+  actions?: { type: string; name: string; test: string; damage: string; mult: string; desc: string }[];
 }
-
-export interface PlayerToken extends BaseToken {
-  type: 'player';
-  stats: PlayerStats;
-}
-
-export interface ThreatToken extends BaseToken {
-  type: 'threat';
-  stats: ThreatStats;
-}
-
-export type Token = PlayerToken | ThreatToken;
 
 export interface Condition {
-  id: string;
   name: string;
   desc: string;
   color: string;
 }
 
-export interface POI {
+export interface Token {
   id: string;
+  name: string;        // initials (displayed on token circle)
+  fullName: string;     // full character name
+  colorText: string;
+  colorBorder: string;
+  colorFill: string;
+  x: number | null;     // null = not on map
+  y: number | null;
+  desc: string;         // notes/lore
+  conditions: Condition[];
+  stats: TokenStats;
+}
+
+// --- Zone Types (matching DM_tool_6v AppState.zones) ---
+
+export interface POIOption {
   name: string;
-  category: string; // Used for grouping
-  description: string;
+  desc: string;
+}
+
+export interface POICategory {
+  title: string;
+  icon: 'none' | 'star' | 'spiral' | 'triangle';
+  options: POIOption[];
 }
 
 export interface ZoneEvent {
-  id: string;
   name: string;
-  type: 'red' | 'yellow' | 'green' | 'purple'; // Color coding
-  description: string;
+  desc: string;
+  color: 'red' | 'yellow' | 'green' | 'purple';
 }
 
 export interface Zone {
   id: string;
-  title: string;
-  description: string;
-  visits: number;
-  shape: 'rect' | 'ellipse' | 'polygon';
+  type: 'rect' | 'ellipse' | 'polygon';
   x: number;
   y: number;
-  width?: number;
-  height?: number;
-  points?: number[]; // For polygons
-  pois: POI[];
-  events: ZoneEvent[];
+  w: number;
+  h: number;
+  clipPath?: string;             // for polygon CSS clip-path
+  points?: number[];  // [x1, y1, x2, y2, ...]
+  data: {
+    title: string;
+    desc: string;
+    visits: number;
+    customPois: POICategory[];
+    customEvents: ZoneEvent[];
+  };
 }
+
+// --- Marker Types ---
 
 export interface Marker {
   id: string;
   x: number;
   y: number;
-  title: string;
-  description: string;
+  text: string;
 }
 
+// --- Initiative ---
+
 export interface InitiativeItem {
-  id: string;
   tokenId: string;
   value: number;
 }
+
+// --- Background Images ---
+
+export interface BgImage {
+  id: string;
+  src: string;       // data URL
+  x: number;
+  y: number;
+  scale: number;
+  rotation: number;
+}
+
+// --- Tool ---
+
+export type ActiveTool = 'pan' | 'draw-rect' | 'draw-ellipse' | 'draw-poly' | 'edit-bg' | 'add-marker';

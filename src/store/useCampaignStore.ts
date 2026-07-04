@@ -6,6 +6,7 @@ interface CampaignState {
   turn: number;
   urgency: number | null;
   turnsPerRound: number;
+  showInitModal: boolean;
   
   setScene: (scene: number) => void;
   nextScene: () => void;
@@ -16,6 +17,7 @@ interface CampaignState {
   setUrgency: (urgency: number | null) => void;
   changeUrgency: (amount: number) => void;
   setTurnsPerRound: (amount: number) => void;
+  setShowInitModal: (show: boolean) => void;
 }
 
 export const useCampaignStore = create<CampaignState>((set, get) => ({
@@ -24,6 +26,7 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
   turn: 1,
   urgency: null,
   turnsPerRound: 10,
+  showInitModal: false,
   
   setScene: (scene) => set({ scene }),
   nextScene: () => set((state) => ({ scene: state.scene + 1, round: 1, turn: 1 })),
@@ -50,10 +53,9 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
   },
   
   setUrgency: (urgency) => set({ urgency }),
-  changeUrgency: (amount) => set((state) => {
-    if (state.urgency === null) return { urgency: Math.max(0, amount) };
-    return { urgency: Math.max(0, state.urgency + amount) };
-  }),
-  
+  changeUrgency: (amount) => set((state) => ({ 
+    urgency: state.urgency !== null ? Math.max(0, state.urgency + amount) : null 
+  })),
   setTurnsPerRound: (turnsPerRound) => set({ turnsPerRound }),
+  setShowInitModal: (showInitModal) => set({ showInitModal }),
 }));
