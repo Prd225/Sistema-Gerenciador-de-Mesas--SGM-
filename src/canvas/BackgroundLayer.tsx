@@ -44,6 +44,14 @@ function BgImageComponent({ bg }: { bg: BgImage }) {
         const newScale = Math.max(0.1, bg.scale + direction * 0.1);
         updateBgImage(bg.id, { scale: newScale });
       }}
+      onContextMenu={(e) => {
+        if (!isDraggable) return;
+        e.cancelBubble = true;
+        e.evt.preventDefault();
+        if (window.confirm("Deseja deletar esta imagem?")) {
+          useZoneStore.getState().removeBgImage(bg.id);
+        }
+      }}
       perfectDrawEnabled={false}
     />
   );
