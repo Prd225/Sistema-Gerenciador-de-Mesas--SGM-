@@ -2,7 +2,6 @@ import {
   FolderOpen,
   Download,
   FilePlus2,
-  FileSymlink,
   FileText,
   HelpCircle,
   Plus,
@@ -10,7 +9,6 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useRef } from 'react';
 import { useTokenStore } from '@/store/useTokenStore';
 import { useZoneStore } from '@/store/useZoneStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
@@ -32,7 +30,8 @@ export default function Header() {
   const tokens = useTokenStore(state => state.tokens);
   const setShowTokenCreateModal = useTokenStore(state => state.setShowTokenCreateModal);
   const setTokenContextMenu = useTokenStore(state => state.setTokenContextMenu);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const setShowLoadModal = useCampaignStore(state => state.setShowLoadModal);
+  const setShowSaveModal = useCampaignStore(state => state.setShowSaveModal);
 
   const handleNew = () => {
     if (window.confirm('Deseja criar um novo mapa? Todo progresso não salvo será perdido.')) {
@@ -43,90 +42,15 @@ export default function Header() {
   };
 
   const handleSave = () => {
-    const tokenState = useTokenStore.getState();
-    const zoneState = useZoneStore.getState();
-    const campaignState = useCampaignStore.getState();
-
-    const data = {
-      version: 1, // Added for future migration stability
-      tokens: {
-        tokens: tokenState.tokens,
-        initiativeQueue: tokenState.initiativeQueue,
-      },
-      zones: {
-        zones: zoneState.zones,
-        markers: zoneState.markers,
-        bgImages: zoneState.bgImages,
-      },
-      campaign: {
-        scene: campaignState.scene,
-        round: campaignState.round,
-        turn: campaignState.turn,
-        urgency: campaignState.urgency,
-        turnsPerRound: campaignState.turnsPerRound,
-      }
-    };
-    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'campanha.json';
-    a.click();
-    URL.revokeObjectURL(url);
+    setShowSaveModal(true);
   };
 
-  const handleLoad = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const result = evt.target?.result;
-        if (typeof result === 'string') {
-          const data = JSON.parse(result);
-          // Only merge core data, avoiding UI state pollution
-          if (data.tokens) {
-            useTokenStore.setState({
-              tokens: data.tokens.tokens || [],
-              initiativeQueue: data.tokens.initiativeQueue || []
-            });
-          }
-          if (data.zones) {
-            useZoneStore.setState({
-              zones: data.zones.zones || {},
-              markers: data.zones.markers || {},
-              bgImages: data.zones.bgImages || []
-            });
-          }
-          if (data.campaign) {
-            useCampaignStore.setState({
-              scene: data.campaign.scene || 1,
-              round: data.campaign.round || 1,
-              turn: data.campaign.turn || 1,
-              urgency: data.campaign.urgency !== undefined ? data.campaign.urgency : null,
-              turnsPerRound: data.campaign.turnsPerRound || 10
-            });
-          }
-        }
-      } catch (err) {
-        console.error('Falha ao carregar arquivo', err);
-        alert('Arquivo inválido ou corrompido.');
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
+  const handleLoad = () => {
+    setShowLoadModal(true);
   };
 
   return (
     <header className="h-[70px] bg-[#202024]/95 border-b border-[#323238] flex items-center justify-between px-5 z-50 shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
-      {/* Hidden file input for loading JSON */}
-      <input
-        type="file"
-        accept=".json"
-        ref={fileInputRef}
-        onChange={handleLoad}
-        style={{ display: 'none' }}
-      />
 
       {/* Logo & File Menu */}
       <div className="flex items-center gap-4">
@@ -145,14 +69,11 @@ export default function Header() {
             <DropdownMenuItem onClick={handleNew} className="cursor-pointer hover:bg-[#8257e5] hover:text-white focus:bg-[#8257e5] focus:text-white">
               <FilePlus2 className="w-4 h-4 mr-2" /> Novo
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => fileInputRef.current?.click()} className="cursor-pointer hover:bg-[#8257e5] hover:text-white focus:bg-[#8257e5] focus:text-white">
-              <FolderOpen className="w-4 h-4 mr-2" /> Abrir Arquivo
+            <DropdownMenuItem onClick={handleLoad} className="cursor-pointer hover:bg-[#8257e5] hover:text-white focus:bg-[#8257e5] focus:text-white">
+              <FolderOpen className="w-4 h-4 mr-2" /> Carregar Salvamento
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleSave} className="cursor-pointer hover:bg-[#8257e5] hover:text-white focus:bg-[#8257e5] focus:text-white">
               <Download className="w-4 h-4 mr-2" /> Salvar
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleSave} className="cursor-pointer hover:bg-[#8257e5] hover:text-white focus:bg-[#8257e5] focus:text-white">
-              <FileSymlink className="w-4 h-4 mr-2" /> Salvar Como
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -171,7 +92,7 @@ export default function Header() {
                 e.dataTransfer.effectAllowed = 'copyMove';
               }}
               className={`
-                w-[50px] h-[50px] rounded-full border-[3px] flex items-center justify-center
+                w-[50px] h-[50px] rounded-full border-[3px] flex items-center justify-center overflow-hidden
                 font-bold text-[0.9rem] cursor-grab shrink-0 select-none
                 transition-transform duration-200
                 hover:scale-110 hover:shadow-[0_0_10px_#8257e5]
@@ -194,7 +115,11 @@ export default function Header() {
                 setTokenContextMenu({ id: t.id, x: e.clientX, y: e.clientY });
               }}
             >
-              {t.name}
+              {t.imageUrl ? (
+                <img src={t.imageUrl} alt={t.name} className="w-full h-full object-cover pointer-events-none" draggable={false} />
+              ) : (
+                t.name
+              )}
             </div>
           );
         })}
@@ -203,10 +128,8 @@ export default function Header() {
       {/* Action Buttons */}
       <div className="flex gap-2">
         <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="outline" className="bg-transparent border-none text-[#a8a8b3] hover:text-white hover:bg-white/5" title="Ajuda">
+          <DialogTrigger className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-transparent text-[#a8a8b3] hover:text-white hover:bg-white/5 h-10 px-4 py-2 border-none" title="Ajuda">
               <HelpCircle className="w-5 h-5" />
-            </Button>
           </DialogTrigger>
           <DialogContent className="bg-[#202024] border-[#323238] text-[#e1e1e6] sm:max-w-[500px]">
             <DialogHeader>

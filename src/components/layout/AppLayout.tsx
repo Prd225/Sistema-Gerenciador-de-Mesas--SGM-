@@ -8,6 +8,8 @@ import TokenSheetModal from '../modals/TokenSheetModal';
 import InitiativeBar from '../initiative/InitiativeBar';
 import InitiativeModal from '../modals/InitiativeModal';
 import TokenCreateModal from '../modals/TokenCreateModal';
+import LoadCampaignModal from '../modals/LoadCampaignModal';
+import SaveCampaignModal from '../modals/SaveCampaignModal';
 import MapToolbar from '../toolbar/MapToolbar';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useZoneStore } from '@/store/useZoneStore';
@@ -49,6 +51,8 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
       <Footer />
       <TokenSheetModal />
       <TokenCreateModal />
+      <LoadCampaignModal />
+      <SaveCampaignModal />
       <InitiativeModal open={showInitModal} onOpenChange={setShowInitModal} />
 
       {/* Token Context Menu Overlay */}

@@ -65,6 +65,7 @@ export interface Token {
   colorFill: string;
   x: number | null;     // null = not on map
   y: number | null;
+  imageUrl?: string;    // Base64 cropped image
   desc: string;         // notes/lore
   conditions: Condition[];
   stats: TokenStats;

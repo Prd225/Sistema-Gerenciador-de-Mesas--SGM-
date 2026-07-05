@@ -1,5 +1,5 @@
 import React from 'react';
-import { Group, Rect, Ellipse, Line, Text, Circle } from 'react-konva';
+import { Group, Rect, Ellipse, Line, Text } from 'react-konva';
 import { useZoneStore } from '@/store/useZoneStore';
 
 export interface NewShapeState {

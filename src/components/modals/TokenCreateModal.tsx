@@ -4,6 +4,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useTokenStore } from '@/store/useTokenStore';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { ImagePlus, X } from 'lucide-react';
+import { ImageCropper } from '@/components/ui/ImageCropper';
 import type { Token, TokenStats } from '@/types/game';
 
 function getDefaultStats(typeId: string): TokenStats {
@@ -57,6 +59,22 @@ export default function TokenCreateModal() {
   const [colorBorder, setColorBorder] = useState('#ffffff');
   const [colorFill, setColorFill] = useState('#8257e5');
 
+  const [rawImage, setRawImage] = useState<string | null>(null);
+  const [croppedImage, setCroppedImage] = useState<string | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        if (typeof ev.target?.result === 'string') {
+          setRawImage(ev.target.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleConfirm = () => {
     const fullName = name.trim() || 'Token';
     const tokenInitials = initials.trim().substring(0, 4).toUpperCase() || fullName.substring(0, 2).toUpperCase();
@@ -70,6 +88,7 @@ export default function TokenCreateModal() {
       colorFill,
       x: null,       // NOT on map — matches source of truth
       y: null,
+      imageUrl: croppedImage || undefined,
       desc: '',
       conditions: [],
       stats: getDefaultStats(sheetType),
@@ -85,7 +104,29 @@ export default function TokenCreateModal() {
     setColorText('#ffffff');
     setColorBorder('#ffffff');
     setColorFill('#8257e5');
+    setCroppedImage(null);
+    setRawImage(null);
   };
+
+  if (rawImage) {
+    return (
+      <Dialog open={showTokenCreateModal} onOpenChange={(open) => !open && setShowTokenCreateModal(false)}>
+        <DialogContent className="bg-[#202024] border-[#323238] text-[#e1e1e6] sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-[#ffd700]">Ajustar Imagem</DialogTitle>
+          </DialogHeader>
+          <ImageCropper
+            imageSrc={rawImage}
+            onConfirm={(base64) => {
+              setCroppedImage(base64);
+              setRawImage(null);
+            }}
+            onCancel={() => setRawImage(null)}
+          />
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={showTokenCreateModal} onOpenChange={setShowTokenCreateModal}>
@@ -95,6 +136,28 @@ export default function TokenCreateModal() {
         </DialogHeader>
 
         <div className="space-y-4 my-2">
+          {/* Imagem do Token */}
+          <div className="flex justify-center">
+            <div className="relative group w-24 h-24 rounded-full border-2 border-dashed border-[#323238] flex items-center justify-center overflow-hidden hover:border-[#8257e5] transition-colors cursor-pointer bg-[#121214]">
+              {croppedImage ? (
+                <>
+                  <img src={croppedImage} alt="Preview" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity" onClick={(e) => { e.preventDefault(); setCroppedImage(null); }}>
+                    <X className="w-6 h-6 text-white" />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleFileChange} title="Adicionar Imagem" />
+                  <div className="flex flex-col items-center text-[#a8a8b3] group-hover:text-[#8257e5] pointer-events-none">
+                    <ImagePlus className="w-6 h-6 mb-1" />
+                    <span className="text-[10px]">Imagem</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
           <div>
             <label className="text-xs text-[#a8a8b3] block mb-1">Nome do Personagem</label>
             <Input
