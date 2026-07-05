@@ -6,7 +6,7 @@ import { useTokenStore } from '@/store/useTokenStore';
 import { useZoneStore } from '@/store/useZoneStore';
 import { db } from '@/lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Trash2, DownloadCloud, ChevronLeft, ChevronRight, FolderOpen } from 'lucide-react';
+import { Trash2, ChevronLeft, ChevronRight, FolderOpen, AlertTriangle } from 'lucide-react';
 import { timeAgo } from '@/lib/utils';
 
 const SLOTS_PER_PAGE = 10;
@@ -15,6 +15,7 @@ const TOTAL_PAGES = 5;
 export default function LoadCampaignModal() {
   const open = useCampaignStore(state => state.showLoadModal);
   const onOpenChange = useCampaignStore(state => state.setShowLoadModal);
+  const autoSaveSlot = useCampaignStore(state => state.autoSaveSlot);
   const [currentPage, setCurrentPage] = useState(1);
 
   // Fetch only slots for current page
@@ -75,9 +76,10 @@ export default function LoadCampaignModal() {
       slots.push(
         <div 
           key={i} 
-          onClick={() => existingSave && handleLoad(existingSave.data)}
+          onClick={() => existingSave && autoSaveSlot === null && handleLoad(existingSave.data)}
           className={`flex items-center justify-between p-3 rounded-md border border-[#323238] transition-colors
-            ${existingSave ? 'bg-[#121214] hover:bg-[#202024] cursor-pointer' : 'bg-transparent border-dashed opacity-50 cursor-not-allowed'}
+            ${existingSave ? 'bg-[#121214]' : 'bg-transparent border-dashed opacity-50'}
+            ${!existingSave || autoSaveSlot !== null ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#202024] cursor-pointer'}
           `}
         >
           <div className="flex flex-col">
@@ -96,18 +98,12 @@ export default function LoadCampaignModal() {
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="border-[#323238] bg-[#121214] text-red-500 hover:bg-red-500 hover:text-white h-8 px-2"
+                disabled={autoSaveSlot !== null}
+                className="border-[#323238] bg-[#121214] text-red-500 hover:bg-red-500 hover:text-white h-8 px-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={(e) => handleDelete(e, i, existingSave.name)}
                 title="Apagar Save"
               >
                 <Trash2 className="w-4 h-4" />
-              </Button>
-              <Button 
-                size="sm" 
-                className="bg-[#8257e5] hover:bg-[#9466ff] text-white h-8"
-                onClick={(e) => { e.stopPropagation(); handleLoad(existingSave.data); }}
-              >
-                <DownloadCloud className="w-4 h-4 mr-2" /> Carregar
               </Button>
             </div>
           )}
@@ -125,6 +121,16 @@ export default function LoadCampaignModal() {
             <FolderOpen className="w-5 h-5" /> Carregar Salvamento
           </DialogTitle>
         </DialogHeader>
+        
+        {autoSaveSlot !== null && (
+          <div className="bg-yellow-500/10 border border-yellow-500/50 rounded-md p-3 mb-2 flex items-start gap-3 mt-2">
+            <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-yellow-500/90 leading-tight">
+              O Carregamento de Mesas está desabilitado enquanto o <strong>Salvamento Automático (Slot {autoSaveSlot})</strong> estiver ativo. 
+              Desative o Auto-save na janela de "Salvar" para poder carregar outra mesa.
+            </p>
+          </div>
+        )}
         
         <div className="flex-1 overflow-y-auto pr-2 space-y-2 mt-2">
           {renderSlots()}

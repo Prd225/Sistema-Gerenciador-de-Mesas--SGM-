@@ -7,7 +7,7 @@ import { useZoneStore } from '@/store/useZoneStore';
 import { db } from '@/lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { timeAgo } from '@/lib/utils';
-import { Save, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Save, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 
 const SLOTS_PER_PAGE = 10;
 const TOTAL_PAGES = 5;
@@ -15,6 +15,9 @@ const TOTAL_PAGES = 5;
 export default function SaveCampaignModal() {
   const open = useCampaignStore(state => state.showSaveModal);
   const onOpenChange = useCampaignStore(state => state.setShowSaveModal);
+  const autoSaveSlot = useCampaignStore(state => state.autoSaveSlot);
+  const setAutoSaveSlot = useCampaignStore(state => state.setAutoSaveSlot);
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [loadingSlot, setLoadingSlot] = useState<number | null>(null);
 
@@ -84,6 +87,22 @@ export default function SaveCampaignModal() {
     }
   };
 
+  const handleToggleAutoSave = (e: React.MouseEvent, slotNumber: number) => {
+    e.stopPropagation(); // Evita acionar o click de sobrescrever o slot
+
+    const isCurrentlyActive = autoSaveSlot === slotNumber;
+
+    if (isCurrentlyActive) {
+      if (window.confirm('Ao desativar essa opção, este slot não receberá mais atualizações automáticas sobre o estado atual do sistema. Confirmar?')) {
+        setAutoSaveSlot(null);
+      }
+    } else {
+      if (window.confirm('Ao ativar essa opção, o slot atual será sobrescrito automaticamente durante o uso do sistema. Deseja continuar?')) {
+        setAutoSaveSlot(slotNumber);
+      }
+    }
+  };
+
   const renderSlots = () => {
     const slots = [];
     for (let i = minSlot; i <= maxSlot; i++) {
@@ -92,20 +111,41 @@ export default function SaveCampaignModal() {
       slots.push(
         <div 
           key={i} 
-          onClick={() => !loadingSlot && handleSaveToSlot(i, existingSave?.name)}
+          onClick={() => !loadingSlot && autoSaveSlot !== i && handleSaveToSlot(i, existingSave?.name)}
           className={`flex flex-col justify-center p-3 rounded-md border border-[#323238] transition-colors
             ${existingSave ? 'bg-[#121214] hover:bg-[#202024]' : 'bg-transparent hover:bg-white/5 border-dashed'}
-            ${loadingSlot ? 'opacity-50 cursor-wait' : 'cursor-pointer'}
+            ${loadingSlot || autoSaveSlot === i ? 'cursor-not-allowed' : 'cursor-pointer'}
+            ${loadingSlot ? 'opacity-50' : ''}
+            ${autoSaveSlot === i ? 'border-[#8257e5]/50 bg-[#8257e5]/5 hover:bg-[#8257e5]/5' : ''}
           `}
         >
           <div className="flex justify-between items-center mb-1">
-            <span className="font-bold text-[#e1e1e6] text-sm">
-              {i}. {existingSave ? existingSave.name : 'Slot Vazio'}
-            </span>
-            {existingSave && (
-              <span className="text-[0.65rem] text-[#a8a8b3] font-semibold uppercase">
-                {timeAgo(existingSave.updatedAt)}
+            <div className="flex flex-col">
+              <span className="font-bold text-[#e1e1e6] text-sm">
+                {i}. {existingSave ? existingSave.name : 'Slot Vazio'}
               </span>
+              {existingSave && (
+                <span className="text-[0.65rem] text-[#a8a8b3] font-semibold uppercase">
+                  {timeAgo(existingSave.updatedAt)}
+                </span>
+              )}
+            </div>
+            
+            {existingSave && (
+              <Button
+                size="sm"
+                variant="outline"
+                className={`h-7 px-2 ml-2 transition-colors border-[#323238] ${
+                  autoSaveSlot === i 
+                    ? 'bg-[#8257e5] text-white hover:bg-[#9466ff]' 
+                    : 'bg-transparent text-[#a8a8b3] hover:text-[#e1e1e6] hover:bg-white/5'
+                }`}
+                onClick={(e) => handleToggleAutoSave(e, i)}
+                title={autoSaveSlot === i ? 'Desativar Salvamento Automático' : 'Ativar Salvamento Automático'}
+              >
+                <RefreshCw className={`w-3 h-3 mr-1.5 ${autoSaveSlot === i ? 'animate-spin-slow' : ''}`} />
+                {autoSaveSlot === i ? 'Auto-Save ON' : 'Auto-Save OFF'}
+              </Button>
             )}
           </div>
           {!existingSave && (
