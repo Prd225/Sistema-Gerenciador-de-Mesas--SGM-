@@ -6,7 +6,9 @@ import {
   HelpCircle,
   Plus,
   Swords,
-  ChevronDown
+  ChevronDown,
+  RefreshCw,
+  CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTokenStore } from '@/store/useTokenStore';
@@ -32,6 +34,8 @@ export default function Header() {
   const setTokenContextMenu = useTokenStore(state => state.setTokenContextMenu);
   const setShowLoadModal = useCampaignStore(state => state.setShowLoadModal);
   const setShowSaveModal = useCampaignStore(state => state.setShowSaveModal);
+  const autoSaveSlot = useCampaignStore(state => state.autoSaveSlot);
+  const autoSaveStatus = useCampaignStore(state => state.autoSaveStatus);
 
   const handleNew = () => {
     if (window.confirm('Deseja criar um novo mapa? Todo progresso não salvo será perdido.')) {
@@ -56,7 +60,20 @@ export default function Header() {
       <div className="flex items-center gap-4">
         <div className="font-bold text-[#ffd700] text-xl flex items-center gap-2">
           <Swords className="w-6 h-6" />
-          GM TOOL V6.6
+          <span>GM TOOL V6.6</span>
+          
+          {autoSaveStatus === 'saving' && (
+            <div className="flex items-center gap-1.5 ml-2 text-xs text-[#8257e5] font-semibold animate-pulse">
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              <span className="opacity-80">Salvando...</span>
+            </div>
+          )}
+          {autoSaveStatus === 'success' && (
+            <div className="flex items-center gap-1.5 ml-2 text-xs text-green-400 font-semibold animate-in fade-in slide-in-from-left-2 duration-300">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span className="opacity-80">Salvo!</span>
+            </div>
+          )}
         </div>
 
         <DropdownMenu>
@@ -66,7 +83,12 @@ export default function Header() {
               <ChevronDown className="w-4 h-4 ml-1" />
           </DropdownMenuTrigger>
           <DropdownMenuContent className="bg-[#202024] border-[#323238] text-[#e1e1e6]">
-            <DropdownMenuItem onClick={handleNew} className="cursor-pointer hover:bg-[#8257e5] hover:text-white focus:bg-[#8257e5] focus:text-white">
+            <DropdownMenuItem 
+              onClick={handleNew} 
+              disabled={autoSaveSlot !== null}
+              className="cursor-pointer hover:bg-[#8257e5] hover:text-white focus:bg-[#8257e5] focus:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              title={autoSaveSlot !== null ? 'Desative o Auto-Save para criar um mapa novo' : ''}
+            >
               <FilePlus2 className="w-4 h-4 mr-2" /> Novo
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleLoad} className="cursor-pointer hover:bg-[#8257e5] hover:text-white focus:bg-[#8257e5] focus:text-white">

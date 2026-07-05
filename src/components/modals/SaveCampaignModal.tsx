@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useCampaignStore } from '@/store/useCampaignStore';
-import { useTokenStore } from '@/store/useTokenStore';
-import { useZoneStore } from '@/store/useZoneStore';
 import { db } from '@/lib/db';
+import { collectGameState } from '@/lib/saveHelpers';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { timeAgo } from '@/lib/utils';
 import { Save, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
@@ -34,41 +33,19 @@ export default function SaveCampaignModal() {
 
   const handleSaveToSlot = async (slotNumber: number, existingName?: string) => {
     if (existingName) {
-      if (!window.confirm(`Deseja sobrescrever este arquivo "${existingName}"?`)) {
-        return; // Retorna para seleção
+      if (!window.confirm(`Deseja sobrescrever o slot ${slotNumber} (${existingName})?`)) {
+        return;
       }
     }
 
-    const name = window.prompt('Nome do Salvamento:', existingName || `Save - ${new Date().toLocaleString('pt-BR')}`);
+    const name = window.prompt('Nome do save:', existingName || `Save Slot ${slotNumber}`);
     if (!name) return;
 
     setLoadingSlot(slotNumber);
     // Pequeno atraso para garantir que a UI de carregamento seja desenhada
     await new Promise(resolve => setTimeout(resolve, 150));
 
-    const tokenState = useTokenStore.getState();
-    const zoneState = useZoneStore.getState();
-    const campaignState = useCampaignStore.getState();
-
-    const data = {
-      version: 1,
-      tokens: {
-        tokens: tokenState.tokens,
-        initiativeQueue: tokenState.initiativeQueue,
-      },
-      zones: {
-        zones: zoneState.zones,
-        markers: zoneState.markers,
-        bgImages: zoneState.bgImages,
-      },
-      campaign: {
-        scene: campaignState.scene,
-        round: campaignState.round,
-        turn: campaignState.turn,
-        urgency: campaignState.urgency,
-        turnsPerRound: campaignState.turnsPerRound,
-      }
-    };
+    const data = collectGameState();
 
     try {
       await db.campaignSlots.put({

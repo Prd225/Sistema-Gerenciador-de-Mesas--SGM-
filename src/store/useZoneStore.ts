@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Zone, Marker, BgImage, ActiveTool } from '@/types/game';
+import { triggerAutoSave } from '@/lib/saveHelpers';
 
 interface ZoneState {
   zones: Record<string, Zone>;
@@ -56,65 +57,93 @@ export const useZoneStore = create<ZoneState>((set) => ({
   toggleLeftSidebar: () => set((state) => ({ leftSidebarOpen: !state.leftSidebarOpen })),
   toggleRightSidebar: () => set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen })),
 
-  addZone: (zone) => set((state) => ({
-    zones: { ...state.zones, [zone.id]: zone }
-  })),
+  addZone: (zone) => {
+    set((state) => ({ zones: { ...state.zones, [zone.id]: zone } }));
+    triggerAutoSave();
+  },
 
-  updateZone: (id, updates) => set((state) => ({
-    zones: {
-      ...state.zones,
-      [id]: { ...state.zones[id], ...updates }
-    }
-  })),
-
-  updateZoneData: (id, dataUpdates) => set((state) => {
-    const zone = state.zones[id];
-    if (!zone) return state;
-    return {
+  updateZone: (id, updates) => {
+    set((state) => ({
       zones: {
         ...state.zones,
-        [id]: { ...zone, data: { ...zone.data, ...dataUpdates } }
+        [id]: { ...state.zones[id], ...updates }
       }
-    };
-  }),
+    }));
+    triggerAutoSave();
+  },
 
-  removeZone: (id) => set((state) => {
-    const newZones = { ...state.zones };
-    delete newZones[id];
-    return {
-      zones: newZones,
-      selectedZoneId: state.selectedZoneId === id ? null : state.selectedZoneId
-    };
-  }),
+  updateZoneData: (id, dataUpdates) => {
+    set((state) => {
+      const zone = state.zones[id];
+      if (!zone) return state;
+      return {
+        zones: {
+          ...state.zones,
+          [id]: { ...zone, data: { ...zone.data, ...dataUpdates } }
+        }
+      };
+    });
+    triggerAutoSave();
+  },
 
-  addMarker: (marker) => set((state) => ({
-    markers: { ...state.markers, [marker.id]: marker }
-  })),
+  removeZone: (id) => {
+    set((state) => {
+      const newZones = { ...state.zones };
+      delete newZones[id];
+      return {
+        zones: newZones,
+        selectedZoneId: state.selectedZoneId === id ? null : state.selectedZoneId
+      };
+    });
+    triggerAutoSave();
+  },
 
-  updateMarker: (id, updates) => set((state) => ({
-    markers: {
-      ...state.markers,
-      [id]: { ...state.markers[id], ...updates }
-    }
-  })),
+  addMarker: (marker) => {
+    set((state) => ({
+      markers: { ...state.markers, [marker.id]: marker }
+    }));
+    triggerAutoSave();
+  },
 
-  removeMarker: (id) => set((state) => {
-    const newMarkers = { ...state.markers };
-    delete newMarkers[id];
-    return { markers: newMarkers };
-  }),
+  updateMarker: (id, updates) => {
+    set((state) => ({
+      markers: {
+        ...state.markers,
+        [id]: { ...state.markers[id], ...updates }
+      }
+    }));
+    triggerAutoSave();
+  },
 
-  addBgImage: (bg) => set((state) => ({
-    bgImages: [...state.bgImages, bg]
-  })),
+  removeMarker: (id) => {
+    set((state) => {
+      const newMarkers = { ...state.markers };
+      delete newMarkers[id];
+      return { markers: newMarkers };
+    });
+    triggerAutoSave();
+  },
 
-  updateBgImage: (id, updates) => set((state) => ({
-    bgImages: state.bgImages.map(bg => bg.id === id ? { ...bg, ...updates } : bg)
-  })),
+  addBgImage: (bg) => {
+    set((state) => ({
+      bgImages: [...state.bgImages, bg]
+    }));
+    triggerAutoSave();
+  },
 
-  removeBgImage: (id) => set((state) => ({
-    bgImages: state.bgImages.filter(bg => bg.id !== id)
-  })),
+  updateBgImage: (id, updates) => {
+    set((state) => ({
+      bgImages: state.bgImages.map(bg => bg.id === id ? { ...bg, ...updates } : bg)
+    }));
+    triggerAutoSave();
+  },
+
+  removeBgImage: (id) => {
+    set((state) => ({
+      bgImages: state.bgImages.filter(bg => bg.id !== id)
+    }));
+    triggerAutoSave();
+  },
 
   setSelectedZoneId: (selectedZoneId) => set({ selectedZoneId }),
   setEditingZone: (editingZone) => set({ editingZone }),

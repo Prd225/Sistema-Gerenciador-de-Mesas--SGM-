@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Token, InitiativeItem } from '@/types/game';
+import { triggerAutoSave } from '@/lib/saveHelpers';
 
 interface TokenState {
   tokens: Token[];
@@ -32,22 +33,37 @@ export const useTokenStore = create<TokenState>((set, get) => ({
   showTokenCreateModal: false,
   tokenContextMenu: null,
 
-  addToken: (token) => set((state) => ({ tokens: [...state.tokens, token] })),
+  addToken: (token) => {
+    set((state) => ({ tokens: [...state.tokens, token] }));
+    triggerAutoSave();
+  },
 
-  updateToken: (id, updates) => set((state) => ({
-    tokens: state.tokens.map(token =>
-      token.id === id ? { ...token, ...updates } : token
-    )
-  })),
+  updateToken: (id, updates) => {
+    set((state) => ({
+      tokens: state.tokens.map(token =>
+        token.id === id ? { ...token, ...updates } : token
+      )
+    }));
+    triggerAutoSave();
+  },
 
-  removeToken: (id) => set((state) => ({
-    tokens: state.tokens.filter(token => token.id !== id),
-    initiativeQueue: state.initiativeQueue.filter(item => item.tokenId !== id),
-  })),
+  removeToken: (id) => {
+    set((state) => ({
+      tokens: state.tokens.filter(token => token.id !== id),
+      initiativeQueue: state.initiativeQueue.filter(item => item.tokenId !== id),
+    }));
+    triggerAutoSave();
+  },
 
-  setInitiativeQueue: (initiativeQueue) => set({ initiativeQueue }),
+  setInitiativeQueue: (initiativeQueue) => {
+    set({ initiativeQueue });
+    triggerAutoSave();
+  },
 
-  clearInitiative: () => set({ initiativeQueue: [] }),
+  clearInitiative: () => {
+    set({ initiativeQueue: [] });
+    triggerAutoSave();
+  },
 
   setActiveCtxTokenId: (activeCtxTokenId) => set({ activeCtxTokenId }),
   setEditingTokenId: (editingTokenId) => set({ editingTokenId }),

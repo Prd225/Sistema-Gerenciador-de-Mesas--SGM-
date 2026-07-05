@@ -12,6 +12,8 @@ import LoadCampaignModal from '../modals/LoadCampaignModal';
 import SaveCampaignModal from '../modals/SaveCampaignModal';
 import MapToolbar from '../toolbar/MapToolbar';
 import { useCampaignStore } from '@/store/useCampaignStore';
+import { useEffect } from 'react';
+import { triggerAutoSave } from '@/lib/saveHelpers';
 import { useZoneStore } from '@/store/useZoneStore';
 import { useTokenStore } from '@/store/useTokenStore';
 import { Search, Edit, Copy, IdCard, Trash2, Map } from 'lucide-react';
@@ -29,6 +31,38 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
   const updateToken = useTokenStore(state => state.updateToken);
   const removeToken = useTokenStore(state => state.removeToken);
   const getTokenById = useTokenStore(state => state.getTokenById);
+  const autoSaveSlot = useCampaignStore(state => state.autoSaveSlot);
+
+  // Auto-Save Lifecycle & Shortcuts
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+    
+    // Intervalo de 10 minutos (apenas se tiver slot)
+    if (autoSaveSlot !== null) {
+      interval = setInterval(() => {
+        triggerAutoSave();
+      }, 10 * 60 * 1000);
+    }
+
+    // Atalho Ctrl+S (Funciona globalmente)
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+        if (useCampaignStore.getState().autoSaveSlot !== null) {
+          triggerAutoSave(true); // forceImmediate = true
+        } else {
+          useCampaignStore.getState().setShowSaveModal(true);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      if (interval) clearInterval(interval);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [autoSaveSlot]);
 
   return (
     <div className="h-screen w-screen bg-[#121214] text-[#e1e1e6] overflow-hidden flex flex-col font-sans">

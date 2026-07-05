@@ -10,6 +10,7 @@ interface CampaignState {
   showLoadModal: boolean;
   showSaveModal: boolean;
   autoSaveSlot: number | null;
+  autoSaveStatus: 'idle' | 'saving' | 'success';
   
   setScene: (scene: number) => void;
   nextScene: () => void;
@@ -24,6 +25,7 @@ interface CampaignState {
   setShowLoadModal: (show: boolean) => void;
   setShowSaveModal: (show: boolean) => void;
   setAutoSaveSlot: (slot: number | null) => void;
+  setAutoSaveStatus: (status: 'idle' | 'saving' | 'success') => void;
 }
 
 export const useCampaignStore = create<CampaignState>((set, get) => ({
@@ -38,6 +40,7 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
   autoSaveSlot: localStorage.getItem('sgm_autoSaveSlot') 
     ? parseInt(localStorage.getItem('sgm_autoSaveSlot') as string, 10) 
     : null,
+  autoSaveStatus: 'idle',
   
   setScene: (scene) => set({ scene }),
   nextScene: () => set((state) => ({ scene: state.scene + 1, round: 1, turn: 1 })),
@@ -79,4 +82,5 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
     }
     set({ autoSaveSlot });
   },
+  setAutoSaveStatus: (autoSaveStatus) => set({ autoSaveStatus }),
 }));
