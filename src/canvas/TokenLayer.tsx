@@ -1,4 +1,5 @@
-import { Layer, Circle, Text, Group } from 'react-konva';
+import React from 'react';
+import { Group, Circle, Text } from 'react-konva';
 import { useTokenStore } from '@/store/useTokenStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useZoneStore } from '@/store/useZoneStore';
@@ -8,7 +9,7 @@ import { useZoneStore } from '@/store/useZoneStore';
  * Only tokens with x !== null (i.e. placed on map) are shown.
  * Matches the .token-map styling from DM_tool_6v.html.
  */
-export default function TokenLayer() {
+function TokenLayer() {
   const tokens = useTokenStore(state => state.tokens);
   const initiativeQueue = useTokenStore(state => state.initiativeQueue);
   const updateToken = useTokenStore(state => state.updateToken);
@@ -17,12 +18,13 @@ export default function TokenLayer() {
   const activeTool = useZoneStore(state => state.activeTool);
 
   // Determine which token has the active turn
-  const activeTokenId = initiativeQueue.length > 0
-    ? initiativeQueue[(turn - 1) % initiativeQueue.length]?.tokenId
+  const len = initiativeQueue.length;
+  const activeTokenId = len > 0
+    ? initiativeQueue[(((turn - 1) % len) + len) % len]?.tokenId
     : null;
 
   return (
-    <Layer>
+    <Group>
       {tokens
         .filter(t => t.x !== null && t.y !== null)
         .map(t => {
@@ -53,6 +55,8 @@ export default function TokenLayer() {
                   fill="rgba(255, 215, 0, 0.2)"
                   shadowBlur={25}
                   shadowColor="#ffd700"
+                  perfectDrawEnabled={false}
+                  shadowForStrokeEnabled={false}
                 />
               )}
               {/* Token body */}
@@ -63,6 +67,8 @@ export default function TokenLayer() {
                 strokeWidth={3}
                 shadowBlur={isActive ? 15 : 6}
                 shadowColor={isActive ? '#ffd700' : 'rgba(0,0,0,0.7)'}
+                perfectDrawEnabled={false}
+                shadowForStrokeEnabled={false}
               />
               {/* Token initials */}
               <Text
@@ -79,10 +85,13 @@ export default function TokenLayer() {
                 shadowColor="black"
                 shadowBlur={2}
                 listening={false}
+                perfectDrawEnabled={false}
               />
             </Group>
           );
         })}
-    </Layer>
+    </Group>
   );
 }
+
+export default React.memo(TokenLayer);

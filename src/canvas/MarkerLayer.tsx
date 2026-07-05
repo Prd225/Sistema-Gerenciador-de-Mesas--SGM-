@@ -1,18 +1,19 @@
-import { Layer, Group, Circle, Text, Line } from 'react-konva';
+import React from 'react';
+import { Group, Circle, Text, Line } from 'react-konva';
 import { useZoneStore } from '@/store/useZoneStore';
 
 /**
  * Renders map pin markers. Each marker is a pin icon with a label.
  * Matching the original .marker style from DM_tool_6v.
  */
-export default function MarkerLayer() {
+function MarkerLayer() {
   const markersMap = useZoneStore(state => state.markers);
   const markers = Object.values(markersMap);
   const updateMarker = useZoneStore(state => state.updateMarker);
   const activeTool = useZoneStore(state => state.activeTool);
 
   return (
-    <Layer>
+    <Group>
       {markers.map(marker => (
         <Group
           key={marker.id}
@@ -33,6 +34,7 @@ export default function MarkerLayer() {
             stroke="#e55757"
             strokeWidth={3}
             lineCap="round"
+            perfectDrawEnabled={false}
           />
           {/* Pin head */}
           <Circle
@@ -46,6 +48,8 @@ export default function MarkerLayer() {
             shadowBlur={8}
             shadowOpacity={0.7}
             shadowOffsetY={2}
+            perfectDrawEnabled={false}
+            shadowForStrokeEnabled={false}
           />
           {/* Pin dot */}
           <Circle
@@ -53,6 +57,7 @@ export default function MarkerLayer() {
             y={-20}
             radius={3}
             fill="white"
+            perfectDrawEnabled={false}
           />
           {/* Label */}
           {marker.text && (
@@ -65,10 +70,13 @@ export default function MarkerLayer() {
               y={-28}
               shadowColor="black"
               shadowBlur={4}
+              perfectDrawEnabled={false}
             />
           )}
         </Group>
       ))}
-    </Layer>
+    </Group>
   );
 }
+
+export default React.memo(MarkerLayer);

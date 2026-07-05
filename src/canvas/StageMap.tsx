@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { Stage } from 'react-konva';
+import { Stage, Layer } from 'react-konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { useZoneStore } from '@/store/useZoneStore';
 import { useTokenStore } from '@/store/useTokenStore';
@@ -9,6 +9,7 @@ import BackgroundLayer from './BackgroundLayer';
 import ZoneLayer, { type NewShapeState } from './ZoneLayer';
 import TokenLayer from './TokenLayer';
 import MarkerLayer from './MarkerLayer';
+import DrawingLayer from './DrawingLayer';
 
 const generateId = () =>
   window.crypto?.randomUUID?.() ?? Math.random().toString(36).substring(2, 11);
@@ -341,11 +342,18 @@ export default function StageMap() {
         onContextMenu={handleContextMenu}
         style={{ cursor: cursorStyle }}
       >
-        <GridLayer />
-        <BackgroundLayer />
-        <ZoneLayer newShape={newShape} />
-        <TokenLayer />
-        <MarkerLayer />
+        <Layer>
+          <GridLayer />
+          <BackgroundLayer />
+        </Layer>
+        <Layer>
+          <ZoneLayer />
+          <TokenLayer />
+          <MarkerLayer />
+        </Layer>
+        <Layer>
+          <DrawingLayer newShape={newShape} />
+        </Layer>
       </Stage>
     </div>
   );

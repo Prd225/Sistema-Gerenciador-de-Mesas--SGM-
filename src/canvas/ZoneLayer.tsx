@@ -1,4 +1,5 @@
-import { Layer, Rect, Ellipse, Line, Text, Group, Circle } from 'react-konva';
+import React from 'react';
+import { Group, Rect, Ellipse, Line, Text, Circle } from 'react-konva';
 import { useZoneStore } from '@/store/useZoneStore';
 
 export interface NewShapeState {
@@ -14,7 +15,7 @@ export interface NewShapeState {
  * Renders zones on the map canvas.
  * Matches the .zone styling from DM_tool_6v.html with labels.
  */
-export default function ZoneLayer({ newShape }: { newShape: NewShapeState | null }) {
+function ZoneLayer() {
   const zonesMap = useZoneStore(state => state.zones);
   const zones = Object.values(zonesMap);
   const selectedZoneId = useZoneStore(state => state.selectedZoneId);
@@ -22,7 +23,7 @@ export default function ZoneLayer({ newShape }: { newShape: NewShapeState | null
   const activeTool = useZoneStore(state => state.activeTool);
 
   return (
-    <Layer>
+    <Group>
       {zones.map(z => {
         const isActive = z.id === selectedZoneId;
         const fill = isActive ? 'rgba(130, 87, 229, 0.3)' : 'rgba(130, 87, 229, 0.08)';
@@ -40,6 +41,8 @@ export default function ZoneLayer({ newShape }: { newShape: NewShapeState | null
                 onTap={() => selectZone(z.id)}
                 cornerRadius={2}
                 listening={activeTool === 'pan'}
+                perfectDrawEnabled={false}
+                shadowForStrokeEnabled={false}
               />
               {title && (
                 <Text
@@ -55,6 +58,7 @@ export default function ZoneLayer({ newShape }: { newShape: NewShapeState | null
                   shadowColor="black"
                   shadowBlur={4}
                   shadowOpacity={0.9}
+                  perfectDrawEnabled={false}
                 />
               )}
             </Group>
@@ -69,6 +73,8 @@ export default function ZoneLayer({ newShape }: { newShape: NewShapeState | null
                 onClick={() => selectZone(z.id)}
                 onTap={() => selectZone(z.id)}
                 listening={activeTool === 'pan'}
+                perfectDrawEnabled={false}
+                shadowForStrokeEnabled={false}
               />
               {title && (
                 <Text
@@ -84,6 +90,7 @@ export default function ZoneLayer({ newShape }: { newShape: NewShapeState | null
                   shadowColor="black"
                   shadowBlur={4}
                   shadowOpacity={0.9}
+                  perfectDrawEnabled={false}
                 />
               )}
             </Group>
@@ -106,6 +113,8 @@ export default function ZoneLayer({ newShape }: { newShape: NewShapeState | null
                 onClick={() => selectZone(z.id)}
                 onTap={() => selectZone(z.id)}
                 listening={activeTool === 'pan'}
+                perfectDrawEnabled={false}
+                shadowForStrokeEnabled={false}
               />
               {title && (
                 <Text
@@ -121,6 +130,7 @@ export default function ZoneLayer({ newShape }: { newShape: NewShapeState | null
                   shadowColor="black"
                   shadowBlur={4}
                   shadowOpacity={0.9}
+                  perfectDrawEnabled={false}
                 />
               )}
             </Group>
@@ -129,46 +139,9 @@ export default function ZoneLayer({ newShape }: { newShape: NewShapeState | null
         return null;
       })}
 
-      {/* Render the shape currently being drawn */}
-      {newShape && newShape.type === 'rect' && (
-        <Rect
-          x={newShape.x} y={newShape.y}
-          width={newShape.width} height={newShape.height}
-          fill="rgba(255, 255, 255, 0.2)"
-          stroke="#fff"
-          strokeWidth={1}
-          dash={[4, 4]}
-        />
-      )}
-      {newShape && newShape.type === 'ellipse' && (
-        <Ellipse
-          x={newShape.x + (newShape.width || 0) / 2} y={newShape.y + (newShape.height || 0) / 2}
-          radiusX={Math.abs((newShape.width || 0) / 2)} radiusY={Math.abs((newShape.height || 0) / 2)}
-          fill="rgba(255, 255, 255, 0.2)"
-          stroke="#fff"
-          strokeWidth={1}
-          dash={[4, 4]}
-        />
-      )}
-      {newShape && newShape.type === 'polygon' && newShape.points && (
-        <Group>
-          <Line
-            points={newShape.points}
-            stroke="#fff"
-            strokeWidth={2}
-            dash={[4, 4]}
-            closed={false}
-          />
-          {newShape.points.length >= 2 && (
-            <Circle 
-              x={newShape.points[0]} 
-              y={newShape.points[1]} 
-              radius={5} 
-              fill="#ffd700" 
-            />
-          )}
-        </Group>
-      )}
-    </Layer>
+      {/* Drawing layer was moved to DrawingLayer.tsx */}
+    </Group>
   );
 }
+
+export default React.memo(ZoneLayer);

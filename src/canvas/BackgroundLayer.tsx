@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Layer, Image as KonvaImage } from 'react-konva';
+import React, { useEffect, useState } from 'react';
+import { Group, Image as KonvaImage } from 'react-konva';
 import { useZoneStore } from '@/store/useZoneStore';
 import type { BgImage } from '@/types/game';
 
@@ -44,16 +44,19 @@ function BgImageComponent({ bg }: { bg: BgImage }) {
         const newScale = Math.max(0.1, bg.scale + direction * 0.1);
         updateBgImage(bg.id, { scale: newScale });
       }}
+      perfectDrawEnabled={false}
     />
   );
 }
 
-export default function BackgroundLayer() {
+function BackgroundLayer() {
   const bgImages = useZoneStore(state => state.bgImages);
 
   return (
-    <Layer>
+    <Group>
       {bgImages.map(bg => <BgImageComponent key={bg.id} bg={bg} />)}
-    </Layer>
+    </Group>
   );
 }
+
+export default React.memo(BackgroundLayer);

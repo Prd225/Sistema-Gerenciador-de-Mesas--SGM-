@@ -43,10 +43,28 @@ export default function Header() {
   };
 
   const handleSave = () => {
+    const tokenState = useTokenStore.getState();
+    const zoneState = useZoneStore.getState();
+    const campaignState = useCampaignStore.getState();
+
     const data = {
-      tokens: useTokenStore.getState(),
-      zones: useZoneStore.getState(),
-      campaign: useCampaignStore.getState()
+      version: 1, // Added for future migration stability
+      tokens: {
+        tokens: tokenState.tokens,
+        initiativeQueue: tokenState.initiativeQueue,
+      },
+      zones: {
+        zones: zoneState.zones,
+        markers: zoneState.markers,
+        bgImages: zoneState.bgImages,
+      },
+      campaign: {
+        scene: campaignState.scene,
+        round: campaignState.round,
+        turn: campaignState.turn,
+        urgency: campaignState.urgency,
+        turnsPerRound: campaignState.turnsPerRound,
+      }
     };
     const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -66,9 +84,29 @@ export default function Header() {
         const result = evt.target?.result;
         if (typeof result === 'string') {
           const data = JSON.parse(result);
-          if (data.tokens) useTokenStore.setState(data.tokens);
-          if (data.zones) useZoneStore.setState(data.zones);
-          if (data.campaign) useCampaignStore.setState(data.campaign);
+          // Only merge core data, avoiding UI state pollution
+          if (data.tokens) {
+            useTokenStore.setState({
+              tokens: data.tokens.tokens || [],
+              initiativeQueue: data.tokens.initiativeQueue || []
+            });
+          }
+          if (data.zones) {
+            useZoneStore.setState({
+              zones: data.zones.zones || {},
+              markers: data.zones.markers || {},
+              bgImages: data.zones.bgImages || []
+            });
+          }
+          if (data.campaign) {
+            useCampaignStore.setState({
+              scene: data.campaign.scene || 1,
+              round: data.campaign.round || 1,
+              turn: data.campaign.turn || 1,
+              urgency: data.campaign.urgency !== undefined ? data.campaign.urgency : null,
+              turnsPerRound: data.campaign.turnsPerRound || 10
+            });
+          }
         }
       } catch (err) {
         console.error('Falha ao carregar arquivo', err);

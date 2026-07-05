@@ -1,5 +1,5 @@
-import { Layer, Rect } from 'react-konva';
-import { useEffect, useState } from 'react';
+import { Group, Rect } from 'react-konva';
+import React, { useEffect, useState } from 'react';
 
 const GRID_SIZE = 40;
 const GRID_EXTENT = 10000;
@@ -9,7 +9,7 @@ const GRID_EXTENT = 10000;
  * Draws a single grid tile to an offscreen canvas, then uses Konva's fillPatternImage
  * to tile it across the entire extent.
  */
-export default function GridLayer() {
+function GridLayer() {
   const [patternImage, setPatternImage] = useState<HTMLImageElement | null>(null);
 
   useEffect(() => {
@@ -43,10 +43,10 @@ export default function GridLayer() {
     };
   }, []);
 
-  if (!patternImage) return <Layer listening={false} />;
+  if (!patternImage) return <Group listening={false} />;
 
   return (
-    <Layer listening={false}>
+    <Group listening={false}>
       <Rect
         x={-GRID_EXTENT}
         y={-GRID_EXTENT}
@@ -56,7 +56,10 @@ export default function GridLayer() {
         fillPatternRepeat="repeat"
         fillPatternOffset={{ x: GRID_EXTENT % GRID_SIZE, y: GRID_EXTENT % GRID_SIZE }}
         listening={false}
+        perfectDrawEnabled={false}
       />
-    </Layer>
+    </Group>
   );
 }
+
+export default React.memo(GridLayer);
