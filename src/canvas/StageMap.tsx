@@ -268,6 +268,14 @@ export default function StageMap() {
   // --- Keyboard shortcuts ---
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        (e.target as HTMLElement).isContentEditable
+      ) {
+        return;
+      }
+
       if (e.key === ' ') {
         e.preventDefault();
         setActiveTool('pan');
