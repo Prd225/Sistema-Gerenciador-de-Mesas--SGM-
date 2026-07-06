@@ -97,6 +97,11 @@ export interface ZoneHighlight {
   color: 'red' | 'yellow' | 'green' | 'purple' | 'blue' | 'gray';
 }
 
+export interface ZoneHighlightCategory {
+  title: string;
+  options: ZoneHighlight[];
+}
+
 export interface ZoneThreat {
   name: string;
   type: string;
@@ -129,7 +134,7 @@ export interface Zone {
     visits: number;
     customPois: POICategory[];
     customEvents: ZoneEvent[];
-    customHighlights?: ZoneHighlight[];
+    customHighlights?: ZoneHighlightCategory[];
     customThreats?: ZoneThreat[];
     customInventory?: ZoneInventoryItem[];
   };

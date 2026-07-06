@@ -70,7 +70,7 @@ export function RichTextView({ content, className = '', defaultText = 'Sem descr
   
   return (
     <div 
-      className={`text-sm text-[#a8a8b3] leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_b]:text-[#e1e1e6] [&_strong]:text-[#e1e1e6] [&_i]:italic [&_u]:underline whitespace-pre-wrap break-words flex-1 ${className}`}
+      className={`text-sm text-[#a8a8b3] leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_b]:text-[#e1e1e6] [&_strong]:text-[#e1e1e6] [&_i]:italic [&_u]:underline whitespace-pre-wrap flex-1 break-words [word-break:break-word] overflow-hidden ${className}`}
       dangerouslySetInnerHTML={{ __html: content }} 
     />
   );

@@ -141,7 +141,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
 
             {!editingZone ? (
               /* READ MODE */
-              <div className="space-y-6 flex-1">
+              <div className="space-y-6 flex-1 min-w-0">
                 {activeTab === 'geral' && (
                   <>
                     <h2 className="text-[#e1e1e6] text-xl font-bold">{zoneData.title || 'Nova Zona'}</h2>
@@ -155,7 +155,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
 
                     {/* POIs Read View */}
                     {zoneData.customPois && zoneData.customPois.length > 0 && (
-                      <div>
+                      <div className="min-w-0">
                         <h3 className="text-[#a8a8b3] text-sm font-bold mb-3 uppercase border-b border-[#323238] pb-1">Pontos de Interesse</h3>
                         {zoneData.customPois.map((cat, idx) => (
                           <div key={idx} className="mb-4">
@@ -166,7 +166,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                               {cat.title || 'Categoria'}
                             </div>
                             {cat.options.map((opt, oi) => (
-                              <div key={oi} className="ml-3 mb-2 pl-3 border-l-2 border-[#323238]">
+                              <div key={oi} className="ml-3 mb-2 pl-3 border-l-2 border-[#323238] min-w-0">
                                 <div className="font-bold text-[#e1e1e6] mb-1">{opt.name}:</div>
                                 <RichTextView content={opt.desc} defaultText="" />
                               </div>
@@ -178,7 +178,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
 
                     {/* Events Read View */}
                     {zoneData.customEvents && zoneData.customEvents.length > 0 && (
-                      <div>
+                      <div className="min-w-0">
                         <h3 className="text-[#a8a8b3] text-sm font-bold mb-3 uppercase border-b border-[#323238] pb-1">Eventos</h3>
                         {zoneData.customEvents.map((evt, idx) => {
                           const borderColors: Record<string, string> = {
@@ -190,7 +190,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                             green: 'text-green-500', purple: 'text-purple-500'
                           };
                           return (
-                            <div key={idx} className={`bg-black/20 p-3 rounded mb-3 border-l-[3px] ${borderColors[evt.color] || borderColors.red}`}>
+                            <div key={idx} className={`bg-black/20 p-3 rounded mb-3 border-l-[3px] min-w-0 ${borderColors[evt.color] || borderColors.red}`}>
                               <span className={`font-bold block mb-2 text-lg ${textColors[evt.color] || textColors.red}`}>{evt.name}</span>
                               <RichTextView content={evt.desc} defaultText="" />
                             </div>
@@ -202,55 +202,60 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                 )}
                 
                 {activeTab === 'destaques' && (
-                  <div>
-                    <h3 className="text-[#e1e1e6] text-xl font-bold mb-4">Destaques</h3>
+                  <div className="min-w-0">
                     {(!zoneData.customHighlights || zoneData.customHighlights.length === 0) ? (
                       <span className="text-[#a8a8b3] italic flex-1 whitespace-pre-wrap">Nenhum destaque documentado para esta zona.</span>
                     ) : (
-                      zoneData.customHighlights.map((hl, idx) => {
-                        const borderColors: Record<string, string> = {
-                          red: 'border-l-red-500', yellow: 'border-l-yellow-400',
-                          green: 'border-l-green-500', purple: 'border-l-purple-500',
-                          blue: 'border-l-blue-500', gray: 'border-l-gray-500'
-                        };
-                        const textColors: Record<string, string> = {
-                          red: 'text-red-500', yellow: 'text-yellow-400',
-                          green: 'text-green-500', purple: 'text-purple-500',
-                          blue: 'text-blue-500', gray: 'text-gray-500'
-                        };
-                        return (
-                          <div key={idx} className={`bg-black/20 p-3 rounded mb-3 border-l-[3px] ${borderColors[hl.color] || borderColors.gray}`}>
-                            <div className="flex justify-between items-start mb-2">
-                              <span className={`font-bold text-lg ${textColors[hl.color] || textColors.gray}`}>{hl.name}</span>
-                              <div className="flex gap-1 flex-wrap justify-end">
-                                {hl.tags && hl.tags.split(',').map((tag, tIdx) => (
-                                  tag.trim() && <span key={tIdx} className="bg-[#121214] text-[#a8a8b3] px-2 py-0.5 rounded text-xs border border-[#323238] uppercase">
-                                    {tag.trim()}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                            <RichTextView content={hl.desc} defaultText="" />
+                      zoneData.customHighlights.map((cat, idx) => (
+                        <div key={idx} className="mb-4 min-w-0">
+                          <div className="font-bold text-sm uppercase tracking-wider text-[#e1e1e6] mb-2 border-b border-[#323238] pb-1">
+                            {cat.title || 'Categoria'}
                           </div>
-                        );
-                      })
+                          {cat.options.map((hl, hlIdx) => {
+                            const borderColors: Record<string, string> = {
+                              red: 'border-l-red-500', yellow: 'border-l-yellow-400',
+                              green: 'border-l-green-500', purple: 'border-l-purple-500',
+                              blue: 'border-l-blue-500', gray: 'border-l-gray-500'
+                            };
+                            const textColors: Record<string, string> = {
+                              red: 'text-red-500', yellow: 'text-yellow-400',
+                              green: 'text-green-500', purple: 'text-purple-500',
+                              blue: 'text-blue-500', gray: 'text-gray-500'
+                            };
+                            return (
+                              <div key={hlIdx} className={`bg-black/20 p-3 rounded mb-3 border-l-[3px] ml-3 min-w-0 ${borderColors[hl.color] || borderColors.gray}`}>
+                                <div className="flex justify-between items-start mb-2">
+                                  <span className={`font-bold text-lg ${textColors[hl.color] || textColors.gray}`}>{hl.name}</span>
+                                  <div className="flex gap-1 flex-wrap justify-end">
+                                    {hl.tags && hl.tags.split(',').map((tag, tIdx) => (
+                                      tag.trim() && <span key={tIdx} className="bg-[#121214] text-[#a8a8b3] px-2 py-0.5 rounded text-xs border border-[#323238] uppercase break-all">
+                                        {tag.trim()}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                                <RichTextView content={hl.desc} defaultText="" />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))
                     )}
                   </div>
                 )}
 
                 {activeTab === 'ameacas' && (
-                  <div>
-                    <h3 className="text-[#e1e1e6] text-xl font-bold mb-4">Ameaças (Clima e Armadilhas)</h3>
+                  <div className="min-w-0">
                     {(!zoneData.customThreats || zoneData.customThreats.length === 0) ? (
                       <span className="text-[#a8a8b3] italic flex-1 whitespace-pre-wrap">Nenhuma ameaça documentada para esta zona.</span>
                     ) : (
                       zoneData.customThreats.map((threat, idx) => (
-                        <div key={idx} className="bg-black/20 p-3 rounded mb-3 border border-[#323238]">
+                        <div key={idx} className="bg-black/20 p-3 rounded mb-3 border border-[#323238] min-w-0">
                            <div className="flex justify-between items-center mb-1">
                              <span className="font-bold text-[#e1e1e6] text-lg">{threat.name}</span>
-                             <span className="bg-red-500/20 text-red-500 text-xs px-2 py-0.5 rounded border border-red-500/30 uppercase">{threat.type}</span>
+                             <span className="bg-red-500/20 text-red-500 text-xs px-2 py-0.5 rounded border border-red-500/30 uppercase shrink-0 ml-2">{threat.type}</span>
                            </div>
-                           <div className="flex gap-4 mb-2 text-sm text-[#a8a8b3]">
+                           <div className="flex gap-4 mb-2 text-sm text-[#a8a8b3] break-all">
                              <div><span className="font-bold text-[#e1e1e6]">Dano:</span> {threat.damage}</div>
                              <div><span className="font-bold text-[#e1e1e6]">Tipo:</span> {threat.damageType}</div>
                            </div>
@@ -262,8 +267,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                 )}
 
                 {activeTab === 'inventario' && (
-                  <div>
-                    <h3 className="text-[#e1e1e6] text-xl font-bold mb-4">Inventário da Zona</h3>
+                  <div className="min-w-0">
                     {(!zoneData.customInventory || zoneData.customInventory.length === 0) ? (
                       <span className="text-[#a8a8b3] italic flex-1 whitespace-pre-wrap">Nenhum item documentado para esta zona.</span>
                     ) : (
@@ -279,15 +283,15 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                         const elColor = elementColors[item.element] || elementColors['Comum'];
 
                         return (
-                          <div key={idx} className="bg-black/20 p-3 rounded mb-3 border border-[#323238]">
+                          <div key={idx} className="bg-black/20 p-3 rounded mb-3 border border-[#323238] min-w-0">
                             <div className="flex justify-between items-center mb-1">
-                              <span className="font-bold text-[#e1e1e6] text-lg">{item.name}</span>
-                              <div className="flex gap-2">
+                              <span className="font-bold text-[#e1e1e6] text-lg truncate mr-2">{item.name}</span>
+                              <div className="flex gap-2 shrink-0">
                                 <span className="bg-[#121214] text-[#a8a8b3] text-xs px-2 py-0.5 rounded border border-[#323238] uppercase">{item.type}</span>
                                 <span className={`text-xs px-2 py-0.5 rounded border uppercase ${elColor}`}>{item.element}</span>
                               </div>
                             </div>
-                            <div className="flex gap-4 mb-2 text-sm text-[#a8a8b3]">
+                            <div className="flex gap-4 mb-2 text-sm text-[#a8a8b3] break-all">
                               <div><span className="font-bold text-[#e1e1e6]">Peso:</span> {item.weight}</div>
                               <div><span className="font-bold text-[#e1e1e6]">Efeito:</span> {item.effect}</div>
                             </div>
@@ -301,7 +305,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
               </div>
             ) : (
               /* EDIT MODE */
-              <div className="space-y-4 flex-1">
+              <div className="space-y-4 flex-1 min-w-0">
                 {activeTab === 'geral' && (
                   <>
                     <div className="flex gap-2 items-end">
@@ -334,10 +338,10 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                     <hr className="border-[#323238] my-4" />
 
                     {/* POIs Edit View */}
-                    <div>
+                    <div className="min-w-0">
                       <label className="text-xs text-[#a8a8b3] block mb-2 uppercase font-bold">Pontos de Interesse</label>
                       {zoneData.customPois?.map((cat, catIdx) => (
-                        <div key={catIdx} className="bg-black/20 border border-[#323238] rounded p-3 mb-4">
+                        <div key={catIdx} className="bg-black/20 border border-[#323238] rounded p-3 mb-4 min-w-0">
                           <div className="flex gap-2 mb-3">
                             <select
                               className="bg-[#121214] border border-[#323238] text-[#e1e1e6] text-xs h-8 rounded px-1 outline-none focus:border-[#8257e5]"
@@ -373,9 +377,9 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                             ><Trash className="w-4 h-4" /></button>
                           </div>
                           
-                          <div className="ml-2 pl-3 border-l border-[#323238] space-y-4">
+                          <div className="ml-2 pl-3 border-l border-[#323238] space-y-4 min-w-0">
                             {cat.options.map((opt, optIdx) => (
-                              <div key={optIdx} className="flex flex-col gap-2">
+                              <div key={optIdx} className="flex flex-col gap-2 min-w-0">
                                 <div className="flex gap-2 items-center">
                                   <Input
                                     placeholder="Nome do Ponto de Interesse"
@@ -408,7 +412,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                               </div>
                             ))}
                             <button
-                              className="text-xs text-[#8257e5] hover:text-[#9466ff] flex items-center"
+                              className="text-xs text-[#8257e5] hover:text-[#9466ff] flex items-center font-bold"
                               onClick={() => {
                                 const newPois = [...(zoneData.customPois || [])];
                                 newPois[catIdx].options.push({ name: '', desc: '' });
@@ -421,8 +425,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                         </div>
                       ))}
                       <Button
-                        variant="outline"
-                        className="w-full h-8 text-xs border-dashed border-[#323238] text-[#a8a8b3] hover:text-white"
+                        className="w-full h-8 text-xs font-bold bg-[#8257e5] text-white hover:bg-[#9466ff] border-none"
                         onClick={() => {
                           const newPois = [...(zoneData.customPois || []), { title: 'Nova Categoria', icon: 'star' as const, options: [] }];
                           updateZoneData(zone.id, { customPois: newPois });
@@ -435,7 +438,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                     <hr className="border-[#323238] my-4" />
 
                     {/* Events Edit View */}
-                    <div>
+                    <div className="min-w-0">
                       <div className="flex justify-between items-center mb-2">
                         <label className="text-xs text-[#a8a8b3] uppercase font-bold">Eventos</label>
                         <button className="text-[#a8a8b3] hover:text-[#e1e1e6] p-1 rounded hover:bg-white/5" title="Limpar Predefinições" onClick={clearPresets}>
@@ -461,7 +464,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                       </div>
 
                       {zoneData.customEvents?.map((evt, evtIdx) => (
-                        <div key={evtIdx} className="bg-black/20 border border-[#323238] rounded p-3 mb-4 flex flex-col gap-3 relative">
+                        <div key={evtIdx} className="bg-black/20 border border-[#323238] rounded p-3 mb-4 flex flex-col gap-3 relative min-w-0">
                           <div className="flex gap-2 pr-16">
                             <select
                               className="bg-[#121214] border border-[#323238] text-[#e1e1e6] text-xs h-8 rounded px-1 outline-none focus:border-[#8257e5] w-[100px] shrink-0"
@@ -516,8 +519,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                         </div>
                       ))}
                       <Button
-                        variant="outline"
-                        className="w-full h-8 text-xs border-dashed border-[#323238] text-[#a8a8b3] hover:text-white"
+                        className="w-full h-8 text-xs font-bold bg-[#8257e5] text-white hover:bg-[#9466ff] border-none"
                         onClick={() => {
                           const newEvents = [...(zoneData.customEvents || []), { name: 'Novo Evento', desc: '', color: 'purple' as const }];
                           updateZoneData(zone.id, { customEvents: newEvents });
@@ -540,96 +542,126 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                 )}
 
                 {activeTab === 'destaques' && (
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="text-xs text-[#a8a8b3] uppercase font-bold">Destaques da Cena</label>
-                    </div>
-                    
-                    {zoneData.customHighlights?.map((hl, hlIdx) => (
-                      <div key={hlIdx} className="bg-black/20 border border-[#323238] rounded p-3 mb-4 flex flex-col gap-3 relative">
-                        <div className="flex gap-2 pr-8">
-                          <select
-                            className="bg-[#121214] border border-[#323238] text-[#e1e1e6] text-xs h-8 rounded px-1 outline-none focus:border-[#8257e5] w-[100px] shrink-0"
-                            value={hl.color}
-                            onChange={(e) => {
-                              const list = [...(zoneData.customHighlights || [])];
-                              list[hlIdx] = { ...hl, color: e.target.value as any };
-                              updateZoneData(zone.id, { customHighlights: list });
-                            }}
-                          >
-                            <option value="gray">Cinza</option>
-                            <option value="red">Vermelho</option>
-                            <option value="yellow">Amarelo</option>
-                            <option value="green">Verde</option>
-                            <option value="purple">Roxo</option>
-                            <option value="blue">Azul</option>
-                          </select>
+                  <div className="min-w-0">
+                    {zoneData.customHighlights?.map((cat, catIdx) => (
+                      <div key={catIdx} className="bg-black/20 border border-[#323238] rounded p-3 mb-4 min-w-0">
+                        <div className="flex gap-2 mb-3">
                           <Input
-                            placeholder="Nome do Destaque"
-                            value={hl.name}
+                            placeholder="Nome da Categoria (ex: Personagens)"
+                            value={cat.title || ''}
                             onChange={(e) => {
                               const list = [...(zoneData.customHighlights || [])];
-                              list[hlIdx] = { ...hl, name: e.target.value };
+                              list[catIdx] = { ...cat, title: e.target.value };
                               updateZoneData(zone.id, { customHighlights: list });
                             }}
-                            className="flex-1 bg-[#121214] border-[#323238] h-8 text-sm font-bold text-[#e1e1e6]"
+                            className="flex-1 bg-[#121214] border-[#323238] h-8 text-xs font-bold text-[#e1e1e6] uppercase tracking-wider"
                           />
-                        </div>
-                        
-                        <div className="absolute top-3 right-3 flex gap-2">
                           <button
                             className="text-[#a8a8b3] hover:text-red-500"
+                            title="Remover Categoria"
                             onClick={() => {
-                              const list = (zoneData.customHighlights || []).filter((_, i) => i !== hlIdx);
+                              const list = (zoneData.customHighlights || []).filter((_, i) => i !== catIdx);
                               updateZoneData(zone.id, { customHighlights: list });
                             }}
                           ><Trash className="w-4 h-4" /></button>
                         </div>
+                        
+                        <div className="ml-2 pl-3 border-l border-[#323238] space-y-4 min-w-0">
+                          {cat.options.map((hl, hlIdx) => (
+                            <div key={hlIdx} className="bg-[#121214] border border-[#323238] rounded p-3 relative flex flex-col gap-3 min-w-0">
+                              <div className="flex gap-2 pr-8">
+                                <select
+                                  className="bg-black border border-[#323238] text-[#e1e1e6] text-xs h-8 rounded px-1 outline-none focus:border-[#8257e5] w-[100px] shrink-0"
+                                  value={hl.color}
+                                  onChange={(e) => {
+                                    const list = [...(zoneData.customHighlights || [])];
+                                    list[catIdx].options[hlIdx] = { ...hl, color: e.target.value as any };
+                                    updateZoneData(zone.id, { customHighlights: list });
+                                  }}
+                                >
+                                  <option value="gray">Cinza</option>
+                                  <option value="red">Vermelho</option>
+                                  <option value="yellow">Amarelo</option>
+                                  <option value="green">Verde</option>
+                                  <option value="purple">Roxo</option>
+                                  <option value="blue">Azul</option>
+                                </select>
+                                <Input
+                                  placeholder="Nome do Destaque"
+                                  value={hl.name}
+                                  onChange={(e) => {
+                                    const list = [...(zoneData.customHighlights || [])];
+                                    list[catIdx].options[hlIdx] = { ...hl, name: e.target.value };
+                                    updateZoneData(zone.id, { customHighlights: list });
+                                  }}
+                                  className="flex-1 bg-black border-[#323238] h-8 text-sm font-bold text-[#e1e1e6]"
+                                />
+                              </div>
+                              
+                              <div className="absolute top-3 right-3 flex gap-2">
+                                <button
+                                  className="text-[#a8a8b3] hover:text-red-500"
+                                  onClick={() => {
+                                    const list = [...(zoneData.customHighlights || [])];
+                                    list[catIdx].options = list[catIdx].options.filter((_, i) => i !== hlIdx);
+                                    updateZoneData(zone.id, { customHighlights: list });
+                                  }}
+                                ><Trash className="w-4 h-4" /></button>
+                              </div>
 
-                        <Input
-                          placeholder="Tags (separadas por vírgula)"
-                          value={hl.tags}
-                          onChange={(e) => {
-                            const list = [...(zoneData.customHighlights || [])];
-                            list[hlIdx] = { ...hl, tags: e.target.value };
-                            updateZoneData(zone.id, { customHighlights: list });
-                          }}
-                          className="w-full bg-[#121214] border-[#323238] h-8 text-xs text-[#a8a8b3]"
-                        />
+                              <Input
+                                placeholder="Tags (separadas por vírgula)"
+                                value={hl.tags}
+                                onChange={(e) => {
+                                  const list = [...(zoneData.customHighlights || [])];
+                                  list[catIdx].options[hlIdx] = { ...hl, tags: e.target.value };
+                                  updateZoneData(zone.id, { customHighlights: list });
+                                }}
+                                className="w-full bg-black border-[#323238] h-8 text-xs text-[#a8a8b3]"
+                              />
 
-                        <RichTextEditor
-                          value={hl.desc}
-                          onChange={(val) => {
-                            const list = [...(zoneData.customHighlights || [])];
-                            list[hlIdx] = { ...hl, desc: val };
-                            updateZoneData(zone.id, { customHighlights: list });
-                          }}
-                          className="min-h-[80px]"
-                          placeholder="Descrição do destaque..."
-                        />
+                              <RichTextEditor
+                                value={hl.desc}
+                                onChange={(val) => {
+                                  const list = [...(zoneData.customHighlights || [])];
+                                  list[catIdx].options[hlIdx] = { ...hl, desc: val };
+                                  updateZoneData(zone.id, { customHighlights: list });
+                                }}
+                                className="min-h-[80px]"
+                                placeholder="Descrição do destaque..."
+                              />
+                            </div>
+                          ))}
+                          
+                          <button
+                            className="text-xs text-[#8257e5] hover:text-[#9466ff] flex items-center font-bold"
+                            onClick={() => {
+                              const list = [...(zoneData.customHighlights || [])];
+                              list[catIdx].options.push({ name: '', desc: '', tags: '', color: 'gray' as const });
+                              updateZoneData(zone.id, { customHighlights: list });
+                            }}
+                          >
+                            <Plus className="w-3 h-3 mr-1" /> Adicionar Item
+                          </button>
+                        </div>
                       </div>
                     ))}
                     <Button
-                      variant="outline"
-                      className="w-full h-8 text-xs border-dashed border-[#323238] text-[#a8a8b3] hover:text-white"
+                      className="w-full h-8 text-xs font-bold bg-[#8257e5] text-white hover:bg-[#9466ff] border-none"
                       onClick={() => {
-                        const list = [...(zoneData.customHighlights || []), { name: 'Novo Destaque', desc: '', tags: '', color: 'gray' as const }];
+                        const list = [...(zoneData.customHighlights || []), { title: 'Nova Categoria', options: [] }];
                         updateZoneData(zone.id, { customHighlights: list });
                       }}
                     >
-                      + Novo Destaque
+                      + Adicionar Categoria
                     </Button>
                   </div>
                 )}
 
                 {activeTab === 'ameacas' && (
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="text-xs text-[#a8a8b3] uppercase font-bold">Ameaças</label>
-                    </div>
-                    
+                  <div className="min-w-0">
                     {zoneData.customThreats?.map((threat, idx) => (
-                      <div key={idx} className="bg-black/20 border border-[#323238] rounded p-3 mb-4 flex flex-col gap-3 relative">
+                      <div key={idx} className="bg-black/20 border border-[#323238] rounded p-3 mb-4 flex flex-col gap-3 relative min-w-0">
                         <div className="flex gap-2 pr-8">
                           <Input
                             placeholder="Nome"
@@ -699,8 +731,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                       </div>
                     ))}
                     <Button
-                      variant="outline"
-                      className="w-full h-8 text-xs border-dashed border-[#323238] text-[#a8a8b3] hover:text-white"
+                      className="w-full h-8 text-xs font-bold bg-[#8257e5] text-white hover:bg-[#9466ff] border-none"
                       onClick={() => {
                         const list = [...(zoneData.customThreats || []), { name: 'Nova Ameaça', type: '', effect: '', damage: '', damageType: '' }];
                         updateZoneData(zone.id, { customThreats: list });
@@ -712,13 +743,9 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                 )}
 
                 {activeTab === 'inventario' && (
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="text-xs text-[#a8a8b3] uppercase font-bold">Inventário</label>
-                    </div>
-                    
+                  <div className="min-w-0">
                     {zoneData.customInventory?.map((item, idx) => (
-                      <div key={idx} className="bg-black/20 border border-[#323238] rounded p-3 mb-4 flex flex-col gap-3 relative">
+                      <div key={idx} className="bg-black/20 border border-[#323238] rounded p-3 mb-4 flex flex-col gap-3 relative min-w-0">
                         <div className="flex gap-2 pr-8">
                           <Input
                             placeholder="Nome do Item"
@@ -804,8 +831,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                       </div>
                     ))}
                     <Button
-                      variant="outline"
-                      className="w-full h-8 text-xs border-dashed border-[#323238] text-[#a8a8b3] hover:text-white"
+                      className="w-full h-8 text-xs font-bold bg-[#8257e5] text-white hover:bg-[#9466ff] border-none"
                       onClick={() => {
                         const list = [...(zoneData.customInventory || []), { name: 'Novo Item', type: '', weight: '', effect: '', element: 'Comum' as const, desc: '' }];
                         updateZoneData(zone.id, { customInventory: list });
