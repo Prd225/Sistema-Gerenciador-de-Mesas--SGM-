@@ -38,8 +38,24 @@ export default function LoadCampaignModal() {
         });
       }
       if (data.zones) {
+        const migratedZones = data.zones.zones || {};
+        // Migration for legacy customHighlights format
+        Object.values(migratedZones).forEach((zone: any) => {
+          if (zone.data?.customHighlights && zone.data.customHighlights.length > 0) {
+            if (!('options' in zone.data.customHighlights[0])) {
+              const oldHighlights = zone.data.customHighlights;
+              zone.data.customHighlights = [
+                {
+                  title: 'Migrados',
+                  options: oldHighlights
+                }
+              ];
+            }
+          }
+        });
+
         useZoneStore.setState({
-          zones: data.zones.zones || {},
+          zones: migratedZones,
           markers: data.zones.markers || {},
           bgImages: data.zones.bgImages || []
         });
