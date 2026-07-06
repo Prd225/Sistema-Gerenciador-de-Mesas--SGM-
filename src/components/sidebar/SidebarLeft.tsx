@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect } from 'react';
 import { RichTextEditor, RichTextView } from '@/components/ui/RichTextEditor';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ImageCropper } from '@/components/ui/ImageCropper';
 
 interface SidebarLeftProps {
   isOpen: boolean;
@@ -29,6 +31,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
   const [eventPresets, setEventPresets] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'geral' | 'destaques' | 'ameacas' | 'inventario'>('geral');
   const [showPalette, setShowPalette] = useState(false);
+  const [rawImage, setRawImage] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -88,10 +91,11 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
   }
 
   return (
-    <aside 
-      style={{ width: `${width}px` }}
-      className="bg-[#202024] border-r border-[#323238] flex flex-col h-full z-40 overflow-hidden shrink-0 relative"
-    >
+    <>
+      <aside 
+        style={{ width: `${width}px` }}
+        className="bg-[#202024] border-r border-[#323238] flex flex-col h-full z-40 overflow-hidden shrink-0 relative"
+      >
       <div className="p-5 overflow-y-auto flex-1 h-full flex flex-col relative">
 
         {/* Header */}
@@ -381,7 +385,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                   const reader = new FileReader();
                                   reader.onload = (ev) => {
                                     if (typeof ev.target?.result === 'string') {
-                                      updateZoneData(zone.id, { imageUrl: ev.target.result });
+                                      setRawImage(ev.target.result);
                                     }
                                   };
                                   reader.readAsDataURL(file);
@@ -925,5 +929,27 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
         onMouseDown={handleDragStart}
       />
     </aside>
+
+    {rawImage && (
+      <Dialog open={!!rawImage} onOpenChange={(open) => !open && setRawImage(null)}>
+        <DialogContent className="bg-[#202024] border-[#323238] text-[#e1e1e6] sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-[#ffd700]">Ajustar Capa da Zona</DialogTitle>
+          </DialogHeader>
+          <ImageCropper
+            imageSrc={rawImage}
+            cropType="rect"
+            aspectRatio={16/9}
+            size={600}
+            onConfirm={(base64) => {
+              if (zone) updateZoneData(zone.id, { imageUrl: base64 });
+              setRawImage(null);
+            }}
+            onCancel={() => setRawImage(null)}
+          />
+        </DialogContent>
+      </Dialog>
+    )}
+    </>
   );
 }

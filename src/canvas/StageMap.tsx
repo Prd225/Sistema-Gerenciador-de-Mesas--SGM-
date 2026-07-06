@@ -355,7 +355,7 @@ export default function StageMap() {
           <BackgroundLayer />
         </Layer>
         <Layer>
-          <ZoneLayer />
+          <ZoneLayer scale={scale} />
           <TokenLayer />
           <MarkerLayer />
         </Layer>

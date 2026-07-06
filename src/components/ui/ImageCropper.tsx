@@ -7,9 +7,11 @@ interface ImageCropperProps {
   onConfirm: (croppedBase64: string) => void;
   onCancel: () => void;
   size?: number; // Output size of the token image
+  cropType?: 'circle' | 'rect';
+  aspectRatio?: number; // width / height for rect crop
 }
 
-export function ImageCropper({ imageSrc, onConfirm, onCancel, size = 256 }: ImageCropperProps) {
+export function ImageCropper({ imageSrc, onConfirm, onCancel, size = 256, cropType = 'circle', aspectRatio = 1 }: ImageCropperProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   
@@ -71,23 +73,39 @@ export function ImageCropper({ imageSrc, onConfirm, onCancel, size = 256 }: Imag
     
     ctx.restore();
 
-    // Draw overlay mask (darkened area outside the circle)
+    // Draw overlay mask (darkened area outside the shape)
     ctx.save();
     ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
     ctx.beginPath();
     ctx.rect(0, 0, canvasWidth, canvasHeight);
-    ctx.arc(canvasWidth / 2, canvasHeight / 2, radius, 0, Math.PI * 2, true);
-    ctx.fill('evenodd');
     
-    // Draw circle border
-    ctx.beginPath();
-    ctx.arc(canvasWidth / 2, canvasHeight / 2, radius, 0, Math.PI * 2);
-    ctx.strokeStyle = '#ffd700';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    if (cropType === 'circle') {
+      ctx.arc(canvasWidth / 2, canvasHeight / 2, radius, 0, Math.PI * 2, true);
+      ctx.fill('evenodd');
+      
+      // Draw circle border
+      ctx.beginPath();
+      ctx.arc(canvasWidth / 2, canvasHeight / 2, radius, 0, Math.PI * 2);
+      ctx.strokeStyle = '#ffd700';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    } else {
+      const rectH = radius * 2;
+      const rectW = Math.min(canvasWidth - 20, rectH * aspectRatio); // ensure it fits
+      const rx = (canvasWidth - rectW) / 2;
+      const ry = (canvasHeight - rectH) / 2;
+      ctx.rect(rx + rectW, ry, -rectW, rectH);
+      ctx.fill('evenodd');
+
+      ctx.beginPath();
+      ctx.rect(rx, ry, rectW, rectH);
+      ctx.strokeStyle = '#ffd700';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
     ctx.restore();
 
-  }, [image, pos, scale, rotation, flipH, flipV]);
+  }, [image, pos, scale, rotation, flipH, flipV, cropType, aspectRatio]);
 
   useEffect(() => {
     draw();
@@ -117,36 +135,33 @@ export function ImageCropper({ imageSrc, onConfirm, onCancel, size = 256 }: Imag
 
   const handleConfirm = () => {
     if (!image) return;
-    // Create an offscreen canvas for the final export
+    // For export, we need the export canvas to match the aspect ratio if rect
+    const exportW = cropType === 'rect' ? size * aspectRatio : size;
+    const exportH = size;
+    
     const exportCanvas = document.createElement('canvas');
-    exportCanvas.width = size;
-    exportCanvas.height = size;
+    exportCanvas.width = exportW;
+    exportCanvas.height = exportH;
     const ctx = exportCanvas.getContext('2d');
     if (!ctx) return;
 
     const exportRadius = size / 2;
-    
-    // We need to map the position/scale from the preview canvas to the export canvas
-    // In preview: center of circle is at (canvasWidth/2, canvasHeight/2)
-    // In export: center of circle is at (size/2, size/2)
-    // The scale in export is: scale * (exportRadius / previewRadius)
-    
     const scaleFactor = exportRadius / radius;
     
-    // Offset of image center relative to the circle center in the preview canvas
+    // Offset of image center relative to the center in the preview canvas
     const offsetX = pos.x - (canvasWidth / 2);
     const offsetY = pos.y - (canvasHeight / 2);
 
     ctx.save();
     
-    // Optional: clip to circle in the exported image as well, or leave it square with transparency.
-    // Let's clip it so it's perfectly round.
-    ctx.beginPath();
-    ctx.arc(exportRadius, exportRadius, exportRadius, 0, Math.PI * 2);
-    ctx.clip();
+    if (cropType === 'circle') {
+      ctx.beginPath();
+      ctx.arc(exportW / 2, exportH / 2, exportRadius, 0, Math.PI * 2);
+      ctx.clip();
+    }
     
     // Translate to the center of the export canvas, plus the relative offset
-    ctx.translate(exportRadius + offsetX * scaleFactor, exportRadius + offsetY * scaleFactor);
+    ctx.translate(exportW / 2 + offsetX * scaleFactor, exportH / 2 + offsetY * scaleFactor);
     
     ctx.rotate((rotation * Math.PI) / 180);
     

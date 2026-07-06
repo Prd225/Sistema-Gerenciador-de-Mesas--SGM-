@@ -15,7 +15,7 @@ export interface NewShapeState {
  * Renders zones on the map canvas.
  * Matches the .zone styling from DM_tool_6v.html with labels.
  */
-function ZoneLayer() {
+function ZoneLayer({ scale = 1 }: { scale?: number }) {
   const zonesMap = useZoneStore(state => state.zones);
   const zones = Object.values(zonesMap);
   const selectedZoneId = useZoneStore(state => state.selectedZoneId);
@@ -60,7 +60,7 @@ function ZoneLayer() {
                   width={z.w} height={z.h}
                   text={title}
                   fill={textColor}
-                  fontSize={12}
+                  fontSize={Math.max(4, 12 / scale)}
                   fontStyle="bold"
                   align="center"
                   verticalAlign="middle"
@@ -92,7 +92,7 @@ function ZoneLayer() {
                   width={z.w} height={z.h}
                   text={title}
                   fill={textColor}
-                  fontSize={12}
+                  fontSize={Math.max(4, 12 / scale)}
                   fontStyle="bold"
                   align="center"
                   verticalAlign="middle"
@@ -132,7 +132,7 @@ function ZoneLayer() {
                   width={maxX - minX} height={maxY - minY}
                   text={title}
                   fill={textColor}
-                  fontSize={12}
+                  fontSize={Math.max(4, 12 / scale)}
                   fontStyle="bold"
                   align="center"
                   verticalAlign="middle"
