@@ -1,4 +1,4 @@
-import { Map, Lock, Unlock, ChevronLeft, SquareDashed, Trash, Plus, Minus, Save, Eraser, Palette } from 'lucide-react';
+import { Map, Lock, Unlock, ChevronLeft, SquareDashed, Trash, Plus, Minus, Save, Eraser, Palette, ImagePlus, X } from 'lucide-react';
 import { useZoneStore } from '@/store/useZoneStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -173,8 +173,8 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                   <>
                     <h2 className="text-[#e1e1e6] text-xl font-bold mb-2">{zoneData.title || 'Nova Zona'}</h2>
                     {zoneData.imageUrl && (
-                      <div className="mb-4 rounded overflow-hidden border border-[#323238]">
-                        <img src={zoneData.imageUrl} alt={zoneData.title} className="w-full h-auto object-cover max-h-[300px]" />
+                      <div className="mb-4 rounded overflow-hidden border border-[#323238] h-[150px] shrink-0">
+                        <img src={zoneData.imageUrl} alt={zoneData.title} className="w-full h-full object-cover" />
                       </div>
                     )}
                     <div className="flex justify-between items-start border-b border-[#323238] pb-4 gap-4">
@@ -360,13 +360,42 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                     </div>
 
                     <div>
-                      <label className="text-xs text-[#a8a8b3] block mb-1">URL da Imagem de Capa</label>
-                      <Input
-                        value={zoneData.imageUrl || ''}
-                        onChange={(e) => updateZoneData(zone.id, { imageUrl: e.target.value })}
-                        placeholder="https://..."
-                        className="bg-[#121214] border-[#323238] h-9 text-[#e1e1e6]"
-                      />
+                      <label className="text-xs text-[#a8a8b3] block mb-1">Imagem de Capa</label>
+                      <div className="relative group w-full h-[120px] rounded border-2 border-dashed border-[#323238] flex items-center justify-center overflow-hidden hover:border-[#8257e5] transition-colors cursor-pointer bg-[#121214]">
+                        {zoneData.imageUrl ? (
+                          <>
+                            <img src={zoneData.imageUrl} alt="Capa" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity" onClick={(e) => { e.preventDefault(); updateZoneData(zone.id, { imageUrl: '' }); }}>
+                              <X className="w-6 h-6 text-white" />
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="absolute inset-0 opacity-0 cursor-pointer"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onload = (ev) => {
+                                    if (typeof ev.target?.result === 'string') {
+                                      updateZoneData(zone.id, { imageUrl: ev.target.result });
+                                    }
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                              title="Adicionar Imagem"
+                            />
+                            <div className="flex flex-col items-center text-[#a8a8b3] group-hover:text-[#8257e5] pointer-events-none">
+                              <ImagePlus className="w-6 h-6 mb-1" />
+                              <span className="text-[10px] uppercase font-bold tracking-wider">Arraste ou Clique</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
 
                     <div>
