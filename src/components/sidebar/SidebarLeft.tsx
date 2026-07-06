@@ -27,7 +27,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
 
   // Event Presets
   const [eventPresets, setEventPresets] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'geral' | 'pistas' | 'itens' | 'destaques'>('geral');
+  const [activeTab, setActiveTab] = useState<'geral' | 'destaques' | 'ameacas' | 'inventario'>('geral');
 
   useEffect(() => {
     try {
@@ -121,9 +121,9 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
             <div className="flex border-b border-[#323238] mb-4 overflow-x-auto shrink-0 no-scrollbar">
               {[
                 { id: 'geral', label: 'Geral' },
-                { id: 'pistas', label: 'Pistas' },
-                { id: 'itens', label: 'Itens' },
-                { id: 'destaques', label: 'Destaques' }
+                { id: 'destaques', label: 'Destaques' },
+                { id: 'ameacas', label: 'Ameaças' },
+                { id: 'inventario', label: 'Inventário' }
               ].map(t => (
                 <button
                   key={t.id}
@@ -201,24 +201,101 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                   </>
                 )}
                 
-                {activeTab === 'pistas' && (
-                  <div>
-                    <h3 className="text-[#e1e1e6] text-xl font-bold mb-4">Pistas e Indícios</h3>
-                    <RichTextView content={zoneData.clues || ''} defaultText="Nenhuma pista documentada para esta zona." />
-                  </div>
-                )}
-
-                {activeTab === 'itens' && (
-                  <div>
-                    <h3 className="text-[#e1e1e6] text-xl font-bold mb-4">Itens e Espólios</h3>
-                    <RichTextView content={zoneData.items || ''} defaultText="Nenhum item documentado para esta zona." />
-                  </div>
-                )}
-
                 {activeTab === 'destaques' && (
                   <div>
-                    <h3 className="text-[#e1e1e6] text-xl font-bold mb-4">Destaques da Cena</h3>
-                    <RichTextView content={zoneData.highlights || ''} defaultText="Nenhum destaque documentado para esta zona." />
+                    <h3 className="text-[#e1e1e6] text-xl font-bold mb-4">Destaques</h3>
+                    {(!zoneData.customHighlights || zoneData.customHighlights.length === 0) ? (
+                      <span className="text-[#a8a8b3] italic flex-1 whitespace-pre-wrap">Nenhum destaque documentado para esta zona.</span>
+                    ) : (
+                      zoneData.customHighlights.map((hl, idx) => {
+                        const borderColors: Record<string, string> = {
+                          red: 'border-l-red-500', yellow: 'border-l-yellow-400',
+                          green: 'border-l-green-500', purple: 'border-l-purple-500',
+                          blue: 'border-l-blue-500', gray: 'border-l-gray-500'
+                        };
+                        const textColors: Record<string, string> = {
+                          red: 'text-red-500', yellow: 'text-yellow-400',
+                          green: 'text-green-500', purple: 'text-purple-500',
+                          blue: 'text-blue-500', gray: 'text-gray-500'
+                        };
+                        return (
+                          <div key={idx} className={`bg-black/20 p-3 rounded mb-3 border-l-[3px] ${borderColors[hl.color] || borderColors.gray}`}>
+                            <div className="flex justify-between items-start mb-2">
+                              <span className={`font-bold text-lg ${textColors[hl.color] || textColors.gray}`}>{hl.name}</span>
+                              <div className="flex gap-1 flex-wrap justify-end">
+                                {hl.tags && hl.tags.split(',').map((tag, tIdx) => (
+                                  tag.trim() && <span key={tIdx} className="bg-[#121214] text-[#a8a8b3] px-2 py-0.5 rounded text-xs border border-[#323238] uppercase">
+                                    {tag.trim()}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            <RichTextView content={hl.desc} defaultText="" />
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'ameacas' && (
+                  <div>
+                    <h3 className="text-[#e1e1e6] text-xl font-bold mb-4">Ameaças (Clima e Armadilhas)</h3>
+                    {(!zoneData.customThreats || zoneData.customThreats.length === 0) ? (
+                      <span className="text-[#a8a8b3] italic flex-1 whitespace-pre-wrap">Nenhuma ameaça documentada para esta zona.</span>
+                    ) : (
+                      zoneData.customThreats.map((threat, idx) => (
+                        <div key={idx} className="bg-black/20 p-3 rounded mb-3 border border-[#323238]">
+                           <div className="flex justify-between items-center mb-1">
+                             <span className="font-bold text-[#e1e1e6] text-lg">{threat.name}</span>
+                             <span className="bg-red-500/20 text-red-500 text-xs px-2 py-0.5 rounded border border-red-500/30 uppercase">{threat.type}</span>
+                           </div>
+                           <div className="flex gap-4 mb-2 text-sm text-[#a8a8b3]">
+                             <div><span className="font-bold text-[#e1e1e6]">Dano:</span> {threat.damage}</div>
+                             <div><span className="font-bold text-[#e1e1e6]">Tipo:</span> {threat.damageType}</div>
+                           </div>
+                           <RichTextView content={threat.effect} defaultText="" />
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'inventario' && (
+                  <div>
+                    <h3 className="text-[#e1e1e6] text-xl font-bold mb-4">Inventário da Zona</h3>
+                    {(!zoneData.customInventory || zoneData.customInventory.length === 0) ? (
+                      <span className="text-[#a8a8b3] italic flex-1 whitespace-pre-wrap">Nenhum item documentado para esta zona.</span>
+                    ) : (
+                      zoneData.customInventory.map((item, idx) => {
+                        const elementColors: Record<string, string> = {
+                           Sangue: 'text-red-500 border-red-500/30 bg-red-500/10',
+                           Morte: 'text-gray-400 border-gray-400/30 bg-gray-400/10',
+                           Conhecimento: 'text-yellow-500 border-yellow-500/30 bg-yellow-500/10',
+                           Energia: 'text-purple-500 border-purple-500/30 bg-purple-500/10',
+                           Medo: 'text-white border-white/30 bg-white/10',
+                           Comum: 'text-[#a8a8b3] border-[#323238] bg-[#121214]'
+                        };
+                        const elColor = elementColors[item.element] || elementColors['Comum'];
+
+                        return (
+                          <div key={idx} className="bg-black/20 p-3 rounded mb-3 border border-[#323238]">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="font-bold text-[#e1e1e6] text-lg">{item.name}</span>
+                              <div className="flex gap-2">
+                                <span className="bg-[#121214] text-[#a8a8b3] text-xs px-2 py-0.5 rounded border border-[#323238] uppercase">{item.type}</span>
+                                <span className={`text-xs px-2 py-0.5 rounded border uppercase ${elColor}`}>{item.element}</span>
+                              </div>
+                            </div>
+                            <div className="flex gap-4 mb-2 text-sm text-[#a8a8b3]">
+                              <div><span className="font-bold text-[#e1e1e6]">Peso:</span> {item.weight}</div>
+                              <div><span className="font-bold text-[#e1e1e6]">Efeito:</span> {item.effect}</div>
+                            </div>
+                            <RichTextView content={item.desc} defaultText="" />
+                          </div>
+                        )
+                      })
+                    )}
                   </div>
                 )}
               </div>
@@ -462,39 +539,280 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                   </>
                 )}
 
-                {activeTab === 'pistas' && (
-                  <div className="flex flex-col h-full">
-                    <label className="text-xs text-[#a8a8b3] block mb-2 uppercase font-bold">Pistas e Indícios</label>
-                    <RichTextEditor
-                      value={zoneData.clues || ''}
-                      onChange={(val) => updateZoneData(zone.id, { clues: val })}
-                      className="flex-1 min-h-[300px]"
-                      placeholder="Descreva as pistas disponíveis nesta zona..."
-                    />
-                  </div>
-                )}
-
-                {activeTab === 'itens' && (
-                  <div className="flex flex-col h-full">
-                    <label className="text-xs text-[#a8a8b3] block mb-2 uppercase font-bold">Itens e Espólios</label>
-                    <RichTextEditor
-                      value={zoneData.items || ''}
-                      onChange={(val) => updateZoneData(zone.id, { items: val })}
-                      className="flex-1 min-h-[300px]"
-                      placeholder="Descreva os itens ou saques disponíveis nesta zona..."
-                    />
-                  </div>
-                )}
-
                 {activeTab === 'destaques' && (
-                  <div className="flex flex-col h-full">
-                    <label className="text-xs text-[#a8a8b3] block mb-2 uppercase font-bold">Destaques da Cena</label>
-                    <RichTextEditor
-                      value={zoneData.highlights || ''}
-                      onChange={(val) => updateZoneData(zone.id, { highlights: val })}
-                      className="flex-1 min-h-[300px]"
-                      placeholder="Descreva os pontos de destaque visual ou mecânico..."
-                    />
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="text-xs text-[#a8a8b3] uppercase font-bold">Destaques da Cena</label>
+                    </div>
+                    
+                    {zoneData.customHighlights?.map((hl, hlIdx) => (
+                      <div key={hlIdx} className="bg-black/20 border border-[#323238] rounded p-3 mb-4 flex flex-col gap-3 relative">
+                        <div className="flex gap-2 pr-8">
+                          <select
+                            className="bg-[#121214] border border-[#323238] text-[#e1e1e6] text-xs h-8 rounded px-1 outline-none focus:border-[#8257e5] w-[100px] shrink-0"
+                            value={hl.color}
+                            onChange={(e) => {
+                              const list = [...(zoneData.customHighlights || [])];
+                              list[hlIdx] = { ...hl, color: e.target.value as any };
+                              updateZoneData(zone.id, { customHighlights: list });
+                            }}
+                          >
+                            <option value="gray">Cinza</option>
+                            <option value="red">Vermelho</option>
+                            <option value="yellow">Amarelo</option>
+                            <option value="green">Verde</option>
+                            <option value="purple">Roxo</option>
+                            <option value="blue">Azul</option>
+                          </select>
+                          <Input
+                            placeholder="Nome do Destaque"
+                            value={hl.name}
+                            onChange={(e) => {
+                              const list = [...(zoneData.customHighlights || [])];
+                              list[hlIdx] = { ...hl, name: e.target.value };
+                              updateZoneData(zone.id, { customHighlights: list });
+                            }}
+                            className="flex-1 bg-[#121214] border-[#323238] h-8 text-sm font-bold text-[#e1e1e6]"
+                          />
+                        </div>
+                        
+                        <div className="absolute top-3 right-3 flex gap-2">
+                          <button
+                            className="text-[#a8a8b3] hover:text-red-500"
+                            onClick={() => {
+                              const list = (zoneData.customHighlights || []).filter((_, i) => i !== hlIdx);
+                              updateZoneData(zone.id, { customHighlights: list });
+                            }}
+                          ><Trash className="w-4 h-4" /></button>
+                        </div>
+
+                        <Input
+                          placeholder="Tags (separadas por vírgula)"
+                          value={hl.tags}
+                          onChange={(e) => {
+                            const list = [...(zoneData.customHighlights || [])];
+                            list[hlIdx] = { ...hl, tags: e.target.value };
+                            updateZoneData(zone.id, { customHighlights: list });
+                          }}
+                          className="w-full bg-[#121214] border-[#323238] h-8 text-xs text-[#a8a8b3]"
+                        />
+
+                        <RichTextEditor
+                          value={hl.desc}
+                          onChange={(val) => {
+                            const list = [...(zoneData.customHighlights || [])];
+                            list[hlIdx] = { ...hl, desc: val };
+                            updateZoneData(zone.id, { customHighlights: list });
+                          }}
+                          className="min-h-[80px]"
+                          placeholder="Descrição do destaque..."
+                        />
+                      </div>
+                    ))}
+                    <Button
+                      variant="outline"
+                      className="w-full h-8 text-xs border-dashed border-[#323238] text-[#a8a8b3] hover:text-white"
+                      onClick={() => {
+                        const list = [...(zoneData.customHighlights || []), { name: 'Novo Destaque', desc: '', tags: '', color: 'gray' as const }];
+                        updateZoneData(zone.id, { customHighlights: list });
+                      }}
+                    >
+                      + Novo Destaque
+                    </Button>
+                  </div>
+                )}
+
+                {activeTab === 'ameacas' && (
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="text-xs text-[#a8a8b3] uppercase font-bold">Ameaças</label>
+                    </div>
+                    
+                    {zoneData.customThreats?.map((threat, idx) => (
+                      <div key={idx} className="bg-black/20 border border-[#323238] rounded p-3 mb-4 flex flex-col gap-3 relative">
+                        <div className="flex gap-2 pr-8">
+                          <Input
+                            placeholder="Nome"
+                            value={threat.name}
+                            onChange={(e) => {
+                              const list = [...(zoneData.customThreats || [])];
+                              list[idx] = { ...threat, name: e.target.value };
+                              updateZoneData(zone.id, { customThreats: list });
+                            }}
+                            className="flex-1 bg-[#121214] border-[#323238] h-8 text-sm font-bold text-[#e1e1e6]"
+                          />
+                          <Input
+                            placeholder="Tipo (ex: Armadilha)"
+                            value={threat.type}
+                            onChange={(e) => {
+                              const list = [...(zoneData.customThreats || [])];
+                              list[idx] = { ...threat, type: e.target.value };
+                              updateZoneData(zone.id, { customThreats: list });
+                            }}
+                            className="w-[120px] bg-[#121214] border-[#323238] h-8 text-xs text-[#a8a8b3]"
+                          />
+                        </div>
+                        
+                        <div className="absolute top-3 right-3 flex gap-2">
+                          <button
+                            className="text-[#a8a8b3] hover:text-red-500"
+                            onClick={() => {
+                              const list = (zoneData.customThreats || []).filter((_, i) => i !== idx);
+                              updateZoneData(zone.id, { customThreats: list });
+                            }}
+                          ><Trash className="w-4 h-4" /></button>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Dano (ex: 2d6+4)"
+                            value={threat.damage}
+                            onChange={(e) => {
+                              const list = [...(zoneData.customThreats || [])];
+                              list[idx] = { ...threat, damage: e.target.value };
+                              updateZoneData(zone.id, { customThreats: list });
+                            }}
+                            className="w-1/2 bg-[#121214] border-[#323238] h-8 text-xs text-[#a8a8b3]"
+                          />
+                          <Input
+                            placeholder="Tipo Dano (ex: Fogo)"
+                            value={threat.damageType}
+                            onChange={(e) => {
+                              const list = [...(zoneData.customThreats || [])];
+                              list[idx] = { ...threat, damageType: e.target.value };
+                              updateZoneData(zone.id, { customThreats: list });
+                            }}
+                            className="w-1/2 bg-[#121214] border-[#323238] h-8 text-xs text-[#a8a8b3]"
+                          />
+                        </div>
+
+                        <RichTextEditor
+                          value={threat.effect}
+                          onChange={(val) => {
+                            const list = [...(zoneData.customThreats || [])];
+                            list[idx] = { ...threat, effect: val };
+                            updateZoneData(zone.id, { customThreats: list });
+                          }}
+                          className="min-h-[80px]"
+                          placeholder="Efeito / Descrição..."
+                        />
+                      </div>
+                    ))}
+                    <Button
+                      variant="outline"
+                      className="w-full h-8 text-xs border-dashed border-[#323238] text-[#a8a8b3] hover:text-white"
+                      onClick={() => {
+                        const list = [...(zoneData.customThreats || []), { name: 'Nova Ameaça', type: '', effect: '', damage: '', damageType: '' }];
+                        updateZoneData(zone.id, { customThreats: list });
+                      }}
+                    >
+                      + Nova Ameaça
+                    </Button>
+                  </div>
+                )}
+
+                {activeTab === 'inventario' && (
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="text-xs text-[#a8a8b3] uppercase font-bold">Inventário</label>
+                    </div>
+                    
+                    {zoneData.customInventory?.map((item, idx) => (
+                      <div key={idx} className="bg-black/20 border border-[#323238] rounded p-3 mb-4 flex flex-col gap-3 relative">
+                        <div className="flex gap-2 pr-8">
+                          <Input
+                            placeholder="Nome do Item"
+                            value={item.name}
+                            onChange={(e) => {
+                              const list = [...(zoneData.customInventory || [])];
+                              list[idx] = { ...item, name: e.target.value };
+                              updateZoneData(zone.id, { customInventory: list });
+                            }}
+                            className="flex-1 bg-[#121214] border-[#323238] h-8 text-sm font-bold text-[#e1e1e6]"
+                          />
+                          <Input
+                            placeholder="Tipo (ex: Arma)"
+                            value={item.type}
+                            onChange={(e) => {
+                              const list = [...(zoneData.customInventory || [])];
+                              list[idx] = { ...item, type: e.target.value };
+                              updateZoneData(zone.id, { customInventory: list });
+                            }}
+                            className="w-[100px] bg-[#121214] border-[#323238] h-8 text-xs text-[#a8a8b3]"
+                          />
+                        </div>
+                        
+                        <div className="absolute top-3 right-3 flex gap-2">
+                          <button
+                            className="text-[#a8a8b3] hover:text-red-500"
+                            onClick={() => {
+                              const list = (zoneData.customInventory || []).filter((_, i) => i !== idx);
+                              updateZoneData(zone.id, { customInventory: list });
+                            }}
+                          ><Trash className="w-4 h-4" /></button>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Peso/Espaço"
+                            value={item.weight}
+                            onChange={(e) => {
+                              const list = [...(zoneData.customInventory || [])];
+                              list[idx] = { ...item, weight: e.target.value };
+                              updateZoneData(zone.id, { customInventory: list });
+                            }}
+                            className="w-1/4 bg-[#121214] border-[#323238] h-8 text-xs text-[#a8a8b3]"
+                          />
+                          <Input
+                            placeholder="Efeito"
+                            value={item.effect}
+                            onChange={(e) => {
+                              const list = [...(zoneData.customInventory || [])];
+                              list[idx] = { ...item, effect: e.target.value };
+                              updateZoneData(zone.id, { customInventory: list });
+                            }}
+                            className="w-2/4 bg-[#121214] border-[#323238] h-8 text-xs text-[#a8a8b3]"
+                          />
+                          <select
+                            className="w-1/4 bg-[#121214] border border-[#323238] text-[#a8a8b3] text-xs h-8 rounded px-1 outline-none focus:border-[#8257e5]"
+                            value={item.element}
+                            onChange={(e) => {
+                              const list = [...(zoneData.customInventory || [])];
+                              list[idx] = { ...item, element: e.target.value as any };
+                              updateZoneData(zone.id, { customInventory: list });
+                            }}
+                          >
+                            <option value="Comum">Comum</option>
+                            <option value="Sangue">Sangue</option>
+                            <option value="Morte">Morte</option>
+                            <option value="Conhecimento">Conhecimento</option>
+                            <option value="Energia">Energia</option>
+                            <option value="Medo">Medo</option>
+                          </select>
+                        </div>
+
+                        <RichTextEditor
+                          value={item.desc}
+                          onChange={(val) => {
+                            const list = [...(zoneData.customInventory || [])];
+                            list[idx] = { ...item, desc: val };
+                            updateZoneData(zone.id, { customInventory: list });
+                          }}
+                          className="min-h-[80px]"
+                          placeholder="Descrição do item..."
+                        />
+                      </div>
+                    ))}
+                    <Button
+                      variant="outline"
+                      className="w-full h-8 text-xs border-dashed border-[#323238] text-[#a8a8b3] hover:text-white"
+                      onClick={() => {
+                        const list = [...(zoneData.customInventory || []), { name: 'Novo Item', type: '', weight: '', effect: '', element: 'Comum' as const, desc: '' }];
+                        updateZoneData(zone.id, { customInventory: list });
+                      }}
+                    >
+                      + Novo Item
+                    </Button>
                   </div>
                 )}
               </div>

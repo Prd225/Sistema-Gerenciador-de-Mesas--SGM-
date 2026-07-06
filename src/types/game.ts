@@ -90,6 +90,30 @@ export interface ZoneEvent {
   color: 'red' | 'yellow' | 'green' | 'purple';
 }
 
+export interface ZoneHighlight {
+  name: string;
+  desc: string;
+  tags: string;
+  color: 'red' | 'yellow' | 'green' | 'purple' | 'blue' | 'gray';
+}
+
+export interface ZoneThreat {
+  name: string;
+  type: string;
+  effect: string;
+  damage: string;
+  damageType: string;
+}
+
+export interface ZoneInventoryItem {
+  name: string;
+  type: string;
+  weight: string;
+  element: 'Sangue' | 'Morte' | 'Conhecimento' | 'Energia' | 'Medo' | 'Comum';
+  effect: string;
+  desc: string;
+}
+
 export interface Zone {
   id: string;
   type: 'rect' | 'ellipse' | 'polygon';
@@ -102,12 +126,12 @@ export interface Zone {
   data: {
     title: string;
     desc: string;
-    clues?: string;
-    items?: string;
-    highlights?: string;
     visits: number;
     customPois: POICategory[];
     customEvents: ZoneEvent[];
+    customHighlights?: ZoneHighlight[];
+    customThreats?: ZoneThreat[];
+    customInventory?: ZoneInventoryItem[];
   };
 }
 
