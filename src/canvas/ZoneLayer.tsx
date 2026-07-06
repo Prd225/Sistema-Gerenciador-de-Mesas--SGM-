@@ -26,8 +26,18 @@ function ZoneLayer() {
     <Group>
       {zones.map(z => {
         const isActive = z.id === selectedZoneId;
-        const fill = isActive ? 'rgba(130, 87, 229, 0.3)' : 'rgba(130, 87, 229, 0.08)';
-        const stroke = isActive ? '#ffd700' : 'rgba(130, 87, 229, 0.5)';
+        const s = z.data?.style;
+        
+        // Helper to apply opacity to hex
+        const applyOp = (hex: string | undefined, active: boolean) => {
+          if (!hex) return active ? 'rgba(130, 87, 229, 0.3)' : 'rgba(130, 87, 229, 0.08)';
+          if (hex.startsWith('#') && hex.length === 7) return active ? `${hex}4D` : `${hex}1A`; // 30% and 10%
+          return hex;
+        };
+
+        const fill = applyOp(s?.fillColor, isActive);
+        const stroke = isActive ? '#ffd700' : (s?.borderColor || 'rgba(130, 87, 229, 0.5)');
+        const textColor = s?.textColor || 'white';
         const strokeWidth = isActive ? 2.5 : 1.5;
         const title = z.data?.title || '';
 
@@ -49,7 +59,7 @@ function ZoneLayer() {
                   x={z.x} y={z.y}
                   width={z.w} height={z.h}
                   text={title}
-                  fill="white"
+                  fill={textColor}
                   fontSize={12}
                   fontStyle="bold"
                   align="center"
@@ -81,7 +91,7 @@ function ZoneLayer() {
                   x={z.x} y={z.y}
                   width={z.w} height={z.h}
                   text={title}
-                  fill="white"
+                  fill={textColor}
                   fontSize={12}
                   fontStyle="bold"
                   align="center"
@@ -121,7 +131,7 @@ function ZoneLayer() {
                   x={minX} y={minY}
                   width={maxX - minX} height={maxY - minY}
                   text={title}
-                  fill="white"
+                  fill={textColor}
                   fontSize={12}
                   fontStyle="bold"
                   align="center"

@@ -132,6 +132,12 @@ export interface Zone {
     title: string;
     desc: string;
     visits: number;
+    imageUrl?: string;
+    style?: {
+      borderColor: string;
+      fillColor: string;
+      textColor: string;
+    };
     customPois: POICategory[];
     customEvents: ZoneEvent[];
     customHighlights?: ZoneHighlightCategory[];

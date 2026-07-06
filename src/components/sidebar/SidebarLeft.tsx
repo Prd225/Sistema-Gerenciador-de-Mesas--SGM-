@@ -1,4 +1,4 @@
-import { Map, Lock, Unlock, ChevronLeft, SquareDashed, Trash, Plus, Minus, Save, Eraser } from 'lucide-react';
+import { Map, Lock, Unlock, ChevronLeft, SquareDashed, Trash, Plus, Minus, Save, Eraser, Palette } from 'lucide-react';
 import { useZoneStore } from '@/store/useZoneStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +28,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
   // Event Presets
   const [eventPresets, setEventPresets] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'geral' | 'destaques' | 'ameacas' | 'inventario'>('geral');
+  const [showPalette, setShowPalette] = useState(false);
 
   useEffect(() => {
     try {
@@ -96,7 +97,33 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
         {/* Header */}
         <div className="flex justify-between items-center mb-5 text-[#8257e5] font-bold uppercase tracking-wide border-b-2 border-[#323238] pb-2 shrink-0">
           <span className="flex items-center gap-2"><Map className="w-5 h-5" /> Dados da Zona</span>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 relative">
+            <button
+              onClick={() => setShowPalette(!showPalette)}
+              className={`p-1 rounded hover:bg-white/5 ${showPalette ? 'text-[#ffd700]' : 'text-[#a8a8b3] hover:text-[#e1e1e6]'}`}
+              title="Cores da Zona"
+            >
+              <Palette className="w-4 h-4" />
+            </button>
+            {showPalette && (
+              <div className="absolute top-full right-0 mt-2 bg-[#121214] border border-[#323238] rounded p-3 z-50 w-64 shadow-xl">
+                <div className="text-xs font-bold text-[#e1e1e6] mb-3 uppercase">Cores do Mapa</div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-[#a8a8b3]">Borda</span>
+                    <input type="color" value={zoneData?.style?.borderColor || '#8257e5'} onChange={(e) => updateZoneData(zone.id, { style: { ...zoneData?.style, borderColor: e.target.value, fillColor: zoneData?.style?.fillColor || '', textColor: zoneData?.style?.textColor || '' } })} className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-[#a8a8b3]">Preenchimento</span>
+                    <input type="color" value={zoneData?.style?.fillColor || '#8257e5'} onChange={(e) => updateZoneData(zone.id, { style: { ...zoneData?.style, fillColor: e.target.value, borderColor: zoneData?.style?.borderColor || '', textColor: zoneData?.style?.textColor || '' } })} className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-[#a8a8b3]">Texto</span>
+                    <input type="color" value={zoneData?.style?.textColor || '#ffffff'} onChange={(e) => updateZoneData(zone.id, { style: { ...zoneData?.style, textColor: e.target.value, borderColor: zoneData?.style?.borderColor || '', fillColor: zoneData?.style?.fillColor || '' } })} className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer" />
+                  </div>
+                </div>
+              </div>
+            )}
             <button
               onClick={() => setEditingZone(!editingZone)}
               className={`p-1 rounded hover:bg-white/5 ${editingZone ? 'text-[#ffd700]' : 'text-[#a8a8b3] hover:text-[#e1e1e6]'}`}
@@ -144,7 +171,12 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
               <div className="space-y-6 flex-1 min-w-0">
                 {activeTab === 'geral' && (
                   <>
-                    <h2 className="text-[#e1e1e6] text-xl font-bold">{zoneData.title || 'Nova Zona'}</h2>
+                    <h2 className="text-[#e1e1e6] text-xl font-bold mb-2">{zoneData.title || 'Nova Zona'}</h2>
+                    {zoneData.imageUrl && (
+                      <div className="mb-4 rounded overflow-hidden border border-[#323238]">
+                        <img src={zoneData.imageUrl} alt={zoneData.title} className="w-full h-auto object-cover max-h-[300px]" />
+                      </div>
+                    )}
                     <div className="flex justify-between items-start border-b border-[#323238] pb-4 gap-4">
                       <RichTextView content={zoneData.desc || ''} defaultText="Sem descrição..." />
                       <div className="bg-black/20 px-3 py-1 rounded text-center shrink-0 border border-[#323238]">
@@ -325,6 +357,16 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                           <button onClick={() => updateZoneData(zone.id, { visits: (zoneData.visits || 0) + 1 })} className="px-2 text-[#a8a8b3] hover:text-white"><Plus className="w-3 h-3" /></button>
                         </div>
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-[#a8a8b3] block mb-1">URL da Imagem de Capa</label>
+                      <Input
+                        value={zoneData.imageUrl || ''}
+                        onChange={(e) => updateZoneData(zone.id, { imageUrl: e.target.value })}
+                        placeholder="https://..."
+                        className="bg-[#121214] border-[#323238] h-9 text-[#e1e1e6]"
+                      />
                     </div>
 
                     <div>
