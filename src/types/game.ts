@@ -102,6 +102,9 @@ export interface Zone {
   data: {
     title: string;
     desc: string;
+    clues?: string;
+    items?: string;
+    highlights?: string;
     visits: number;
     customPois: POICategory[];
     customEvents: ZoneEvent[];

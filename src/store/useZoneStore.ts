@@ -14,8 +14,12 @@ interface ZoneState {
   // Sidebar control (centralized so canvas can open them)
   leftSidebarOpen: boolean;
   rightSidebarOpen: boolean;
+  leftSidebarWidth: number;
+  rightSidebarWidth: number;
   setLeftSidebarOpen: (open: boolean) => void;
   setRightSidebarOpen: (open: boolean) => void;
+  setLeftSidebarWidth: (width: number) => void;
+  setRightSidebarWidth: (width: number) => void;
   toggleLeftSidebar: () => void;
   toggleRightSidebar: () => void;
 
@@ -51,9 +55,13 @@ export const useZoneStore = create<ZoneState>((set) => ({
   activeTool: 'pan',
   leftSidebarOpen: false,
   rightSidebarOpen: false,
+  leftSidebarWidth: 320,
+  rightSidebarWidth: 320,
 
   setLeftSidebarOpen: (open) => set({ leftSidebarOpen: open }),
   setRightSidebarOpen: (open) => set({ rightSidebarOpen: open }),
+  setLeftSidebarWidth: (width) => set({ leftSidebarWidth: width }),
+  setRightSidebarWidth: (width) => set({ rightSidebarWidth: width }),
   toggleLeftSidebar: () => set((state) => ({ leftSidebarOpen: !state.leftSidebarOpen })),
   toggleRightSidebar: () => set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen })),
 

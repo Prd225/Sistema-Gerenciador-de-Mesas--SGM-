@@ -1,4 +1,3 @@
-
 import { ChevronRight, Lock, Unlock, MapPin, Trash } from 'lucide-react';
 import { useZoneStore } from '@/store/useZoneStore';
 import { Input } from '@/components/ui/input';
@@ -16,6 +15,29 @@ export default function SidebarRight({ isOpen, toggle }: SidebarRightProps) {
   const updateMarker = useZoneStore(state => state.updateMarker);
   const removeMarker = useZoneStore(state => state.removeMarker);
   const markersList = Object.values(markers);
+  
+  const width = useZoneStore(state => state.rightSidebarWidth);
+  const setWidth = useZoneStore(state => state.setRightSidebarWidth);
+
+  const handleDragStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = width;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      // Right sidebar: moving mouse left (negative X delta) means larger width
+      const newWidth = Math.max(300, Math.min(800, startWidth - (moveEvent.clientX - startX)));
+      setWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
 
   if (!isOpen) {
     return (
@@ -28,8 +50,16 @@ export default function SidebarRight({ isOpen, toggle }: SidebarRightProps) {
   }
 
   return (
-    <aside className="w-[320px] bg-[#202024] border-l border-[#323238] flex flex-col h-full z-40 overflow-hidden transition-all shrink-0">
-      <div className="p-5 overflow-y-auto flex-1 min-w-[320px]">
+    <aside 
+      style={{ width: `${width}px` }}
+      className="bg-[#202024] border-l border-[#323238] flex flex-col h-full z-40 overflow-hidden shrink-0 relative"
+    >
+      {/* Resize Handle */}
+      <div 
+        className="absolute top-0 left-0 w-1.5 h-full cursor-col-resize hover:bg-[#8257e5]/50 active:bg-[#8257e5] z-50 transition-colors"
+        onMouseDown={handleDragStart}
+      />
+      <div className="p-5 overflow-y-auto flex-1 h-full relative">
 
         {/* Header */}
         <div className="flex justify-between items-center mb-5 text-[#8257e5] font-bold uppercase tracking-wide border-b-2 border-[#323238] pb-2">
