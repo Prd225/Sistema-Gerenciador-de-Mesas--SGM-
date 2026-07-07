@@ -3,6 +3,7 @@ import { Stage, Layer, Rect } from 'react-konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { useZoneStore } from '@/store/useZoneStore';
 import { useTokenStore } from '@/store/useTokenStore';
+import { useMasterPanelStore } from '@/store/useMasterPanelStore';
 
 import GridLayer from './GridLayer';
 import BackgroundLayer from './BackgroundLayer';
@@ -328,7 +329,8 @@ export default function StageMap() {
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement ||
-        (e.target as HTMLElement).isContentEditable
+        (e.target as HTMLElement).isContentEditable ||
+        useMasterPanelStore.getState().isOpen
       ) {
         return;
       }
