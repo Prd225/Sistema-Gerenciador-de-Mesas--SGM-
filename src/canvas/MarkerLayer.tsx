@@ -1,7 +1,6 @@
 import React from 'react';
-import { Group, Circle, Text, Image as KonvaImage } from 'react-konva';
+import { Group, Text, Image as KonvaImage } from 'react-konva';
 import { useZoneStore } from '@/store/useZoneStore';
-import { useTokenStore } from '@/store/useTokenStore';
 import useImage from 'use-image';
 
 const iconTypeSvgMap = {
@@ -27,14 +26,10 @@ function MarkerLayer({ scale = 1 }: { scale?: number }) {
   const markers = Object.values(markersMap);
   const updateMarker = useZoneStore(state => state.updateMarker);
   const activeTool = useZoneStore(state => state.activeTool);
-  const selectedNodeIds = useZoneStore(state => state.selectedNodeIds);
-  const setSelectedNodeIds = useZoneStore(state => state.setSelectedNodeIds);
-  const dragStartPositions = React.useRef<Record<string, { x: number; y: number }>>({});
 
   return (
     <Group>
       {markers.map(marker => {
-        const isSelected = selectedNodeIds.includes(marker.id);
         const dynamicFontSize = Math.max(12, 14 / scale);
         const dynamicY = -40 / scale;
 
@@ -44,21 +39,13 @@ function MarkerLayer({ scale = 1 }: { scale?: number }) {
           id={marker.id}
           x={marker.x}
           y={marker.y}
-          draggable={activeTool === 'pan' || activeTool === 'select'}
-          listening={activeTool === 'pan' || activeTool === 'select'}
+          draggable={activeTool === 'add-marker'}
+          listening={activeTool === 'add-marker'}
           onClick={(e) => {
-            if (activeTool === 'select') {
-              e.cancelBubble = true;
-              if (e.evt.shiftKey) {
-                const newSelected = isSelected ? selectedNodeIds.filter(id => id !== marker.id) : [...selectedNodeIds, marker.id];
-                setSelectedNodeIds(newSelected);
-              } else {
-                if (!isSelected) setSelectedNodeIds([marker.id]);
-              }
-            }
+            e.cancelBubble = true;
           }}
           onMouseEnter={(e) => {
-            if (activeTool !== 'select' && activeTool !== 'pan') return;
+            if (activeTool !== 'add-marker') return;
             document.body.style.cursor = 'pointer';
             e.currentTarget.to({ scaleX: 0.95, scaleY: 0.95, opacity: 0.85, duration: 0.15 });
           }}
@@ -68,107 +55,12 @@ function MarkerLayer({ scale = 1 }: { scale?: number }) {
           }}
           onDragStart={(e) => {
             e.currentTarget.to({ scaleX: 0.85, scaleY: 0.85, opacity: 0.7, duration: 0.15 });
-            if (activeTool !== 'select') return;
-            let currentSelected = selectedNodeIds;
-            if (!isSelected) {
-               setSelectedNodeIds([marker.id]);
-               currentSelected = [marker.id];
-            }
-            
-            const tState = useTokenStore.getState();
-            const zState = useZoneStore.getState();
-            
-            dragStartPositions.current = currentSelected.reduce((acc: any, id) => {
-               const token = tState.tokens.find(tk => tk.id === id);
-               if (token) acc[id] = { x: token.x!, y: token.y! };
-               const m = zState.markers[id];
-               if (m) acc[id] = { x: m.x, y: m.y };
-               return acc;
-            }, {});
-
-            const stage = e.target.getStage();
-            if (stage) {
-              currentSelected.forEach(id => {
-                if (id === marker.id) return;
-                const node = stage.findOne('#' + id);
-                if (node) node.to({ scaleX: 0.85, scaleY: 0.85, opacity: 0.7, duration: 0.15 });
-              });
-            }
-          }}
-          onDragMove={(e) => {
-            if (activeTool !== 'select') return;
-            const startX = dragStartPositions.current[marker.id]?.x || marker.x;
-            const startY = dragStartPositions.current[marker.id]?.y || marker.y;
-            const dx = e.target.x() - startX;
-            const dy = e.target.y() - startY;
-            
-            const stage = e.target.getStage();
-            if (stage) {
-              const tState = useTokenStore.getState();
-              const zState = useZoneStore.getState();
-              
-              selectedNodeIds.forEach(id => {
-                 if (id !== marker.id) {
-                    const start = dragStartPositions.current[id];
-                    if (start) {
-                       if (tState.tokens.some(tk => tk.id === id)) {
-                          tState.updateToken(id, { x: start.x + dx, y: start.y + dy });
-                       } else if (zState.markers[id]) {
-                          zState.updateMarker(id, { x: start.x + dx, y: start.y + dy });
-                       }
-                    }
-                 }
-              });
-            }
           }}
           onDragEnd={(e) => {
             e.currentTarget.to({ scaleX: 0.95, scaleY: 0.95, opacity: 0.85, duration: 0.15 });
-            if (activeTool !== 'select') {
-              updateMarker(marker.id, { x: e.target.x(), y: e.target.y() });
-              return;
-            }
-            const startX = dragStartPositions.current[marker.id]?.x || marker.x;
-            const startY = dragStartPositions.current[marker.id]?.y || marker.y;
-            const dx = e.target.x() - startX;
-            const dy = e.target.y() - startY;
-
-            const tState = useTokenStore.getState();
-            const zState = useZoneStore.getState();
-            
-            selectedNodeIds.forEach(id => {
-               const start = dragStartPositions.current[id];
-               if (start) {
-                  if (tState.tokens.some(tk => tk.id === id)) {
-                     tState.updateToken(id, { x: start.x + dx, y: start.y + dy });
-                  } else if (zState.markers[id]) {
-                     zState.updateMarker(id, { x: start.x + dx, y: start.y + dy });
-                  }
-               }
-            });
-
-            const stage = e.target.getStage();
-            if (stage) {
-              selectedNodeIds.forEach(id => {
-                if (id === marker.id) return;
-                const node = stage.findOne('#' + id);
-                if (node) node.to({ scaleX: 1, scaleY: 1, opacity: 1, duration: 0.15 });
-              });
-            }
+            updateMarker(marker.id, { x: e.target.x(), y: e.target.y() });
           }}
         >
-          {isSelected && (
-            <Circle
-              x={0}
-              y={-16}
-              radius={24}
-              stroke="#00A1FF"
-              strokeWidth={2}
-              dash={[4, 4]}
-              perfectDrawEnabled={false}
-              listening={false}
-            />
-          )}
-
           <MarkerIcon iconType={marker.iconType} color={marker.color} />
 
           {/* Marker Label */}
