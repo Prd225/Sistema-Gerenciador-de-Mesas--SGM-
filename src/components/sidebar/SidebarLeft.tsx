@@ -1,4 +1,4 @@
-import { Map, Lock, Unlock, ChevronLeft, SquareDashed, Trash, Plus, Minus, Save, Eraser, Palette, ImagePlus, X } from 'lucide-react';
+import { Map, Lock, Unlock, ChevronLeft, SquareDashed, Trash, Plus, Minus, Save, Eraser, Palette, ImagePlus, X, CheckSquare, Square } from 'lucide-react';
 import { useZoneStore } from '@/store/useZoneStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -202,8 +202,17 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                               {cat.title || 'Categoria'}
                             </div>
                             {cat.options.map((opt, oi) => (
-                              <div key={oi} className="ml-3 mb-2 pl-3 border-l-2 border-[#323238] min-w-0">
-                                <div className="font-bold text-[#e1e1e6] mb-1">{opt.name}:</div>
+                              <div key={oi} className={`ml-3 mb-2 pl-3 border-l-2 border-[#323238] min-w-0 transition-opacity ${opt.isRevealed ? 'opacity-50' : ''}`}>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <button onClick={() => {
+                                    const newPois = JSON.parse(JSON.stringify(zoneData.customPois));
+                                    newPois[idx].options[oi].isRevealed = !newPois[idx].options[oi].isRevealed;
+                                    updateZoneData(zone.id, { customPois: newPois });
+                                  }} className="text-[#a8a8b3] hover:text-[#8257e5] transition-colors" title="Marcar como revelado">
+                                    {opt.isRevealed ? <CheckSquare className="w-4 h-4 text-[#04d361]" /> : <Square className="w-4 h-4" />}
+                                  </button>
+                                  <div className="font-bold text-[#e1e1e6]">{opt.name}:</div>
+                                </div>
                                 <RichTextView content={opt.desc} defaultText="" />
                               </div>
                             ))}
@@ -259,9 +268,18 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                               blue: 'text-blue-500', gray: 'text-gray-500'
                             };
                             return (
-                              <div key={hlIdx} className={`bg-black/20 p-3 rounded mb-3 border-l-[3px] ml-3 min-w-0 ${borderColors[hl.color] || borderColors.gray}`}>
+                              <div key={hlIdx} className={`bg-black/20 p-3 rounded mb-3 border-l-[3px] ml-3 min-w-0 transition-opacity ${hl.isRevealed ? 'opacity-50' : ''} ${borderColors[hl.color] || borderColors.gray}`}>
                                 <div className="flex justify-between items-start mb-2">
-                                  <span className={`font-bold text-lg ${textColors[hl.color] || textColors.gray}`}>{hl.name}</span>
+                                  <div className="flex items-center gap-2">
+                                    <button onClick={() => {
+                                      const newHl = JSON.parse(JSON.stringify(zoneData.customHighlights));
+                                      newHl[idx].options[hlIdx].isRevealed = !newHl[idx].options[hlIdx].isRevealed;
+                                      updateZoneData(zone.id, { customHighlights: newHl });
+                                    }} className="text-[#a8a8b3] hover:text-[#8257e5] transition-colors mt-0.5" title="Marcar como revelado">
+                                      {hl.isRevealed ? <CheckSquare className="w-4 h-4 text-[#04d361]" /> : <Square className="w-4 h-4" />}
+                                    </button>
+                                    <span className={`font-bold text-lg ${textColors[hl.color] || textColors.gray}`}>{hl.name}</span>
+                                  </div>
                                   <div className="flex gap-1 flex-wrap justify-end">
                                     {hl.tags && hl.tags.split(',').map((tag, tIdx) => (
                                       tag.trim() && <span key={tIdx} className="bg-[#121214] text-[#a8a8b3] px-2 py-0.5 rounded text-xs border border-[#323238] uppercase break-all">
@@ -286,16 +304,27 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                       <span className="text-[#a8a8b3] italic flex-1 whitespace-pre-wrap">Nenhuma ameaça documentada para esta zona.</span>
                     ) : (
                       zoneData.customThreats.map((threat, idx) => (
-                        <div key={idx} className="bg-black/20 p-3 rounded mb-3 border border-[#323238] min-w-0">
+                        <div key={idx} className={`bg-black/20 p-3 rounded mb-3 border border-[#323238] min-w-0 transition-opacity ${threat.isRevealed ? 'opacity-50' : ''}`}>
                            <div className="flex justify-between items-center mb-1">
-                             <span className="font-bold text-[#e1e1e6] text-lg">{threat.name}</span>
+                             <div className="flex items-center gap-2">
+                               <button onClick={() => {
+                                 const newTh = JSON.parse(JSON.stringify(zoneData.customThreats));
+                                 newTh[idx].isRevealed = !newTh[idx].isRevealed;
+                                 updateZoneData(zone.id, { customThreats: newTh });
+                               }} className="text-[#a8a8b3] hover:text-[#8257e5] transition-colors" title="Marcar como revelada">
+                                 {threat.isRevealed ? <CheckSquare className="w-5 h-5 text-red-500" /> : <Square className="w-5 h-5" />}
+                               </button>
+                               <span className="font-bold text-[#e1e1e6] text-lg">{threat.name}</span>
+                             </div>
                              <span className="bg-red-500/20 text-red-500 text-xs px-2 py-0.5 rounded border border-red-500/30 uppercase shrink-0 ml-2">{threat.type}</span>
                            </div>
-                           <div className="flex gap-4 mb-2 text-sm text-[#a8a8b3] break-all">
+                           <div className="flex gap-4 mb-2 text-sm text-[#a8a8b3] break-all pl-7">
                              <div><span className="font-bold text-[#e1e1e6]">Dano:</span> {threat.damage}</div>
                              <div><span className="font-bold text-[#e1e1e6]">Tipo:</span> {threat.damageType}</div>
                            </div>
-                           <RichTextView content={threat.effect} defaultText="" />
+                           <div className="pl-7">
+                             <RichTextView content={threat.effect} defaultText="" />
+                           </div>
                         </div>
                       ))
                     )}
@@ -319,19 +348,30 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                         const elColor = elementColors[item.element] || elementColors['Comum'];
 
                         return (
-                          <div key={idx} className="bg-black/20 p-3 rounded mb-3 border border-[#323238] min-w-0">
+                          <div key={idx} className={`bg-black/20 p-3 rounded mb-3 border border-[#323238] min-w-0 transition-opacity ${item.isFound ? 'opacity-50 grayscale' : ''}`}>
                             <div className="flex justify-between items-center mb-1">
-                              <span className="font-bold text-[#e1e1e6] text-lg truncate mr-2">{item.name}</span>
+                              <div className="flex items-center gap-2 truncate mr-2">
+                                <button onClick={() => {
+                                  const newInv = JSON.parse(JSON.stringify(zoneData.customInventory));
+                                  newInv[idx].isFound = !newInv[idx].isFound;
+                                  updateZoneData(zone.id, { customInventory: newInv });
+                                }} className="text-[#a8a8b3] hover:text-[#8257e5] transition-colors shrink-0" title="Marcar como encontrado">
+                                  {item.isFound ? <CheckSquare className="w-5 h-5 text-[#ffd700]" /> : <Square className="w-5 h-5" />}
+                                </button>
+                                <span className={`font-bold text-lg truncate ${item.isFound ? 'text-[#a8a8b3] line-through' : 'text-[#e1e1e6]'}`}>{item.name}</span>
+                              </div>
                               <div className="flex gap-2 shrink-0">
                                 <span className="bg-[#121214] text-[#a8a8b3] text-xs px-2 py-0.5 rounded border border-[#323238] uppercase">{item.type}</span>
                                 <span className={`text-xs px-2 py-0.5 rounded border uppercase ${elColor}`}>{item.element}</span>
                               </div>
                             </div>
-                            <div className="flex gap-4 mb-2 text-sm text-[#a8a8b3] break-all">
+                            <div className="flex gap-4 mb-2 text-sm text-[#a8a8b3] break-all pl-7">
                               <div><span className="font-bold text-[#e1e1e6]">Peso:</span> {item.weight}</div>
                               <div><span className="font-bold text-[#e1e1e6]">Efeito:</span> {item.effect}</div>
                             </div>
-                            <RichTextView content={item.desc} defaultText="" />
+                            <div className="pl-7">
+                              <RichTextView content={item.desc} defaultText="" />
+                            </div>
                           </div>
                         )
                       })

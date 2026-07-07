@@ -76,6 +76,7 @@ export interface Token {
 export interface POIOption {
   name: string;
   desc: string;
+  isRevealed?: boolean;
 }
 
 export interface POICategory {
@@ -95,6 +96,7 @@ export interface ZoneHighlight {
   desc: string;
   tags: string;
   color: 'red' | 'yellow' | 'green' | 'purple' | 'blue' | 'gray';
+  isRevealed?: boolean;
 }
 
 export interface ZoneHighlightCategory {
@@ -108,6 +110,7 @@ export interface ZoneThreat {
   effect: string;
   damage: string;
   damageType: string;
+  isRevealed?: boolean;
 }
 
 export interface ZoneInventoryItem {
@@ -117,6 +120,7 @@ export interface ZoneInventoryItem {
   element: 'Sangue' | 'Morte' | 'Conhecimento' | 'Energia' | 'Medo' | 'Comum';
   effect: string;
   desc: string;
+  isFound?: boolean;
 }
 
 export interface Zone {
