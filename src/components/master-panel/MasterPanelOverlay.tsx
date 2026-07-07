@@ -4,8 +4,11 @@ import MasterPanelMenu from './MasterPanelMenu';
 import SubPanelPlaceholder from './SubPanelPlaceholder';
 import MasterDiary from './diary/MasterDiary';
 
+import MasterRules from './rules/MasterRules';
+
 function RenderPanel({ panelId }: { panelId: string }) {
   if (panelId === 'diary') return <MasterDiary />;
+  if (panelId === 'rules') return <MasterRules />;
   return <SubPanelPlaceholder panelId={panelId as any} />;
 }
 
