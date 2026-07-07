@@ -90,8 +90,14 @@ export function ImageCropper({ imageSrc, onConfirm, onCancel, size = 256, cropTy
       ctx.lineWidth = 2;
       ctx.stroke();
     } else {
-      const rectH = radius * 2;
-      const rectW = Math.min(canvasWidth - 20, rectH * aspectRatio); // ensure it fits
+      let rectW = canvasWidth - 40;
+      let rectH = rectW / aspectRatio;
+
+      if (rectH > canvasHeight - 40) {
+        rectH = canvasHeight - 40;
+        rectW = rectH * aspectRatio;
+      }
+
       const rx = (canvasWidth - rectW) / 2;
       const ry = (canvasHeight - rectH) / 2;
       ctx.rect(rx + rectW, ry, -rectW, rectH);
@@ -145,8 +151,19 @@ export function ImageCropper({ imageSrc, onConfirm, onCancel, size = 256, cropTy
     const ctx = exportCanvas.getContext('2d');
     if (!ctx) return;
 
-    const exportRadius = size / 2;
-    const scaleFactor = exportRadius / radius;
+    let previewCropW = radius * 2;
+    let previewCropH = radius * 2;
+
+    if (cropType === 'rect') {
+      previewCropW = canvasWidth - 40;
+      previewCropH = previewCropW / aspectRatio;
+      if (previewCropH > canvasHeight - 40) {
+        previewCropH = canvasHeight - 40;
+        previewCropW = previewCropH * aspectRatio;
+      }
+    }
+
+    const scaleFactor = exportW / previewCropW;
     
     // Offset of image center relative to the center in the preview canvas
     const offsetX = pos.x - (canvasWidth / 2);
@@ -156,7 +173,7 @@ export function ImageCropper({ imageSrc, onConfirm, onCancel, size = 256, cropTy
     
     if (cropType === 'circle') {
       ctx.beginPath();
-      ctx.arc(exportW / 2, exportH / 2, exportRadius, 0, Math.PI * 2);
+      ctx.arc(exportW / 2, exportH / 2, exportW / 2, 0, Math.PI * 2);
       ctx.clip();
     }
     

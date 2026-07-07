@@ -177,8 +177,8 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                   <>
                     <h2 className="text-[#e1e1e6] text-xl font-bold mb-2">{zoneData.title || 'Nova Zona'}</h2>
                     {zoneData.imageUrl && (
-                      <div className="mb-4 rounded overflow-hidden border border-[#323238] h-[150px] shrink-0">
-                        <img src={zoneData.imageUrl} alt={zoneData.title} className="w-full h-full object-cover" />
+                      <div className="mb-4 rounded overflow-hidden border border-[#323238] shrink-0">
+                        <img src={zoneData.imageUrl} alt={zoneData.title} className="w-full h-auto object-contain max-h-[300px]" />
                       </div>
                     )}
                     <div className="flex justify-between items-start border-b border-[#323238] pb-4 gap-4">
@@ -939,7 +939,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
           <ImageCropper
             imageSrc={rawImage}
             cropType="rect"
-            aspectRatio={16/9}
+            aspectRatio={4/3}
             size={600}
             onConfirm={(base64) => {
               if (zone) updateZoneData(zone.id, { imageUrl: base64 });
