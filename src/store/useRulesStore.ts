@@ -14,6 +14,7 @@ interface RulesState {
   addWidget: (pageId: string, size?: RuleWidgetSize) => void;
   removeWidget: (pageId: string, widgetId: string) => void;
   updateWidgetSize: (pageId: string, widgetId: string, size: RuleWidgetSize) => void;
+  updateWidgetTitle: (pageId: string, widgetId: string, title: string) => void;
   updateWidgetContent: (pageId: string, widgetId: string, title: string, content: string) => void;
   updateWidgetContentIndex: (pageId: string, widgetId: string, index: number, content: string) => void;
   updateWidgetContentType: (pageId: string, widgetId: string, contentType: 'text' | 'image') => void;
@@ -76,6 +77,16 @@ export const useRulesStore = create<RulesState>()(
           return {
             ...p,
             widgets: p.widgets.map(w => w.id === widgetId ? { ...w, size } : w)
+          };
+        })
+      })),
+
+      updateWidgetTitle: (pageId, widgetId, title) => set((state) => ({
+        pages: state.pages.map(p => {
+          if (p.id !== pageId) return p;
+          return {
+            ...p,
+            widgets: p.widgets.map(w => w.id === widgetId ? { ...w, title } : w)
           };
         })
       })),

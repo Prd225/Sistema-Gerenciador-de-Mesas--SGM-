@@ -51,23 +51,23 @@ export default function RulesEditor({ initialValue, onChange, isEditing }: Rules
   return (
     <div className="flex flex-col h-full border border-[#323238] rounded bg-[#121214] overflow-hidden focus-within:border-[#8257e5] transition-colors relative">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-1 p-1 bg-[#202024] border-b border-[#323238] shrink-0">
-        <button onMouseDown={(e) => { e.preventDefault(); exec('bold'); }} className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Negrito"><Bold className="w-4 h-4" /></button>
-        <button onMouseDown={(e) => { e.preventDefault(); exec('italic'); }} className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Itálico"><Italic className="w-4 h-4" /></button>
-        <button onMouseDown={(e) => { e.preventDefault(); exec('underline'); }} className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Sublinhado"><Underline className="w-4 h-4" /></button>
+      <div className="flex flex-wrap items-center gap-0.5 p-0.5 bg-[#202024] border-b border-[#323238] shrink-0">
+        <button onMouseDown={(e) => { e.preventDefault(); exec('bold'); }} className="p-0.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Negrito"><Bold className="w-3.5 h-3.5" /></button>
+        <button onMouseDown={(e) => { e.preventDefault(); exec('italic'); }} className="p-0.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Itálico"><Italic className="w-3.5 h-3.5" /></button>
+        <button onMouseDown={(e) => { e.preventDefault(); exec('underline'); }} className="p-0.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Sublinhado"><Underline className="w-3.5 h-3.5" /></button>
         
-        <div className="w-px h-4 bg-[#323238] mx-1" />
+        <div className="w-px h-3 bg-[#323238] mx-0.5" />
         
         {/* Colors */}
         <div className="relative group/color">
-          <button className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Cor do Texto"><Palette className="w-4 h-4" /></button>
+          <button className="p-0.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Cor do Texto"><Palette className="w-3.5 h-3.5" /></button>
           <div className="absolute left-0 top-full pt-1 hidden group-hover/color:block z-20">
             <div className="flex bg-[#121214] border border-[#323238] rounded p-1 gap-1">
               {COLORS.map(c => (
                 <button
                   key={c}
                   onMouseDown={(e) => { e.preventDefault(); exec('foreColor', c); }}
-                  className="w-4 h-4 rounded-full border border-[#323238] hover:scale-110 transition-transform"
+                  className="w-3.5 h-3.5 rounded-full border border-[#323238] hover:scale-110 transition-transform"
                   style={{ backgroundColor: c }}
                   title={c}
                 />
@@ -78,7 +78,7 @@ export default function RulesEditor({ initialValue, onChange, isEditing }: Rules
 
         {/* Fonts */}
         <div className="relative group/font">
-          <button className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Fonte"><Type className="w-4 h-4" /></button>
+          <button className="p-0.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Fonte"><Type className="w-3.5 h-3.5" /></button>
           <div className="absolute left-0 top-full pt-1 hidden group-hover/font:block z-20">
             <div className="flex flex-col bg-[#121214] border border-[#323238] rounded py-1 min-w-[120px]">
               {FONTS.map(f => (
@@ -95,16 +95,16 @@ export default function RulesEditor({ initialValue, onChange, isEditing }: Rules
           </div>
         </div>
 
-        <div className="w-px h-4 bg-[#323238] mx-1" />
+        <div className="w-px h-3 bg-[#323238] mx-0.5" />
 
-        <button onMouseDown={(e) => { e.preventDefault(); exec('insertUnorderedList'); }} className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Lista com Marcadores"><List className="w-4 h-4" /></button>
-        <button onMouseDown={(e) => { e.preventDefault(); exec('insertOrderedList'); }} className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Lista Numerada"><ListOrdered className="w-4 h-4" /></button>
+        <button onMouseDown={(e) => { e.preventDefault(); exec('insertUnorderedList'); }} className="p-0.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Lista com Marcadores"><List className="w-3.5 h-3.5" /></button>
+        <button onMouseDown={(e) => { e.preventDefault(); exec('insertOrderedList'); }} className="p-0.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Lista Numerada"><ListOrdered className="w-3.5 h-3.5" /></button>
         
-        <div className="w-px h-4 bg-[#323238] mx-1" />
+        <div className="w-px h-3 bg-[#323238] mx-0.5" />
 
-        <button onMouseDown={(e) => { e.preventDefault(); exec('justifyLeft'); }} className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Alinhar à Esquerda"><AlignLeft className="w-4 h-4" /></button>
-        <button onMouseDown={(e) => { e.preventDefault(); exec('justifyCenter'); }} className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Centralizar"><AlignCenter className="w-4 h-4" /></button>
-        <button onMouseDown={(e) => { e.preventDefault(); exec('justifyRight'); }} className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Alinhar à Direita"><AlignRight className="w-4 h-4" /></button>
+        <button onMouseDown={(e) => { e.preventDefault(); exec('justifyLeft'); }} className="p-0.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Alinhar à Esquerda"><AlignLeft className="w-3.5 h-3.5" /></button>
+        <button onMouseDown={(e) => { e.preventDefault(); exec('justifyCenter'); }} className="p-0.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Centralizar"><AlignCenter className="w-3.5 h-3.5" /></button>
+        <button onMouseDown={(e) => { e.preventDefault(); exec('justifyRight'); }} className="p-0.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Alinhar à Direita"><AlignRight className="w-3.5 h-3.5" /></button>
       </div>
 
       {/* Editor */}

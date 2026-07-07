@@ -12,7 +12,7 @@ interface RulesCardProps {
 export default function RulesCard({ widget, pageId }: RulesCardProps) {
   const updateWidgetSize = useRulesStore(state => state.updateWidgetSize);
   const removeWidget = useRulesStore(state => state.removeWidget);
-  const updateWidgetContent = useRulesStore(state => state.updateWidgetContent);
+  const updateWidgetTitle = useRulesStore(state => state.updateWidgetTitle);
   const updateWidgetContentIndex = useRulesStore(state => state.updateWidgetContentIndex);
   const updateWidgetContentType = useRulesStore(state => state.updateWidgetContentType);
   const updateWidgetColumns = useRulesStore(state => state.updateWidgetColumns);
@@ -55,7 +55,7 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
 
   const handleTitleSave = () => {
     if (titleValue.trim()) {
-      updateWidgetContent(pageId, widget.id, titleValue.trim(), widget.content);
+      updateWidgetTitle(pageId, widget.id, titleValue.trim());
     }
     setIsEditingTitle(false);
   };
