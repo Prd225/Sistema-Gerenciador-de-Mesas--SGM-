@@ -1,5 +1,5 @@
 import React from 'react';
-import { Group, Text, Image as KonvaImage } from 'react-konva';
+import { Group, Text, Image as KonvaImage, Rect } from 'react-konva';
 import { useZoneStore } from '@/store/useZoneStore';
 import useImage from 'use-image';
 
@@ -61,6 +61,15 @@ function MarkerLayer({ scale = 1 }: { scale?: number }) {
             updateMarker(marker.id, { x: e.target.x(), y: e.target.y() });
           }}
         >
+          {/* Hit area for mouse events */}
+          <Rect
+            x={-30}
+            y={-40}
+            width={60}
+            height={60}
+            fill="transparent"
+          />
+
           <MarkerIcon iconType={marker.iconType} color={marker.color} />
 
           {/* Marker Label */}
