@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type { RulePage, RuleWidget, RuleWidgetSize } from '@/types/rules';
 
 interface RulesState {
@@ -23,9 +22,7 @@ interface RulesState {
   reorderWidgets: (pageId: string, draggedId: string, targetId: string) => void;
 }
 
-export const useRulesStore = create<RulesState>()(
-  persist(
-    (set) => ({
+export const useRulesStore = create<RulesState>()((set) => ({
       pages: [
         {
           id: crypto.randomUUID(),
@@ -162,9 +159,4 @@ export const useRulesStore = create<RulesState>()(
           return { ...p, widgets: newWidgets };
         })
       }))
-    }),
-    {
-      name: 'rules-storage',
-    }
-  )
-);
+}));

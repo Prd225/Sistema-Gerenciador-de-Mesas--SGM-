@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bold, Italic, Underline, Palette, Type, List, ListOrdered, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
+import { Bold, Italic, Underline, Palette, List, ListOrdered, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 
 interface RulesEditorProps {
   initialValue: string;
@@ -8,7 +8,6 @@ interface RulesEditorProps {
 }
 
 const COLORS = ['#ffffff', '#e55757', '#57e569', '#57aee5', '#e5c557', '#8257e5'];
-const FONTS = ['Inter', 'Arial', 'Times New Roman', 'Courier New', 'Georgia'];
 
 export default function RulesEditor({ initialValue, onChange, isEditing }: RulesEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
@@ -71,25 +70,6 @@ export default function RulesEditor({ initialValue, onChange, isEditing }: Rules
                   style={{ backgroundColor: c }}
                   title={c}
                 />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Fonts */}
-        <div className="relative group/font">
-          <button className="p-0.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Fonte"><Type className="w-3.5 h-3.5" /></button>
-          <div className="absolute left-0 top-full pt-1 hidden group-hover/font:block z-20">
-            <div className="flex flex-col bg-[#121214] border border-[#323238] rounded py-1 min-w-[120px]">
-              {FONTS.map(f => (
-                <button
-                  key={f}
-                  onMouseDown={(e) => { e.preventDefault(); exec('fontName', f); }}
-                  className="px-3 py-1 text-xs text-left text-[#a8a8b3] hover:bg-[#323238] hover:text-white transition-colors"
-                  style={{ fontFamily: f }}
-                >
-                  {f}
-                </button>
               ))}
             </div>
           </div>
