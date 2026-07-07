@@ -115,15 +115,15 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-[#a8a8b3]">Borda</span>
-                    <input type="color" value={zoneData?.style?.borderColor || '#8257e5'} onChange={(e) => updateZoneData(zone.id, { style: { ...zoneData?.style, borderColor: e.target.value, fillColor: zoneData?.style?.fillColor || '', textColor: zoneData?.style?.textColor || '' } })} className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer" />
+                    <input type="color" value={zoneData?.style?.borderColor || '#8257e5'} onChange={(e) => { if (zone) updateZoneData(zone.id, { style: { ...zoneData?.style, borderColor: e.target.value, fillColor: zoneData?.style?.fillColor || '', textColor: zoneData?.style?.textColor || '' } })}} className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer" />
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-[#a8a8b3]">Preenchimento</span>
-                    <input type="color" value={zoneData?.style?.fillColor || '#8257e5'} onChange={(e) => updateZoneData(zone.id, { style: { ...zoneData?.style, fillColor: e.target.value, borderColor: zoneData?.style?.borderColor || '', textColor: zoneData?.style?.textColor || '' } })} className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer" />
+                    <input type="color" value={zoneData?.style?.fillColor || '#8257e5'} onChange={(e) => { if (zone) updateZoneData(zone.id, { style: { ...zoneData?.style, fillColor: e.target.value, borderColor: zoneData?.style?.borderColor || '', textColor: zoneData?.style?.textColor || '' } })}} className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer" />
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-[#a8a8b3]">Texto</span>
-                    <input type="color" value={zoneData?.style?.textColor || '#ffffff'} onChange={(e) => updateZoneData(zone.id, { style: { ...zoneData?.style, textColor: e.target.value, borderColor: zoneData?.style?.borderColor || '', fillColor: zoneData?.style?.fillColor || '' } })} className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer" />
+                    <input type="color" value={zoneData?.style?.textColor || '#ffffff'} onChange={(e) => { if (zone) updateZoneData(zone.id, { style: { ...zoneData?.style, textColor: e.target.value, borderColor: zoneData?.style?.borderColor || '', fillColor: zoneData?.style?.fillColor || '' } })}} className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer" />
                   </div>
                 </div>
               </div>
