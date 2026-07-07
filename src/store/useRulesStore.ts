@@ -15,6 +15,7 @@ interface RulesState {
   removeWidget: (pageId: string, widgetId: string) => void;
   updateWidgetSize: (pageId: string, widgetId: string, size: RuleWidgetSize) => void;
   updateWidgetContent: (pageId: string, widgetId: string, title: string, content: string) => void;
+  updateWidgetContentIndex: (pageId: string, widgetId: string, index: number, content: string) => void;
   updateWidgetContentType: (pageId: string, widgetId: string, contentType: 'text' | 'image') => void;
   updateWidgetColumns: (pageId: string, widgetId: string, columnCount: 1 | 2 | 3) => void;
   updateWidgetImage: (pageId: string, widgetId: string, imageUrl: string) => void;
@@ -54,6 +55,7 @@ export const useRulesStore = create<RulesState>()(
             size,
             title: 'Nova Regra',
             content: '',
+            contents: ['', '', ''],
             contentType: 'text',
             columnCount: 1
           };
@@ -83,7 +85,22 @@ export const useRulesStore = create<RulesState>()(
           if (p.id !== pageId) return p;
           return {
             ...p,
-            widgets: p.widgets.map(w => w.id === widgetId ? { ...w, title, content } : w)
+            widgets: p.widgets.map(w => w.id === widgetId ? { ...w, title, content, contents: [content, w.contents?.[1] || '', w.contents?.[2] || ''] } : w)
+          };
+        })
+      })),
+
+      updateWidgetContentIndex: (pageId, widgetId, index, content) => set((state) => ({
+        pages: state.pages.map(p => {
+          if (p.id !== pageId) return p;
+          return {
+            ...p,
+            widgets: p.widgets.map(w => {
+              if (w.id !== widgetId) return w;
+              const newContents = [...(w.contents || [w.content || '', '', ''])];
+              newContents[index] = content;
+              return { ...w, contents: newContents };
+            })
           };
         })
       })),

@@ -4,7 +4,8 @@ export interface RuleWidget {
   id: string;
   size: RuleWidgetSize;
   title: string;
-  content: string;
+  content: string; // Deprecated or for single col
+  contents?: string[];
   contentType?: 'text' | 'image';
   columnCount?: 1 | 2 | 3;
   imageUrl?: string;

@@ -42,7 +42,7 @@ export default function RulesEditor({ initialValue, onChange, isEditing }: Rules
   if (!isEditing) {
     return (
       <div 
-        className="prose prose-invert max-w-none text-sm text-gray-300 pointer-events-none break-words h-full"
+        className="prose prose-invert max-w-none text-sm text-gray-300 break-words h-full p-3 overflow-y-auto custom-scrollbar"
         dangerouslySetInnerHTML={{ __html: internalHtml || '<span class="italic text-gray-500">Sem conteúdo...</span>' }}
       />
     );
