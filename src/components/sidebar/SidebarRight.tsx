@@ -1,4 +1,4 @@
-import { ChevronRight, Lock, Unlock, MapPin, Trash } from 'lucide-react';
+import { ChevronRight, Lock, Unlock, MapPin, Trash, Sword, Skull, Gem, Box } from 'lucide-react';
 import { useZoneStore } from '@/store/useZoneStore';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -85,22 +85,90 @@ export default function SidebarRight({ isOpen, toggle }: SidebarRightProps) {
               Nenhum marcador no mapa.
             </div>
           ) : (
-            markersList.map(marker => (
-              <div key={marker.id} className="bg-black/20 p-3 rounded border border-[#323238] flex flex-col gap-2 relative group">
-                <MapPin className="absolute top-3 right-3 w-4 h-4 text-[#e55757]" />
+            markersList.map(marker => {
+              const Icon = marker.iconType === 'sword' ? Sword :
+                           marker.iconType === 'chest' ? Box :
+                           marker.iconType === 'skull' ? Skull :
+                           marker.iconType === 'jewel' ? Gem : MapPin;
+
+              return (
+              <div 
+                key={marker.id} 
+                className="bg-black/20 p-3 rounded border border-[#323238] flex flex-col gap-2 relative group cursor-pointer hover:border-[#8257e5] transition-colors"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('panTo', { detail: { x: marker.x, y: marker.y } }));
+                }}
+              >
+                <Icon 
+                  className="absolute top-3 right-3 w-4 h-4" 
+                  style={{ color: marker.color || '#e55757' }} 
+                />
 
                 {!editingMarkers ? (
                   <>
-                    <h4 className="font-bold text-[#e1e1e6] pr-6">{marker.text}</h4>
+                    <h4 className="font-bold pr-6" style={{ color: marker.textColor || '#e1e1e6' }}>
+                      {marker.text}
+                    </h4>
+                    {marker.description && (
+                      <p className="text-xs text-[#a8a8b3] mt-1 whitespace-pre-wrap">
+                        {marker.description}
+                      </p>
+                    )}
                   </>
                 ) : (
-                  <>
+                  <div onClick={(e) => e.stopPropagation()} className="flex flex-col gap-2 mt-1">
                     <Input
                       value={marker.text}
                       onChange={(e) => updateMarker(marker.id, { text: e.target.value })}
                       className="bg-[#121214] border-[#323238] h-8 text-sm text-[#e1e1e6]"
-                      placeholder="Texto..."
+                      placeholder="Título do Marcador"
                     />
+                    
+                    <textarea
+                      value={marker.description || ''}
+                      onChange={(e) => updateMarker(marker.id, { description: e.target.value })}
+                      className="bg-[#121214] border border-[#323238] rounded-md p-2 text-sm text-[#e1e1e6] min-h-[60px] resize-y w-full focus:outline-none focus:ring-1 focus:ring-[#8257e5]"
+                      placeholder="Descrição rápida..."
+                    />
+
+                    <div className="flex items-center gap-2 mt-1">
+                      <label className="text-xs text-[#a8a8b3] flex items-center gap-1">
+                        Cor:
+                        <input
+                          type="color"
+                          value={marker.color || '#e55757'}
+                          onChange={(e) => updateMarker(marker.id, { color: e.target.value })}
+                          className="w-6 h-6 p-0 border-0 rounded cursor-pointer bg-transparent"
+                        />
+                      </label>
+                      <label className="text-xs text-[#a8a8b3] flex items-center gap-1 ml-2">
+                        Texto:
+                        <input
+                          type="color"
+                          value={marker.textColor || '#ffffff'}
+                          onChange={(e) => updateMarker(marker.id, { textColor: e.target.value })}
+                          className="w-6 h-6 p-0 border-0 rounded cursor-pointer bg-transparent"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="flex items-center gap-1 mt-1">
+                       {['pin', 'sword', 'chest', 'skull', 'jewel'].map(iconType => (
+                         <button
+                           key={iconType}
+                           onClick={() => updateMarker(marker.id, { iconType: iconType as any })}
+                           className={`p-1 rounded border ${marker.iconType === iconType || (!marker.iconType && iconType === 'pin') ? 'border-[#8257e5] bg-[#8257e5]/20' : 'border-[#323238] hover:bg-[#323238]'}`}
+                           title={iconType}
+                         >
+                           {iconType === 'pin' && <MapPin className="w-3 h-3" />}
+                           {iconType === 'sword' && <Sword className="w-3 h-3" />}
+                           {iconType === 'chest' && <Box className="w-3 h-3" />}
+                           {iconType === 'skull' && <Skull className="w-3 h-3" />}
+                           {iconType === 'jewel' && <Gem className="w-3 h-3" />}
+                         </button>
+                       ))}
+                    </div>
+
                     <Button
                       variant="outline"
                       onClick={() => removeMarker(marker.id)}
@@ -108,10 +176,10 @@ export default function SidebarRight({ isOpen, toggle }: SidebarRightProps) {
                     >
                       <Trash className="w-3 h-3 mr-2" /> Remover
                     </Button>
-                  </>
+                  </div>
                 )}
               </div>
-            ))
+            )})
           )}
         </div>
 

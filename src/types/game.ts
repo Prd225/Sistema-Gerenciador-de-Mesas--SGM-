@@ -157,6 +157,10 @@ export interface Marker {
   x: number;
   y: number;
   text: string;
+  description?: string;
+  color?: string;
+  textColor?: string;
+  iconType?: 'pin' | 'sword' | 'chest' | 'skull' | 'jewel';
 }
 
 // --- Initiative ---
