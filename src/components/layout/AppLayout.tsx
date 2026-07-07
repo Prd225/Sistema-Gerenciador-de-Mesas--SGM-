@@ -11,6 +11,8 @@ import TokenCreateModal from '../modals/TokenCreateModal';
 import LoadCampaignModal from '../modals/LoadCampaignModal';
 import SaveCampaignModal from '../modals/SaveCampaignModal';
 import MapToolbar from '../toolbar/MapToolbar';
+import MasterPanelTrigger from '../master-panel/MasterPanelTrigger';
+import MasterPanelOverlay from '../master-panel/MasterPanelOverlay';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useEffect } from 'react';
 import { triggerAutoSave } from '@/lib/saveHelpers';
@@ -133,6 +135,10 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
           </div>
         </>
       )}
+
+      {/* Painel do Mestre */}
+      <MasterPanelTrigger />
+      <MasterPanelOverlay />
     </div>
   );
 }
