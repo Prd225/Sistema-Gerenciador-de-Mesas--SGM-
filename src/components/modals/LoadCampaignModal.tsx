@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useTokenStore } from '@/store/useTokenStore';
 import { useZoneStore } from '@/store/useZoneStore';
+import { useDiaryStore } from '@/store/useDiaryStore';
 import { db } from '@/lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Trash2, ChevronLeft, ChevronRight, FolderOpen, AlertTriangle } from 'lucide-react';
@@ -67,6 +68,11 @@ export default function LoadCampaignModal() {
           turn: data.campaign.turn || 1,
           urgency: data.campaign.urgency !== undefined ? data.campaign.urgency : null,
           turnsPerRound: data.campaign.turnsPerRound || 10
+        });
+      }
+      if (data.diary) {
+        useDiaryStore.setState({
+          entries: data.diary.entries || []
         });
       }
       onOpenChange(false);

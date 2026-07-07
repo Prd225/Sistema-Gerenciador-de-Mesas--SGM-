@@ -2,6 +2,12 @@ import { useMasterPanelStore } from '@/store/useMasterPanelStore';
 import { ChevronDown, Sparkles } from 'lucide-react';
 import MasterPanelMenu from './MasterPanelMenu';
 import SubPanelPlaceholder from './SubPanelPlaceholder';
+import MasterDiary from './diary/MasterDiary';
+
+function RenderPanel({ panelId }: { panelId: string }) {
+  if (panelId === 'diary') return <MasterDiary />;
+  return <SubPanelPlaceholder panelId={panelId as any} />;
+}
 
 export default function MasterPanelOverlay() {
   const isOpen = useMasterPanelStore(state => state.isOpen);
@@ -40,7 +46,7 @@ export default function MasterPanelOverlay() {
         {/* Esquerda (40%) */}
         <div className="flex-[4] flex flex-col h-full bg-[#121214]/40 rounded-xl overflow-hidden border border-[#323238]/50">
           {layout.left ? (
-            <SubPanelPlaceholder panelId={layout.left} />
+            <RenderPanel panelId={layout.left} />
           ) : (
             <div className="flex-1 flex items-center justify-center text-[#4d4d57] font-medium italic">
               Nenhum painel selecionado
@@ -51,7 +57,7 @@ export default function MasterPanelOverlay() {
         {/* Centro (20%) */}
         <div className="flex-[2] flex flex-col h-full bg-[#121214]/40 rounded-xl overflow-hidden border border-[#323238]/50">
           {layout.center ? (
-            <SubPanelPlaceholder panelId={layout.center} />
+            <RenderPanel panelId={layout.center} />
           ) : (
             <div className="flex-1 flex items-center justify-center text-[#4d4d57] font-medium italic">
               Nenhum painel selecionado
@@ -62,7 +68,7 @@ export default function MasterPanelOverlay() {
         {/* Direita (40%) */}
         <div className="flex-[4] flex flex-col h-full bg-[#121214]/40 rounded-xl overflow-hidden border border-[#323238]/50">
           {layout.right ? (
-            <SubPanelPlaceholder panelId={layout.right} />
+            <RenderPanel panelId={layout.right} />
           ) : (
             <div className="flex-1 flex items-center justify-center text-[#4d4d57] font-medium italic">
               Nenhum painel selecionado

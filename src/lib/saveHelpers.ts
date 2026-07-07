@@ -1,6 +1,7 @@
 import { useTokenStore } from '@/store/useTokenStore';
 import { useZoneStore } from '@/store/useZoneStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
+import { useDiaryStore } from '@/store/useDiaryStore';
 import { db } from '@/lib/db';
 
 export const collectGameState = () => {
@@ -25,6 +26,9 @@ export const collectGameState = () => {
       turn: campaignState.turn,
       urgency: campaignState.urgency,
       turnsPerRound: campaignState.turnsPerRound,
+    },
+    diary: {
+      entries: useDiaryStore.getState().entries,
     }
   };
 };
