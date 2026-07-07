@@ -10,6 +10,7 @@ interface ZoneState {
   editingZone: boolean;
   editingMarkers: boolean;
   activeTool: ActiveTool;
+  selectedNodeIds: string[];
 
   // Sidebar control (centralized so canvas can open them)
   leftSidebarOpen: boolean;
@@ -40,6 +41,7 @@ interface ZoneState {
   setEditingZone: (isEditing: boolean) => void;
   setEditingMarkers: (isEditing: boolean) => void;
   setActiveTool: (tool: ActiveTool) => void;
+  setSelectedNodeIds: (ids: string[]) => void;
 
   // Select zone and open sidebar (matching original selectZone behavior)
   selectZone: (id: string) => void;
@@ -53,6 +55,7 @@ export const useZoneStore = create<ZoneState>((set) => ({
   editingZone: false,
   editingMarkers: false,
   activeTool: 'pan',
+  selectedNodeIds: [],
   leftSidebarOpen: false,
   rightSidebarOpen: false,
   leftSidebarWidth: 320,
@@ -155,8 +158,9 @@ export const useZoneStore = create<ZoneState>((set) => ({
 
   setSelectedZoneId: (selectedZoneId) => set({ selectedZoneId }),
   setEditingZone: (editingZone) => set({ editingZone }),
-  setEditingMarkers: (editingMarkers) => set({ editingMarkers }),
+  setEditingMarkers: (isEditing) => set({ editingMarkers: isEditing }),
   setActiveTool: (activeTool) => set({ activeTool }),
+  setSelectedNodeIds: (ids) => set({ selectedNodeIds: ids }),
 
   // Select zone AND open left sidebar (matching original `mapSystem.selectZone`)
   selectZone: (id) => set({

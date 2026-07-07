@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { Stage, Layer } from 'react-konva';
+import { Stage, Layer, Rect } from 'react-konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { useZoneStore } from '@/store/useZoneStore';
 import { useTokenStore } from '@/store/useTokenStore';
@@ -38,6 +38,9 @@ export default function StageMap() {
   
   // Polygon state
   const [polyPoints, setPolyPoints] = useState<number[]>([]);
+
+  // Selection state
+  const [selectionRect, setSelectionRect] = useState<{ x: number; y: number; width: number; height: number; } | null>(null);
 
   // --- Resize Observer ---
   useEffect(() => {
@@ -113,6 +116,14 @@ export default function StageMap() {
 
     if (activeTool === 'pan' || activeTool === 'edit-bg') return;
 
+    if (activeTool === 'select') {
+      useZoneStore.getState().setSelectedNodeIds([]);
+      setIsDrawing(true);
+      drawStartRef.current = { x: pos.x, y: pos.y };
+      setSelectionRect({ x: pos.x, y: pos.y, width: 0, height: 0 });
+      return;
+    }
+
     // Right-click → create marker (matching original contextmenu behavior)
     if (e.evt.button === 2) {
       e.evt.preventDefault();
@@ -148,11 +159,22 @@ export default function StageMap() {
 
   // --- Mouse Move ---
   const handleMouseMove = useCallback(() => {
-    if (!isDrawing || !newShape) return;
+    if (!isDrawing) return;
 
     const stage = stageRef.current;
     if (!stage) return;
     const pos = getRelativePointerPosition(stage);
+
+    if (activeTool === 'select' && selectionRect) {
+      setSelectionRect({
+        ...selectionRect,
+        width: pos.x - drawStartRef.current.x,
+        height: pos.y - drawStartRef.current.y
+      });
+      return;
+    }
+
+    if (!newShape) return;
 
     if (newShape.type === 'polygon' && activeTool === 'draw-poly') {
       setNewShape(prev => {
@@ -173,11 +195,46 @@ export default function StageMap() {
       width: w,
       height: h,
     });
-  }, [isDrawing, newShape, getRelativePointerPosition, polyPoints, activeTool]);
+  }, [isDrawing, newShape, getRelativePointerPosition, polyPoints, activeTool, selectionRect]);
 
   // --- Mouse Up ---
   const handleMouseUp = useCallback(() => {
-    if (!isDrawing || !newShape) return;
+    if (!isDrawing) return;
+
+    if (activeTool === 'select' && selectionRect) {
+      setIsDrawing(false);
+      const box = {
+        x: Math.min(selectionRect.x, selectionRect.x + selectionRect.width),
+        y: Math.min(selectionRect.y, selectionRect.y + selectionRect.height),
+        width: Math.abs(selectionRect.width),
+        height: Math.abs(selectionRect.height)
+      };
+
+      if (box.width > 5 && box.height > 5) {
+         const tState = useTokenStore.getState();
+         const zState = useZoneStore.getState();
+         const newSelected: string[] = [];
+         
+         tState.tokens.forEach(t => {
+            if (t.x !== null && t.y !== null) {
+              if (t.x >= box.x && t.x <= box.x + box.width && t.y >= box.y && t.y <= box.y + box.height) {
+                 newSelected.push(t.id);
+              }
+            }
+         });
+         Object.values(zState.markers).forEach(m => {
+            if (m.x >= box.x && m.x <= box.x + box.width && m.y >= box.y && m.y <= box.y + box.height) {
+               newSelected.push(m.id);
+            }
+         });
+         
+         useZoneStore.getState().setSelectedNodeIds(newSelected);
+      }
+      setSelectionRect(null);
+      return;
+    }
+
+    if (!newShape) return;
     if (activeTool === 'draw-poly') return; // Handled by Enter key
 
     setIsDrawing(false);
@@ -213,7 +270,7 @@ export default function StageMap() {
     }
 
     setNewShape(null);
-  }, [isDrawing, newShape, addZone, selectZone, setActiveTool]);
+  }, [isDrawing, newShape, addZone, selectZone, setActiveTool, activeTool, selectionRect]);
 
   // --- Context menu prevention ---
   const handleContextMenu = useCallback((e: KonvaEventObject<PointerEvent>) => {
@@ -265,7 +322,7 @@ export default function StageMap() {
     }
   }, [position, scale, addBgImage, updateToken]);
 
-  // --- Keyboard shortcuts ---
+  // --- Keyboard (Shortcuts & Polygon) ---
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (
@@ -276,13 +333,31 @@ export default function StageMap() {
         return;
       }
 
-      if (e.key === ' ') {
+      if (e.code === 'Space') {
         e.preventDefault();
         setActiveTool('pan');
         setIsDrawing(false);
         setNewShape(null);
         setPolyPoints([]);
       }
+      
+      if (e.key === 'v' || e.key === 'V') {
+         setActiveTool('select');
+      }
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+         const ids = useZoneStore.getState().selectedNodeIds;
+         if (ids.length > 0) {
+            const zState = useZoneStore.getState();
+            const tState = useTokenStore.getState();
+            ids.forEach(id => {
+               if (tState.tokens.some(t => t.id === id)) tState.updateToken(id, { x: null, y: null });
+               if (zState.markers[id]) zState.removeMarker(id);
+            });
+            useZoneStore.getState().setSelectedNodeIds([]);
+         }
+      }
+
       if (e.key === 'Escape') {
         setIsDrawing(false);
         setNewShape(null);
@@ -358,6 +433,17 @@ export default function StageMap() {
           <ZoneLayer scale={scale} />
           <TokenLayer />
           <MarkerLayer />
+          {selectionRect && (
+            <Rect
+              x={Math.min(selectionRect.x, selectionRect.x + selectionRect.width)}
+              y={Math.min(selectionRect.y, selectionRect.y + selectionRect.height)}
+              width={Math.abs(selectionRect.width)}
+              height={Math.abs(selectionRect.height)}
+              fill="rgba(0, 161, 255, 0.2)"
+              stroke="#00A1FF"
+              strokeWidth={1}
+            />
+          )}
         </Layer>
         <Layer>
           <DrawingLayer newShape={newShape} />

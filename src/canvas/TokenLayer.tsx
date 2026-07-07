@@ -84,6 +84,9 @@ function TokenLayer() {
   const setEditingTokenId = useTokenStore(state => state.setEditingTokenId);
   const turn = useCampaignStore(state => state.turn);
   const activeTool = useZoneStore(state => state.activeTool);
+  const selectedNodeIds = useZoneStore(state => state.selectedNodeIds);
+  const setSelectedNodeIds = useZoneStore(state => state.setSelectedNodeIds);
+  const dragStartPositions = React.useRef<Record<string, { x: number; y: number }>>({});
 
   // Determine which token has the active turn
   const len = initiativeQueue.length;
@@ -97,15 +100,92 @@ function TokenLayer() {
         .filter(t => t.x !== null && t.y !== null)
         .map(t => {
           const isActive = t.id === activeTokenId;
+          const isSelected = selectedNodeIds.includes(t.id);
           return (
             <Group
               key={t.id}
               x={t.x!}
               y={t.y!}
-              draggable={activeTool === 'pan'}
-              listening={activeTool === 'pan'}
+              draggable={activeTool === 'pan' || activeTool === 'select'}
+              listening={activeTool === 'pan' || activeTool === 'select'}
+              onClick={(e) => {
+                if (activeTool === 'select') {
+                  e.cancelBubble = true;
+                  if (e.evt.shiftKey) {
+                    const newSelected = isSelected ? selectedNodeIds.filter(id => id !== t.id) : [...selectedNodeIds, t.id];
+                    setSelectedNodeIds(newSelected);
+                  } else {
+                    if (!isSelected) setSelectedNodeIds([t.id]);
+                  }
+                }
+              }}
+              onDragStart={() => {
+                if (activeTool !== 'select') return;
+                let currentSelected = selectedNodeIds;
+                if (!isSelected) {
+                   setSelectedNodeIds([t.id]);
+                   currentSelected = [t.id];
+                }
+                
+                const tState = useTokenStore.getState();
+                const zState = useZoneStore.getState();
+                
+                dragStartPositions.current = currentSelected.reduce((acc: any, id) => {
+                   const token = tState.tokens.find(tk => tk.id === id);
+                   if (token) acc[id] = { x: token.x!, y: token.y! };
+                   const marker = zState.markers[id];
+                   if (marker) acc[id] = { x: marker.x, y: marker.y };
+                   return acc;
+                }, {});
+              }}
+              onDragMove={(e) => {
+                if (activeTool !== 'select') return;
+                if (isSelected && selectedNodeIds.length > 1) {
+                  const startX = dragStartPositions.current[t.id]?.x || 0;
+                  const startY = dragStartPositions.current[t.id]?.y || 0;
+                  const dx = e.target.x() - startX;
+                  const dy = e.target.y() - startY;
+                  
+                  const tState = useTokenStore.getState();
+                  const zState = useZoneStore.getState();
+                  
+                  selectedNodeIds.forEach(id => {
+                     if (id !== t.id) {
+                        const start = dragStartPositions.current[id];
+                        if (start) {
+                           if (tState.tokens.some(tk => tk.id === id)) {
+                              tState.updateToken(id, { x: start.x + dx, y: start.y + dy });
+                           } else if (zState.markers[id]) {
+                              zState.updateMarker(id, { x: start.x + dx, y: start.y + dy });
+                           }
+                        }
+                     }
+                  });
+                }
+              }}
               onDragEnd={(e) => {
-                updateToken(t.id, { x: e.target.x(), y: e.target.y() });
+                if (activeTool !== 'select') {
+                  updateToken(t.id, { x: e.target.x(), y: e.target.y() });
+                  return;
+                }
+                const startX = dragStartPositions.current[t.id]?.x || t.x!;
+                const startY = dragStartPositions.current[t.id]?.y || t.y!;
+                const dx = e.target.x() - startX;
+                const dy = e.target.y() - startY;
+
+                const tState = useTokenStore.getState();
+                const zState = useZoneStore.getState();
+                
+                selectedNodeIds.forEach(id => {
+                   const start = dragStartPositions.current[id];
+                   if (start) {
+                      if (tState.tokens.some(tk => tk.id === id)) {
+                         tState.updateToken(id, { x: start.x + dx, y: start.y + dy });
+                      } else if (zState.markers[id]) {
+                         zState.updateMarker(id, { x: start.x + dx, y: start.y + dy });
+                      }
+                   }
+                });
               }}
               onDblClick={() => setEditingTokenId(t.id)}
               onDblTap={() => setEditingTokenId(t.id)}
@@ -125,6 +205,16 @@ function TokenLayer() {
                   shadowColor="#ffd700"
                   perfectDrawEnabled={false}
                   shadowForStrokeEnabled={false}
+                />
+              )}
+              {isSelected && (
+                <Circle
+                  radius={32}
+                  stroke="#00A1FF"
+                  strokeWidth={2}
+                  dash={[5, 5]}
+                  perfectDrawEnabled={false}
+                  listening={false}
                 />
               )}
               {/* Token body and initials */}

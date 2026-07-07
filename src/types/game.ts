@@ -179,4 +179,4 @@ export interface BgImage {
 
 // --- Tool ---
 
-export type ActiveTool = 'pan' | 'draw-rect' | 'draw-ellipse' | 'draw-poly' | 'edit-bg' | 'add-marker';
+export type ActiveTool = 'pan' | 'select' | 'draw-rect' | 'draw-ellipse' | 'draw-poly' | 'edit-bg' | 'add-marker';

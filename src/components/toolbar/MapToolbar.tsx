@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { useZoneStore } from '@/store/useZoneStore';
 import { Button } from '@/components/ui/button';
-import { Move, Square, Circle, Hexagon, MapPin, Image as ImageIcon, Plus, Pencil } from 'lucide-react';
+import { Move, MousePointer2, Square, Circle, Hexagon, MapPin, Image as ImageIcon, Plus, Pencil } from 'lucide-react';
 import type { ActiveTool } from '@/types/game';
 
 const generateId = () =>
@@ -33,7 +33,8 @@ export default function MapToolbar() {
   };
 
   const tools: { id: string; icon: React.ReactNode; title: string; subTools?: { id: ActiveTool; icon: React.ReactNode; title: string }[] }[] = [
-    { id: 'pan', icon: <Move className="w-5 h-5" />, title: 'Mover / Arrastar (Espaço)' },
+    { id: 'pan', icon: <Move className="w-5 h-5" />, title: 'Mover Fundo (Espaço)' },
+    { id: 'select', icon: <MousePointer2 className="w-5 h-5" />, title: 'Selecionar / Arrastar Itens (V)' },
     { 
       id: 'draw-group', 
       icon: <Pencil className="w-5 h-5" />, 
