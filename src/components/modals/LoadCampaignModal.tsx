@@ -5,6 +5,7 @@ import { useCampaignStore } from '@/store/useCampaignStore';
 import { useTokenStore } from '@/store/useTokenStore';
 import { useZoneStore } from '@/store/useZoneStore';
 import { useDiaryStore } from '@/store/useDiaryStore';
+import { useRulesStore } from '@/store/useRulesStore';
 import { db } from '@/lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Trash2, ChevronLeft, ChevronRight, FolderOpen, AlertTriangle } from 'lucide-react';
@@ -73,6 +74,11 @@ export default function LoadCampaignModal() {
       if (data.diary) {
         useDiaryStore.setState({
           entries: data.diary.entries || []
+        });
+      }
+      if (data.rules) {
+        useRulesStore.setState({
+          pages: data.rules.pages || []
         });
       }
       onOpenChange(false);

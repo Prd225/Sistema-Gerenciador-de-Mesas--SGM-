@@ -2,6 +2,7 @@ import { useTokenStore } from '@/store/useTokenStore';
 import { useZoneStore } from '@/store/useZoneStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useDiaryStore } from '@/store/useDiaryStore';
+import { useRulesStore } from '@/store/useRulesStore';
 import { db } from '@/lib/db';
 
 export const collectGameState = () => {
@@ -29,6 +30,9 @@ export const collectGameState = () => {
     },
     diary: {
       entries: useDiaryStore.getState().entries,
+    },
+    rules: {
+      pages: useRulesStore.getState().pages,
     }
   };
 };

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { RulePage, RuleWidget, RuleWidgetSize } from '@/types/rules';
+import { triggerAutoSave } from '@/lib/saveHelpers';
 
 interface RulesState {
   pages: RulePage[];
@@ -31,132 +32,171 @@ export const useRulesStore = create<RulesState>()((set) => ({
         }
       ],
 
-      addPage: (name) => set((state) => ({
-        pages: [...state.pages, { id: crypto.randomUUID(), name, widgets: [] }]
-      })),
+      addPage: (name) => {
+        set((state) => ({
+          pages: [...state.pages, { id: crypto.randomUUID(), name, widgets: [] }]
+        }));
+        triggerAutoSave();
+      },
 
-      removePage: (pageId) => set((state) => ({
-        pages: state.pages.filter(p => p.id !== pageId)
-      })),
+      removePage: (pageId) => {
+        set((state) => ({
+          pages: state.pages.filter(p => p.id !== pageId)
+        }));
+        triggerAutoSave();
+      },
 
-      renamePage: (pageId, newName) => set((state) => ({
-        pages: state.pages.map(p => 
-          p.id === pageId ? { ...p, name: newName } : p
-        )
-      })),
+      renamePage: (pageId, newName) => {
+        set((state) => ({
+          pages: state.pages.map(p => 
+            p.id === pageId ? { ...p, name: newName } : p
+          )
+        }));
+        triggerAutoSave();
+      },
 
-      addWidget: (pageId, size = '1x1') => set((state) => ({
-        pages: state.pages.map(p => {
-          if (p.id !== pageId) return p;
-          const newWidget: RuleWidget = {
-            id: crypto.randomUUID(),
-            size,
-            title: 'Nova Regra',
-            content: '',
-            contents: ['', '', ''],
-            contentType: 'text',
-            columnCount: 1
-          };
-          return { ...p, widgets: [...p.widgets, newWidget] };
-        })
-      })),
+      addWidget: (pageId, size = '1x1') => {
+        set((state) => ({
+          pages: state.pages.map(p => {
+            if (p.id !== pageId) return p;
+            const newWidget: RuleWidget = {
+              id: crypto.randomUUID(),
+              size,
+              title: 'Nova Regra',
+              content: '',
+              contents: ['', '', ''],
+              contentType: 'text',
+              columnCount: 1
+            };
+            return { ...p, widgets: [...p.widgets, newWidget] };
+          })
+        }));
+        triggerAutoSave();
+      },
 
-      removeWidget: (pageId, widgetId) => set((state) => ({
-        pages: state.pages.map(p => {
-          if (p.id !== pageId) return p;
-          return { ...p, widgets: p.widgets.filter(w => w.id !== widgetId) };
-        })
-      })),
+      removeWidget: (pageId, widgetId) => {
+        set((state) => ({
+          pages: state.pages.map(p => {
+            if (p.id !== pageId) return p;
+            return { ...p, widgets: p.widgets.filter(w => w.id !== widgetId) };
+          })
+        }));
+        triggerAutoSave();
+      },
 
-      updateWidgetSize: (pageId, widgetId, size) => set((state) => ({
-        pages: state.pages.map(p => {
-          if (p.id !== pageId) return p;
-          return {
-            ...p,
-            widgets: p.widgets.map(w => w.id === widgetId ? { ...w, size } : w)
-          };
-        })
-      })),
+      updateWidgetSize: (pageId, widgetId, size) => {
+        set((state) => ({
+          pages: state.pages.map(p => {
+            if (p.id !== pageId) return p;
+            return {
+              ...p,
+              widgets: p.widgets.map(w => w.id === widgetId ? { ...w, size } : w)
+            };
+          })
+        }));
+        triggerAutoSave();
+      },
 
-      updateWidgetTitle: (pageId, widgetId, title) => set((state) => ({
-        pages: state.pages.map(p => {
-          if (p.id !== pageId) return p;
-          return {
-            ...p,
-            widgets: p.widgets.map(w => w.id === widgetId ? { ...w, title } : w)
-          };
-        })
-      })),
+      updateWidgetTitle: (pageId, widgetId, title) => {
+        set((state) => ({
+          pages: state.pages.map(p => {
+            if (p.id !== pageId) return p;
+            return {
+              ...p,
+              widgets: p.widgets.map(w => w.id === widgetId ? { ...w, title } : w)
+            };
+          })
+        }));
+        triggerAutoSave();
+      },
 
-      updateWidgetContent: (pageId, widgetId, title, content) => set((state) => ({
-        pages: state.pages.map(p => {
-          if (p.id !== pageId) return p;
-          return {
-            ...p,
-            widgets: p.widgets.map(w => w.id === widgetId ? { ...w, title, content, contents: [content, w.contents?.[1] || '', w.contents?.[2] || ''] } : w)
-          };
-        })
-      })),
+      updateWidgetContent: (pageId, widgetId, title, content) => {
+        set((state) => ({
+          pages: state.pages.map(p => {
+            if (p.id !== pageId) return p;
+            return {
+              ...p,
+              widgets: p.widgets.map(w => w.id === widgetId ? { ...w, title, content, contents: [content, w.contents?.[1] || '', w.contents?.[2] || ''] } : w)
+            };
+          })
+        }));
+        triggerAutoSave();
+      },
 
-      updateWidgetContentIndex: (pageId, widgetId, index, content) => set((state) => ({
-        pages: state.pages.map(p => {
-          if (p.id !== pageId) return p;
-          return {
-            ...p,
-            widgets: p.widgets.map(w => {
-              if (w.id !== widgetId) return w;
-              const newContents = [...(w.contents || [w.content || '', '', ''])];
-              newContents[index] = content;
-              return { ...w, contents: newContents };
-            })
-          };
-        })
-      })),
+      updateWidgetContentIndex: (pageId, widgetId, index, content) => {
+        set((state) => ({
+          pages: state.pages.map(p => {
+            if (p.id !== pageId) return p;
+            return {
+              ...p,
+              widgets: p.widgets.map(w => {
+                if (w.id !== widgetId) return w;
+                const newContents = [...(w.contents || [w.content || '', '', ''])];
+                newContents[index] = content;
+                return { ...w, contents: newContents };
+              })
+            };
+          })
+        }));
+        triggerAutoSave();
+      },
 
-      updateWidgetContentType: (pageId, widgetId, contentType) => set((state) => ({
-        pages: state.pages.map(p => {
-          if (p.id !== pageId) return p;
-          return {
-            ...p,
-            widgets: p.widgets.map(w => w.id === widgetId ? { ...w, contentType } : w)
-          };
-        })
-      })),
+      updateWidgetContentType: (pageId, widgetId, contentType) => {
+        set((state) => ({
+          pages: state.pages.map(p => {
+            if (p.id !== pageId) return p;
+            return {
+              ...p,
+              widgets: p.widgets.map(w => w.id === widgetId ? { ...w, contentType } : w)
+            };
+          })
+        }));
+        triggerAutoSave();
+      },
 
-      updateWidgetColumns: (pageId, widgetId, columnCount) => set((state) => ({
-        pages: state.pages.map(p => {
-          if (p.id !== pageId) return p;
-          return {
-            ...p,
-            widgets: p.widgets.map(w => w.id === widgetId ? { ...w, columnCount } : w)
-          };
-        })
-      })),
+      updateWidgetColumns: (pageId, widgetId, columnCount) => {
+        set((state) => ({
+          pages: state.pages.map(p => {
+            if (p.id !== pageId) return p;
+            return {
+              ...p,
+              widgets: p.widgets.map(w => w.id === widgetId ? { ...w, columnCount } : w)
+            };
+          })
+        }));
+        triggerAutoSave();
+      },
 
-      updateWidgetImage: (pageId, widgetId, imageUrl) => set((state) => ({
-        pages: state.pages.map(p => {
-          if (p.id !== pageId) return p;
-          return {
-            ...p,
-            widgets: p.widgets.map(w => w.id === widgetId ? { ...w, imageUrl } : w)
-          };
-        })
-      })),
+      updateWidgetImage: (pageId, widgetId, imageUrl) => {
+        set((state) => ({
+          pages: state.pages.map(p => {
+            if (p.id !== pageId) return p;
+            return {
+              ...p,
+              widgets: p.widgets.map(w => w.id === widgetId ? { ...w, imageUrl } : w)
+            };
+          })
+        }));
+        triggerAutoSave();
+      },
 
-      reorderWidgets: (pageId, draggedId, targetId) => set((state) => ({
-        pages: state.pages.map(p => {
-          if (p.id !== pageId) return p;
-          
-          const newWidgets = [...p.widgets];
-          const draggedIndex = newWidgets.findIndex(w => w.id === draggedId);
-          const targetIndex = newWidgets.findIndex(w => w.id === targetId);
-          
-          if (draggedIndex === -1 || targetIndex === -1) return p;
-          
-          const [draggedItem] = newWidgets.splice(draggedIndex, 1);
-          newWidgets.splice(targetIndex, 0, draggedItem);
-          
-          return { ...p, widgets: newWidgets };
-        })
-      }))
+      reorderWidgets: (pageId, draggedId, targetId) => {
+        set((state) => ({
+          pages: state.pages.map(p => {
+            if (p.id !== pageId) return p;
+            
+            const newWidgets = [...p.widgets];
+            const draggedIndex = newWidgets.findIndex(w => w.id === draggedId);
+            const targetIndex = newWidgets.findIndex(w => w.id === targetId);
+            
+            if (draggedIndex === -1 || targetIndex === -1) return p;
+            
+            const [draggedItem] = newWidgets.splice(draggedIndex, 1);
+            newWidgets.splice(targetIndex, 0, draggedItem);
+            
+            return { ...p, widgets: newWidgets };
+          })
+        }));
+        triggerAutoSave();
+      }
 }));
