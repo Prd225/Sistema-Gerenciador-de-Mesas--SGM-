@@ -431,8 +431,8 @@ export default function StageMap() {
         </Layer>
         <Layer>
           <ZoneLayer scale={scale} />
-          <TokenLayer />
-          <MarkerLayer />
+          <TokenLayer scale={scale} />
+          <MarkerLayer scale={scale} />
           {selectionRect && (
             <Rect
               x={Math.min(selectionRect.x, selectionRect.x + selectionRect.width)}

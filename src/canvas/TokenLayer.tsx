@@ -10,7 +10,7 @@ import { useZoneStore } from '@/store/useZoneStore';
  * Matches the .token-map styling from DM_tool_6v.html.
  */
 
-function TokenFace({ t, isActive }: { t: any; isActive: boolean }) {
+function TokenFace({ t, isActive, scale = 1 }: { t: any; isActive: boolean; scale?: number }) {
   const [image, setImage] = React.useState<HTMLImageElement | null>(null);
 
   React.useEffect(() => {
@@ -59,13 +59,13 @@ function TokenFace({ t, isActive }: { t: any; isActive: boolean }) {
       <Text
         text={t.fullName}
         fill={isActive ? '#ffd700' : '#e1e1e6'}
-        fontSize={12}
+        fontSize={Math.max(8, 12 / scale)}
         fontFamily="sans-serif"
         fontStyle="bold"
         align="center"
-        x={-75}
-        y={32}
-        width={150}
+        x={-(150 / scale) / 2}
+        y={27 + Math.max(5, 5 / scale)}
+        width={150 / scale}
         shadowColor="black"
         shadowBlur={4}
         shadowOffset={{ x: 1, y: 1 }}
@@ -77,7 +77,7 @@ function TokenFace({ t, isActive }: { t: any; isActive: boolean }) {
   );
 }
 
-function TokenLayer() {
+function TokenLayer({ scale = 1 }: { scale?: number }) {
   const tokens = useTokenStore(state => state.tokens);
   const initiativeQueue = useTokenStore(state => state.initiativeQueue);
   const updateToken = useTokenStore(state => state.updateToken);
@@ -104,6 +104,7 @@ function TokenLayer() {
           return (
             <Group
               key={t.id}
+              id={t.id}
               x={t.x!}
               y={t.y!}
               draggable={activeTool === 'pan' || activeTool === 'select'}
@@ -119,7 +120,17 @@ function TokenLayer() {
                   }
                 }
               }}
-              onDragStart={() => {
+              onMouseEnter={(e) => {
+                if (activeTool !== 'select' && activeTool !== 'pan') return;
+                document.body.style.cursor = 'pointer';
+                e.currentTarget.to({ scaleX: 0.95, scaleY: 0.95, opacity: 0.85, duration: 0.15 });
+              }}
+              onMouseLeave={(e) => {
+                document.body.style.cursor = 'default';
+                e.currentTarget.to({ scaleX: 1, scaleY: 1, opacity: 1, duration: 0.15 });
+              }}
+              onDragStart={(e) => {
+                e.currentTarget.to({ scaleX: 0.85, scaleY: 0.85, opacity: 0.7, duration: 0.15 });
                 if (activeTool !== 'select') return;
                 let currentSelected = selectedNodeIds;
                 if (!isSelected) {
@@ -137,6 +148,15 @@ function TokenLayer() {
                    if (marker) acc[id] = { x: marker.x, y: marker.y };
                    return acc;
                 }, {});
+
+                const stage = e.target.getStage();
+                if (stage) {
+                  currentSelected.forEach(id => {
+                    if (id === t.id) return;
+                    const node = stage.findOne('#' + id);
+                    if (node) node.to({ scaleX: 0.85, scaleY: 0.85, opacity: 0.7, duration: 0.15 });
+                  });
+                }
               }}
               onDragMove={(e) => {
                 if (activeTool !== 'select') return;
@@ -164,6 +184,7 @@ function TokenLayer() {
                 }
               }}
               onDragEnd={(e) => {
+                e.currentTarget.to({ scaleX: 0.95, scaleY: 0.95, opacity: 0.85, duration: 0.15 });
                 if (activeTool !== 'select') {
                   updateToken(t.id, { x: e.target.x(), y: e.target.y() });
                   return;
@@ -186,6 +207,15 @@ function TokenLayer() {
                       }
                    }
                 });
+
+                const stage = e.target.getStage();
+                if (stage) {
+                  selectedNodeIds.forEach(id => {
+                    if (id === t.id) return;
+                    const node = stage.findOne('#' + id);
+                    if (node) node.to({ scaleX: 1, scaleY: 1, opacity: 1, duration: 0.15 });
+                  });
+                }
               }}
               onDblClick={() => setEditingTokenId(t.id)}
               onDblTap={() => setEditingTokenId(t.id)}
@@ -218,7 +248,7 @@ function TokenLayer() {
                 />
               )}
               {/* Token body and initials */}
-              <TokenFace t={t} isActive={isActive} />
+              <TokenFace t={t} isActive={isActive} scale={scale} />
             </Group>
           );
         })}

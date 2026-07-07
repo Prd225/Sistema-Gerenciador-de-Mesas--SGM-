@@ -7,7 +7,7 @@ import { useTokenStore } from '@/store/useTokenStore';
  * Renders map pin markers. Each marker is a pin icon with a label.
  * Matching the original .marker style from DM_tool_6v.
  */
-function MarkerLayer() {
+function MarkerLayer({ scale = 1 }: { scale?: number }) {
   const markersMap = useZoneStore(state => state.markers);
   const markers = Object.values(markersMap);
   const updateMarker = useZoneStore(state => state.updateMarker);
@@ -23,6 +23,7 @@ function MarkerLayer() {
         return (
         <Group
           key={marker.id}
+          id={marker.id}
           x={marker.x}
           y={marker.y}
           draggable={activeTool === 'pan' || activeTool === 'select'}
@@ -38,7 +39,17 @@ function MarkerLayer() {
               }
             }
           }}
-          onDragStart={() => {
+          onMouseEnter={(e) => {
+            if (activeTool !== 'select' && activeTool !== 'pan') return;
+            document.body.style.cursor = 'pointer';
+            e.currentTarget.to({ scaleX: 0.95, scaleY: 0.95, opacity: 0.85, duration: 0.15 });
+          }}
+          onMouseLeave={(e) => {
+            document.body.style.cursor = 'default';
+            e.currentTarget.to({ scaleX: 1, scaleY: 1, opacity: 1, duration: 0.15 });
+          }}
+          onDragStart={(e) => {
+            e.currentTarget.to({ scaleX: 0.85, scaleY: 0.85, opacity: 0.7, duration: 0.15 });
             if (activeTool !== 'select') return;
             let currentSelected = selectedNodeIds;
             if (!isSelected) {
@@ -56,6 +67,15 @@ function MarkerLayer() {
                if (m) acc[id] = { x: m.x, y: m.y };
                return acc;
             }, {});
+
+            const stage = e.target.getStage();
+            if (stage) {
+              currentSelected.forEach(id => {
+                if (id === marker.id) return;
+                const node = stage.findOne('#' + id);
+                if (node) node.to({ scaleX: 0.85, scaleY: 0.85, opacity: 0.7, duration: 0.15 });
+              });
+            }
           }}
           onDragMove={(e) => {
             if (activeTool !== 'select') return;
@@ -83,6 +103,7 @@ function MarkerLayer() {
             }
           }}
           onDragEnd={(e) => {
+            e.currentTarget.to({ scaleX: 0.95, scaleY: 0.95, opacity: 0.85, duration: 0.15 });
             if (activeTool !== 'select') {
               updateMarker(marker.id, { x: e.target.x(), y: e.target.y() });
               return;
@@ -105,6 +126,15 @@ function MarkerLayer() {
                   }
                }
             });
+
+            const stage = e.target.getStage();
+            if (stage) {
+              selectedNodeIds.forEach(id => {
+                if (id === marker.id) return;
+                const node = stage.findOne('#' + id);
+                if (node) node.to({ scaleX: 1, scaleY: 1, opacity: 1, duration: 0.15 });
+              });
+            }
           }}
         >
           {isSelected && (
@@ -155,10 +185,10 @@ function MarkerLayer() {
             <Text
               text={marker.text}
               fill="white"
-              fontSize={11}
+              fontSize={Math.max(6, 11 / scale)}
               fontStyle="bold"
-              x={14}
-              y={-28}
+              x={14 / scale}
+              y={-20 - Math.max(8, 8 / scale)}
               shadowColor="black"
               shadowBlur={4}
               perfectDrawEnabled={false}
