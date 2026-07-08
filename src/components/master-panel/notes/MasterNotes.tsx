@@ -69,7 +69,7 @@ export default function MasterNotes() {
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 relative overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-0 relative flex flex-col">
         <NotesGrid 
           pageId={activePage.id} 
           onOpenNote={(noteId) => setActiveNoteId(noteId)} 

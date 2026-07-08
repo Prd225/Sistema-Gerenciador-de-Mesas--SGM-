@@ -115,7 +115,7 @@ export default function NoteEditorFullscreen({ pageId, noteId, onBack }: NoteEdi
             <Palette className="w-4 h-4 text-[#a8a8b3]" />
           </button>
           <div className="absolute right-0 top-full pt-2 hidden group-hover/cardcolor:block z-20">
-            <div className="flex bg-[#121214] border border-[#323238] rounded-md p-2 gap-2 shadow-xl w-max">
+            <div className="grid grid-cols-4 bg-[#121214] border border-[#323238] rounded-md p-2 gap-2 shadow-xl w-max">
               {COLORS.map(c => (
                 <button
                   key={c}
@@ -165,7 +165,7 @@ export default function NoteEditorFullscreen({ pageId, noteId, onBack }: NoteEdi
             <Palette className="w-3.5 h-3.5" />
           </button>
           <div className="absolute left-0 top-full pt-1 hidden group-hover/color:block z-10">
-            <div className="flex bg-[#121214] border border-[#323238] rounded p-1.5 gap-1.5">
+            <div className="grid grid-cols-4 bg-[#121214] border border-[#323238] rounded p-1.5 gap-1.5 w-max shadow-lg">
               {COLORS.map(c => (
                 <button
                   key={c}
@@ -183,7 +183,7 @@ export default function NoteEditorFullscreen({ pageId, noteId, onBack }: NoteEdi
             <Highlighter className="w-3.5 h-3.5" />
           </button>
           <div className="absolute left-0 top-full pt-1 hidden group-hover/bg:block z-10">
-            <div className="flex bg-[#121214] border border-[#323238] rounded p-1.5 gap-1.5">
+            <div className="grid grid-cols-4 bg-[#121214] border border-[#323238] rounded p-1.5 gap-1.5 w-max shadow-lg">
               {['transparent', ...COLORS].map(c => (
                 <button
                   key={c}
@@ -209,7 +209,7 @@ export default function NoteEditorFullscreen({ pageId, noteId, onBack }: NoteEdi
       <div className="flex-1 overflow-hidden relative">
         <div 
           ref={editorRef}
-          className="w-full h-full p-6 sm:p-10 outline-none text-[#e1e1e6] text-base leading-relaxed overflow-y-auto custom-scrollbar editor-content"
+          className="w-full h-full p-4 sm:p-8 outline-none text-[#e1e1e6] text-sm leading-relaxed overflow-y-auto custom-scrollbar editor-content"
           contentEditable
           onInput={handleInput}
           onKeyDown={onKeyDown}
@@ -219,7 +219,7 @@ export default function NoteEditorFullscreen({ pageId, noteId, onBack }: NoteEdi
         />
         
         {charCount === 0 && (
-          <div className="absolute top-6 left-6 sm:top-10 sm:left-10 text-[#a8a8b3] pointer-events-none italic">
+          <div className="absolute top-4 left-4 sm:top-8 sm:left-8 text-[#a8a8b3] pointer-events-none italic text-sm">
             Comece a digitar sua anotação...
           </div>
         )}
