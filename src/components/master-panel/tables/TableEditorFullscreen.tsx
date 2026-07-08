@@ -200,6 +200,7 @@ export default function TableEditorFullscreen({ pageId, tableId, onBack }: Table
                 ))}
               </div>
             </div>
+          </div>
 
           <button onClick={addRow} className="flex items-center gap-1 px-2 py-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors text-xs font-medium shrink-0" title="Adicionar Linha">
             <Plus className="w-3 h-3" /> Linha
