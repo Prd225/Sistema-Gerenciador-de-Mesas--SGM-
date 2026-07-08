@@ -86,8 +86,8 @@ export default function MasterNotes() {
 
       {/* Paginação no Rodapé */}
       {!activeNoteId && (
-        <div className="flex items-center justify-center p-3 border-t border-[#323238] bg-[#1a1a1e]">
-          <div className="flex items-center gap-2 bg-[#121214] border border-[#323238] rounded-md p-1 shadow-sm">
+        <div className="flex items-center justify-center p-2 sm:p-3 border-t border-[#323238] bg-[#1a1a1e] w-full">
+          <div className="flex items-center gap-1 sm:gap-2 bg-[#121214] border border-[#323238] rounded-md p-1 shadow-sm w-full max-w-fit overflow-x-auto custom-scrollbar">
             <button 
               onClick={handlePrevPage}
               disabled={activePageIndex === 0}
@@ -96,7 +96,7 @@ export default function MasterNotes() {
               <ChevronLeft className="w-4 h-4" />
             </button>
             
-            <div className="flex items-center gap-2 px-2 min-w-[120px] justify-center">
+            <div className="flex items-center gap-1 sm:gap-2 px-1 sm:px-2 min-w-[60px] flex-1 justify-center">
               {isEditingTitle ? (
                 <input
                   autoFocus
@@ -104,14 +104,14 @@ export default function MasterNotes() {
                   onChange={e => setTitleValue(e.target.value)}
                   onBlur={handleTitleSubmit}
                   onKeyDown={e => e.key === 'Enter' && handleTitleSubmit()}
-                  className="bg-transparent border-b border-[#8257e5] outline-none text-[#e1e1e6] text-sm text-center w-full"
+                  className="bg-transparent border-b border-[#8257e5] outline-none text-[#e1e1e6] text-sm text-center w-full min-w-0"
                 />
               ) : (
-                <div className="flex items-center gap-2 group cursor-pointer" onClick={startEditing}>
-                  <span className="text-sm font-medium text-[#e1e1e6] whitespace-nowrap">
+                <div className="flex items-center gap-1 sm:gap-2 group cursor-pointer min-w-0" onClick={startEditing}>
+                  <span className="text-sm font-medium text-[#e1e1e6] truncate">
                     {activePage.name}
                   </span>
-                  <Edit2 className="w-3 h-3 text-[#a8a8b3] opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Edit2 className="w-3 h-3 text-[#a8a8b3] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                 </div>
               )}
             </div>
