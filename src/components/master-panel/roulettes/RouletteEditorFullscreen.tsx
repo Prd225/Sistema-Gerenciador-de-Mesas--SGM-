@@ -254,15 +254,14 @@ export default function RouletteEditorFullscreen({ pageId, rouletteId, onBack }:
                   {labels.map((label, i) => (
                     <div
                       key={i}
-                      className="absolute top-1/2 left-1/2 w-[42%] h-6 origin-left pointer-events-none"
+                      className="absolute top-1/2 left-1/2 w-[48%] h-6 origin-left pointer-events-none flex items-center justify-end pr-3"
                       style={{ transform: `translateY(-50%) rotate(${label.rotation - 90}deg)` }}
                     >
                       <div 
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-white font-bold text-[0.8rem] whitespace-nowrap drop-shadow-md truncate"
+                        className="text-white font-bold text-[0.8rem] whitespace-nowrap drop-shadow-md truncate"
                         style={{ 
                           transform: 'rotate(180deg)', 
-                          transformOrigin: 'center right',
-                          maxWidth: 'calc(100% - 16px)'
+                          maxWidth: '100%'
                         }}
                       >
                         {label.text}
