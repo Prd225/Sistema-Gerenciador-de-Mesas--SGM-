@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTablesStore } from '@/store/useTablesStore';
-import { ChevronLeft, Bold, Italic, Underline, List, PaintBucket, Plus, Minus, Palette, Highlighter } from 'lucide-react';
+import { ChevronLeft, Bold, Italic, Underline, PaintBucket, Plus, Minus, Palette, Highlighter, AlignLeft, AlignCenter, AlignRight, AlignJustify } from 'lucide-react';
 
 const TEXT_COLORS = [
   '#e1e1e6', '#a8a8b3', '#8257e5', '#04d361', '#e559f9', '#fba94c', '#eb3b35', '#00b8d9'
@@ -118,7 +118,7 @@ export default function TableEditorFullscreen({ pageId, tableId, onBack }: Table
           </button>
           
           <div className="absolute right-0 top-full mt-1 hidden group-hover/cardcolor:block z-50">
-            <div className="grid grid-cols-4 gap-2 bg-[#202024] border border-[#323238] rounded-lg p-2 shadow-xl">
+            <div className="grid grid-cols-4 gap-2 bg-[#202024] border border-[#323238] rounded-lg p-2 shadow-xl w-[max-content]">
               {PRESET_COLORS.map(color => (
                 <button
                   key={color}
@@ -149,8 +149,17 @@ export default function TableEditorFullscreen({ pageId, tableId, onBack }: Table
             <Underline className="w-4 h-4" />
           </button>
           <div className="w-px h-4 bg-[#323238] mx-1 shrink-0" />
-          <button onMouseDown={(e) => { e.preventDefault(); execCommand('insertUnorderedList'); }} className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors shrink-0" title="Marcadores">
-            <List className="w-4 h-4" />
+          <button onMouseDown={(e) => { e.preventDefault(); execCommand('justifyLeft'); }} className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors shrink-0" title="Alinhar à Esquerda">
+            <AlignLeft className="w-4 h-4" />
+          </button>
+          <button onMouseDown={(e) => { e.preventDefault(); execCommand('justifyCenter'); }} className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors shrink-0" title="Centralizar">
+            <AlignCenter className="w-4 h-4" />
+          </button>
+          <button onMouseDown={(e) => { e.preventDefault(); execCommand('justifyRight'); }} className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors shrink-0" title="Alinhar à Direita">
+            <AlignRight className="w-4 h-4" />
+          </button>
+          <button onMouseDown={(e) => { e.preventDefault(); execCommand('justifyFull'); }} className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors shrink-0" title="Justificar">
+            <AlignJustify className="w-4 h-4" />
           </button>
 
           <div className="w-px h-4 bg-[#323238] mx-1 shrink-0" />
@@ -214,7 +223,7 @@ export default function TableEditorFullscreen({ pageId, tableId, onBack }: Table
 
       {/* Editor Area */}
       <div className="flex-1 overflow-auto custom-scrollbar p-4" style={{ backgroundColor: `${table.color || '#8257e5'}05` }}>
-        <table className="w-full border-collapse border border-[#323238]">
+        <table className="w-full table-fixed border-collapse border border-[#323238]">
           <tbody>
             {localData.map((row, rowIndex) => (
               <tr key={rowIndex} className="border-b border-[#323238]">
@@ -227,9 +236,10 @@ export default function TableEditorFullscreen({ pageId, tableId, onBack }: Table
                     <div
                       contentEditable
                       suppressContentEditableWarning
+                      spellCheck="false"
                       onBlur={(e) => handleCellBlur(rowIndex, colIndex, e.currentTarget.innerHTML)}
                       dangerouslySetInnerHTML={{ __html: cellContent }}
-                      className="w-full min-h-[32px] outline-none p-2 text-sm break-words whitespace-pre-wrap"
+                      className="w-full h-full min-h-[32px] outline-none px-2 py-1.5 text-sm break-words whitespace-pre-wrap"
                     />
                   </td>
                 ))}

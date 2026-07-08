@@ -44,10 +44,7 @@ export default function RouletteCard({ pageId, roulette, onClick }: RouletteCard
         </button>
       </div>
       
-      <div className="flex justify-between items-end mt-1">
-        <span className="text-[0.65rem] font-bold text-[#8257e5] uppercase tracking-wider bg-[#8257e5]/10 px-1.5 py-0.5 rounded">
-          Roleta
-        </span>
+      <div className="mt-auto flex justify-end items-end">
         <span className="text-xs font-medium text-[#a8a8b3]">
           {optionCount} {optionCount === 1 ? 'opção' : 'opções'}
         </span>

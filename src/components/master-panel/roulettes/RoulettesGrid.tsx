@@ -12,8 +12,13 @@ export default function RoulettesGrid({ page, onOpenRoulette }: RoulettesGridPro
   const addRoulette = useRoulettesStore(state => state.addRoulette);
 
   return (
-    <div className="h-full overflow-y-auto custom-scrollbar p-4 space-y-4 relative bg-[#09090b]">
-      {page.roulettes.length === 0 ? (
+    <div className="h-full flex flex-col relative bg-[#09090b]">
+      <div className="p-4 pb-0 flex-shrink-0">
+        <h2 className="text-xl font-bold text-[#e1e1e6]">Roletas</h2>
+      </div>
+      
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
+        {page.roulettes.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-full text-[#4d4d57] gap-3">
           <p className="text-sm">Nenhuma roleta nesta página</p>
           <button 
@@ -42,8 +47,9 @@ export default function RoulettesGrid({ page, onOpenRoulette }: RoulettesGridPro
             <Plus className="w-6 h-6 group-hover:scale-110 transition-transform" />
             <span className="text-sm font-medium">Nova Roleta</span>
           </button>
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
