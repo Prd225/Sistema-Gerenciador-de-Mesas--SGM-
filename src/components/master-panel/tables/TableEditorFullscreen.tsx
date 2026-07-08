@@ -137,8 +137,7 @@ export default function TableEditorFullscreen({ pageId, tableId, onBack }: Table
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 p-2 bg-[#202024] border-b border-[#323238]">
-        <div className="flex flex-wrap items-center gap-1">
+      <div className="flex flex-wrap items-center gap-1 p-2 bg-[#202024] border-b border-[#323238]">
           <button onMouseDown={(e) => { e.preventDefault(); execCommand('bold'); }} className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors shrink-0" title="Negrito">
             <Bold className="w-4 h-4" />
           </button>
@@ -201,10 +200,7 @@ export default function TableEditorFullscreen({ pageId, tableId, onBack }: Table
                 ))}
               </div>
             </div>
-          </div>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-1">
           <button onClick={addRow} className="flex items-center gap-1 px-2 py-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors text-xs font-medium shrink-0" title="Adicionar Linha">
             <Plus className="w-3 h-3" /> Linha
           </button>
@@ -215,10 +211,9 @@ export default function TableEditorFullscreen({ pageId, tableId, onBack }: Table
           <button onClick={addColumn} className="flex items-center gap-1 px-2 py-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors text-xs font-medium shrink-0" title="Adicionar Coluna">
             <Plus className="w-3 h-3" /> Coluna
           </button>
-          <button onClick={removeColumn} className="flex items-center gap-1 px-2 py-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-red-400 transition-colors text-xs font-medium shrink-0" title="Remover Coluna">
-            <Minus className="w-3 h-3" /> Coluna
-          </button>
-        </div>
+        <button onClick={removeColumn} className="flex items-center gap-1 px-2 py-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-red-400 transition-colors text-xs font-medium shrink-0" title="Remover Coluna">
+          <Minus className="w-3 h-3" /> Coluna
+        </button>
       </div>
 
       {/* Editor Area */}
