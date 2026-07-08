@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRoulettesStore } from '@/store/useRoulettesStore';
 import { ChevronLeft, Plus, Trash2, Edit2, Eye, Dices } from 'lucide-react';
+import { Wheel } from 'react-custom-roulette';
 import type { RouletteOption } from '@/types/roulettes';
 
 interface RouletteEditorFullscreenProps {
@@ -24,8 +25,8 @@ export default function RouletteEditorFullscreen({ pageId, rouletteId, onBack }:
   const [mode, setMode] = useState<'edit' | 'view'>('view');
   
   // Spin animation state
-  const [rotation, setRotation] = useState(0);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [prizeNumber, setPrizeNumber] = useState(0);
   const [winner, setWinner] = useState<RouletteOption | null>(null);
 
   useEffect(() => {
@@ -61,80 +62,34 @@ export default function RouletteEditorFullscreen({ pageId, rouletteId, onBack }:
     if (!roulette || roulette.options.length === 0 || isSpinning) return;
 
     setWinner(null);
-    setIsSpinning(true);
 
     const totalWeight = roulette.options.reduce((sum, opt) => sum + opt.weight, 0);
     const randomValue = Math.random() * totalWeight;
 
     let currentWeight = 0;
-    let selectedOption = roulette.options[0];
-    let selectedStartPercent = 0;
-    let selectedEndPercent = 0;
+    let selectedIndex = 0;
 
-    for (const opt of roulette.options) {
-      const start = currentWeight;
+    for (let i = 0; i < roulette.options.length; i++) {
+      const opt = roulette.options[i];
       currentWeight += opt.weight;
-      const end = currentWeight;
-
-      if (randomValue >= start && randomValue < end) {
-        selectedOption = opt;
-        selectedStartPercent = start / totalWeight;
-        selectedEndPercent = end / totalWeight;
+      if (randomValue < currentWeight) {
+        selectedIndex = i;
         break;
       }
     }
 
-    // The pin is at the bottom (90 degrees or 180 degrees depending on how we render).
-    // Let's assume conic-gradient starts at top (12 o'clock) and goes clockwise.
-    // The bottom pin is at 180 degrees (0.5 or 50%).
-    // If the slice is between startPercent and endPercent, its center is at (startPercent + endPercent) / 2.
-    // To make its center align with the bottom (0.5), the required rotation offset is:
-    // 0.5 - centerPercent
-    const centerPercent = (selectedStartPercent + selectedEndPercent) / 2;
-    const targetOffsetRevs = 0.5 - centerPercent;
-
-    const extraSpins = 3 + Math.floor(Math.random() * 2);
-    const totalNewRotation = rotation + (extraSpins * 360) + (targetOffsetRevs * 360) - (rotation % 360);
-
-    const sliceWidthRevs = selectedEndPercent - selectedStartPercent;
-    const randomNudge = (Math.random() - 0.5) * (sliceWidthRevs * 0.8) * 360; 
-    
-    const finalRotation = totalNewRotation + randomNudge;
-
-    setRotation(finalRotation);
-
-    setTimeout(() => {
-      setWinner(selectedOption);
-      setIsSpinning(false);
-    }, 1500);
+    setPrizeNumber(selectedIndex);
+    setIsSpinning(true);
   };
 
   if (!roulette) return null;
 
   // Calculate conic gradient
-  const totalWeight = roulette.options.reduce((sum, opt) => sum + opt.weight, 0) || 1;
-  let gradientStops = '';
-  let currentPercent = 0;
-  
-  const labels: { text: string; rotation: number; color: string }[] = [];
-
-  roulette.options.forEach(opt => {
-    const percent = (opt.weight / totalWeight) * 100;
-    const start = currentPercent;
-    const end = currentPercent + percent;
-    
-    gradientStops += `${opt.color} ${start}%, ${opt.color} ${end}%, `;
-    
-    // Label rotation (center of the slice)
-    // Conic gradient starts at top (0deg). 1% = 3.6deg.
-    const centerDeg = (start + end) / 2 * 3.6;
-    labels.push({ text: opt.text, rotation: centerDeg, color: opt.color });
-
-    currentPercent = end;
-  });
-  
-  gradientStops = gradientStops.slice(0, -2); // remove last comma
-  const conicGradient = `conic-gradient(${gradientStops})`;
+  const wheelData = roulette.options.map(opt => ({
+    option: opt.text,
+    style: { backgroundColor: opt.color, textColor: '#ffffff' },
+    optionSize: opt.weight
+  }));
 
   return (
     <div className="absolute inset-0 z-10 flex flex-col bg-[#09090b]">
@@ -244,43 +199,36 @@ export default function RouletteEditorFullscreen({ pageId, rouletteId, onBack }:
             </div>
 
             {/* Roulette Wheel */}
-            <div className="relative mb-8">
-              <div 
-                className={`w-[260px] h-[260px] sm:w-[320px] sm:h-[320px] rounded-full border-4 border-[#202024] relative cursor-pointer overflow-hidden ${isSpinning ? '' : 'hover:scale-[1.02] transition-transform'}`}
-                style={{
-                  background: conicGradient,
-                  transform: `rotate(${rotation}deg)`,
-                  transition: isSpinning ? 'transform 1.5s cubic-bezier(0.1, 0.7, 0.1, 1)' : 'none'
-                }}
-                onClick={handleSpin}
-              >
-                {/* Labels */}
-                {labels.map((label, i) => (
-                  <div
-                    key={i}
-                    className="absolute top-1/2 left-1/2 w-[42%] h-6 origin-left pointer-events-none"
-                    style={{ transform: `translateY(-50%) rotate(${label.rotation - 90}deg)` }}
-                  >
-                    <div 
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-white font-bold text-[0.8rem] whitespace-nowrap drop-shadow-md truncate"
-                      style={{ 
-                        transform: 'rotate(180deg)', 
-                        transformOrigin: 'center right',
-                        maxWidth: 'calc(100% - 16px)'
-                      }}
-                    >
-                      {label.text}
-                    </div>
-                  </div>
-                ))}
-                
-                {/* Center dot */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-[#202024] rounded-full z-10" />
+            <div className="relative mb-8 flex justify-center items-center w-full max-w-[320px] aspect-square mx-auto">
+              {/* Custom Top Pin */}
+              <div className="absolute -top-2 left-1/2 -translate-x-1/2 flex flex-col items-center z-20 drop-shadow-md">
+                <div className="w-0 h-0 border-l-[14px] border-l-transparent border-r-[14px] border-r-transparent border-t-[28px] border-t-[#e1e1e6]" />
               </div>
 
-              {/* Bottom Pin */}
-              <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center z-20">
-                <div className="w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-b-[24px] border-b-[#e1e1e6] drop-shadow-lg" />
+              <div 
+                className="w-full h-full cursor-pointer hover:scale-[1.02] transition-transform"
+                onClick={handleSpin}
+              >
+                <Wheel
+                  mustStartSpinning={isSpinning}
+                  prizeNumber={prizeNumber}
+                  data={wheelData}
+                  onStopSpinning={() => {
+                    setIsSpinning(false);
+                    setWinner(roulette.options[prizeNumber]);
+                  }}
+                  outerBorderColor="#202024"
+                  outerBorderWidth={4}
+                  innerBorderColor="#202024"
+                  innerBorderWidth={10}
+                  innerRadius={10}
+                  radiusLineColor="#202024"
+                  radiusLineWidth={2}
+                  textColors={['#ffffff']}
+                  fontSize={18}
+                  spinDuration={0.4}
+                  pointerProps={{ src: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=' }}
+                />
               </div>
             </div>
 
