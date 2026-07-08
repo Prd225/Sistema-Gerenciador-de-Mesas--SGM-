@@ -130,7 +130,7 @@ export default function NoteEditorFullscreen({ pageId, noteId, onBack }: NoteEdi
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center gap-1 p-1.5 bg-[#202024] border-b border-[#323238] overflow-x-auto custom-scrollbar flex-nowrap">
+      <div className="flex items-center gap-1 p-1.5 bg-[#202024] border-b border-[#323238] flex-wrap">
         {/* Inline styles */}
         <button onMouseDown={(e) => { e.preventDefault(); exec('bold'); }} className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Negrito"><Bold className="w-3.5 h-3.5" /></button>
         <button onMouseDown={(e) => { e.preventDefault(); exec('italic'); }} className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Itálico"><Italic className="w-3.5 h-3.5" /></button>

@@ -25,11 +25,9 @@ export default function NoteCard({ note, pageId, onClick }: NoteCardProps) {
       onClick={onClick}
       className="relative group aspect-square flex flex-col justify-between p-4 rounded-xl cursor-pointer transition-all hover:scale-[1.02] shadow-sm hover:shadow-md"
       style={{
-        backgroundColor: '#1a1a1e', // base dark background
-        borderLeft: `4px solid ${note.color || '#8257e5'}`,
-        borderTop: '1px solid #323238',
-        borderRight: '1px solid #323238',
-        borderBottom: '1px solid #323238',
+        backgroundColor: `${note.color || '#8257e5'}15`, // tint background (approx 8% opacity)
+        border: `1px solid ${note.color || '#8257e5'}40`, // tinted border
+        borderTop: `4px solid ${note.color || '#8257e5'}`, // thicker top border for post-it feel
       }}
     >
       <div className="flex justify-between items-start w-full">
