@@ -258,7 +258,7 @@ export default function RouletteEditorFullscreen({ pageId, rouletteId, onBack }:
                       style={{ transform: `translateY(-50%) rotate(${label.rotation - 90}deg)` }}
                     >
                       <div 
-                        className="text-white font-bold text-[0.8rem] whitespace-nowrap drop-shadow-md truncate"
+                        className="text-white font-medium text-[0.8rem] whitespace-nowrap drop-shadow-md truncate"
                         style={{ 
                           transform: 'rotate(180deg)', 
                           maxWidth: '100%'
