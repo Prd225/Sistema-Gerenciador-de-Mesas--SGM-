@@ -19,7 +19,6 @@
     "konva": "^10.3.0",
     "lucide-react": "^1.23.0",
     "react": "^19.2.7",
-    "react-custom-roulette": "^1.4.1",
     "react-dom": "^19.2.7",
     "react-konva": "^19.2.5",
     "shadcn": "^4.13.0",
