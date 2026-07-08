@@ -58,9 +58,15 @@ export default function Header() {
 
       {/* Logo & File Menu */}
       <div className="flex items-center gap-4">
-        <div className="font-bold text-[#ffd700] text-xl flex items-center gap-2">
+        <div className="font-bold text-[#ffd700] flex items-center gap-2">
           <Swords className="w-6 h-6" />
-          <span>GM TOOL V6.6</span>
+          <div className="flex flex-col">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-xl">SGM</span>
+              <span className="text-xs text-[#a8a8b3] font-medium tracking-wider">v7.0</span>
+            </div>
+            <span className="text-[0.60rem] text-[#7a7a80] font-semibold uppercase tracking-wider leading-none mt-0.5">Sistema Gerenciador de Mesas</span>
+          </div>
           
           {autoSaveStatus === 'saving' && (
             <div className="flex items-center gap-1.5 ml-2 text-xs text-[#8257e5] font-semibold animate-pulse">
