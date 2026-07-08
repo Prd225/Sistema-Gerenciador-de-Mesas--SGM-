@@ -87,7 +87,7 @@ export default function RouletteEditorFullscreen({ pageId, rouletteId, onBack }:
     const centerPercent = (selectedStartPercent + selectedEndPercent) / 2;
     const targetOffsetRevs = 0.5 - centerPercent;
 
-    const extraSpins = 3 + Math.floor(Math.random() * 2);
+    const extraSpins = 8 + Math.floor(Math.random() * 4);
     const totalNewRotation = rotation + (extraSpins * 360) + (targetOffsetRevs * 360) - (rotation % 360);
 
     const sliceWidthRevs = selectedEndPercent - selectedStartPercent;
@@ -100,7 +100,7 @@ export default function RouletteEditorFullscreen({ pageId, rouletteId, onBack }:
     setTimeout(() => {
       setWinner(selectedOption);
       setIsSpinning(false);
-    }, 1500);
+    }, 2000);
   };
 
   if (!roulette) return null;
@@ -246,8 +246,9 @@ export default function RouletteEditorFullscreen({ pageId, rouletteId, onBack }:
                   className="w-full h-full rounded-full border-[5px] border-[#202024] overflow-hidden shadow-2xl"
                   style={{
                     background: conicGradient,
-                    transform: `rotate(${rotation}deg)`,
-                    transition: isSpinning ? 'transform 1.5s cubic-bezier(0.1, 0.7, 0.1, 1)' : 'none'
+                    transform: `translateZ(0) rotate(${rotation}deg)`,
+                    willChange: 'transform',
+                    transition: isSpinning ? 'transform 2s cubic-bezier(0.1, 0.7, 0.1, 1)' : 'none'
                   }}
                 >
                   {/* Labels */}
