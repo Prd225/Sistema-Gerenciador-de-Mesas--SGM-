@@ -137,8 +137,8 @@ export default function TableEditorFullscreen({ pageId, tableId, onBack }: Table
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center gap-1 p-1.5 bg-[#202024] border-b border-[#323238] flex-wrap justify-between">
-        <div className="flex items-center gap-1">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 p-2 bg-[#202024] border-b border-[#323238]">
+        <div className="flex flex-wrap items-center gap-1">
           <button onMouseDown={(e) => { e.preventDefault(); execCommand('bold'); }} className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors shrink-0" title="Negrito">
             <Bold className="w-4 h-4" />
           </button>
@@ -204,7 +204,7 @@ export default function TableEditorFullscreen({ pageId, tableId, onBack }: Table
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1">
           <button onClick={addRow} className="flex items-center gap-1 px-2 py-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors text-xs font-medium shrink-0" title="Adicionar Linha">
             <Plus className="w-3 h-3" /> Linha
           </button>
@@ -239,7 +239,7 @@ export default function TableEditorFullscreen({ pageId, tableId, onBack }: Table
                       spellCheck="false"
                       onBlur={(e) => handleCellBlur(rowIndex, colIndex, e.currentTarget.innerHTML)}
                       dangerouslySetInnerHTML={{ __html: cellContent }}
-                      className="w-full h-full min-h-[32px] outline-none px-2 py-1.5 text-sm break-words whitespace-pre-wrap"
+                      className="w-full h-full min-h-[32px] outline-none px-2 py-1.5 text-sm break-all whitespace-pre-wrap"
                     />
                   </td>
                 ))}

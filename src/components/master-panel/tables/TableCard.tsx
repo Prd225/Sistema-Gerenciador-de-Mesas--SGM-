@@ -8,15 +8,7 @@ interface TableCardProps {
   onClick: () => void;
 }
 
-const timeAgo = (timestamp: number) => {
-  const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  if (seconds < 60) return 'agora';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m atrás`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h atrás`;
-  return `${Math.floor(hours / 24)}d atrás`;
-};
+
 
 export default function TableCard({ pageId, table, onClick }: TableCardProps) {
   const removeTable = useTablesStore(state => state.removeTable);
@@ -58,11 +50,6 @@ export default function TableCard({ pageId, table, onClick }: TableCardProps) {
         <span className="text-xs font-medium text-[#a8a8b3]">
           {rows}x{cols}
         </span>
-      </div>
-
-      <div className="mt-auto pt-2 flex justify-between items-center text-[0.65rem] font-medium text-[#7a7a80]">
-        <span className="uppercase tracking-wider">Modificado</span>
-        <span>{timeAgo(table.updatedAt)}</span>
       </div>
     </div>
   );
