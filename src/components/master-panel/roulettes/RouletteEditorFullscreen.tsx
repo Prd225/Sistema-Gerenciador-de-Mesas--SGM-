@@ -236,7 +236,7 @@ export default function RouletteEditorFullscreen({ pageId, rouletteId, onBack }:
             </div>
 
             {/* Roulette Wheel */}
-            <div className="relative mb-8 w-[320px] h-[320px] mx-auto z-10 flex-shrink-0">
+            <div className="relative mb-8 w-[280px] h-[280px] mx-auto z-10 flex-shrink-0">
               
               <div 
                 className={`absolute inset-0 w-full h-full cursor-pointer ${isSpinning ? '' : 'hover:scale-[1.02]'} transition-transform z-10`}
