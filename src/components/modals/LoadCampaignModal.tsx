@@ -6,6 +6,7 @@ import { useTokenStore } from '@/store/useTokenStore';
 import { useZoneStore } from '@/store/useZoneStore';
 import { useDiaryStore } from '@/store/useDiaryStore';
 import { useRulesStore } from '@/store/useRulesStore';
+import { useNotesStore } from '@/store/useNotesStore';
 import { db } from '@/lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Trash2, ChevronLeft, ChevronRight, FolderOpen, AlertTriangle } from 'lucide-react';
@@ -79,6 +80,11 @@ export default function LoadCampaignModal() {
       if (data.rules) {
         useRulesStore.setState({
           pages: data.rules.pages || []
+        });
+      }
+      if (data.notes) {
+        useNotesStore.setState({
+          pages: data.notes.pages || []
         });
       }
       onOpenChange(false);

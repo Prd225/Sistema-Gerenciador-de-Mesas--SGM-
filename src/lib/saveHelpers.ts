@@ -3,6 +3,7 @@ import { useZoneStore } from '@/store/useZoneStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useDiaryStore } from '@/store/useDiaryStore';
 import { useRulesStore } from '@/store/useRulesStore';
+import { useNotesStore } from '@/store/useNotesStore';
 import { db } from '@/lib/db';
 
 export const collectGameState = () => {
@@ -33,6 +34,9 @@ export const collectGameState = () => {
     },
     rules: {
       pages: useRulesStore.getState().pages,
+    },
+    notes: {
+      pages: useNotesStore.getState().pages,
     }
   };
 };
