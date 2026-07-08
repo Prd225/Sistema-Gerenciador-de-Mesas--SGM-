@@ -4,6 +4,8 @@ import { useCampaignStore } from '@/store/useCampaignStore';
 import { useDiaryStore } from '@/store/useDiaryStore';
 import { useRulesStore } from '@/store/useRulesStore';
 import { useNotesStore } from '@/store/useNotesStore';
+import { useTablesStore } from '@/store/useTablesStore';
+import { useRoulettesStore } from '@/store/useRoulettesStore';
 import { db } from '@/lib/db';
 
 export const collectGameState = () => {
@@ -37,6 +39,12 @@ export const collectGameState = () => {
     },
     notes: {
       pages: useNotesStore.getState().pages,
+    },
+    tables: {
+      pages: useTablesStore.getState().pages,
+    },
+    roulettes: {
+      pages: useRoulettesStore.getState().pages,
     }
   };
 };

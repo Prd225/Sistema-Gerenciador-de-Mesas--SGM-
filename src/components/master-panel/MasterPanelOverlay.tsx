@@ -6,11 +6,15 @@ import MasterDiary from './diary/MasterDiary';
 
 import MasterRules from './rules/MasterRules';
 import MasterNotes from './notes/MasterNotes';
+import MasterTables from './tables/MasterTables';
+import MasterRoulettes from './roulettes/MasterRoulettes';
 
 function RenderPanel({ panelId }: { panelId: string }) {
   if (panelId === 'diary') return <MasterDiary />;
   if (panelId === 'rules') return <MasterRules />;
   if (panelId === 'notes') return <MasterNotes />;
+  if (panelId === 'table') return <MasterTables />;
+  if (panelId === 'roulette') return <MasterRoulettes />;
   return <SubPanelPlaceholder panelId={panelId as any} />;
 }
 
