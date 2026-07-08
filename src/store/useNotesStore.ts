@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { NotePage, Note } from '@/types/notes';
 import { triggerAutoSave } from '@/lib/saveHelpers';
+import { generateId } from '@/lib/uuid';
 
 interface NotesState {
   pages: NotePage[];
@@ -19,7 +20,7 @@ interface NotesState {
 export const useNotesStore = create<NotesState>()((set) => ({
   pages: [
     {
-      id: crypto.randomUUID(),
+      id: generateId(),
       name: 'Página Inicial',
       notes: []
     }
@@ -27,7 +28,7 @@ export const useNotesStore = create<NotesState>()((set) => ({
 
   addPage: (name) => {
     set((state) => ({
-      pages: [...state.pages, { id: crypto.randomUUID(), name, notes: [] }]
+      pages: [...state.pages, { id: generateId(), name, notes: [] }]
     }));
     triggerAutoSave();
   },
@@ -49,7 +50,7 @@ export const useNotesStore = create<NotesState>()((set) => ({
   },
 
   addNote: (pageId) => {
-    const newNoteId = crypto.randomUUID();
+    const newNoteId = generateId();
     set((state) => ({
       pages: state.pages.map(p => {
         if (p.id !== pageId) return p;

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { triggerAutoSave } from '@/lib/saveHelpers';
 import type { RoulettePage, RouletteData } from '@/types/roulettes';
+import { generateId } from '@/lib/uuid';
 
 interface RoulettesState {
   pages: RoulettePage[];
@@ -16,7 +17,7 @@ interface RoulettesState {
 export const useRoulettesStore = create<RoulettesState>((set) => ({
   pages: [
     {
-      id: crypto.randomUUID(),
+      id: generateId(),
       name: 'Roletas',
       roulettes: []
     }
@@ -24,7 +25,7 @@ export const useRoulettesStore = create<RoulettesState>((set) => ({
 
   addPage: (name) => set((state) => {
     const newState = {
-      pages: [...state.pages, { id: crypto.randomUUID(), name, roulettes: [] }]
+      pages: [...state.pages, { id: generateId(), name, roulettes: [] }]
     };
     setTimeout(() => triggerAutoSave(), 0);
     return newState;
@@ -41,7 +42,7 @@ export const useRoulettesStore = create<RoulettesState>((set) => ({
   removePage: (id) => set((state) => {
     const newPages = state.pages.filter(p => p.id !== id);
     if (newPages.length === 0) {
-      newPages.push({ id: crypto.randomUUID(), name: 'Roletas', roulettes: [] });
+      newPages.push({ id: generateId(), name: 'Roletas', roulettes: [] });
     }
     const newState = { pages: newPages };
     setTimeout(() => triggerAutoSave(), 0);
@@ -50,13 +51,13 @@ export const useRoulettesStore = create<RoulettesState>((set) => ({
 
   addRoulette: (pageId, title = '', color) => set((state) => {
     const newRoulette: RouletteData = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       title,
       color,
       updatedAt: Date.now(),
       options: [
-        { id: crypto.randomUUID(), text: 'Opção 1', weight: 1, color: '#8257e5' },
-        { id: crypto.randomUUID(), text: 'Opção 2', weight: 1, color: '#04d361' }
+        { id: generateId(), text: 'Opção 1', weight: 1, color: '#8257e5' },
+        { id: generateId(), text: 'Opção 2', weight: 1, color: '#04d361' }
       ],
     };
 

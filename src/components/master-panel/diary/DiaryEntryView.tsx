@@ -4,6 +4,7 @@ import type { DiaryEntry, DiaryPoint } from '@/types/diary';
 import { ArrowLeft, Plus, Trash2, Edit2, Check, LayoutTemplate, GripVertical } from 'lucide-react';
 import DiaryPagination from './DiaryPagination';
 import RichTextEditor from './RichTextEditor';
+import { generateId } from '@/lib/uuid';
 
 interface DiaryEntryViewProps {
   entry: DiaryEntry;
@@ -41,7 +42,7 @@ export default function DiaryEntryView({ entry, onBack }: DiaryEntryViewProps) {
 
   const handleAddPoint = (isComplex: boolean) => {
     const newPoint: DiaryPoint = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       text: '',
       isComplex,
       createdAt: Date.now()

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { RulePage, RuleWidget, RuleWidgetSize } from '@/types/rules';
 import { triggerAutoSave } from '@/lib/saveHelpers';
+import { generateId } from '@/lib/uuid';
 
 interface RulesState {
   pages: RulePage[];
@@ -26,7 +27,7 @@ interface RulesState {
 export const useRulesStore = create<RulesState>()((set) => ({
       pages: [
         {
-          id: crypto.randomUUID(),
+          id: generateId(),
           name: 'Página Inicial',
           widgets: []
         }
@@ -34,7 +35,7 @@ export const useRulesStore = create<RulesState>()((set) => ({
 
       addPage: (name) => {
         set((state) => ({
-          pages: [...state.pages, { id: crypto.randomUUID(), name, widgets: [] }]
+          pages: [...state.pages, { id: generateId(), name, widgets: [] }]
         }));
         triggerAutoSave();
       },
@@ -60,7 +61,7 @@ export const useRulesStore = create<RulesState>()((set) => ({
           pages: state.pages.map(p => {
             if (p.id !== pageId) return p;
             const newWidget: RuleWidget = {
-              id: crypto.randomUUID(),
+              id: generateId(),
               size,
               title: 'Nova Regra',
               content: '',

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useDiaryStore } from '@/store/useDiaryStore';
 import { Plus, Trash2, Star, Palette } from 'lucide-react';
 import DiaryPagination from './DiaryPagination';
+import { generateId } from '@/lib/uuid';
 
 const ENTRIES_PER_PAGE = 5;
 const COLORS = ['#8257e5', '#e55757', '#57e569', '#57aee5', '#e5c557', 'transparent'];
@@ -42,7 +43,7 @@ export default function DiaryList({ onOpenEntry }: DiaryListProps) {
 
   const handleAddEntry = () => {
     const newEntry = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       name: 'Novo Registro',
       date: new Date().toLocaleDateString('pt-BR'),
       points: [],

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ImagePlus, X } from 'lucide-react';
 import { ImageCropper } from '@/components/ui/ImageCropper';
 import type { Token, TokenStats } from '@/types/game';
+import { generateId } from '@/lib/uuid';
 
 function getDefaultStats(typeId: string): TokenStats {
   if (typeId === 'threat_realidade') {
@@ -80,7 +81,7 @@ export default function TokenCreateModal() {
     const tokenInitials = initials.trim().substring(0, 4).toUpperCase() || fullName.substring(0, 2).toUpperCase();
 
     const newToken: Token = {
-      id: window.crypto.randomUUID(),
+      id: generateId(),
       name: tokenInitials,
       fullName: fullName,
       colorText,

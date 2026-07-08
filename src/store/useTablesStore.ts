@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { triggerAutoSave } from '@/lib/saveHelpers';
 import type { TablePage, TableData } from '@/types/tables';
+import { generateId } from '@/lib/uuid';
 
 interface TablesState {
   pages: TablePage[];
@@ -16,7 +17,7 @@ interface TablesState {
 export const useTablesStore = create<TablesState>((set) => ({
   pages: [
     {
-      id: crypto.randomUUID(),
+      id: generateId(),
       name: 'Tabelas',
       tables: []
     }
@@ -24,7 +25,7 @@ export const useTablesStore = create<TablesState>((set) => ({
 
   addPage: (name) => set((state) => {
     const newState = {
-      pages: [...state.pages, { id: crypto.randomUUID(), name, tables: [] }]
+      pages: [...state.pages, { id: generateId(), name, tables: [] }]
     };
     setTimeout(() => triggerAutoSave(), 0);
     return newState;
@@ -41,7 +42,7 @@ export const useTablesStore = create<TablesState>((set) => ({
   removePage: (id) => set((state) => {
     const newPages = state.pages.filter(p => p.id !== id);
     if (newPages.length === 0) {
-      newPages.push({ id: crypto.randomUUID(), name: 'Tabelas', tables: [] });
+      newPages.push({ id: generateId(), name: 'Tabelas', tables: [] });
     }
     const newState = { pages: newPages };
     setTimeout(() => triggerAutoSave(), 0);
@@ -50,7 +51,7 @@ export const useTablesStore = create<TablesState>((set) => ({
 
   addTable: (pageId, title = '', color) => set((state) => {
     const newTable: TableData = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       title,
       color,
       updatedAt: Date.now(),

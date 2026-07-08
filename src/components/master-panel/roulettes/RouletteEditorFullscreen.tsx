@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRoulettesStore } from '@/store/useRoulettesStore';
 import { ChevronLeft, Plus, Trash2, Edit2, Eye, Dices } from 'lucide-react';
 import type { RouletteOption } from '@/types/roulettes';
+import { generateId } from '@/lib/uuid';
 
 interface RouletteEditorFullscreenProps {
   pageId: string;
@@ -53,7 +54,7 @@ export default function RouletteEditorFullscreen({ pageId, rouletteId, onBack }:
   const addOption = () => {
     if (!roulette) return;
     const newColor = PRESET_COLORS[roulette.options.length % PRESET_COLORS.length];
-    const newOptions = [...roulette.options, { id: crypto.randomUUID(), text: `Opção ${roulette.options.length + 1}`, weight: 1, color: newColor }];
+    const newOptions = [...roulette.options, { id: generateId(), text: `Opção ${roulette.options.length + 1}`, weight: 1, color: newColor }];
     updateRoulette(pageId, rouletteId, { options: newOptions });
   };
 
