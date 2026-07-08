@@ -33,7 +33,7 @@ export default function NoteCard({ note, pageId, onClick }: NoteCardProps) {
       }}
     >
       <div className="flex justify-between items-start w-full">
-        <h4 className="font-bold text-[#e1e1e6] text-lg leading-tight line-clamp-3 break-words">
+        <h4 className="font-bold text-[#e1e1e6] text-base leading-tight break-words" style={{ wordBreak: 'break-word', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
           {note.title || 'Sem Título'}
         </h4>
         <button

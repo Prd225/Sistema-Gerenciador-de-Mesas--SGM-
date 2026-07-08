@@ -110,53 +110,59 @@ export default function NoteEditorFullscreen({ pageId, noteId, onBack }: NoteEdi
         </div>
         
         {/* Label Color selector */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-[#a8a8b3] font-semibold uppercase mr-1">Cor do Card:</span>
-          {COLORS.map(c => (
-            <button
-              key={c}
-              onClick={() => handleColorChange(c)}
-              className={`w-5 h-5 rounded-full border-2 transition-transform ${note.color === c ? 'border-white scale-110 shadow-[0_0_8px_rgba(255,255,255,0.4)]' : 'border-transparent hover:scale-110'}`}
-              style={{ backgroundColor: c }}
-            />
-          ))}
+        <div className="relative group/cardcolor flex items-center">
+          <button className="flex items-center justify-center p-2 rounded-full border-2 transition-colors hover:bg-[#323238]" style={{ borderColor: note.color || '#8257e5' }} title="Cor do Card">
+            <Palette className="w-4 h-4 text-[#a8a8b3]" />
+          </button>
+          <div className="absolute right-0 top-full pt-2 hidden group-hover/cardcolor:block z-20">
+            <div className="flex bg-[#121214] border border-[#323238] rounded-md p-2 gap-2 shadow-xl w-max">
+              {COLORS.map(c => (
+                <button
+                  key={c}
+                  onClick={() => handleColorChange(c)}
+                  className={`w-6 h-6 rounded-full border-2 transition-transform ${note.color === c ? 'border-white scale-110 shadow-[0_0_8px_rgba(255,255,255,0.4)]' : 'border-transparent hover:scale-110'}`}
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center gap-1 p-2 bg-[#202024] border-b border-[#323238] overflow-x-auto custom-scrollbar flex-wrap">
+      <div className="flex items-center gap-1 p-1.5 bg-[#202024] border-b border-[#323238] overflow-x-auto custom-scrollbar flex-nowrap">
         {/* Inline styles */}
-        <button onMouseDown={(e) => { e.preventDefault(); exec('bold'); }} className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Negrito"><Bold className="w-4 h-4" /></button>
-        <button onMouseDown={(e) => { e.preventDefault(); exec('italic'); }} className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Itálico"><Italic className="w-4 h-4" /></button>
-        <button onMouseDown={(e) => { e.preventDefault(); exec('underline'); }} className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Sublinhado"><Underline className="w-4 h-4" /></button>
-        <button onMouseDown={(e) => { e.preventDefault(); exec('strikeThrough'); }} className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Riscado"><Strikethrough className="w-4 h-4" /></button>
+        <button onMouseDown={(e) => { e.preventDefault(); exec('bold'); }} className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Negrito"><Bold className="w-3.5 h-3.5" /></button>
+        <button onMouseDown={(e) => { e.preventDefault(); exec('italic'); }} className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Itálico"><Italic className="w-3.5 h-3.5" /></button>
+        <button onMouseDown={(e) => { e.preventDefault(); exec('underline'); }} className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Sublinhado"><Underline className="w-3.5 h-3.5" /></button>
+        <button onMouseDown={(e) => { e.preventDefault(); exec('strikeThrough'); }} className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Riscado"><Strikethrough className="w-3.5 h-3.5" /></button>
         
-        <div className="w-px h-5 bg-[#323238] mx-1" />
+        <div className="w-px h-4 bg-[#323238] mx-0.5 shrink-0" />
         
         {/* Headings */}
-        <button onMouseDown={(e) => { e.preventDefault(); execBlock('H1'); }} className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Título 1"><Heading1 className="w-4 h-4" /></button>
-        <button onMouseDown={(e) => { e.preventDefault(); execBlock('H2'); }} className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Título 2"><Heading2 className="w-4 h-4" /></button>
+        <button onMouseDown={(e) => { e.preventDefault(); execBlock('H1'); }} className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Título 1"><Heading1 className="w-3.5 h-3.5" /></button>
+        <button onMouseDown={(e) => { e.preventDefault(); execBlock('H2'); }} className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Título 2"><Heading2 className="w-3.5 h-3.5" /></button>
         
-        <div className="w-px h-5 bg-[#323238] mx-1" />
+        <div className="w-px h-4 bg-[#323238] mx-0.5 shrink-0" />
 
         {/* Alignment */}
-        <button onMouseDown={(e) => { e.preventDefault(); exec('justifyLeft'); }} className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Alinhar à Esquerda"><AlignLeft className="w-4 h-4" /></button>
-        <button onMouseDown={(e) => { e.preventDefault(); exec('justifyCenter'); }} className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Centralizar"><AlignCenter className="w-4 h-4" /></button>
-        <button onMouseDown={(e) => { e.preventDefault(); exec('justifyRight'); }} className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Alinhar à Direita"><AlignRight className="w-4 h-4" /></button>
-        <button onMouseDown={(e) => { e.preventDefault(); exec('justifyFull'); }} className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Justificar"><AlignJustify className="w-4 h-4" /></button>
+        <button onMouseDown={(e) => { e.preventDefault(); exec('justifyLeft'); }} className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Alinhar à Esquerda"><AlignLeft className="w-3.5 h-3.5" /></button>
+        <button onMouseDown={(e) => { e.preventDefault(); exec('justifyCenter'); }} className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Centralizar"><AlignCenter className="w-3.5 h-3.5" /></button>
+        <button onMouseDown={(e) => { e.preventDefault(); exec('justifyRight'); }} className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Alinhar à Direita"><AlignRight className="w-3.5 h-3.5" /></button>
+        <button onMouseDown={(e) => { e.preventDefault(); exec('justifyFull'); }} className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Justificar"><AlignJustify className="w-3.5 h-3.5" /></button>
 
-        <div className="w-px h-5 bg-[#323238] mx-1" />
+        <div className="w-px h-4 bg-[#323238] mx-0.5 shrink-0" />
 
         {/* Lists */}
-        <button onMouseDown={(e) => { e.preventDefault(); exec('insertUnorderedList'); }} className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Lista"><List className="w-4 h-4" /></button>
-        <button onMouseDown={(e) => { e.preventDefault(); exec('insertOrderedList'); }} className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Lista Numerada"><ListOrdered className="w-4 h-4" /></button>
+        <button onMouseDown={(e) => { e.preventDefault(); exec('insertUnorderedList'); }} className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Lista"><List className="w-3.5 h-3.5" /></button>
+        <button onMouseDown={(e) => { e.preventDefault(); exec('insertOrderedList'); }} className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Lista Numerada"><ListOrdered className="w-3.5 h-3.5" /></button>
 
-        <div className="w-px h-5 bg-[#323238] mx-1" />
+        <div className="w-px h-4 bg-[#323238] mx-0.5 shrink-0" />
 
         {/* Colors */}
-        <div className="relative group/color">
-          <button className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white flex items-center gap-1" title="Cor do Texto">
-            <Palette className="w-4 h-4" />
+        <div className="relative group/color shrink-0">
+          <button className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white flex items-center gap-1" title="Cor do Texto">
+            <Palette className="w-3.5 h-3.5" />
           </button>
           <div className="absolute left-0 top-full pt-1 hidden group-hover/color:block z-10">
             <div className="flex bg-[#121214] border border-[#323238] rounded p-1.5 gap-1.5">
@@ -164,7 +170,7 @@ export default function NoteEditorFullscreen({ pageId, noteId, onBack }: NoteEdi
                 <button
                   key={c}
                   onMouseDown={(e) => { e.preventDefault(); exec('foreColor', c); }}
-                  className="w-5 h-5 rounded-full border border-[#323238] hover:scale-110 transition-transform"
+                  className="w-4 h-4 rounded-full border border-[#323238] hover:scale-110 transition-transform"
                   style={{ backgroundColor: c }}
                 />
               ))}
@@ -172,9 +178,9 @@ export default function NoteEditorFullscreen({ pageId, noteId, onBack }: NoteEdi
           </div>
         </div>
 
-        <div className="relative group/bg">
-          <button className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white flex items-center gap-1" title="Cor de Fundo (Highlight)">
-            <Highlighter className="w-4 h-4" />
+        <div className="relative group/bg shrink-0">
+          <button className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white flex items-center gap-1" title="Cor de Fundo (Highlight)">
+            <Highlighter className="w-3.5 h-3.5" />
           </button>
           <div className="absolute left-0 top-full pt-1 hidden group-hover/bg:block z-10">
             <div className="flex bg-[#121214] border border-[#323238] rounded p-1.5 gap-1.5">
@@ -182,7 +188,7 @@ export default function NoteEditorFullscreen({ pageId, noteId, onBack }: NoteEdi
                 <button
                   key={c}
                   onMouseDown={(e) => { e.preventDefault(); exec('hiliteColor', c === 'transparent' ? 'inherit' : c); }}
-                  className={`w-5 h-5 rounded-full border hover:scale-110 transition-transform ${c === 'transparent' ? 'border-[#a8a8b3] relative overflow-hidden' : 'border-[#323238]'}`}
+                  className={`w-4 h-4 rounded-full border hover:scale-110 transition-transform ${c === 'transparent' ? 'border-[#a8a8b3] relative overflow-hidden' : 'border-[#323238]'}`}
                   style={{ backgroundColor: c === 'transparent' ? '#121214' : c }}
                 >
                   {c === 'transparent' && <div className="absolute inset-0 flex items-center justify-center"><div className="w-full h-px bg-red-500 rotate-45" /></div>}
@@ -192,11 +198,11 @@ export default function NoteEditorFullscreen({ pageId, noteId, onBack }: NoteEdi
           </div>
         </div>
 
-        <div className="w-px h-5 bg-[#323238] mx-1" />
+        <div className="w-px h-4 bg-[#323238] mx-0.5 shrink-0" />
 
         {/* Utils */}
-        <button onMouseDown={(e) => { e.preventDefault(); exec('insertHorizontalRule'); }} className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white" title="Linha Horizontal"><Minus className="w-4 h-4" /></button>
-        <button onMouseDown={(e) => { e.preventDefault(); exec('removeFormat'); }} className="p-1.5 hover:bg-[#323238] rounded text-red-400 hover:text-red-300 ml-auto font-semibold text-xs tracking-wider" title="Remover Formatação">LIMPAR</button>
+        <button onMouseDown={(e) => { e.preventDefault(); exec('insertHorizontalRule'); }} className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white shrink-0" title="Linha Horizontal"><Minus className="w-3.5 h-3.5" /></button>
+        <button onMouseDown={(e) => { e.preventDefault(); exec('removeFormat'); }} className="p-1 hover:bg-[#323238] rounded text-red-400 hover:text-red-300 ml-auto font-semibold text-[10px] tracking-wider shrink-0" title="Remover Formatação">LIMPAR</button>
       </div>
 
       {/* Editor Area */}

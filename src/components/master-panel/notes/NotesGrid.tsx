@@ -21,7 +21,7 @@ export default function NotesGrid({ pageId, onOpenNote }: NotesGridProps) {
 
   return (
     <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-4">
         
         {page.notes.map(note => (
           <NoteCard 
