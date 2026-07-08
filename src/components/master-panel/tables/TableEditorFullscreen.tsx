@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useTablesStore } from '@/store/useTablesStore';
-import { ChevronLeft, Bold, Italic, Underline, List, PaintBucket, Plus, Minus } from 'lucide-react';
+import { ChevronLeft, Bold, Italic, Underline, List, PaintBucket, Plus, Minus, Palette, Highlighter } from 'lucide-react';
+
+const TEXT_COLORS = [
+  '#e1e1e6', '#a8a8b3', '#8257e5', '#04d361', '#e559f9', '#fba94c', '#eb3b35', '#00b8d9'
+];
 
 interface TableEditorFullscreenProps {
   pageId: string;
@@ -113,19 +117,21 @@ export default function TableEditorFullscreen({ pageId, tableId, onBack }: Table
             <PaintBucket className="w-4 h-4 text-[#a8a8b3]" />
           </button>
           
-          <div className="absolute right-0 top-full mt-2 hidden group-hover/cardcolor:grid grid-cols-4 gap-2 bg-[#202024] border border-[#323238] rounded-lg p-3 shadow-xl z-50">
-            {PRESET_COLORS.map(color => (
-              <button
-                key={color}
-                onClick={() => handleColorChange(color)}
-                className="w-6 h-6 rounded-full border-2 border-[#121214] hover:scale-110 transition-transform cursor-pointer"
-                style={{ 
-                  backgroundColor: color,
-                  boxShadow: table.color === color ? `0 0 0 2px ${color}` : 'none'
-                }}
-                title={color}
-              />
-            ))}
+          <div className="absolute right-0 top-full mt-1 hidden group-hover/cardcolor:block z-50">
+            <div className="grid grid-cols-4 gap-2 bg-[#202024] border border-[#323238] rounded-lg p-2 shadow-xl">
+              {PRESET_COLORS.map(color => (
+                <button
+                  key={color}
+                  onMouseDown={(e) => { e.preventDefault(); handleColorChange(color); }}
+                  className="w-5 h-5 rounded-full border-2 border-[#121214] hover:scale-110 transition-transform cursor-pointer"
+                  style={{ 
+                    backgroundColor: color,
+                    boxShadow: table.color === color ? `0 0 0 2px ${color}` : 'none'
+                  }}
+                  title={color}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -146,6 +152,47 @@ export default function TableEditorFullscreen({ pageId, tableId, onBack }: Table
           <button onMouseDown={(e) => { e.preventDefault(); execCommand('insertUnorderedList'); }} className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors shrink-0" title="Marcadores">
             <List className="w-4 h-4" />
           </button>
+
+          <div className="w-px h-4 bg-[#323238] mx-1 shrink-0" />
+
+          {/* Text Color */}
+          <div className="relative group/textcolor flex items-center">
+            <button className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors shrink-0 flex items-center gap-1" title="Cor do Texto">
+              <Palette className="w-4 h-4" />
+            </button>
+            <div className="absolute left-0 top-full mt-1 hidden group-hover/textcolor:block z-50">
+              <div className="grid grid-cols-4 bg-[#121214] border border-[#323238] rounded p-1.5 gap-1.5 w-max shadow-lg">
+                {TEXT_COLORS.map(c => (
+                  <button
+                    key={c}
+                    onMouseDown={(e) => { e.preventDefault(); execCommand('foreColor', c); }}
+                    className="w-4 h-4 rounded-full border border-[#323238] hover:scale-110 transition-transform cursor-pointer"
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          <div className="relative group/bgcolor flex items-center">
+            <button className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors shrink-0 flex items-center gap-1" title="Cor de Fundo (Highlight)">
+              <Highlighter className="w-4 h-4" />
+            </button>
+            <div className="absolute left-0 top-full mt-1 hidden group-hover/bgcolor:block z-50">
+              <div className="grid grid-cols-4 bg-[#121214] border border-[#323238] rounded p-1.5 gap-1.5 w-max shadow-lg">
+                {['transparent', ...TEXT_COLORS].map(c => (
+                  <button
+                    key={c}
+                    onMouseDown={(e) => { e.preventDefault(); execCommand('hiliteColor', c === 'transparent' ? 'inherit' : c); }}
+                    className={`w-4 h-4 rounded-full border hover:scale-110 transition-transform cursor-pointer ${c === 'transparent' ? 'border-[#a8a8b3] relative overflow-hidden' : 'border-[#323238]'}`}
+                    style={{ backgroundColor: c === 'transparent' ? '#121214' : c }}
+                  >
+                    {c === 'transparent' && <div className="absolute inset-0 flex items-center justify-center"><div className="w-full h-px bg-red-500 rotate-45" /></div>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center gap-1">
@@ -182,7 +229,7 @@ export default function TableEditorFullscreen({ pageId, tableId, onBack }: Table
                       suppressContentEditableWarning
                       onBlur={(e) => handleCellBlur(rowIndex, colIndex, e.currentTarget.innerHTML)}
                       dangerouslySetInnerHTML={{ __html: cellContent }}
-                      className="w-full min-h-[40px] outline-none p-3 break-words whitespace-pre-wrap"
+                      className="w-full min-h-[32px] outline-none p-2 text-sm break-words whitespace-pre-wrap"
                     />
                   </td>
                 ))}

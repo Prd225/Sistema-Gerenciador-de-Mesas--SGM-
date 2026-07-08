@@ -93,11 +93,9 @@ export default function RouletteEditorFullscreen({ pageId, rouletteId, onBack }:
     const centerPercent = (selectedStartPercent + selectedEndPercent) / 2;
     const targetOffsetRevs = 0.5 - centerPercent;
 
-    // Add extra spins for suspense
-    const extraSpins = 5 + Math.floor(Math.random() * 3);
+    const extraSpins = 3 + Math.floor(Math.random() * 2);
     const totalNewRotation = rotation + (extraSpins * 360) + (targetOffsetRevs * 360) - (rotation % 360);
 
-    // Apply some slight randomness within the slice so it doesn't always land perfectly in the middle
     const sliceWidthRevs = selectedEndPercent - selectedStartPercent;
     const randomNudge = (Math.random() - 0.5) * (sliceWidthRevs * 0.8) * 360; 
     
@@ -105,11 +103,10 @@ export default function RouletteEditorFullscreen({ pageId, rouletteId, onBack }:
 
     setRotation(finalRotation);
 
-    // Wait for animation to finish (CSS transition is e.g., 4s)
     setTimeout(() => {
       setWinner(selectedOption);
       setIsSpinning(false);
-    }, 4000);
+    }, 1500);
   };
 
   if (!roulette) return null;
@@ -232,14 +229,14 @@ export default function RouletteEditorFullscreen({ pageId, rouletteId, onBack }:
             </button>
           </div>
         ) : (
-          <div className="flex-1 w-full flex flex-col items-center justify-center p-8 relative">
+          <div className="flex-1 w-full flex flex-col items-center justify-center p-4 relative">
             
             {/* Winner Display */}
-            <div className="absolute top-8 left-1/2 -translate-x-1/2 h-16 flex items-center justify-center">
+            <div className="h-16 flex items-center justify-center mb-6 z-20">
               {winner ? (
-                <div className="animate-in slide-in-from-bottom-4 fade-in px-6 py-3 rounded-full bg-[#121214] border border-[#323238] shadow-xl flex items-center gap-3">
+                <div className="animate-in slide-in-from-bottom-2 fade-in px-6 py-3 rounded-full bg-[#121214] border border-[#323238] shadow-lg flex items-center gap-3">
                   <Dices className="w-6 h-6" style={{ color: winner.color }} />
-                  <span className="text-[#e1e1e6] font-bold text-xl">{winner.text}</span>
+                  <span className="text-[#e1e1e6] font-bold text-xl truncate max-w-[200px]">{winner.text}</span>
                 </div>
               ) : (
                 <span className="text-[#a8a8b3] italic">Gire a roleta para sortear</span>
@@ -247,13 +244,13 @@ export default function RouletteEditorFullscreen({ pageId, rouletteId, onBack }:
             </div>
 
             {/* Roulette Wheel */}
-            <div className="relative mt-8">
+            <div className="relative mb-8">
               <div 
-                className={`w-[300px] h-[300px] sm:w-[400px] sm:h-[400px] rounded-full border-4 border-[#202024] shadow-2xl relative cursor-pointer overflow-hidden ${isSpinning ? '' : 'hover:scale-105 transition-transform'}`}
+                className={`w-[260px] h-[260px] sm:w-[320px] sm:h-[320px] rounded-full border-4 border-[#202024] relative cursor-pointer overflow-hidden ${isSpinning ? '' : 'hover:scale-[1.02] transition-transform'}`}
                 style={{
                   background: conicGradient,
                   transform: `rotate(${rotation}deg)`,
-                  transition: isSpinning ? 'transform 4s cubic-bezier(0.2, 0.8, 0.1, 1)' : 'none'
+                  transition: isSpinning ? 'transform 1.5s cubic-bezier(0.1, 0.7, 0.1, 1)' : 'none'
                 }}
                 onClick={handleSpin}
               >
@@ -264,14 +261,14 @@ export default function RouletteEditorFullscreen({ pageId, rouletteId, onBack }:
                     className="absolute top-0 left-1/2 w-1 h-1/2 origin-bottom pointer-events-none"
                     style={{ transform: `rotate(${label.rotation}deg)` }}
                   >
-                    <div className="absolute top-4 left-1/2 -translate-x-1/2 -rotate-90 origin-center text-white font-bold text-sm whitespace-nowrap drop-shadow-md">
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 -rotate-90 origin-center text-white font-bold text-[0.8rem] whitespace-nowrap drop-shadow-md w-24 text-right truncate">
                       {label.text}
                     </div>
                   </div>
                 ))}
                 
                 {/* Center dot */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-[#202024] rounded-full shadow-inner z-10" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-[#202024] rounded-full z-10" />
               </div>
 
               {/* Bottom Pin */}

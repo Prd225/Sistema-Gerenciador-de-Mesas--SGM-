@@ -41,8 +41,8 @@ export default function TableCard({ pageId, table, onClick }: TableCardProps) {
         borderTop: `4px solid ${table.color || '#8257e5'}`
       }}
     >
-      <div className="flex items-start justify-between mb-2">
-        <h4 className="font-semibold text-[#e1e1e6] text-sm truncate flex-1 pr-4">
+      <div className="flex items-start justify-between mb-2 flex-1">
+        <h4 className="font-semibold text-[#e1e1e6] text-sm break-words line-clamp-3 pr-4 leading-tight">
           {table.title || 'Sem Título'}
         </h4>
         <button 
@@ -54,10 +54,12 @@ export default function TableCard({ pageId, table, onClick }: TableCardProps) {
         </button>
       </div>
       
-      <div className="flex-1 flex flex-col justify-center items-center text-[#a8a8b3]">
-        <TableIcon className="w-8 h-8 mb-2 opacity-50" />
-        <span className="text-xs font-medium">
-          {rows} {rows === 1 ? 'linha' : 'linhas'} × {cols} {cols === 1 ? 'coluna' : 'colunas'}
+      <div className="flex justify-between items-end mt-1">
+        <span className="text-[0.65rem] font-bold text-[#8257e5] uppercase tracking-wider bg-[#8257e5]/10 px-1.5 py-0.5 rounded">
+          Tabela
+        </span>
+        <span className="text-xs font-medium text-[#a8a8b3]">
+          {rows}x{cols}
         </span>
       </div>
 
