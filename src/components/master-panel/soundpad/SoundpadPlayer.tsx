@@ -1,8 +1,6 @@
 import { useSoundpadStore } from '@/store/useSoundpadStore';
-import { Play, Pause, SkipBack, SkipForward, Square, Repeat, Loader2 } from 'lucide-react';
-import { playSpotifyTrack, pauseSpotifyTrack, resumeSpotifyTrack, seekSpotifyTrack } from '@/lib/spotifyPlayer';
-import { useEffect, useState, useRef } from 'react';
-import type { Song } from '@/types/soundpad';
+import { Play, Pause, SkipBack, SkipForward, Square, Repeat } from 'lucide-react';
+import { pauseSpotifyTrack, resumeSpotifyTrack, seekSpotifyTrack } from '@/lib/spotifyPlayer';
 import type { Song } from '@/types/soundpad';
 
 export default function SoundpadPlayer() {
@@ -19,12 +17,7 @@ export default function SoundpadPlayer() {
   
   const playNext = useSoundpadStore(state => state.playNext);
   const playPrev = useSoundpadStore(state => state.playPrev);
-
   const pages = useSoundpadStore(state => state.pages);
-  const spotifyDeviceId = useSoundpadStore(state => state.spotifyDeviceId);
-  const playbackTrigger = useSoundpadStore(state => state.playbackTrigger);
-  const [isChangingTrack, setIsChangingTrack] = useState(false);
-  const ytPlayerRef = useRef<any>(null);
 
   let activeSong: Song | null = null;
   pages?.forEach(p => p.playlists?.forEach(pl => pl.songs?.forEach(s => {
@@ -122,7 +115,6 @@ export default function SoundpadPlayer() {
         
         <button 
           onClick={playPrev}
-          disabled={isChangingTrack}
           className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#323238] text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors disabled:opacity-50"
           title="Música Anterior"
         >
@@ -131,15 +123,13 @@ export default function SoundpadPlayer() {
         
         <button 
           onClick={handlePlayPause}
-          disabled={isChangingTrack || (!activeSong && !activePlaylistId)}
+          disabled={!activeSong && !activePlaylistId}
           className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors shadow-lg ${
             (!activeSong && !activePlaylistId) ? 'bg-[#323238] text-[#7a7a80] cursor-not-allowed' : 'bg-[#8257e5] hover:bg-[#9466ff] text-white shadow-[#8257e5]/20'
           }`}
           title={isPlaying ? "Pausar" : "Tocar"}
         >
-          {isChangingTrack ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : isPlaying ? (
+          {isPlaying ? (
             <Pause className="w-5 h-5 fill-current" />
           ) : (
             <Play className="w-5 h-5 fill-current translate-x-0.5" />
@@ -148,7 +138,6 @@ export default function SoundpadPlayer() {
         
         <button 
           onClick={playNext}
-          disabled={isChangingTrack}
           className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#323238] text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors disabled:opacity-50"
           title="Próxima Música"
         >
