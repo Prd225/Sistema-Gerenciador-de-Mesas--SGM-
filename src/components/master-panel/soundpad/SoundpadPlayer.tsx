@@ -1,5 +1,8 @@
 import { useSoundpadStore } from '@/store/useSoundpadStore';
-import { Play, Pause, SkipBack, SkipForward, Square, Repeat } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Square, Repeat, Loader2 } from 'lucide-react';
+import { playSpotifyTrack, pauseSpotifyTrack, resumeSpotifyTrack, seekSpotifyTrack } from '@/lib/spotifyPlayer';
+import { useEffect, useState } from 'react';
+import type { Song } from '@/types/soundpad';
 
 export default function SoundpadPlayer() {
   const isPlaying = useSoundpadStore(state => state.isPlaying);
@@ -10,21 +13,69 @@ export default function SoundpadPlayer() {
   const setProgress = useSoundpadStore(state => state.setProgress);
   const activeSongId = useSoundpadStore(state => state.activeSongId);
 
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
+  const pages = useSoundpadStore(state => state.pages);
+  const spotifyDeviceId = useSoundpadStore(state => state.spotifyDeviceId);
+  const [isChangingTrack, setIsChangingTrack] = useState(false);
+
+  let activeSong: Song | null = null;
+  pages.forEach(p => p.playlists.forEach(pl => pl.songs.forEach(s => {
+    if (s.id === activeSongId) activeSong = s;
+  })));
+
+  // Auto-play when a new song is selected
+  useEffect(() => {
+    if (activeSong && activeSong.sourceType === 'spotify' && spotifyDeviceId) {
+      setIsChangingTrack(true);
+      playSpotifyTrack(activeSong.sourceUrl).then(() => {
+        setIsChangingTrack(false);
+      });
+    }
+  }, [activeSongId, spotifyDeviceId]);
+
+  const handlePlayPause = async () => {
+    if (!activeSong) return;
+    
+    if (activeSong.sourceType === 'spotify') {
+      if (isPlaying) {
+        await pauseSpotifyTrack();
+      } else {
+        await resumeSpotifyTrack();
+      }
+    } else {
+      setIsPlaying(!isPlaying);
+    }
   };
 
-  const handleStop = () => {
+  const handleStop = async () => {
+    if (activeSong?.sourceType === 'spotify') {
+      await pauseSpotifyTrack();
+    }
     setIsPlaying(false);
     setProgress(0);
   };
 
-  const formatTime = (percentage: number) => {
-    // Fake 3:00 minute song for UI purposes until logic is implemented
-    const totalSeconds = 180; 
+  const handleSeek = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newProgress = Number(e.target.value);
+    setProgress(newProgress);
+    
+    if (activeSong?.sourceType === 'spotify') {
+      const positionMs = (newProgress / 100) * (activeSong.duration * 1000);
+      await seekSpotifyTrack(positionMs);
+    }
+  };
+
+  const formatTime = (percentage: number, totalSeconds: number) => {
+    if (!totalSeconds) return '0:00';
     const currentSeconds = Math.floor((percentage / 100) * totalSeconds);
     const m = Math.floor(currentSeconds / 60);
     const s = currentSeconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const formatDuration = (totalSeconds: number) => {
+    if (!totalSeconds) return '0:00';
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
@@ -48,10 +99,19 @@ export default function SoundpadPlayer() {
         
         <button 
           onClick={handlePlayPause}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-[#8257e5] hover:bg-[#9466ff] text-white transition-colors shadow-lg shadow-[#8257e5]/20"
+          disabled={isChangingTrack || !activeSong}
+          className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors shadow-lg ${
+            !activeSong ? 'bg-[#323238] text-[#7a7a80] cursor-not-allowed' : 'bg-[#8257e5] hover:bg-[#9466ff] text-white shadow-[#8257e5]/20'
+          }`}
           title={isPlaying ? "Pausar" : "Tocar"}
         >
-          {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current translate-x-0.5" />}
+          {isChangingTrack ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : isPlaying ? (
+            <Pause className="w-5 h-5 fill-current" />
+          ) : (
+            <Play className="w-5 h-5 fill-current translate-x-0.5" />
+          )}
         </button>
         
         <button 
@@ -74,7 +134,7 @@ export default function SoundpadPlayer() {
 
       <div className="flex items-center gap-3 px-2">
         <span className="text-[0.65rem] text-[#7a7a80] font-mono w-8 text-right">
-          {formatTime(progress)}
+          {formatTime(progress, activeSong?.duration || 0)}
         </span>
         <div className="flex-1 flex items-center h-4 cursor-pointer">
           <input
@@ -83,12 +143,15 @@ export default function SoundpadPlayer() {
             max={100}
             step={1}
             value={progress}
-            onChange={(e) => setProgress(Number(e.target.value))}
-            className="w-full h-1.5 bg-[#323238] rounded-full appearance-none cursor-pointer accent-[#8257e5]"
+            onChange={handleSeek}
+            disabled={!activeSong}
+            className={`w-full h-1.5 rounded-full appearance-none accent-[#8257e5] ${
+              !activeSong ? 'bg-[#202024] cursor-not-allowed' : 'bg-[#323238] cursor-pointer'
+            }`}
           />
         </div>
         <span className="text-[0.65rem] text-[#7a7a80] font-mono w-8">
-          3:00
+          {formatDuration(activeSong?.duration || 0)}
         </span>
       </div>
     </div>

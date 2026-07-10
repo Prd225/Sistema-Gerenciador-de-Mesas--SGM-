@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useSoundpadStore } from '@/store/useSoundpadStore';
 import { ChevronLeft, ChevronUp, ChevronDown, Plus, Music, HardDrive, Edit2, Hash, Trash2 } from 'lucide-react';
 import type { SongSource } from '@/types/soundpad';
+import AddMusicModal from './AddMusicModal';
 
 interface PlaylistEditorProps {
   pageId: string;
@@ -20,6 +21,7 @@ export default function PlaylistEditor({ pageId, playlistId, onBack }: PlaylistE
   const [editingName, setEditingName] = useState(playlist?.name || '');
   const [tagInput, setTagInput] = useState('');
   const [isFooterMinimized, setIsFooterMinimized] = useState(true);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   if (!playlist) return null;
 
@@ -44,7 +46,7 @@ export default function PlaylistEditor({ pageId, playlistId, onBack }: PlaylistE
   };
 
   const handleAddSongClick = () => {
-    alert('Em construção. Espaço reservado para a interface de adição de músicas do Soundpad.');
+    setIsAddModalOpen(true);
   };
 
   const formatDuration = (seconds: number) => {
@@ -184,6 +186,13 @@ export default function PlaylistEditor({ pageId, playlistId, onBack }: PlaylistE
           </div>
         )}
       </div>
+
+      <AddMusicModal 
+        open={isAddModalOpen} 
+        onOpenChange={setIsAddModalOpen} 
+        pageId={pageId} 
+        playlistId={playlistId} 
+      />
     </div>
   );
 }

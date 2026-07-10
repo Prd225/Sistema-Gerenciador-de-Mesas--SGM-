@@ -10,6 +10,7 @@ interface SoundpadState {
   isPlaying: boolean;
   progress: number; // 0 to 100 percentage
   isLooping: boolean;
+  spotifyDeviceId: string | null;
 
   // Pages
   addPage: (name: string) => void;
@@ -21,6 +22,7 @@ interface SoundpadState {
   updatePlaylist: (pageId: string, playlistId: string, updates: Partial<Playlist>) => void;
   removePlaylist: (pageId: string, playlistId: string) => void;
   reorderPlaylists: (pageId: string, startIndex: number, endIndex: number) => void;
+  addSongToPlaylist: (pageId: string, playlistId: string, songData: Omit<Song, 'id'>) => void;
 
   // Player controls
   setActivePlaylist: (id: string | null) => void;
@@ -28,6 +30,7 @@ interface SoundpadState {
   setIsPlaying: (playing: boolean) => void;
   setProgress: (progress: number) => void;
   toggleLoop: () => void;
+  setSpotifyDeviceId: (id: string | null) => void;
 }
 
 export const useSoundpadStore = create<SoundpadState>((set) => ({
@@ -43,6 +46,7 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
   isPlaying: false,
   progress: 0,
   isLooping: false,
+  spotifyDeviceId: null,
 
   addPage: (name) => set((state) => {
     const newState = {
@@ -138,9 +142,32 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
     return newState;
   }),
 
+  addSongToPlaylist: (pageId, playlistId, songData) => set((state) => {
+    const newSong: Song = {
+      id: generateId(),
+      ...songData
+    };
+    const newState = {
+      pages: state.pages.map(p => {
+        if (p.id === pageId) {
+          return {
+            ...p,
+            playlists: p.playlists.map(pl => 
+              pl.id === playlistId ? { ...pl, songs: [...pl.songs, newSong], updatedAt: Date.now() } : pl
+            )
+          };
+        }
+        return p;
+      })
+    };
+    setTimeout(() => triggerAutoSave(), 0);
+    return newState;
+  }),
+
   setActivePlaylist: (id) => set({ activePlaylistId: id }),
-  setActiveSong: (id) => set({ activeSongId: id }),
+  setActiveSong: (id) => set({ activeSongId: id, isPlaying: false, progress: 0 }),
   setIsPlaying: (playing) => set({ isPlaying: playing }),
   setProgress: (progress) => set({ progress }),
-  toggleLoop: () => set(state => ({ isLooping: !state.isLooping }))
+  toggleLoop: () => set(state => ({ isLooping: !state.isLooping })),
+  setSpotifyDeviceId: (id) => set({ spotifyDeviceId: id })
 }));
