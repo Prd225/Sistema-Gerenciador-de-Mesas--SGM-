@@ -12,6 +12,7 @@ declare global {
 let playerInstance: any = null;
 let deviceId: string | null = null;
 let sdkReady = false;
+let lastProgress = 0;
 
 export const initSpotifyPlayer = () => {
   if (playerInstance) return;
@@ -43,12 +44,20 @@ export const initSpotifyPlayer = () => {
       const isPaused = state.paused;
       const position = state.position;
       const duration = state.duration;
+      const progressPercent = (position / duration) * 100;
       
       // Update store
       useSoundpadStore.getState().setIsPlaying(!isPaused);
-      useSoundpadStore.getState().setProgress((position / duration) * 100);
+      useSoundpadStore.getState().setProgress(progressPercent);
       
-      // We could also auto-skip when song ends here if we build a queue logic
+      // Track end detection: if we were past 95% and suddenly paused at 0
+      if (isPaused && position === 0 && lastProgress > 95) {
+        // Track naturally ended.
+        console.log("Track ended. Playing next...");
+        useSoundpadStore.getState().playNext();
+      }
+      
+      lastProgress = progressPercent;
     });
 
     // Ready

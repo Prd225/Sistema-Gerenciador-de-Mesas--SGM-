@@ -15,6 +15,9 @@ export default function SoundpadPlayer() {
   const setActiveSong = useSoundpadStore(state => state.setActiveSong);
   const activePlaylistId = useSoundpadStore(state => state.activePlaylistId);
   const setActivePlaylist = useSoundpadStore(state => state.setActivePlaylist);
+  
+  const playNext = useSoundpadStore(state => state.playNext);
+  const playPrev = useSoundpadStore(state => state.playPrev);
 
   const pages = useSoundpadStore(state => state.pages);
   const spotifyDeviceId = useSoundpadStore(state => state.spotifyDeviceId);
@@ -63,23 +66,18 @@ export default function SoundpadPlayer() {
     };
   }, [isPlaying, activeSong, isLooping]);
 
-  const getActivePlaylistSongs = (): Song[] => {
-    if (!activePlaylistId) return [];
-    let songs: Song[] = [];
-    pages?.forEach(p => {
-      const pl = p.playlists?.find(x => x.id === activePlaylistId);
-      if (pl) songs = pl.songs || [];
-    });
-    return songs;
-  };
-
   const handlePlayPause = async () => {
     if (!activeSong) {
-      // If no song is active, but we have an active playlist, play the first song
-      const songs = getActivePlaylistSongs();
-      if (songs.length > 0) {
-        setActiveSong(songs[0].id);
-        setIsPlaying(true);
+      if (activePlaylistId) {
+        let songs: Song[] = [];
+        pages?.forEach(p => {
+          const pl = p.playlists?.find(x => x.id === activePlaylistId);
+          if (pl) songs = pl.songs || [];
+        });
+        if (songs.length > 0) {
+          setActiveSong(songs[0].id);
+          setIsPlaying(true);
+        }
       }
       return;
     }
@@ -92,30 +90,6 @@ export default function SoundpadPlayer() {
       }
     } else {
       setIsPlaying(!isPlaying);
-    }
-  };
-
-  const handleNext = () => {
-    const songs = getActivePlaylistSongs();
-    if (songs.length === 0) return;
-    const currentIndex = songs.findIndex(s => s.id === activeSongId);
-    if (currentIndex === -1) {
-      setActiveSong(songs[0].id);
-    } else if (currentIndex < songs.length - 1) {
-      setActiveSong(songs[currentIndex + 1].id);
-    } else if (isLooping) {
-      setActiveSong(songs[0].id);
-    }
-  };
-
-  const handlePrev = () => {
-    const songs = getActivePlaylistSongs();
-    if (songs.length === 0) return;
-    const currentIndex = songs.findIndex(s => s.id === activeSongId);
-    if (currentIndex > 0) {
-      setActiveSong(songs[currentIndex - 1].id);
-    } else if (isLooping) {
-      setActiveSong(songs[songs.length - 1].id);
     }
   };
 
@@ -166,7 +140,7 @@ export default function SoundpadPlayer() {
         </button>
         
         <button 
-          onClick={handlePrev}
+          onClick={playPrev}
           disabled={isChangingTrack}
           className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#323238] text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors disabled:opacity-50"
           title="Música Anterior"
@@ -192,7 +166,7 @@ export default function SoundpadPlayer() {
         </button>
         
         <button 
-          onClick={handleNext}
+          onClick={playNext}
           disabled={isChangingTrack}
           className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#323238] text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors disabled:opacity-50"
           title="Próxima Música"

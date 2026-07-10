@@ -33,6 +33,9 @@ interface SoundpadState {
   setProgress: (progress: number) => void;
   toggleLoop: () => void;
   setSpotifyDeviceId: (id: string | null) => void;
+  
+  playNext: () => void;
+  playPrev: () => void;
 }
 
 export const useSoundpadStore = create<SoundpadState>((set) => ({
@@ -207,5 +210,47 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
   setIsPlaying: (playing) => set({ isPlaying: playing }),
   setProgress: (progress) => set({ progress }),
   toggleLoop: () => set(state => ({ isLooping: !state.isLooping })),
-  setSpotifyDeviceId: (id) => set({ spotifyDeviceId: id })
+  setSpotifyDeviceId: (id) => set({ spotifyDeviceId: id }),
+
+  playNext: () => set((state) => {
+    if (!state.activePlaylistId) return state;
+    
+    let songs: Song[] = [];
+    state.pages.forEach(p => {
+      const pl = p.playlists.find(x => x.id === state.activePlaylistId);
+      if (pl) songs = pl.songs;
+    });
+    
+    if (songs.length === 0) return state;
+    
+    const currentIndex = songs.findIndex(s => s.id === state.activeSongId);
+    if (currentIndex === -1) {
+      return { activeSongId: songs[0].id, isPlaying: true, progress: 0 };
+    } else if (currentIndex < songs.length - 1) {
+      return { activeSongId: songs[currentIndex + 1].id, isPlaying: true, progress: 0 };
+    } else if (state.isLooping) {
+      return { activeSongId: songs[0].id, isPlaying: true, progress: 0 };
+    }
+    return { isPlaying: false, progress: 0 }; // Reached end and no loop
+  }),
+
+  playPrev: () => set((state) => {
+    if (!state.activePlaylistId) return state;
+    
+    let songs: Song[] = [];
+    state.pages.forEach(p => {
+      const pl = p.playlists.find(x => x.id === state.activePlaylistId);
+      if (pl) songs = pl.songs;
+    });
+    
+    if (songs.length === 0) return state;
+    
+    const currentIndex = songs.findIndex(s => s.id === state.activeSongId);
+    if (currentIndex > 0) {
+      return { activeSongId: songs[currentIndex - 1].id, isPlaying: true, progress: 0 };
+    } else if (state.isLooping) {
+      return { activeSongId: songs[songs.length - 1].id, isPlaying: true, progress: 0 };
+    }
+    return state;
+  })
 }));
