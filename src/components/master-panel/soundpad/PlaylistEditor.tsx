@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSoundpadStore } from '@/store/useSoundpadStore';
-import { ChevronLeft, Plus, Music, HardDrive, Edit2, Hash, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronUp, ChevronDown, Plus, Music, HardDrive, Edit2, Hash, Trash2 } from 'lucide-react';
 import type { SongSource } from '@/types/soundpad';
 
 interface PlaylistEditorProps {
@@ -19,6 +19,7 @@ export default function PlaylistEditor({ pageId, playlistId, onBack }: PlaylistE
   
   const [editingName, setEditingName] = useState(playlist?.name || '');
   const [tagInput, setTagInput] = useState('');
+  const [isFooterMinimized, setIsFooterMinimized] = useState(true);
 
   if (!playlist) return null;
 
@@ -29,8 +30,11 @@ export default function PlaylistEditor({ pageId, playlistId, onBack }: PlaylistE
   };
 
   const handleAddTag = () => {
-    if (tagInput.trim() && !playlist.tags.includes(tagInput.trim())) {
-      updatePlaylist(pageId, playlistId, { tags: [...playlist.tags, tagInput.trim()] });
+    if (tagInput.trim()) {
+      const newTags = tagInput.split(',').map(t => t.trim()).filter(t => t && !playlist.tags.includes(t));
+      if (newTags.length > 0) {
+        updatePlaylist(pageId, playlistId, { tags: [...playlist.tags, ...newTags] });
+      }
       setTagInput('');
     }
   };
@@ -126,46 +130,59 @@ export default function PlaylistEditor({ pageId, playlistId, onBack }: PlaylistE
       </div>
 
       {/* Footer: Edição de Informações */}
-      <div className="border-t border-[#323238] bg-[#1a1a1e] p-3 shrink-0 flex flex-col gap-3">
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold uppercase text-[#7a7a80]">Nome da Playlist</label>
-          <div className="flex gap-2">
-            <input 
-              value={editingName}
-              onChange={e => setEditingName(e.target.value)}
-              onBlur={handleSaveName}
-              onKeyDown={e => e.key === 'Enter' && handleSaveName()}
-              className="flex-1 bg-[#121214] border border-[#323238] rounded px-2 py-1.5 text-sm text-[#e1e1e6] focus:outline-none focus:border-[#8257e5]"
-            />
-          </div>
-        </div>
+      <div className="border-t border-[#323238] bg-[#1a1a1e] shrink-0 flex flex-col transition-all">
+        <button 
+          onClick={() => setIsFooterMinimized(!isFooterMinimized)}
+          className="flex items-center justify-between p-2 hover:bg-[#202024] transition-colors w-full border-b border-[#323238]/50"
+        >
+          <span className="text-xs font-semibold uppercase text-[#7a7a80] px-1">Detalhes da Playlist</span>
+          {isFooterMinimized ? <ChevronUp className="w-4 h-4 text-[#7a7a80]" /> : <ChevronDown className="w-4 h-4 text-[#7a7a80]" />}
+        </button>
+        
+        {!isFooterMinimized && (
+          <div className="p-3 flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold uppercase text-[#7a7a80]">Nome da Playlist</label>
+              <div className="flex gap-2">
+                <input 
+                  value={editingName}
+                  onChange={e => setEditingName(e.target.value)}
+                  onBlur={handleSaveName}
+                  onKeyDown={e => e.key === 'Enter' && handleSaveName()}
+                  className="flex-1 bg-[#121214] border border-[#323238] rounded px-2 py-1.5 text-sm text-[#e1e1e6] focus:outline-none focus:border-[#8257e5]"
+                />
+              </div>
+            </div>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold uppercase text-[#7a7a80]">Tags</label>
-          <div className="flex gap-2">
-            <input 
-              value={tagInput}
-              onChange={e => setTagInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleAddTag()}
-              placeholder="Ex: combate, taverna..."
-              className="flex-1 bg-[#121214] border border-[#323238] rounded px-2 py-1.5 text-sm text-[#e1e1e6] focus:outline-none focus:border-[#8257e5]"
-            />
-            <button onClick={handleAddTag} className="bg-[#202024] hover:bg-[#323238] border border-[#323238] px-3 rounded text-[#a8a8b3] transition-colors">
-              <Plus className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-1.5 mt-1">
-            {playlist.tags.map(tag => (
-              <span key={tag} className="flex items-center gap-1 text-xs bg-[#202024] border border-[#323238] text-[#a8a8b3] px-2 py-0.5 rounded-full group">
-                <Hash className="w-3 h-3 text-[#8257e5]" />
-                {tag}
-                <button onClick={() => handleRemoveTag(tag)} className="ml-1 opacity-50 hover:opacity-100 hover:text-red-400">
-                  &times;
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold uppercase text-[#7a7a80]">Tags</label>
+              <div className="flex gap-2">
+                <input 
+                  value={tagInput}
+                  onChange={e => setTagInput(e.target.value)}
+                  onBlur={handleAddTag}
+                  onKeyDown={e => e.key === 'Enter' && handleAddTag()}
+                  placeholder="Ex: combate, taverna, chuva..."
+                  className="flex-1 bg-[#121214] border border-[#323238] rounded px-2 py-1.5 text-sm text-[#e1e1e6] focus:outline-none focus:border-[#8257e5]"
+                />
+                <button onClick={handleAddTag} className="bg-[#202024] hover:bg-[#323238] border border-[#323238] px-3 rounded text-[#a8a8b3] transition-colors">
+                  <Plus className="w-4 h-4" />
                 </button>
-              </span>
-            ))}
+              </div>
+              <div className="flex flex-wrap gap-1.5 mt-1 max-h-24 overflow-y-auto custom-scrollbar">
+                {playlist.tags.map(tag => (
+                  <span key={tag} className="flex items-center gap-1 text-xs bg-[#202024] border border-[#323238] text-[#a8a8b3] px-2 py-0.5 rounded-full group">
+                    <Hash className="w-3 h-3 text-[#8257e5]" />
+                    {tag}
+                    <button onClick={() => handleRemoveTag(tag)} className="ml-1 opacity-50 hover:opacity-100 hover:text-red-400">
+                      &times;
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

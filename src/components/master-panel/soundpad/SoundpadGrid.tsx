@@ -1,5 +1,6 @@
 import { useSoundpadStore } from '@/store/useSoundpadStore';
-import { Plus } from 'lucide-react';
+import { Plus, GripVertical } from 'lucide-react';
+import { useState } from 'react';
 import PlaylistCard from './PlaylistCard';
 
 interface SoundpadGridProps {
@@ -10,18 +11,51 @@ interface SoundpadGridProps {
 export default function SoundpadGrid({ pageId, onEditPlaylist }: SoundpadGridProps) {
   const pages = useSoundpadStore(state => state.pages);
   const addPlaylist = useSoundpadStore(state => state.addPlaylist);
+  const reorderPlaylists = useSoundpadStore(state => state.reorderPlaylists);
 
   const currentPage = pages.find(p => p.id === pageId);
   const playlists = currentPage?.playlists || [];
 
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, idx: number) => {
+    setDraggedIdx(idx);
+    e.dataTransfer.effectAllowed = 'move';
+    // Optional: e.dataTransfer.setDragImage(...)
+  };
+
+  const handleDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    if (draggedIdx === null || draggedIdx === idx) return;
+    reorderPlaylists(pageId, draggedIdx, idx);
+    setDraggedIdx(idx);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIdx(null);
+  };
+
   return (
     <div className="flex-1 overflow-y-auto custom-scrollbar p-4 flex flex-col gap-3">
-      {playlists.map(playlist => (
-        <PlaylistCard 
-          key={playlist.id} 
-          playlist={playlist} 
-          onClick={() => onEditPlaylist(playlist.id)} 
-        />
+      {playlists.map((playlist, idx) => (
+        <div
+          key={playlist.id}
+          draggable
+          onDragStart={(e) => handleDragStart(e, idx)}
+          onDragOver={(e) => handleDragOver(e, idx)}
+          onDragEnd={handleDragEnd}
+          className={`flex gap-2 items-stretch group/drag ${draggedIdx === idx ? 'opacity-50' : ''}`}
+        >
+          <div className="w-6 flex items-center justify-center opacity-0 group-hover/drag:opacity-50 hover:!opacity-100 cursor-grab active:cursor-grabbing transition-opacity">
+            <GripVertical className="w-5 h-5 text-[#a8a8b3]" />
+          </div>
+          <div className="flex-1">
+            <PlaylistCard 
+              playlist={playlist} 
+              onClick={() => onEditPlaylist(playlist.id)} 
+            />
+          </div>
+        </div>
       ))}
 
       <button

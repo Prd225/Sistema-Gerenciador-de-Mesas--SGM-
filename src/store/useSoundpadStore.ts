@@ -20,6 +20,7 @@ interface SoundpadState {
   addPlaylist: (pageId: string, name: string) => void;
   updatePlaylist: (pageId: string, playlistId: string, updates: Partial<Playlist>) => void;
   removePlaylist: (pageId: string, playlistId: string) => void;
+  reorderPlaylists: (pageId: string, startIndex: number, endIndex: number) => void;
 
   // Player controls
   setActivePlaylist: (id: string | null) => void;
@@ -81,7 +82,7 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
     const newState = {
       pages: state.pages.map(p => {
         if (p.id === pageId) {
-          return { ...p, playlists: [newPlaylist, ...p.playlists] };
+          return { ...p, playlists: [...p.playlists, newPlaylist] };
         }
         return p;
       })
@@ -113,6 +114,22 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
       pages: state.pages.map(p => {
         if (p.id === pageId) {
           return { ...p, playlists: p.playlists.filter(pl => pl.id !== playlistId) };
+        }
+        return p;
+      })
+    };
+    setTimeout(() => triggerAutoSave(), 0);
+    return newState;
+  }),
+
+  reorderPlaylists: (pageId, startIndex, endIndex) => set((state) => {
+    const newState = {
+      pages: state.pages.map(p => {
+        if (p.id === pageId) {
+          const result = Array.from(p.playlists);
+          const [removed] = result.splice(startIndex, 1);
+          result.splice(endIndex, 0, removed);
+          return { ...p, playlists: result };
         }
         return p;
       })
