@@ -39,25 +39,17 @@ export default function SoundpadHeader() {
             {spotifyError}
           </span>
         )}
-        {token ? (
-          <button 
-            onClick={logoutFromSpotify}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
-              isSpotifyConnected 
-                ? 'bg-[#1DB954]/10 text-[#1DB954] hover:bg-[#1DB954]/20 border-[#1DB954]/30'
-                : 'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 border-yellow-500/30'
-            }`}
-          >
-            {isSpotifyConnected ? 'Spotify Conectado' : 'Reconectando...'}
-          </button>
-        ) : (
-          <button 
-            onClick={loginToSpotify}
-            className="text-xs font-semibold px-3 py-1.5 rounded-full bg-[#323238] text-[#e1e1e6] hover:bg-[#1DB954] hover:text-black border border-[#4d4d57] hover:border-[#1DB954] transition-colors"
-          >
-            Conectar Spotify
-          </button>
-        )}
+        <button 
+          onClick={token ? logoutFromSpotify : loginToSpotify}
+          title={!token ? 'Não Conectado (Clique para logar)' : (isSpotifyConnected ? 'Spotify Conectado (Clique para sair)' : 'Conectando...')}
+          className={`w-6 h-2 rounded-full shadow-sm transition-colors cursor-pointer ${
+            !token 
+              ? 'bg-red-500/80 hover:bg-red-500 shadow-red-500/50' 
+              : isSpotifyConnected 
+                ? 'bg-[#1DB954]/80 hover:bg-[#1DB954] shadow-[#1DB954]/50' 
+                : 'bg-yellow-500/80 hover:bg-yellow-500 shadow-yellow-500/50 animate-pulse'
+          }`}
+        />
       </div>
     </div>
   );
