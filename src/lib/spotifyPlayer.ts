@@ -14,11 +14,19 @@ let deviceId: string | null = null;
 let sdkReady = false;
 let lastProgress = 0;
 
+export const getPlayer = () => {
+  return playerInstance || (window as any).SpotifyPlayerInstance;
+};
+
 export const initSpotifyPlayer = () => {
-  if (playerInstance) return;
+  if (getPlayer()) return;
 
   const token = getSpotifyToken();
   if (!token) return;
+
+  if (document.querySelector('script[src="https://sdk.scdn.co/spotify-player.js"]')) {
+    return; // Script already injected
+  }
 
   const script = document.createElement('script');
   script.src = 'https://sdk.scdn.co/spotify-player.js';
@@ -102,20 +110,23 @@ export const playSpotifyTrack = async (trackUri: string) => {
 };
 
 export const pauseSpotifyTrack = async () => {
-  if (playerInstance) {
-    await playerInstance.pause();
+  const player = getPlayer();
+  if (player) {
+    await player.pause();
   }
 };
 
 export const resumeSpotifyTrack = async () => {
-  if (playerInstance) {
-    await playerInstance.resume();
+  const player = getPlayer();
+  if (player) {
+    await player.resume();
   }
 };
 
 export const seekSpotifyTrack = async (positionMs: number) => {
-  if (playerInstance) {
-    await playerInstance.seek(positionMs);
+  const player = getPlayer();
+  if (player) {
+    await player.seek(positionMs);
   }
 };
 

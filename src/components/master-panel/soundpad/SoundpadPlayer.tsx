@@ -53,9 +53,14 @@ export default function SoundpadPlayer() {
             const newProgress = (state.position / state.duration) * 100;
             setProgress(newProgress);
             
-            // Check for track end
-            if (state.paused && state.position === 0 && state.restrictions.disallow_resuming_reasons && state.restrictions.disallow_resuming_reasons.includes('not_paused')) {
-               handleNext();
+            // Track end detection: if position is extremely close to duration
+            if (state.position > 0 && state.duration > 0 && state.position >= state.duration - 1000) {
+               // Prevent multiple skips while Spotify is changing track
+               if (!window.sessionStorage.getItem('isSkipping')) {
+                 window.sessionStorage.setItem('isSkipping', 'true');
+                 playNext();
+                 setTimeout(() => window.sessionStorage.removeItem('isSkipping'), 3000);
+               }
             }
           });
         }
