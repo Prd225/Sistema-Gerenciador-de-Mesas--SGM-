@@ -21,6 +21,7 @@ export default function SoundpadPlayer() {
 
   const pages = useSoundpadStore(state => state.pages);
   const spotifyDeviceId = useSoundpadStore(state => state.spotifyDeviceId);
+  const playbackTrigger = useSoundpadStore(state => state.playbackTrigger);
   const [isChangingTrack, setIsChangingTrack] = useState(false);
 
   let activeSong: Song | null = null;
@@ -28,7 +29,7 @@ export default function SoundpadPlayer() {
     if (s.id === activeSongId) activeSong = s;
   })));
 
-  // Auto-play when a new song is selected
+  // Auto-play when a new song is selected or playback is forced (e.g. single song loop)
   useEffect(() => {
     if (activeSong && activeSong.sourceType === 'spotify' && spotifyDeviceId) {
       setIsChangingTrack(true);
@@ -36,7 +37,7 @@ export default function SoundpadPlayer() {
         setIsChangingTrack(false);
       });
     }
-  }, [activeSongId, spotifyDeviceId]);
+  }, [activeSongId, spotifyDeviceId, playbackTrigger]);
 
   // Handle continuous progress updates and track end (loop/next)
   useEffect(() => {
