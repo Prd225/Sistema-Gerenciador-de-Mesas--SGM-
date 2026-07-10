@@ -1,6 +1,5 @@
 import { useSoundpadStore } from '@/store/useSoundpadStore';
 import { Play, Pause, SkipBack, SkipForward, Square, Repeat } from 'lucide-react';
-import { Slider } from '@/components/ui/slider';
 
 export default function SoundpadPlayer() {
   const isPlaying = useSoundpadStore(state => state.isPlaying);
@@ -77,13 +76,15 @@ export default function SoundpadPlayer() {
         <span className="text-[0.65rem] text-[#7a7a80] font-mono w-8 text-right">
           {formatTime(progress)}
         </span>
-        <div className="flex-1 cursor-pointer">
-          <Slider
-            value={[progress]}
+        <div className="flex-1 flex items-center h-4 cursor-pointer">
+          <input
+            type="range"
+            min={0}
             max={100}
             step={1}
-            onValueChange={(vals) => setProgress(vals[0])}
-            className="[&_[role=slider]]:h-3 [&_[role=slider]]:w-3 [&_[role=slider]]:bg-[#8257e5] [&_[role=slider]]:border-none"
+            value={progress}
+            onChange={(e) => setProgress(Number(e.target.value))}
+            className="w-full h-1.5 bg-[#323238] rounded-full appearance-none cursor-pointer accent-[#8257e5]"
           />
         </div>
         <span className="text-[0.65rem] text-[#7a7a80] font-mono w-8">
