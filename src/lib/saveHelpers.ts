@@ -6,6 +6,7 @@ import { useRulesStore } from '@/store/useRulesStore';
 import { useNotesStore } from '@/store/useNotesStore';
 import { useTablesStore } from '@/store/useTablesStore';
 import { useRoulettesStore } from '@/store/useRoulettesStore';
+import { useSoundpadStore } from '@/store/useSoundpadStore';
 import { db } from '@/lib/db';
 
 export const collectGameState = () => {
@@ -45,6 +46,9 @@ export const collectGameState = () => {
     },
     roulettes: {
       pages: useRoulettesStore.getState().pages,
+    },
+    soundpad: {
+      pages: useSoundpadStore.getState().pages,
     }
   };
 };

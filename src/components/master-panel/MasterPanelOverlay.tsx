@@ -8,6 +8,7 @@ import MasterRules from './rules/MasterRules';
 import MasterNotes from './notes/MasterNotes';
 import MasterTables from './tables/MasterTables';
 import MasterRoulettes from './roulettes/MasterRoulettes';
+import MasterSoundpad from './soundpad/MasterSoundpad';
 
 function RenderPanel({ panelId }: { panelId: string }) {
   if (panelId === 'diary') return <MasterDiary />;
@@ -15,6 +16,7 @@ function RenderPanel({ panelId }: { panelId: string }) {
   if (panelId === 'notes') return <MasterNotes />;
   if (panelId === 'table') return <MasterTables />;
   if (panelId === 'roulette') return <MasterRoulettes />;
+  if (panelId === 'soundpad') return <MasterSoundpad />;
   return <SubPanelPlaceholder panelId={panelId as any} />;
 }
 

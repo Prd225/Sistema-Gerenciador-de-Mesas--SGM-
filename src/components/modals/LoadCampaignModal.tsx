@@ -9,6 +9,7 @@ import { useRulesStore } from '@/store/useRulesStore';
 import { useNotesStore } from '@/store/useNotesStore';
 import { useTablesStore } from '@/store/useTablesStore';
 import { useRoulettesStore } from '@/store/useRoulettesStore';
+import { useSoundpadStore } from '@/store/useSoundpadStore';
 import { db } from '@/lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Trash2, ChevronLeft, ChevronRight, FolderOpen, AlertTriangle } from 'lucide-react';
@@ -97,6 +98,11 @@ export default function LoadCampaignModal() {
       if (data.roulettes) {
         useRoulettesStore.setState({
           pages: data.roulettes.pages || []
+        });
+      }
+      if (data.soundpad) {
+        useSoundpadStore.setState({
+          pages: data.soundpad.pages || []
         });
       }
       onOpenChange(false);
