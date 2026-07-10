@@ -1,8 +1,9 @@
 import { useSoundpadStore } from '@/store/useSoundpadStore';
 import { Play, Pause, SkipBack, SkipForward, Square, Repeat, Loader2 } from 'lucide-react';
 import { playSpotifyTrack, pauseSpotifyTrack, resumeSpotifyTrack, seekSpotifyTrack } from '@/lib/spotifyPlayer';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import type { Song } from '@/types/soundpad';
+import YouTube, { YouTubeProps, YouTubePlayer } from 'react-youtube';
 
 export default function SoundpadPlayer() {
   const isPlaying = useSoundpadStore(state => state.isPlaying);
@@ -23,6 +24,7 @@ export default function SoundpadPlayer() {
   const spotifyDeviceId = useSoundpadStore(state => state.spotifyDeviceId);
   const playbackTrigger = useSoundpadStore(state => state.playbackTrigger);
   const [isChangingTrack, setIsChangingTrack] = useState(false);
+  const ytPlayerRef = useRef<YouTubePlayer | null>(null);
 
   let activeSong: Song | null = null;
   pages?.forEach(p => p.playlists?.forEach(pl => pl.songs?.forEach(s => {
@@ -50,6 +52,16 @@ export default function SoundpadPlayer() {
             setIsChangingTrack(false);
           });
         });
+      }
+    } else if (activeSong && activeSong.sourceType === 'youtube') {
+      const prevTrigger = window.sessionStorage.getItem('lastPlaybackTrigger');
+      const isForcedReplay = prevTrigger !== String(playbackTrigger);
+      if (isForcedReplay) {
+         window.sessionStorage.setItem('lastPlaybackTrigger', String(playbackTrigger));
+         if (ytPlayerRef.current) {
+           ytPlayerRef.current.seekTo(0);
+           ytPlayerRef.current.playVideo();
+         }
       }
     }
   }, [activeSongId, spotifyDeviceId, playbackTrigger]);
@@ -79,6 +91,19 @@ export default function SoundpadPlayer() {
                }
             }
           });
+        } else if (activeSong.sourceType === 'youtube' && ytPlayerRef.current) {
+          try {
+            const player = ytPlayerRef.current;
+            const currentTime = player.getCurrentTime() || 0;
+            const duration = player.getDuration() || 1;
+            const newProgress = (currentTime / duration) * 100;
+            setProgress(newProgress);
+            
+            // Updating activeSong duration if we fetched it as 0 initially
+            if (activeSong.duration === 0 && duration > 1) {
+              activeSong.duration = duration;
+            }
+          } catch (e) {}
         }
       }, 1000);
     }
@@ -109,6 +134,14 @@ export default function SoundpadPlayer() {
       } else {
         await resumeSpotifyTrack();
       }
+    } else if (activeSong.sourceType === 'youtube') {
+      if (ytPlayerRef.current) {
+        if (isPlaying) {
+          ytPlayerRef.current.pauseVideo();
+        } else {
+          ytPlayerRef.current.playVideo();
+        }
+      }
     } else {
       setIsPlaying(!isPlaying);
     }
@@ -117,6 +150,8 @@ export default function SoundpadPlayer() {
   const handleStop = async () => {
     if (activeSong?.sourceType === 'spotify') {
       await pauseSpotifyTrack();
+    } else if (activeSong?.sourceType === 'youtube') {
+      if (ytPlayerRef.current) ytPlayerRef.current.pauseVideo();
     }
     setIsPlaying(false);
     setProgress(0);
@@ -131,6 +166,12 @@ export default function SoundpadPlayer() {
     if (activeSong?.sourceType === 'spotify') {
       const positionMs = (newProgress / 100) * (activeSong.duration * 1000);
       await seekSpotifyTrack(positionMs);
+    } else if (activeSong?.sourceType === 'youtube') {
+      if (ytPlayerRef.current) {
+        const duration = ytPlayerRef.current.getDuration() || 0;
+        const positionSec = (newProgress / 100) * duration;
+        ytPlayerRef.current.seekTo(positionSec, true);
+      }
     }
   };
 
@@ -149,8 +190,41 @@ export default function SoundpadPlayer() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
+  const opts: YouTubeProps['opts'] = {
+    height: '0',
+    width: '0',
+    playerVars: {
+      autoplay: 1,
+      controls: 0,
+      disablekb: 1,
+    },
+  };
+
+  const onYTReady = (event: any) => {
+    ytPlayerRef.current = event.target;
+    event.target.setVolume(50);
+  };
+
+  const onYTStateChange = (event: any) => {
+    if (event.data === 1) setIsPlaying(true);
+    else if (event.data === 2) setIsPlaying(false);
+    else if (event.data === 0) playNext();
+  };
+
   return (
-    <div className="bg-[#1a1a1e] border-b border-[#323238] p-3 flex flex-col gap-2 shrink-0">
+    <>
+      {activeSong?.sourceType === 'youtube' && (
+        <div className="hidden">
+           <YouTube 
+             videoId={activeSong.sourceUrl} 
+             opts={opts} 
+             onReady={onYTReady}
+             onStateChange={onYTStateChange}
+             onEnd={() => playNext()} 
+           />
+        </div>
+      )}
+      <div className="bg-[#1a1a1e] border-b border-[#323238] p-3 flex flex-col gap-2 shrink-0">
       <div className="flex items-center justify-center gap-4">
         <button 
           onClick={handleStop}
@@ -228,6 +302,7 @@ export default function SoundpadPlayer() {
           {formatDuration(activeSong?.duration || 0)}
         </span>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

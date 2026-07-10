@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSoundpadStore } from '@/store/useSoundpadStore';
-import { ChevronLeft, ChevronUp, ChevronDown, Plus, Music, HardDrive, Edit2, Hash, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronUp, ChevronDown, Plus, Music, HardDrive, Edit2, Hash, Trash2, PlayCircle } from 'lucide-react';
 import type { SongSource } from '@/types/soundpad';
 import AddMusicModal from './AddMusicModal';
 
@@ -70,6 +70,7 @@ export default function PlaylistEditor({ pageId, playlistId, onBack }: PlaylistE
 
   const SourceIcon = ({ type }: { type: SongSource }) => {
     if (type === 'spotify') return <Music className="w-3.5 h-3.5 text-[#1DB954]" title="Spotify" />;
+    if (type === 'youtube') return <PlayCircle className="w-3.5 h-3.5 text-[#FF0000]" title="YouTube" />;
     return <HardDrive className="w-3.5 h-3.5 text-[#8257e5]" title="Local" />;
   };
 
