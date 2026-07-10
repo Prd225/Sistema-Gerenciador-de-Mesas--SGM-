@@ -1,5 +1,5 @@
 const CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
-const REDIRECT_URI = 'http://localhost:5173/'; // Note: In production this should be dynamic, but for local use it's fixed.
+const REDIRECT_URI = 'http://localhost:5173/'; 
 const SCOPES = [
   'streaming',
   'user-read-email',
@@ -8,55 +8,97 @@ const SCOPES = [
   'user-read-playback-state'
 ];
 
-export const getSpotifyToken = (): string | null => {
-  // First, check if there's a token in the URL hash (from redirect)
-  const hash = window.location.hash;
-  if (hash && hash.includes('access_token')) {
-    const params = new URLSearchParams(hash.replace('#', '?'));
-    const token = params.get('access_token');
-    const expiresIn = params.get('expires_in');
-    
-    if (token) {
-      // Clean URL hash without reloading page
-      window.history.replaceState(null, '', window.location.pathname + window.location.search);
-      
-      // Save token and expiration
-      const expirationDate = new Date().getTime() + Number(expiresIn) * 1000;
-      localStorage.setItem('spotify_token', token);
-      localStorage.setItem('spotify_token_expires', expirationDate.toString());
-      return token;
-    }
+function generateRandomString(length: number) {
+  let text = '';
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  for (let i = 0; i < length; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
   }
+  return text;
+}
 
-  // Fallback to check localStorage
+async function generateCodeChallenge(codeVerifier: string) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(codeVerifier);
+  const digest = await window.crypto.subtle.digest('SHA-256', data);
+  return btoa(String.fromCharCode.apply(null, [...new Uint8Array(digest)]))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+export const getSpotifyToken = (): string | null => {
   const token = localStorage.getItem('spotify_token');
   const expires = localStorage.getItem('spotify_token_expires');
 
   if (token && expires) {
     if (new Date().getTime() > Number(expires)) {
-      // Token expired
       localStorage.removeItem('spotify_token');
       localStorage.removeItem('spotify_token_expires');
       return null;
     }
     return token;
   }
-
   return null;
 };
 
-export const loginToSpotify = () => {
+export const handleSpotifyAuthCallback = async (): Promise<boolean> => {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  if (!code) return false;
+
+  const verifier = localStorage.getItem('spotify_verifier');
+  if (!verifier) return false;
+
+  const body = new URLSearchParams({
+    client_id: CLIENT_ID,
+    grant_type: 'authorization_code',
+    code,
+    redirect_uri: REDIRECT_URI,
+    code_verifier: verifier,
+  });
+
+  try {
+    const response = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body
+    });
+    
+    if (!response.ok) throw new Error('Token fetch failed');
+    
+    const data = await response.json();
+    
+    const expiresAt = new Date().getTime() + data.expires_in * 1000;
+    localStorage.setItem('spotify_token', data.access_token);
+    localStorage.setItem('spotify_token_expires', expiresAt.toString());
+    
+    window.history.replaceState(null, '', window.location.pathname);
+    return true;
+  } catch (err) {
+    console.error(err);
+    return false;
+  }
+};
+
+export const loginToSpotify = async () => {
   if (!CLIENT_ID) {
     alert('Erro: Client ID do Spotify não encontrado no .env.local');
     return;
   }
   
+  const verifier = generateRandomString(128);
+  const challenge = await generateCodeChallenge(verifier);
+  localStorage.setItem('spotify_verifier', verifier);
+
   const authUrl = new URL('https://accounts.spotify.com/authorize');
   authUrl.searchParams.append('client_id', CLIENT_ID);
-  authUrl.searchParams.append('response_type', 'token');
+  authUrl.searchParams.append('response_type', 'code');
   authUrl.searchParams.append('redirect_uri', REDIRECT_URI);
   authUrl.searchParams.append('scope', SCOPES.join(' '));
-  authUrl.searchParams.append('show_dialog', 'true'); // Força mostrar o prompt de autorização
+  authUrl.searchParams.append('code_challenge_method', 'S256');
+  authUrl.searchParams.append('code_challenge', challenge);
+  authUrl.searchParams.append('show_dialog', 'true');
 
   window.location.href = authUrl.toString();
 };
@@ -64,5 +106,6 @@ export const loginToSpotify = () => {
 export const logoutFromSpotify = () => {
   localStorage.removeItem('spotify_token');
   localStorage.removeItem('spotify_token_expires');
+  localStorage.removeItem('spotify_verifier');
   window.location.reload();
 };

@@ -1,18 +1,25 @@
 import { Music } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { getSpotifyToken, loginToSpotify, logoutFromSpotify } from '@/lib/spotifyAuth';
+import { getSpotifyToken, loginToSpotify, logoutFromSpotify, handleSpotifyAuthCallback } from '@/lib/spotifyAuth';
 import { initSpotifyPlayer } from '@/lib/spotifyPlayer';
 
 export default function SoundpadHeader() {
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const activeToken = getSpotifyToken();
-    setToken(activeToken);
+    const initializeAuth = async () => {
+      // Process callback if in URL
+      await handleSpotifyAuthCallback();
+      
+      const activeToken = getSpotifyToken();
+      setToken(activeToken);
+      
+      if (activeToken) {
+        initSpotifyPlayer();
+      }
+    };
     
-    if (activeToken) {
-      initSpotifyPlayer();
-    }
+    initializeAuth();
   }, []);
 
   return (
