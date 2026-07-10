@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Music, HardDrive, MonitorPlay, Search, Loader2 } from 'lucide-react';
+import { Music, HardDrive, MonitorPlay, Search, Loader2, X } from 'lucide-react';
 import { useSoundpadStore } from '@/store/useSoundpadStore';
 import { fetchTrackMetadata } from '@/lib/spotifyPlayer';
-import { generateId } from '@/lib/uuid';
 
 interface AddMusicModalProps {
   open: boolean;
@@ -56,12 +54,20 @@ export default function AddMusicModal({ open, onOpenChange, pageId, playlistId }
     }
   };
 
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#121214] border-[#323238] text-[#e1e1e6] max-w-md p-0 overflow-hidden">
-        <DialogHeader className="p-4 border-b border-[#323238] bg-[#1a1a1e]">
-          <DialogTitle>Adicionar Música</DialogTitle>
-        </DialogHeader>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-[#121214] border border-[#323238] rounded-xl text-[#e1e1e6] w-full max-w-md overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
+        <div className="p-4 border-b border-[#323238] bg-[#1a1a1e] flex items-center justify-between">
+          <h2 className="font-bold">Adicionar Música</h2>
+          <button 
+            onClick={() => onOpenChange(false)}
+            className="p-1 text-[#7a7a80] hover:text-[#e1e1e6] rounded hover:bg-[#323238] transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
         <div className="flex border-b border-[#323238]">
           <button 
@@ -119,7 +125,7 @@ export default function AddMusicModal({ open, onOpenChange, pageId, playlistId }
             </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }

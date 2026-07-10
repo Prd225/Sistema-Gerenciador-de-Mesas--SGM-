@@ -119,16 +119,16 @@ export default function PlaylistEditor({ pageId, playlistId, onBack }: PlaylistE
           )}
         </div>
 
-        {/* Botão de Adicionar Música (Big Button) */}
-        <button
-          onClick={handleAddSongClick}
-          className="w-full flex flex-col items-center justify-center p-6 mt-4 border-2 border-dashed border-[#323238] rounded hover:border-[#8257e5] hover:bg-[#8257e5]/5 transition-all group"
-        >
-          <div className="w-10 h-10 rounded-full bg-[#202024] flex items-center justify-center group-hover:scale-110 transition-transform mb-2">
-            <Plus className="w-5 h-5 text-[#a8a8b3] group-hover:text-[#8257e5]" />
-          </div>
-          <span className="text-[#e1e1e6] font-medium group-hover:text-[#8257e5]">Adicionar Música</span>
-        </button>
+        {/* Botão de Adicionar Música (Compacto) */}
+        <div className="px-2 pt-2 pb-4">
+          <button
+            onClick={handleAddSongClick}
+            className="w-full flex items-center justify-center gap-2 p-2.5 bg-[#8257e5]/10 text-[#8257e5] hover:bg-[#8257e5]/20 border border-[#8257e5]/20 hover:border-[#8257e5]/40 rounded transition-all font-medium text-sm"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Adicionar Música</span>
+          </button>
+        </div>
       </div>
 
       {/* Footer: Edição de Informações */}
