@@ -1,4 +1,5 @@
 import { Music, Hash } from 'lucide-react';
+import { useSoundpadStore } from '@/store/useSoundpadStore';
 import type { Playlist } from '@/types/soundpad';
 
 interface PlaylistCardProps {
@@ -16,8 +17,24 @@ export default function PlaylistCard({ playlist, onClick }: PlaylistCardProps) {
         <h3 className="text-lg font-bold text-[#e1e1e6] group-hover:text-[#8257e5] transition-colors truncate">
           {playlist.name || 'Nova Playlist'}
         </h3>
-        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#121214] border border-[#323238] group-hover:border-[#8257e5]/50 transition-colors">
-          <Music className="w-5 h-5 text-[#8257e5] opacity-80 group-hover:opacity-100" />
+        <div 
+          onClick={(e) => {
+            e.stopPropagation();
+            useSoundpadStore.getState().setActivePlaylist(playlist.id);
+            if (playlist.songs.length > 0) {
+              const currentActive = useSoundpadStore.getState().activeSongId;
+              const hasCurrent = playlist.songs.some(s => s.id === currentActive);
+              if (!hasCurrent) {
+                useSoundpadStore.getState().setActiveSong(playlist.songs[0].id);
+              }
+            } else {
+              useSoundpadStore.getState().setActiveSong(null);
+            }
+          }}
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-[#121214] border border-[#323238] hover:border-[#1DB954] group-hover:border-[#8257e5]/50 transition-colors cursor-pointer"
+          title="Tocar Playlist"
+        >
+          <Music className="w-5 h-5 text-[#8257e5] opacity-80 hover:text-[#1DB954] hover:opacity-100 group-hover:opacity-100 transition-colors" />
         </div>
       </div>
       

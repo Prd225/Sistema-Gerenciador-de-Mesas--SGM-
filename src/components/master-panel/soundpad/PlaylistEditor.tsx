@@ -14,6 +14,7 @@ export default function PlaylistEditor({ pageId, playlistId, onBack }: PlaylistE
   const pages = useSoundpadStore(state => state.pages);
   const updatePlaylist = useSoundpadStore(state => state.updatePlaylist);
   const removePlaylist = useSoundpadStore(state => state.removePlaylist);
+  const activeSongId = useSoundpadStore(state => state.activeSongId);
   const setActiveSong = useSoundpadStore(state => state.setActiveSong);
 
   const playlist = pages.find(p => p.id === pageId)?.playlists.find(pl => pl.id === playlistId);
@@ -97,11 +98,13 @@ export default function PlaylistEditor({ pageId, playlistId, onBack }: PlaylistE
               <p>Nenhuma música nesta playlist.</p>
             </div>
           ) : (
-            playlist.songs.map((song, idx) => (
+            playlist.songs.map((song, idx) => {
+              const isActive = song.id === activeSongId;
+              return (
               <div 
                 key={song.id}
                 onDoubleClick={() => setActiveSong(song.id)}
-                className="flex items-center gap-3 p-2 bg-[#202024] hover:bg-[#29292e] border border-[#323238] hover:border-[#8257e5]/50 rounded cursor-pointer group"
+                className={`flex items-center gap-3 p-2 bg-[#202024] hover:bg-[#29292e] border ${isActive ? 'border-[#1DB954] shadow-[0_0_10px_rgba(29,185,84,0.1)]' : 'border-[#323238] hover:border-[#8257e5]/50'} rounded cursor-pointer group transition-all`}
               >
                 <div className="w-6 text-center text-[#4d4d57] font-mono text-sm group-hover:text-[#8257e5] transition-colors">
                   {idx + 1}
@@ -115,7 +118,7 @@ export default function PlaylistEditor({ pageId, playlistId, onBack }: PlaylistE
                   <span className="text-xs text-[#7a7a80] font-mono w-10 text-right">{formatDuration(song.duration)}</span>
                 </div>
               </div>
-            ))
+            )})
           )}
         </div>
 

@@ -12,6 +12,8 @@ export default function SoundpadPlayer() {
   const progress = useSoundpadStore(state => state.progress);
   const setProgress = useSoundpadStore(state => state.setProgress);
   const activeSongId = useSoundpadStore(state => state.activeSongId);
+  const setActiveSong = useSoundpadStore(state => state.setActiveSong);
+  const activePlaylistId = useSoundpadStore(state => state.activePlaylistId);
 
   const pages = useSoundpadStore(state => state.pages);
   const spotifyDeviceId = useSoundpadStore(state => state.spotifyDeviceId);
@@ -32,8 +34,26 @@ export default function SoundpadPlayer() {
     }
   }, [activeSongId, spotifyDeviceId]);
 
+  const getActivePlaylistSongs = (): Song[] => {
+    if (!activePlaylistId) return [];
+    let songs: Song[] = [];
+    pages?.forEach(p => {
+      const pl = p.playlists?.find(x => x.id === activePlaylistId);
+      if (pl) songs = pl.songs || [];
+    });
+    return songs;
+  };
+
   const handlePlayPause = async () => {
-    if (!activeSong) return;
+    if (!activeSong) {
+      // If no song is active, but we have an active playlist, play the first song
+      const songs = getActivePlaylistSongs();
+      if (songs.length > 0) {
+        setActiveSong(songs[0].id);
+        setIsPlaying(true);
+      }
+      return;
+    }
     
     if (activeSong.sourceType === 'spotify') {
       if (isPlaying) {
@@ -43,6 +63,30 @@ export default function SoundpadPlayer() {
       }
     } else {
       setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleNext = () => {
+    const songs = getActivePlaylistSongs();
+    if (songs.length === 0) return;
+    const currentIndex = songs.findIndex(s => s.id === activeSongId);
+    if (currentIndex === -1) {
+      setActiveSong(songs[0].id);
+    } else if (currentIndex < songs.length - 1) {
+      setActiveSong(songs[currentIndex + 1].id);
+    } else if (isLooping) {
+      setActiveSong(songs[0].id);
+    }
+  };
+
+  const handlePrev = () => {
+    const songs = getActivePlaylistSongs();
+    if (songs.length === 0) return;
+    const currentIndex = songs.findIndex(s => s.id === activeSongId);
+    if (currentIndex > 0) {
+      setActiveSong(songs[currentIndex - 1].id);
+    } else if (isLooping) {
+      setActiveSong(songs[songs.length - 1].id);
     }
   };
 
@@ -91,7 +135,9 @@ export default function SoundpadPlayer() {
         </button>
         
         <button 
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#323238] text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors"
+          onClick={handlePrev}
+          disabled={isChangingTrack}
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#323238] text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors disabled:opacity-50"
           title="Música Anterior"
         >
           <SkipBack className="w-4 h-4 fill-current" />
@@ -99,9 +145,9 @@ export default function SoundpadPlayer() {
         
         <button 
           onClick={handlePlayPause}
-          disabled={isChangingTrack || !activeSong}
+          disabled={isChangingTrack || (!activeSong && !activePlaylistId)}
           className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors shadow-lg ${
-            !activeSong ? 'bg-[#323238] text-[#7a7a80] cursor-not-allowed' : 'bg-[#8257e5] hover:bg-[#9466ff] text-white shadow-[#8257e5]/20'
+            (!activeSong && !activePlaylistId) ? 'bg-[#323238] text-[#7a7a80] cursor-not-allowed' : 'bg-[#8257e5] hover:bg-[#9466ff] text-white shadow-[#8257e5]/20'
           }`}
           title={isPlaying ? "Pausar" : "Tocar"}
         >
@@ -115,7 +161,9 @@ export default function SoundpadPlayer() {
         </button>
         
         <button 
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#323238] text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors"
+          onClick={handleNext}
+          disabled={isChangingTrack}
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#323238] text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors disabled:opacity-50"
           title="Próxima Música"
         >
           <SkipForward className="w-4 h-4 fill-current" />
