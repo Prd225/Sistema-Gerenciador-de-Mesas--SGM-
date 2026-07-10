@@ -14,6 +14,7 @@ export default function SoundpadPlayer() {
   const activeSongId = useSoundpadStore(state => state.activeSongId);
   const setActiveSong = useSoundpadStore(state => state.setActiveSong);
   const activePlaylistId = useSoundpadStore(state => state.activePlaylistId);
+  const setActivePlaylist = useSoundpadStore(state => state.setActivePlaylist);
 
   const pages = useSoundpadStore(state => state.pages);
   const spotifyDeviceId = useSoundpadStore(state => state.spotifyDeviceId);
@@ -33,6 +34,34 @@ export default function SoundpadPlayer() {
       });
     }
   }, [activeSongId, spotifyDeviceId]);
+
+  // Handle continuous progress updates and track end (loop/next)
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isPlaying && activeSong) {
+      interval = setInterval(() => {
+        // Spotify SDK does not continuously fire events, so we use a fallback interval to increment UI,
+        // or poll the actual state if needed. A simple UI increment is 1 sec / duration.
+        // But for precision, we'll just check window.Spotify player state directly if possible.
+        if (activeSong.sourceType === 'spotify' && (window as any).SpotifyPlayerInstance) {
+          (window as any).SpotifyPlayerInstance.getCurrentState().then((state: any) => {
+            if (!state) return;
+            
+            const newProgress = (state.position / state.duration) * 100;
+            setProgress(newProgress);
+            
+            // Check for track end
+            if (state.paused && state.position === 0 && state.restrictions.disallow_resuming_reasons && state.restrictions.disallow_resuming_reasons.includes('not_paused')) {
+               handleNext();
+            }
+          });
+        }
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isPlaying, activeSong, isLooping]);
 
   const getActivePlaylistSongs = (): Song[] => {
     if (!activePlaylistId) return [];
@@ -96,6 +125,8 @@ export default function SoundpadPlayer() {
     }
     setIsPlaying(false);
     setProgress(0);
+    setActiveSong(null);
+    setActivePlaylist(null);
   };
 
   const handleSeek = async (e: React.ChangeEvent<HTMLInputElement>) => {

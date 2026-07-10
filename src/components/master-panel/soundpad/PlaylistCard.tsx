@@ -8,6 +8,9 @@ interface PlaylistCardProps {
 }
 
 export default function PlaylistCard({ playlist, onClick }: PlaylistCardProps) {
+  const activePlaylistId = useSoundpadStore(state => state.activePlaylistId);
+  const isActive = activePlaylistId === playlist.id;
+
   return (
     <div 
       onClick={onClick}
@@ -31,10 +34,14 @@ export default function PlaylistCard({ playlist, onClick }: PlaylistCardProps) {
               useSoundpadStore.getState().setActiveSong(null);
             }
           }}
-          className="flex items-center justify-center w-10 h-10 rounded-full bg-[#121214] border border-[#323238] hover:border-[#1DB954] group-hover:border-[#8257e5]/50 transition-colors cursor-pointer"
+          className={`flex items-center justify-center w-10 h-10 rounded-full bg-[#121214] border transition-colors cursor-pointer ${
+            isActive ? 'border-[#1DB954] shadow-[0_0_10px_rgba(29,185,84,0.1)]' : 'border-[#323238] hover:border-[#1DB954] group-hover:border-[#8257e5]/50'
+          }`}
           title="Tocar Playlist"
         >
-          <Music className="w-5 h-5 text-[#8257e5] opacity-80 hover:text-[#1DB954] hover:opacity-100 group-hover:opacity-100 transition-colors" />
+          <Music className={`w-5 h-5 transition-colors ${
+            isActive ? 'text-[#1DB954] opacity-100' : 'text-[#8257e5] opacity-80 hover:text-[#1DB954] hover:opacity-100 group-hover:opacity-100'
+          }`} />
         </div>
       </div>
       

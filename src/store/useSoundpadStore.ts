@@ -23,6 +23,8 @@ interface SoundpadState {
   removePlaylist: (pageId: string, playlistId: string) => void;
   reorderPlaylists: (pageId: string, startIndex: number, endIndex: number) => void;
   addSongToPlaylist: (pageId: string, playlistId: string, songData: Omit<Song, 'id'>) => void;
+  removeSongFromPlaylist: (pageId: string, playlistId: string, songId: string) => void;
+  updatePlaylistSongs: (pageId: string, playlistId: string, songs: Song[]) => void;
 
   // Player controls
   setActivePlaylist: (id: string | null) => void;
@@ -154,6 +156,42 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
             ...p,
             playlists: p.playlists.map(pl => 
               pl.id === playlistId ? { ...pl, songs: [...pl.songs, newSong], updatedAt: Date.now() } : pl
+            )
+          };
+        }
+        return p;
+      })
+    };
+    setTimeout(() => triggerAutoSave(), 0);
+    return newState;
+  }),
+
+  removeSongFromPlaylist: (pageId, playlistId, songId) => set((state) => {
+    const newState = {
+      pages: state.pages.map(p => {
+        if (p.id === pageId) {
+          return {
+            ...p,
+            playlists: p.playlists.map(pl => 
+              pl.id === playlistId ? { ...pl, songs: pl.songs.filter(s => s.id !== songId), updatedAt: Date.now() } : pl
+            )
+          };
+        }
+        return p;
+      })
+    };
+    setTimeout(() => triggerAutoSave(), 0);
+    return newState;
+  }),
+
+  updatePlaylistSongs: (pageId, playlistId, songs) => set((state) => {
+    const newState = {
+      pages: state.pages.map(p => {
+        if (p.id === pageId) {
+          return {
+            ...p,
+            playlists: p.playlists.map(pl => 
+              pl.id === playlistId ? { ...pl, songs, updatedAt: Date.now() } : pl
             )
           };
         }

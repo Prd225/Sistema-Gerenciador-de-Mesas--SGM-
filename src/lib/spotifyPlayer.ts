@@ -65,6 +65,7 @@ export const initSpotifyPlayer = () => {
 
     player.connect();
     playerInstance = player;
+    (window as any).SpotifyPlayerInstance = player;
     sdkReady = true;
   };
 

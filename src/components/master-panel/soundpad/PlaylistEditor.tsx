@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSoundpadStore } from '@/store/useSoundpadStore';
 import { ChevronLeft, ChevronUp, ChevronDown, Plus, Music, HardDrive, Edit2, Hash, Trash2 } from 'lucide-react';
 import type { SongSource } from '@/types/soundpad';
@@ -16,8 +16,20 @@ export default function PlaylistEditor({ pageId, playlistId, onBack }: PlaylistE
   const removePlaylist = useSoundpadStore(state => state.removePlaylist);
   const activeSongId = useSoundpadStore(state => state.activeSongId);
   const setActiveSong = useSoundpadStore(state => state.setActiveSong);
+  const removeSongFromPlaylist = useSoundpadStore(state => state.removeSongFromPlaylist);
+  const updatePlaylistSongs = useSoundpadStore(state => state.updatePlaylistSongs);
 
   const playlist = pages.find(p => p.id === pageId)?.playlists.find(pl => pl.id === playlistId);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; songId: string; songUrl: string } | null>(null);
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+
+  // Close context menu on any outside click
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null);
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
+  }, []);
   
   const [editingName, setEditingName] = useState(playlist?.name || '');
   const [tagInput, setTagInput] = useState('');
@@ -100,11 +112,42 @@ export default function PlaylistEditor({ pageId, playlistId, onBack }: PlaylistE
           ) : (
             playlist.songs.map((song, idx) => {
               const isActive = song.id === activeSongId;
+              const isDragged = draggedIdx === idx;
+              const isDragOver = dragOverIdx === idx;
               return (
               <div 
                 key={song.id}
                 onDoubleClick={() => setActiveSong(song.id)}
-                className={`flex items-center gap-3 p-2 bg-[#202024] hover:bg-[#29292e] border ${isActive ? 'border-[#1DB954] shadow-[0_0_10px_rgba(29,185,84,0.1)]' : 'border-[#323238] hover:border-[#8257e5]/50'} rounded cursor-pointer group transition-all`}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setContextMenu({ x: e.clientX, y: e.clientY, songId: song.id, songUrl: song.sourceUrl });
+                }}
+                draggable
+                onDragStart={(e) => {
+                  setDraggedIdx(idx);
+                  e.dataTransfer.effectAllowed = 'move';
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                  setDragOverIdx(idx);
+                }}
+                onDragLeave={() => setDragOverIdx(null)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOverIdx(null);
+                  if (draggedIdx === null || draggedIdx === idx) return;
+                  const newSongs = [...playlist.songs];
+                  const [removed] = newSongs.splice(draggedIdx, 1);
+                  newSongs.splice(idx, 0, removed);
+                  updatePlaylistSongs(pageId, playlistId, newSongs);
+                  setDraggedIdx(null);
+                }}
+                onDragEnd={() => {
+                  setDraggedIdx(null);
+                  setDragOverIdx(null);
+                }}
+                className={`flex items-center gap-3 p-2 bg-[#202024] hover:bg-[#29292e] border ${isActive ? 'border-[#1DB954] shadow-[0_0_10px_rgba(29,185,84,0.1)]' : 'border-[#323238] hover:border-[#8257e5]/50'} rounded cursor-pointer group transition-all ${isDragged ? 'opacity-50 scale-95' : ''} ${isDragOver ? 'border-t-[#8257e5] border-t-2' : ''}`}
               >
                 <div className="w-6 text-center text-[#4d4d57] font-mono text-sm group-hover:text-[#8257e5] transition-colors">
                   {idx + 1}
@@ -196,6 +239,38 @@ export default function PlaylistEditor({ pageId, playlistId, onBack }: PlaylistE
         pageId={pageId} 
         playlistId={playlistId} 
       />
+
+      {/* Menu de Contexto (Botão Direito) */}
+      {contextMenu && (
+        <div 
+          className="fixed z-[99999] bg-[#202024] border border-[#323238] rounded-md shadow-2xl py-1 flex flex-col min-w-[140px] animate-in fade-in zoom-in-95 duration-100"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button 
+            className="text-left px-4 py-2 hover:bg-[#29292e] text-sm text-[#e1e1e6] transition-colors"
+            onClick={() => {
+              navigator.clipboard.writeText(contextMenu.songUrl);
+              setContextMenu(null);
+            }}
+          >
+            Copiar Link
+          </button>
+          <button 
+            className="text-left px-4 py-2 hover:bg-[#29292e] text-sm text-red-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            disabled={contextMenu.songId === activeSongId}
+            onClick={() => {
+              if (contextMenu.songId === activeSongId) return;
+              if (confirm('Tem certeza que deseja remover esta música?')) {
+                removeSongFromPlaylist(pageId, playlistId, contextMenu.songId);
+              }
+              setContextMenu(null);
+            }}
+          >
+            Excluir
+          </button>
+        </div>
+      )}
     </div>
   );
 }
