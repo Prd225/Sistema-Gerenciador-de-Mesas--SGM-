@@ -18,7 +18,7 @@ export default function SoundpadPlayer() {
   const [isChangingTrack, setIsChangingTrack] = useState(false);
 
   let activeSong: Song | null = null;
-  pages.forEach(p => p.playlists.forEach(pl => pl.songs.forEach(s => {
+  pages?.forEach(p => p.playlists?.forEach(pl => pl.songs?.forEach(s => {
     if (s.id === activeSongId) activeSong = s;
   })));
 

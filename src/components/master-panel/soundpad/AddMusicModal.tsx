@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Music, HardDrive, Youtube, Search, Loader2 } from 'lucide-react';
+import { Music, HardDrive, MonitorPlay, Search, Loader2 } from 'lucide-react';
 import { useSoundpadStore } from '@/store/useSoundpadStore';
 import { fetchTrackMetadata } from '@/lib/spotifyPlayer';
 import { generateId } from '@/lib/uuid';
@@ -74,7 +74,7 @@ export default function AddMusicModal({ open, onOpenChange, pageId, playlistId }
             onClick={() => setActiveTab('youtube')}
             className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'youtube' ? 'border-b-2 border-[#FF0000] text-[#FF0000] bg-[#FF0000]/5' : 'text-[#a8a8b3] hover:text-[#e1e1e6] hover:bg-[#202024]'}`}
           >
-            <Youtube className="w-4 h-4" /> YouTube
+            <MonitorPlay className="w-4 h-4" /> YouTube
           </button>
           <button 
             onClick={() => setActiveTab('local')}
@@ -114,7 +114,7 @@ export default function AddMusicModal({ open, onOpenChange, pageId, playlistId }
 
           {activeTab !== 'spotify' && (
             <div className="flex flex-col items-center justify-center text-[#7a7a80] gap-3">
-              {activeTab === 'youtube' ? <Youtube className="w-12 h-12 opacity-20" /> : <HardDrive className="w-12 h-12 opacity-20" />}
+              {activeTab === 'youtube' ? <MonitorPlay className="w-12 h-12 opacity-20" /> : <HardDrive className="w-12 h-12 opacity-20" />}
               <p className="font-semibold text-lg opacity-50">Em construção</p>
             </div>
           )}
