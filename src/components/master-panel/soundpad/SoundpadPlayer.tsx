@@ -3,7 +3,7 @@ import { Play, Pause, SkipBack, SkipForward, Square, Repeat, Loader2 } from 'luc
 import { playSpotifyTrack, pauseSpotifyTrack, resumeSpotifyTrack, seekSpotifyTrack } from '@/lib/spotifyPlayer';
 import { useEffect, useState, useRef } from 'react';
 import type { Song } from '@/types/soundpad';
-import YouTube, { YouTubeProps, YouTubePlayer } from 'react-youtube';
+import YouTube from 'react-youtube';
 
 export default function SoundpadPlayer() {
   const isPlaying = useSoundpadStore(state => state.isPlaying);
@@ -24,7 +24,7 @@ export default function SoundpadPlayer() {
   const spotifyDeviceId = useSoundpadStore(state => state.spotifyDeviceId);
   const playbackTrigger = useSoundpadStore(state => state.playbackTrigger);
   const [isChangingTrack, setIsChangingTrack] = useState(false);
-  const ytPlayerRef = useRef<YouTubePlayer | null>(null);
+  const ytPlayerRef = useRef<any>(null);
 
   let activeSong: Song | null = null;
   pages?.forEach(p => p.playlists?.forEach(pl => pl.songs?.forEach(s => {
@@ -190,7 +190,7 @@ export default function SoundpadPlayer() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  const opts: YouTubeProps['opts'] = {
+  const opts: any = {
     height: '0',
     width: '0',
     playerVars: {
