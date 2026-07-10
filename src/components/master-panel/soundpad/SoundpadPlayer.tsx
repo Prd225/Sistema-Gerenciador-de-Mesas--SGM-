@@ -32,10 +32,25 @@ export default function SoundpadPlayer() {
   // Auto-play when a new song is selected or playback is forced (e.g. single song loop)
   useEffect(() => {
     if (activeSong && activeSong.sourceType === 'spotify' && spotifyDeviceId) {
-      setIsChangingTrack(true);
-      playSpotifyTrack(activeSong.sourceUrl).then(() => {
-        setIsChangingTrack(false);
-      });
+      const player = (window as any).SpotifyPlayerInstance;
+      if (player) {
+        player.getCurrentState().then((state: any) => {
+          const currentTrackUri = state?.track_window?.current_track?.uri;
+          const prevTrigger = window.sessionStorage.getItem('lastPlaybackTrigger');
+          const isForcedReplay = prevTrigger !== String(playbackTrigger);
+          
+          // Check if we are already playing this exact track and it's not a forced replay.
+          if (!isForcedReplay && state && currentTrackUri === activeSong!.sourceUrl) {
+            return; // Already active, avoid restarting on component remount!
+          }
+          
+          window.sessionStorage.setItem('lastPlaybackTrigger', String(playbackTrigger));
+          setIsChangingTrack(true);
+          playSpotifyTrack(activeSong!.sourceUrl).then(() => {
+            setIsChangingTrack(false);
+          });
+        });
+      }
     }
   }, [activeSongId, spotifyDeviceId, playbackTrigger]);
 

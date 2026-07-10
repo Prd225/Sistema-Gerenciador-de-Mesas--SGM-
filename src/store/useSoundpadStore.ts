@@ -35,6 +35,12 @@ interface SoundpadState {
   setSpotifyDeviceId: (id: string | null) => void;
   
   playbackTrigger: number;
+  isSpotifyConnected: boolean;
+  spotifyError: string | null;
+  
+  setIsSpotifyConnected: (connected: boolean) => void;
+  setSpotifyError: (error: string | null) => void;
+  
   playNext: () => void;
   playPrev: () => void;
 }
@@ -54,6 +60,8 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
   isLooping: false,
   spotifyDeviceId: null,
   playbackTrigger: 0,
+  isSpotifyConnected: false,
+  spotifyError: null,
 
   addPage: (name) => set((state) => {
     const newState = {
@@ -213,6 +221,8 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
   setProgress: (progress) => set({ progress }),
   toggleLoop: () => set(state => ({ isLooping: !state.isLooping })),
   setSpotifyDeviceId: (id) => set({ spotifyDeviceId: id }),
+  setIsSpotifyConnected: (connected) => set({ isSpotifyConnected: connected }),
+  setSpotifyError: (error) => set({ spotifyError: error }),
 
   playNext: () => set((state) => {
     if (!state.activePlaylistId) return state;

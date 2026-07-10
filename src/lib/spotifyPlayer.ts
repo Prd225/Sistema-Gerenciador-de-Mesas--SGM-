@@ -40,10 +40,23 @@ export const initSpotifyPlayer = () => {
     });
 
     // Error handling
-    player.addListener('initialization_error', ({ message }: any) => { console.error(message); });
-    player.addListener('authentication_error', ({ message }: any) => { console.error(message); });
-    player.addListener('account_error', ({ message }: any) => { console.error(message); });
-    player.addListener('playback_error', ({ message }: any) => { console.error(message); });
+    player.addListener('initialization_error', ({ message }: any) => { 
+      console.error(message); 
+      useSoundpadStore.getState().setSpotifyError('Erro ao inicializar o player Spotify.');
+    });
+    player.addListener('authentication_error', ({ message }: any) => { 
+      console.error(message); 
+      useSoundpadStore.getState().setSpotifyError('Erro de autenticação. Tente reconectar o Spotify.');
+      useSoundpadStore.getState().setIsSpotifyConnected(false);
+    });
+    player.addListener('account_error', ({ message }: any) => { 
+      console.error(message); 
+      useSoundpadStore.getState().setSpotifyError('A sua conta Spotify precisa ser Premium para tocar músicas no SGM.');
+      useSoundpadStore.getState().setIsSpotifyConnected(false);
+    });
+    player.addListener('playback_error', ({ message }: any) => { 
+      console.error(message); 
+    });
 
     // Playback status updates
     player.addListener('player_state_changed', (state: any) => {
@@ -73,11 +86,14 @@ export const initSpotifyPlayer = () => {
       console.log('Ready with Device ID', device_id);
       deviceId = device_id;
       useSoundpadStore.getState().setSpotifyDeviceId(device_id);
+      useSoundpadStore.getState().setIsSpotifyConnected(true);
+      useSoundpadStore.getState().setSpotifyError(null);
     });
 
     // Not Ready
     player.addListener('not_ready', ({ device_id }: any) => {
       console.log('Device ID has gone offline', device_id);
+      useSoundpadStore.getState().setIsSpotifyConnected(false);
     });
 
     player.connect();
