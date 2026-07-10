@@ -1,5 +1,5 @@
 const CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
-const REDIRECT_URI = 'http://localhost:5173/'; 
+const REDIRECT_URI = 'http://localhost:5173'; 
 const SCOPES = [
   'streaming',
   'user-read-email',
