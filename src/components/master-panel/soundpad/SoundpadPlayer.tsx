@@ -54,6 +54,7 @@ export default function SoundpadPlayer() {
         });
       }
     } else if (activeSong && activeSong.sourceType === 'youtube') {
+      pauseSpotifyTrack().catch(() => {}); // Ensure Spotify stops when switching to YouTube
       const prevTrigger = window.sessionStorage.getItem('lastPlaybackTrigger');
       const isForcedReplay = prevTrigger !== String(playbackTrigger);
       if (isForcedReplay) {
@@ -157,11 +158,10 @@ export default function SoundpadPlayer() {
   };
 
   const handleStop = async () => {
-    if (activeSong?.sourceType === 'spotify') {
-      await pauseSpotifyTrack();
-    } else if (activeSong?.sourceType === 'youtube') {
-      if (ytPlayerRef.current) ytPlayerRef.current.pauseVideo();
-    }
+    // Always attempt to pause both sources to prevent orphaned audio
+    await pauseSpotifyTrack().catch(() => {});
+    if (ytPlayerRef.current) ytPlayerRef.current.pauseVideo();
+    
     setIsPlaying(false);
     setProgress(0);
     setActiveSong(null);
