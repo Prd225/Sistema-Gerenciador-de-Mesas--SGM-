@@ -3,7 +3,7 @@ import { Play, Pause, SkipBack, SkipForward, Square, Repeat, Loader2 } from 'luc
 import { playSpotifyTrack, pauseSpotifyTrack, resumeSpotifyTrack, seekSpotifyTrack } from '@/lib/spotifyPlayer';
 import { useEffect, useState, useRef } from 'react';
 import type { Song } from '@/types/soundpad';
-import YouTube from 'react-youtube';
+import type { Song } from '@/types/soundpad';
 
 export default function SoundpadPlayer() {
   const isPlaying = useSoundpadStore(state => state.isPlaying);
@@ -31,96 +31,8 @@ export default function SoundpadPlayer() {
     if (s.id === activeSongId) activeSong = s;
   })));
 
-  // Auto-play when a new song is selected or playback is forced (e.g. single song loop)
-  useEffect(() => {
-    if (activeSong && activeSong.sourceType === 'spotify' && spotifyDeviceId) {
-      const player = (window as any).SpotifyPlayerInstance;
-      if (player) {
-        player.getCurrentState().then((state: any) => {
-          const currentTrackUri = state?.track_window?.current_track?.uri;
-          const prevTrigger = window.sessionStorage.getItem('lastPlaybackTrigger');
-          const isForcedReplay = prevTrigger !== String(playbackTrigger);
-          
-          // Check if we are already playing this exact track and it's not a forced replay.
-          if (!isForcedReplay && state && currentTrackUri === activeSong!.sourceUrl) {
-            return; // Already active, avoid restarting on component remount!
-          }
-          
-          window.sessionStorage.setItem('lastPlaybackTrigger', String(playbackTrigger));
-          setIsChangingTrack(true);
-          playSpotifyTrack(activeSong!.sourceUrl).then(() => {
-            setIsChangingTrack(false);
-          });
-        });
-      }
-    } else if (activeSong && activeSong.sourceType === 'youtube') {
-      pauseSpotifyTrack().catch(() => {}); // Ensure Spotify stops when switching to YouTube
-      const prevTrigger = window.sessionStorage.getItem('lastPlaybackTrigger');
-      const isForcedReplay = prevTrigger !== String(playbackTrigger);
-      if (isForcedReplay) {
-         window.sessionStorage.setItem('lastPlaybackTrigger', String(playbackTrigger));
-         if (ytPlayerRef.current) {
-           ytPlayerRef.current.seekTo(0);
-           ytPlayerRef.current.playVideo();
-         }
-      }
-    }
-  }, [activeSongId, spotifyDeviceId, playbackTrigger]);
-
-  // Handle continuous progress updates and track end (loop/next)
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isPlaying && activeSong) {
-      interval = setInterval(() => {
-        // Spotify SDK does not continuously fire events, so we use a fallback interval to increment UI,
-        // or poll the actual state if needed. A simple UI increment is 1 sec / duration.
-        // But for precision, we'll just check window.Spotify player state directly if possible.
-        if (activeSong.sourceType === 'spotify' && (window as any).SpotifyPlayerInstance) {
-          (window as any).SpotifyPlayerInstance.getCurrentState().then((state: any) => {
-            if (!state) return;
-            
-            const newProgress = (state.position / state.duration) * 100;
-            setProgress(newProgress);
-            
-            // Track end detection: if position is extremely close to duration
-            if (state.position > 0 && state.duration > 0 && state.position >= state.duration - 1000) {
-               // Prevent multiple skips while Spotify is changing track
-               if (!window.sessionStorage.getItem('isSkipping')) {
-                 window.sessionStorage.setItem('isSkipping', 'true');
-                 playNext();
-                 setTimeout(() => window.sessionStorage.removeItem('isSkipping'), 3000);
-               }
-            }
-          });
-        } else if (activeSong.sourceType === 'youtube' && ytPlayerRef.current) {
-          try {
-            const player = ytPlayerRef.current;
-            const currentTime = player.getCurrentTime() || 0;
-            const duration = player.getDuration() || 1;
-            const newProgress = (currentTime / duration) * 100;
-            setProgress(newProgress);
-            
-            // Updating activeSong duration if we fetched it as 0 initially
-            if (activeSong.duration === 0 && duration > 1) {
-              activeSong.duration = Math.floor(duration);
-            }
-            
-            // Track end detection fallback for YouTube
-            if (currentTime > 0 && duration > 1 && currentTime >= duration - 1.5) {
-               if (!window.sessionStorage.getItem('isSkipping')) {
-                 window.sessionStorage.setItem('isSkipping', 'true');
-                 playNext();
-                 setTimeout(() => window.sessionStorage.removeItem('isSkipping'), 3000);
-               }
-            }
-          } catch (e) {}
-        }
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isPlaying, activeSong, isLooping]);
+  // Auto-play, interval, and track switching logic have been moved to SoundpadEngine.tsx
+  // to ensure playback continues even when the master panel is minimized or closed.
 
   const handlePlayPause = async () => {
     if (!activeSong) {
@@ -145,12 +57,12 @@ export default function SoundpadPlayer() {
         await resumeSpotifyTrack();
       }
     } else if (activeSong.sourceType === 'youtube') {
-      if (ytPlayerRef.current) {
-        if (isPlaying) {
-          ytPlayerRef.current.pauseVideo();
-        } else {
-          ytPlayerRef.current.playVideo();
-        }
+      if (isPlaying) {
+        window.dispatchEvent(new Event('soundpad-pause-yt'));
+        setIsPlaying(false);
+      } else {
+        window.dispatchEvent(new Event('soundpad-play-yt'));
+        setIsPlaying(true);
       }
     } else {
       setIsPlaying(!isPlaying);
@@ -160,7 +72,7 @@ export default function SoundpadPlayer() {
   const handleStop = async () => {
     // Always attempt to pause both sources to prevent orphaned audio
     await pauseSpotifyTrack().catch(() => {});
-    if (ytPlayerRef.current) ytPlayerRef.current.pauseVideo();
+    window.dispatchEvent(new Event('soundpad-pause-yt'));
     
     setIsPlaying(false);
     setProgress(0);
@@ -176,11 +88,8 @@ export default function SoundpadPlayer() {
       const positionMs = (newProgress / 100) * (activeSong.duration * 1000);
       await seekSpotifyTrack(positionMs);
     } else if (activeSong?.sourceType === 'youtube') {
-      if (ytPlayerRef.current) {
-        const duration = ytPlayerRef.current.getDuration() || 0;
-        const positionSec = (newProgress / 100) * duration;
-        ytPlayerRef.current.seekTo(positionSec, true);
-      }
+      const positionSec = (newProgress / 100) * (activeSong.duration || 0);
+      window.dispatchEvent(new CustomEvent('soundpad-seek-yt', { detail: { positionSec } }));
     }
   };
 
@@ -200,41 +109,8 @@ export default function SoundpadPlayer() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  const opts: any = {
-    height: '0',
-    width: '0',
-    playerVars: {
-      autoplay: 1,
-      controls: 0,
-      disablekb: 1,
-    },
-  };
-
-  const onYTReady = (event: any) => {
-    ytPlayerRef.current = event.target;
-    event.target.setVolume(50);
-  };
-
-  const onYTStateChange = (event: any) => {
-    if (event.data === 1) setIsPlaying(true);
-    else if (event.data === 2) setIsPlaying(false);
-    else if (event.data === 0) playNext();
-  };
-
   return (
-    <>
-      {activeSong?.sourceType === 'youtube' && (
-        <div className="hidden">
-           <YouTube 
-             videoId={activeSong.sourceUrl} 
-             opts={opts} 
-             onReady={onYTReady}
-             onStateChange={onYTStateChange}
-             onEnd={() => playNext()} 
-           />
-        </div>
-      )}
-      <div className="bg-[#1a1a1e] border-b border-[#323238] p-3 flex flex-col gap-2 shrink-0">
+    <div className="bg-[#1a1a1e] border-b border-[#323238] p-3 flex flex-col gap-2 shrink-0">
       <div className="flex items-center justify-center gap-4">
         <button 
           onClick={handleStop}
@@ -312,7 +188,6 @@ export default function SoundpadPlayer() {
           {formatDuration(activeSong?.duration || 0)}
         </span>
       </div>
-      </div>
-    </>
+    </div>
   );
 }

@@ -13,6 +13,7 @@ import SaveCampaignModal from '../modals/SaveCampaignModal';
 import MapToolbar from '../toolbar/MapToolbar';
 import MasterPanelTrigger from '../master-panel/MasterPanelTrigger';
 import MasterPanelOverlay from '../master-panel/MasterPanelOverlay';
+import SoundpadEngine from '../master-panel/soundpad/SoundpadEngine';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useEffect } from 'react';
 import { triggerAutoSave } from '@/lib/saveHelpers';
@@ -139,6 +140,9 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
       {/* Painel do Mestre */}
       <MasterPanelTrigger />
       <MasterPanelOverlay />
+      
+      {/* Motor de Áudio em Background */}
+      <SoundpadEngine />
     </div>
   );
 }
