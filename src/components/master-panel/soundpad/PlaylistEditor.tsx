@@ -62,9 +62,10 @@ export default function PlaylistEditor({ pageId, playlistId, onBack }: PlaylistE
     setIsAddModalOpen(true);
   };
 
-  const formatDuration = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
+  const formatDuration = (seconds: number | string) => {
+    const sec = Math.floor(Number(seconds) || 0);
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 

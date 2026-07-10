@@ -102,7 +102,7 @@ export default function SoundpadPlayer() {
             
             // Updating activeSong duration if we fetched it as 0 initially
             if (activeSong.duration === 0 && duration > 1) {
-              activeSong.duration = duration;
+              activeSong.duration = Math.floor(duration);
             }
             
             // Track end detection fallback for YouTube
@@ -188,14 +188,15 @@ export default function SoundpadPlayer() {
     if (!totalSeconds) return '0:00';
     const currentSeconds = Math.floor((percentage / 100) * totalSeconds);
     const m = Math.floor(currentSeconds / 60);
-    const s = currentSeconds % 60;
+    const s = Math.floor(currentSeconds % 60);
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
   const formatDuration = (totalSeconds: number) => {
     if (!totalSeconds) return '0:00';
-    const m = Math.floor(totalSeconds / 60);
-    const s = totalSeconds % 60;
+    const sec = Math.floor(totalSeconds);
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
