@@ -103,6 +103,15 @@ export default function SoundpadPlayer() {
             if (activeSong.duration === 0 && duration > 1) {
               activeSong.duration = duration;
             }
+            
+            // Track end detection fallback for YouTube
+            if (currentTime > 0 && duration > 1 && currentTime >= duration - 1.5) {
+               if (!window.sessionStorage.getItem('isSkipping')) {
+                 window.sessionStorage.setItem('isSkipping', 'true');
+                 playNext();
+                 setTimeout(() => window.sessionStorage.removeItem('isSkipping'), 3000);
+               }
+            }
           } catch (e) {}
         }
       }, 1000);
