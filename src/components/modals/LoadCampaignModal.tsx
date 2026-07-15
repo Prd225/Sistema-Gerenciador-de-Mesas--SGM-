@@ -10,6 +10,7 @@ import { useNotesStore } from '@/store/useNotesStore';
 import { useTablesStore } from '@/store/useTablesStore';
 import { useRoulettesStore } from '@/store/useRoulettesStore';
 import { useSoundpadStore } from '@/store/useSoundpadStore';
+import { useScenesStore } from '@/store/useScenesStore';
 import { db } from '@/lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Trash2, ChevronLeft, ChevronRight, FolderOpen, AlertTriangle } from 'lucide-react';
@@ -104,6 +105,15 @@ export default function LoadCampaignModal() {
         useSoundpadStore.setState({
           pages: data.soundpad.pages || []
         });
+      }
+      if (data.scenes) {
+        useScenesStore.setState({
+          scenes: data.scenes.scenes || [],
+          activeSceneId: data.scenes.activeSceneId || null
+        });
+      } else {
+        // Fallback para saves antigos que não tinham cenas
+        useScenesStore.getState().loadLegacyData(data.tokens, data.zones);
       }
       onOpenChange(false);
       alert('Campanha carregada com sucesso!');

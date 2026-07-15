@@ -7,12 +7,16 @@ import { useNotesStore } from '@/store/useNotesStore';
 import { useTablesStore } from '@/store/useTablesStore';
 import { useRoulettesStore } from '@/store/useRoulettesStore';
 import { useSoundpadStore } from '@/store/useSoundpadStore';
+import { useScenesStore } from '@/store/useScenesStore';
 import { db } from '@/lib/db';
 
 export const collectGameState = () => {
   const tokenState = useTokenStore.getState();
   const zoneState = useZoneStore.getState();
   const campaignState = useCampaignStore.getState();
+  
+  const scenesStore = useScenesStore.getState();
+  scenesStore.saveCurrentSceneState();
   
   return {
     version: 1,
@@ -49,6 +53,10 @@ export const collectGameState = () => {
     },
     soundpad: {
       pages: useSoundpadStore.getState().pages,
+    },
+    scenes: {
+      scenes: useScenesStore.getState().scenes,
+      activeSceneId: useScenesStore.getState().activeSceneId,
     }
   };
 };
