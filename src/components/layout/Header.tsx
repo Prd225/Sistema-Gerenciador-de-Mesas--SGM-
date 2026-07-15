@@ -11,6 +11,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { resetGameState } from '@/lib/saveHelpers';
 import { useTokenStore } from '@/store/useTokenStore';
 import { useZoneStore } from '@/store/useZoneStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
@@ -37,11 +38,9 @@ export default function Header() {
   const autoSaveSlot = useCampaignStore(state => state.autoSaveSlot);
   const autoSaveStatus = useCampaignStore(state => state.autoSaveStatus);
 
-  const handleNew = () => {
+  const handleNew = async () => {
     if (window.confirm('Deseja criar um novo mapa? Todo progresso não salvo será perdido.')) {
-      useTokenStore.setState({ tokens: [], initiativeQueue: [], editingTokenId: null, tokenContextMenu: null });
-      useZoneStore.setState({ zones: {}, markers: {}, bgImages: [], selectedZoneId: null, editingMarkers: false, activeTool: 'pan' });
-      useCampaignStore.setState({ turn: 1 });
+      await resetGameState();
     }
   };
 
