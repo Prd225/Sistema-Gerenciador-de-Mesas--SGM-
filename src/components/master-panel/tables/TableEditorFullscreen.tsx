@@ -36,6 +36,7 @@ export default function TableEditorFullscreen({ pageId, tableId, onBack }: Table
       setTitleValue(table.title);
       setLocalData(table.data);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [table?.id]); // Only set on initial load of this table
 
   const handleTitleBlur = () => {

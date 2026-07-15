@@ -37,7 +37,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
     try {
       const saved = localStorage.getItem('sgm_event_presets');
       if (saved) setEventPresets(JSON.parse(saved));
-    } catch(e) {}
+    } catch { }
   }, []);
 
   const saveEventAsPreset = (evt: any) => {

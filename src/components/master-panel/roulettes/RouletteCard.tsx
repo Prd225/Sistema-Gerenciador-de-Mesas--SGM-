@@ -1,5 +1,5 @@
 import { useRoulettesStore } from '@/store/useRoulettesStore';
-import { Trash2, Dices } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import type { RouletteData } from '@/types/roulettes';
 
 interface RouletteCardProps {

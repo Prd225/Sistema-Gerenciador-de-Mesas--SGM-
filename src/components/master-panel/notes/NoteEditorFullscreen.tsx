@@ -32,6 +32,7 @@ export default function NoteEditorFullscreen({ pageId, noteId, onBack }: NoteEdi
       editorRef.current.innerHTML = note.content || '';
       setCharCount(editorRef.current.innerText.length);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [noteId]);
 
   if (!note) return null;

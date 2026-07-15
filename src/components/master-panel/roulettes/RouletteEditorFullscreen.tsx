@@ -31,6 +31,7 @@ export default function RouletteEditorFullscreen({ pageId, rouletteId, onBack }:
 
   useEffect(() => {
     if (roulette) setTitleValue(roulette.title);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roulette?.id]);
 
   const handleTitleBlur = () => {

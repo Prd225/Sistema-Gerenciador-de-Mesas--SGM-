@@ -78,6 +78,7 @@ export default function SoundpadEngine() {
       pauseSpotifyTrack().catch(() => {});
       if (ytPlayerRef.current) ytPlayerRef.current.pauseVideo();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSongId, spotifyDeviceId, playbackTrigger]);
 
   // Interval for Progress and End Detection
@@ -118,13 +119,14 @@ export default function SoundpadEngine() {
                  setTimeout(() => window.sessionStorage.removeItem('isSkipping'), 3000);
                }
             }
-          } catch (e) {}
+          } catch { }
         }
       }, 1000);
     }
     return () => {
       if (interval) clearInterval(interval);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying, activeSong, isLooping]);
 
   const opts: any = {
@@ -145,7 +147,13 @@ export default function SoundpadEngine() {
   const onYTStateChange = (event: any) => {
     if (event.data === 1) setIsPlaying(true);
     else if (event.data === 2) setIsPlaying(false);
-    else if (event.data === 0) playNext();
+    else if (event.data === 0) {
+      if (!window.sessionStorage.getItem('isSkipping')) {
+        window.sessionStorage.setItem('isSkipping', 'true');
+        playNext();
+        setTimeout(() => window.sessionStorage.removeItem('isSkipping'), 3000);
+      }
+    }
   };
 
   return (
