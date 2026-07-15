@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { useTokenStore } from './useTokenStore';
 import { useZoneStore } from './useZoneStore';
-import { v4 as uuidv4 } from 'uuid';
+import { generateId as uuidv4 } from '@/lib/uuid';
 
 export interface SceneData {
   id: string;
