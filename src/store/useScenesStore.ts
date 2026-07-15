@@ -13,6 +13,7 @@ export interface SceneData {
 interface ScenesState {
   scenes: SceneData[];
   activeSceneId: string | null;
+  isSwitching: boolean;
   
   saveCurrentSceneState: () => Promise<void>;
   switchScene: (id: string) => Promise<void>;
@@ -38,6 +39,7 @@ export const useScenesStore = create<ScenesState>((set, get) => {
   return {
     scenes: [defaultScene],
     activeSceneId: defaultId,
+    isSwitching: false,
 
     saveCurrentSceneState: async () => {
       const { activeSceneId } = get();
@@ -57,33 +59,39 @@ export const useScenesStore = create<ScenesState>((set, get) => {
     },
 
     switchScene: async (id: string) => {
-      const { activeSceneId, saveCurrentSceneState } = get();
-      if (activeSceneId === id) return;
+      const { activeSceneId, isSwitching, saveCurrentSceneState } = get();
+      if (activeSceneId === id || isSwitching) return;
 
-      // 1. Salvar o estado atual no Dexie antes de trocar
-      await saveCurrentSceneState();
+      set({ isSwitching: true });
 
-      // 2. Buscar a cena de destino no Dexie
-      const targetData = await db.activeScenes.get(id);
-      if (!targetData) return;
+      try {
+        // 1. Salvar o estado atual no Dexie antes de trocar
+        await saveCurrentSceneState();
 
-      // 3. Atualizar o ID ativo
-      set({ activeSceneId: id });
+        // 2. Buscar a cena de destino no Dexie
+        const targetData = await db.activeScenes.get(id);
+        if (!targetData) return;
 
-      // 4. Injetar os dados da cena destino nos stores globais
-      useTokenStore.setState({
-        tokens: targetData.tokens,
-        initiativeQueue: targetData.initiativeQueue,
-      });
+        // 3. Atualizar o ID ativo
+        set({ activeSceneId: id });
 
-      useZoneStore.setState({
-        zones: targetData.zones,
-        markers: targetData.markers,
-        bgImages: targetData.bgImages,
-      });
-      
-      // Emit an event for components that need to react
-      setTimeout(() => window.dispatchEvent(new Event('scene-switched')), 50);
+        // 4. Injetar os dados da cena destino nos stores globais
+        useTokenStore.setState({
+          tokens: targetData.tokens,
+          initiativeQueue: targetData.initiativeQueue,
+        });
+
+        useZoneStore.setState({
+          zones: targetData.zones,
+          markers: targetData.markers,
+          bgImages: targetData.bgImages,
+        });
+        
+        // Emit an event for components that need to react
+        setTimeout(() => window.dispatchEvent(new Event('scene-switched')), 50);
+      } finally {
+        set({ isSwitching: false });
+      }
     },
 
     addScene: async (name = 'Nova Cena') => {

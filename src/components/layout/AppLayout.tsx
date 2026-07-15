@@ -20,6 +20,7 @@ import { triggerAutoSave } from '@/lib/saveHelpers';
 import { useZoneStore } from '@/store/useZoneStore';
 import { useTokenStore } from '@/store/useTokenStore';
 import { Search, Edit, Copy, IdCard, Trash2, Map } from 'lucide-react';
+import { db } from '@/lib/db';
 
 export default function AppLayout({ children }: { children?: React.ReactNode }) {
   const { showInitModal, setShowInitModal } = useCampaignStore();
@@ -59,11 +60,32 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Limpar sessões fantasmas do banco de dados ao inicializar
+    // Só limpar se NÃO tivermos recebido um slot de auto-save recente? 
+    // Como SGM é totalmente em RAM, o refresh zera a RAM de qualquer forma, 
+    // então a tabela activeScenes pode e DEVE ser zerada ao recarregar a janela.
+    const clearGhostSessions = async () => {
+      // Pequena checagem pra evitar limpar no exato momento que o React StrictMode remonta, 
+      // embora db.clear seja idotempontente.
+      try {
+        await db.activeScenes.clear();
+      } catch(e) {
+        console.error("Failed to clear ghost sessions", e);
+      }
+    };
+    
+    // We only clear if this is a fresh mount and the RAM is empty.
+    // If the RAM has scenes but the db doesn't, it means we are in the middle of a hot-reload in dev mode.
+    const isFreshBoot = useTokenStore.getState().tokens.length === 0 && useScenesStore.getState().scenes.length <= 1;
+    if (isFreshBoot) {
+       clearGhostSessions();
+    }
 
     return () => {
       if (interval) clearInterval(interval);
-      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, [autoSaveSlot]);
 
