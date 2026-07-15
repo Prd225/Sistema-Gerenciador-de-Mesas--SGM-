@@ -10,13 +10,14 @@ import { useSoundpadStore } from '@/store/useSoundpadStore';
 import { useScenesStore } from '@/store/useScenesStore';
 import { db } from '@/lib/db';
 
-export const collectGameState = () => {
+export const collectGameState = async () => {
   const tokenState = useTokenStore.getState();
   const zoneState = useZoneStore.getState();
   const campaignState = useCampaignStore.getState();
   
   const scenesStore = useScenesStore.getState();
-  scenesStore.saveCurrentSceneState();
+  await scenesStore.saveCurrentSceneState();
+  const activeScenesData = await db.activeScenes.toArray();
   
   return {
     version: 1,
@@ -57,6 +58,7 @@ export const collectGameState = () => {
     scenes: {
       scenes: useScenesStore.getState().scenes,
       activeSceneId: useScenesStore.getState().activeSceneId,
+      sceneData: activeScenesData
     }
   };
 };
@@ -88,7 +90,7 @@ export const triggerAutoSave = (forceImmediate = false) => {
         return;
       }
       
-      const data = collectGameState();
+      const data = await collectGameState();
       
       await db.campaignSlots.put({
         slotNumber: slot,

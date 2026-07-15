@@ -45,7 +45,7 @@ export default function SaveCampaignModal() {
     // Pequeno atraso para garantir que a UI de carregamento seja desenhada
     await new Promise(resolve => setTimeout(resolve, 150));
 
-    const data = collectGameState();
+    const data = await collectGameState();
 
     try {
       await db.campaignSlots.put({

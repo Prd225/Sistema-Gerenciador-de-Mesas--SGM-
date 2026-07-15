@@ -3,31 +3,26 @@ import { useTokenStore } from './useTokenStore';
 import { useZoneStore } from './useZoneStore';
 import { generateId as uuidv4 } from '@/lib/uuid';
 
+import { db } from '@/lib/db';
+
 export interface SceneData {
   id: string;
   name: string;
-  tokens: any[];
-  initiativeQueue: any[];
-  zones: Record<string, any>;
-  markers: Record<string, any>;
-  bgImages: any[];
 }
 
 interface ScenesState {
   scenes: SceneData[];
   activeSceneId: string | null;
   
-  saveCurrentSceneState: () => void;
-  switchScene: (id: string) => void;
-  addScene: (name?: string) => void;
+  saveCurrentSceneState: () => Promise<void>;
+  switchScene: (id: string) => Promise<void>;
+  addScene: (name?: string) => Promise<void>;
   renameScene: (id: string, name: string) => void;
-  removeScene: (id: string) => void;
-  loadLegacyData: (tokensData: any, zonesData: any) => void;
+  removeScene: (id: string) => Promise<void>;
+  loadLegacyData: (tokensData: any, zonesData: any) => Promise<void>;
 }
 
-const createEmptyScene = (name: string): SceneData => ({
-  id: uuidv4(),
-  name,
+const createEmptySceneData = (): any => ({
   tokens: [],
   initiativeQueue: [],
   zones: {},
@@ -36,71 +31,71 @@ const createEmptyScene = (name: string): SceneData => ({
 });
 
 export const useScenesStore = create<ScenesState>((set, get) => {
-  // Inicialização padrão
-  const defaultScene = createEmptyScene('Cena 1');
+  // Inicialização padrão vazia, pois o Load/Setup preencherá
+  const defaultId = uuidv4();
+  const defaultScene = { id: defaultId, name: 'Cena 1' };
 
   return {
     scenes: [defaultScene],
-    activeSceneId: defaultScene.id,
+    activeSceneId: defaultId,
 
-    saveCurrentSceneState: () => {
-      const { activeSceneId, scenes } = get();
+    saveCurrentSceneState: async () => {
+      const { activeSceneId } = get();
       if (!activeSceneId) return;
 
       const tokenState = useTokenStore.getState();
       const zoneState = useZoneStore.getState();
 
-      set({
-        scenes: scenes.map(s => {
-          if (s.id === activeSceneId) {
-            return {
-              ...s,
-              tokens: tokenState.tokens,
-              initiativeQueue: tokenState.initiativeQueue,
-              zones: zoneState.zones,
-              markers: zoneState.markers,
-              bgImages: zoneState.bgImages,
-            };
-          }
-          return s;
-        })
+      await db.activeScenes.put({
+        id: activeSceneId,
+        tokens: tokenState.tokens,
+        initiativeQueue: tokenState.initiativeQueue,
+        zones: zoneState.zones,
+        markers: zoneState.markers,
+        bgImages: zoneState.bgImages,
       });
     },
 
-    switchScene: (id: string) => {
-      const { activeSceneId, scenes, saveCurrentSceneState } = get();
+    switchScene: async (id: string) => {
+      const { activeSceneId, saveCurrentSceneState } = get();
       if (activeSceneId === id) return;
 
-      // 1. Salvar o estado atual no ID ativo antes de trocar
-      saveCurrentSceneState();
+      // 1. Salvar o estado atual no Dexie antes de trocar
+      await saveCurrentSceneState();
 
-      // 2. Buscar a cena de destino
-      const targetScene = get().scenes.find(s => s.id === id);
-      if (!targetScene) return;
+      // 2. Buscar a cena de destino no Dexie
+      const targetData = await db.activeScenes.get(id);
+      if (!targetData) return;
 
       // 3. Atualizar o ID ativo
       set({ activeSceneId: id });
 
       // 4. Injetar os dados da cena destino nos stores globais
       useTokenStore.setState({
-        tokens: targetScene.tokens,
-        initiativeQueue: targetScene.initiativeQueue,
+        tokens: targetData.tokens,
+        initiativeQueue: targetData.initiativeQueue,
       });
 
       useZoneStore.setState({
-        zones: targetScene.zones,
-        markers: targetScene.markers,
-        bgImages: targetScene.bgImages,
+        zones: targetData.zones,
+        markers: targetData.markers,
+        bgImages: targetData.bgImages,
       });
       
-      // Emit an event for components that need to react (like the map panning/zooming reset)
+      // Emit an event for components that need to react
       setTimeout(() => window.dispatchEvent(new Event('scene-switched')), 50);
     },
 
-    addScene: (name = 'Nova Cena') => {
+    addScene: async (name = 'Nova Cena') => {
       const { scenes } = get();
-      const newScene = createEmptyScene(`${name} ${scenes.length + 1}`);
-      set({ scenes: [...scenes, newScene] });
+      const newId = uuidv4();
+      
+      await db.activeScenes.put({
+        id: newId,
+        ...createEmptySceneData()
+      });
+      
+      set({ scenes: [...scenes, { id: newId, name: `${name} ${scenes.length + 1}` }] });
     },
 
     renameScene: (id: string, name: string) => {
@@ -110,43 +105,54 @@ export const useScenesStore = create<ScenesState>((set, get) => {
       });
     },
 
-    removeScene: (id: string) => {
+    removeScene: async (id: string) => {
       const { scenes, activeSceneId, switchScene } = get();
       if (scenes.length <= 1) return; // Não permite apagar a última cena
       
       const newScenes = scenes.filter(s => s.id !== id);
       set({ scenes: newScenes });
       
+      await db.activeScenes.delete(id);
+      
       // Se apagou a cena ativa, muda pra primeira da lista
       if (activeSceneId === id) {
-        switchScene(newScenes[0].id);
+        await switchScene(newScenes[0].id);
       }
     },
 
-    loadLegacyData: (tokensData: any, zonesData: any) => {
-      const legacyScene = createEmptyScene('Cena 1 (Migrada)');
-      legacyScene.tokens = tokensData?.tokens || [];
-      legacyScene.initiativeQueue = tokensData?.initiativeQueue || [];
-      legacyScene.zones = zonesData?.zones || {};
-      legacyScene.markers = zonesData?.markers || {};
-      legacyScene.bgImages = zonesData?.bgImages || [];
+    loadLegacyData: async (tokensData: any, zonesData: any) => {
+      await db.activeScenes.clear();
+      
+      const legacyId = uuidv4();
+      
+      await db.activeScenes.put({
+        id: legacyId,
+        tokens: tokensData?.tokens || [],
+        initiativeQueue: tokensData?.initiativeQueue || [],
+        zones: zonesData?.zones || {},
+        markers: zonesData?.markers || {},
+        bgImages: zonesData?.bgImages || []
+      });
 
       set({
-        scenes: [legacyScene],
-        activeSceneId: legacyScene.id
+        scenes: [{ id: legacyId, name: 'Cena 1 (Migrada)' }],
+        activeSceneId: legacyId
       });
       
-      // Injeta no store
-      useTokenStore.setState({
-        tokens: legacyScene.tokens,
-        initiativeQueue: legacyScene.initiativeQueue,
-      });
+      const targetData = await db.activeScenes.get(legacyId);
+      
+      if (targetData) {
+        useTokenStore.setState({
+          tokens: targetData.tokens,
+          initiativeQueue: targetData.initiativeQueue,
+        });
 
-      useZoneStore.setState({
-        zones: legacyScene.zones,
-        markers: legacyScene.markers,
-        bgImages: legacyScene.bgImages,
-      });
+        useZoneStore.setState({
+          zones: targetData.zones,
+          markers: targetData.markers,
+          bgImages: targetData.bgImages,
+        });
+      }
     }
   };
 });

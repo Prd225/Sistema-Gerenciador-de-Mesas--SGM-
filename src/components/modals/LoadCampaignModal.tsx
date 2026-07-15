@@ -36,7 +36,7 @@ export default function LoadCampaignModal() {
   
   const filledSlotsCount = useLiveQuery(() => db.campaignSlots.count(), []) || 0;
 
-  const handleLoad = (data: any) => {
+  const handleLoad = async (data: any) => {
     try {
       if (data.tokens) {
         useTokenStore.setState({
@@ -107,13 +107,18 @@ export default function LoadCampaignModal() {
         });
       }
       if (data.scenes) {
+        await db.activeScenes.clear();
+        if (data.scenes.sceneData && data.scenes.sceneData.length > 0) {
+          await db.activeScenes.bulkAdd(data.scenes.sceneData);
+        }
+        
         useScenesStore.setState({
           scenes: data.scenes.scenes || [],
           activeSceneId: data.scenes.activeSceneId || null
         });
       } else {
         // Fallback para saves antigos que não tinham cenas
-        useScenesStore.getState().loadLegacyData(data.tokens, data.zones);
+        await useScenesStore.getState().loadLegacyData(data.tokens, data.zones);
       }
       onOpenChange(false);
       alert('Campanha carregada com sucesso!');
