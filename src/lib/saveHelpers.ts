@@ -64,25 +64,8 @@ export const collectGameState = async () => {
 };
 
 export const resetGameState = async () => {
-  useTokenStore.setState({ tokens: [], initiativeQueue: [], editingTokenId: null, tokenContextMenu: null });
-  useZoneStore.setState({ zones: {}, markers: {}, bgImages: [], selectedZoneId: null, editingMarkers: false, activeTool: 'pan' });
-  useCampaignStore.setState({ turn: 1, round: 1, scene: 1, urgency: null });
-  useDiaryStore.setState({ entries: [] });
-  useRulesStore.setState({ pages: [] });
-  useNotesStore.setState({ pages: [] });
-  useTablesStore.setState({ pages: [] });
-  useRoulettesStore.setState({ pages: [] });
-  useSoundpadStore.setState({ pages: [] });
-  
   await db.activeScenes.clear();
-  
-  // Re-initialize scenes with a default empty scene
-  useScenesStore.setState({ scenes: [], activeSceneId: null });
-  await useScenesStore.getState().addScene('Cena');
-  const newScene = useScenesStore.getState().scenes[0];
-  if (newScene) {
-    await useScenesStore.getState().switchScene(newScene.id);
-  }
+  window.location.reload();
 };
 
 let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
