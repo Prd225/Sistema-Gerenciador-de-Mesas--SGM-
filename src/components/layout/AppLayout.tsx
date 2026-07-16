@@ -19,6 +19,7 @@ import { useEffect } from 'react';
 import { triggerAutoSave } from '@/lib/saveHelpers';
 import { useZoneStore } from '@/store/useZoneStore';
 import { useTokenStore } from '@/store/useTokenStore';
+import { useScenesStore } from '@/store/useScenesStore';
 import { Search, Edit, Copy, IdCard, Trash2, Map } from 'lucide-react';
 import { db } from '@/lib/db';
 
