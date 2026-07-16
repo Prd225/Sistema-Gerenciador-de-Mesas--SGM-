@@ -17,7 +17,7 @@ export default function InitiativeBar() {
   const activeIndex = (turn - 1) % queue.length;
 
   return (
-    <div className="absolute bottom-5 left-5 flex gap-4 p-4 bg-[#202024]/95 border border-[#323238] rounded-lg shadow-[0_4px_15px_rgba(0,0,0,0.7)] max-w-[calc(100%-100px)] overflow-x-auto z-[101] items-end pointer-events-auto backdrop-blur-sm">
+    <div className="absolute bottom-5 left-5 flex gap-4 p-4 bg-[#202024]/95 border border-[#323238] rounded-lg shadow-[0_4px_15px_rgba(0,0,0,0.7)] max-w-[calc(100%-100px)] overflow-x-auto z-[101] items-end pointer-events-auto">
       {queue.map((item, index) => {
         const token = tokens.find(t => t.id === item.tokenId);
         if (!token) return null;

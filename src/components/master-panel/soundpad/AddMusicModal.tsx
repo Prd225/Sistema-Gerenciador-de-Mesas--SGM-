@@ -108,7 +108,7 @@ export default function AddMusicModal({ open, onOpenChange, pageId, playlistId }
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4">
       <div className="bg-[#121214] border border-[#323238] rounded-xl text-[#e1e1e6] w-full max-w-md overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
         <div className="p-4 border-b border-[#323238] bg-[#1a1a1e] flex items-center justify-between">
           <h2 className="font-bold">Adicionar Música</h2>

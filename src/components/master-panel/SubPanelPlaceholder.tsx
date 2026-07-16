@@ -17,7 +17,7 @@ export default function SubPanelPlaceholder({ panelId }: { panelId: SubPanelId }
   const Icon = details.icon;
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center bg-[#121214]/60 border border-[#323238] rounded-xl overflow-hidden backdrop-blur-sm shadow-xl p-4 transition-all hover:border-[#8257e5]/50">
+    <div className="w-full h-full flex flex-col items-center justify-center bg-[#121214]/80 border border-[#323238] rounded-xl overflow-hidden shadow-xl p-4 transition-all hover:border-[#8257e5]/50">
       <div className="w-16 h-16 bg-[#202024] rounded-full flex items-center justify-center mb-4 shadow-inner">
         <Icon className="w-8 h-8 text-[#8257e5]" />
       </div>

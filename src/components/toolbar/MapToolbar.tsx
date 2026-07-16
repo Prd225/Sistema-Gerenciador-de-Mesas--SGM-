@@ -60,7 +60,7 @@ export default function MapToolbar() {
         onChange={handleFileChange}
       />
 
-      <div className="flex flex-col gap-2 bg-[#202024]/90 p-2 rounded-lg border border-[#323238] shadow-[0_4px_15px_rgba(0,0,0,0.5)] backdrop-blur-sm pointer-events-auto">
+      <div className="flex flex-col gap-2 bg-[#202024]/95 p-2 rounded-lg border border-[#323238] shadow-[0_4px_15px_rgba(0,0,0,0.5)] pointer-events-auto">
         {tools.map(tool => (
           <div key={tool.id} className="relative group">
             <Button
