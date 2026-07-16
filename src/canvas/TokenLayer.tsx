@@ -157,6 +157,7 @@ function TokenLayer({ scale = 1 }: { scale?: number }) {
                     if (node) node.to({ scaleX: 0.85, scaleY: 0.85, opacity: 0.7, duration: 0.15 });
                   });
                 }
+              }}
               onDragMove={(e) => {
                 if (activeTool !== 'select') return;
                 if (isSelected && selectedNodeIds.length > 1) {
