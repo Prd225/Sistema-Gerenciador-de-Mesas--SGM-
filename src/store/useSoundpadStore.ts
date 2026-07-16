@@ -25,6 +25,7 @@ interface SoundpadState {
   addSongToPlaylist: (pageId: string, playlistId: string, songData: Omit<Song, 'id'>) => void;
   removeSongFromPlaylist: (pageId: string, playlistId: string, songId: string) => void;
   updatePlaylistSongs: (pageId: string, playlistId: string, songs: Song[]) => void;
+  updateSongDuration: (songId: string, duration: number) => void;
 
   // Player controls
   setActivePlaylist: (id: string | null) => void;
@@ -213,6 +214,27 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
     };
     setTimeout(() => triggerAutoSave(), 0);
     return newState;
+  }),
+
+  updateSongDuration: (songId, duration) => set((state) => {
+    let updated = false;
+    const newState = {
+      pages: state.pages.map(p => ({
+        ...p,
+        playlists: p.playlists.map(pl => ({
+          ...pl,
+          songs: pl.songs.map(s => {
+            if (s.id === songId && s.duration !== duration) {
+              updated = true;
+              return { ...s, duration };
+            }
+            return s;
+          })
+        }))
+      }))
+    };
+    if (updated) setTimeout(() => triggerAutoSave(), 0);
+    return updated ? newState : state;
   }),
 
   setActivePlaylist: (id) => set({ activePlaylistId: id }),

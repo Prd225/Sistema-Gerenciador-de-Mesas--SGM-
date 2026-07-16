@@ -109,7 +109,7 @@ export default function SoundpadEngine() {
             setProgress(newProgress);
             
             if (activeSong!.duration === 0 && duration > 1) {
-              activeSong!.duration = Math.floor(duration);
+              useSoundpadStore.getState().updateSongDuration(activeSong!.id, Math.floor(duration));
             }
             
             if (currentTime > 0 && duration > 1 && currentTime >= duration - 1.5) {
@@ -142,6 +142,9 @@ export default function SoundpadEngine() {
   const onYTReady = (event: any) => {
     ytPlayerRef.current = event.target;
     event.target.setVolume(50);
+    if (useSoundpadStore.getState().isPlaying) {
+      event.target.playVideo();
+    }
   };
 
   const onYTStateChange = (event: any) => {
@@ -159,7 +162,7 @@ export default function SoundpadEngine() {
   return (
     <>
       {activeSong?.sourceType === 'youtube' && (
-        <div className="hidden">
+        <div className="absolute w-0 h-0 opacity-0 pointer-events-none overflow-hidden -z-50">
            <YouTube 
              videoId={activeSong.sourceUrl} 
              opts={opts} 
