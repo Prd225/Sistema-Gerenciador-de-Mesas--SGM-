@@ -227,16 +227,16 @@ export function ImageCropper({ imageSrc, onConfirm, onCancel, size = 256, cropTy
 
         {/* Buttons */}
         <div className="flex justify-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => setRotation(r => (r - 90) % 360)} title="Girar Esquerda">
+          <Button variant="outline" size="icon" className="bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5" onClick={() => setRotation(r => (r - 90) % 360)} title="Girar Esquerda">
             <RotateCcw className="w-4 h-4" />
           </Button>
-          <Button variant="outline" size="icon" onClick={() => setRotation(r => (r + 90) % 360)} title="Girar Direita">
+          <Button variant="outline" size="icon" className="bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5" onClick={() => setRotation(r => (r + 90) % 360)} title="Girar Direita">
             <RotateCw className="w-4 h-4" />
           </Button>
-          <Button variant="outline" size="icon" onClick={() => setFlipH(f => !f)} title="Espelhar Horizontalmente">
+          <Button variant="outline" size="icon" className="bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5" onClick={() => setFlipH(f => !f)} title="Espelhar Horizontalmente">
             <FlipHorizontal className="w-4 h-4" />
           </Button>
-          <Button variant="outline" size="icon" onClick={() => setFlipV(f => !f)} title="Espelhar Verticalmente">
+          <Button variant="outline" size="icon" className="bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5" onClick={() => setFlipV(f => !f)} title="Espelhar Verticalmente">
             <FlipVertical className="w-4 h-4" />
           </Button>
         </div>
