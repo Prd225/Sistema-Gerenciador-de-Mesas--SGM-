@@ -122,10 +122,10 @@ export const triggerAutoSave = (forceImmediate = false) => {
     if (debounceTimeout) clearTimeout(debounceTimeout);
     executeSave();
   } else {
-    // Debounce de 25 segundos para acúmulo de eventos
+    // Debounce de 3 segundos para acúmulo de eventos
     if (debounceTimeout) clearTimeout(debounceTimeout);
     debounceTimeout = setTimeout(() => {
       executeSave();
-    }, 25000);
+    }, 3000);
   }
 };

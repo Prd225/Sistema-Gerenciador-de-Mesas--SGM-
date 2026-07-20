@@ -58,8 +58,8 @@ export const useZoneStore = create<ZoneState>((set) => ({
   selectedNodeIds: [],
   leftSidebarOpen: false,
   rightSidebarOpen: false,
-  leftSidebarWidth: 320,
-  rightSidebarWidth: 320,
+  leftSidebarWidth: 420,
+  rightSidebarWidth: 360,
 
   setLeftSidebarOpen: (open) => set({ leftSidebarOpen: open }),
   setRightSidebarOpen: (open) => set({ rightSidebarOpen: open }),
