@@ -6,9 +6,7 @@ import {
   HelpCircle,
   Plus,
   Swords,
-  ChevronDown,
-  RefreshCw,
-  CheckCircle2
+  ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { resetGameState } from '@/lib/saveHelpers';
@@ -57,28 +55,24 @@ export default function Header() {
 
       {/* Logo & File Menu */}
       <div className="flex items-center gap-4">
-        <div className="font-bold text-[#ffd700] flex items-center gap-2">
-          <Swords className="w-6 h-6" />
+        <div 
+          className={`font-bold flex items-center gap-2 transition-colors duration-500 ${
+            autoSaveStatus === 'success' ? 'text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.5)]' : 'text-[#ffd700]'
+          }`}
+          title={autoSaveStatus === 'saving' ? 'Salvando...' : autoSaveStatus === 'success' ? 'Salvo!' : ''}
+        >
+          <Swords className={`w-6 h-6 ${autoSaveStatus === 'saving' ? 'animate-spin' : ''}`} />
           <div className="flex flex-col">
             <div className="flex items-baseline gap-1.5">
               <span className="text-xl">SGM</span>
-              <span className="text-xs text-[#a8a8b3] font-medium tracking-wider">v7.0</span>
+              <span className={`text-xs font-medium tracking-wider transition-colors duration-500 ${
+                autoSaveStatus === 'success' ? 'text-green-500' : 'text-[#a8a8b3]'
+              }`}>v7.0</span>
             </div>
-            <span className="text-[0.60rem] text-[#7a7a80] font-semibold uppercase tracking-wider leading-none mt-0.5">Sistema Gerenciador de Mesas</span>
+            <span className={`text-[0.60rem] font-semibold uppercase tracking-wider leading-none mt-0.5 transition-colors duration-500 ${
+              autoSaveStatus === 'success' ? 'text-green-600' : 'text-[#7a7a80]'
+            }`}>Sistema Gerenciador de Mesas</span>
           </div>
-          
-          {autoSaveStatus === 'saving' && (
-            <div className="flex items-center gap-1.5 ml-2 text-xs text-[#8257e5] font-semibold animate-pulse">
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-              <span className="opacity-80">Salvando...</span>
-            </div>
-          )}
-          {autoSaveStatus === 'success' && (
-            <div className="flex items-center gap-1.5 ml-2 text-xs text-green-400 font-semibold animate-in fade-in slide-in-from-left-2 duration-300">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span className="opacity-80">Salvo!</span>
-            </div>
-          )}
         </div>
 
         <DropdownMenu>
