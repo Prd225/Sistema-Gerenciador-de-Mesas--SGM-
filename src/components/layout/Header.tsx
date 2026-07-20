@@ -61,7 +61,7 @@ export default function Header() {
           }`}
           title={autoSaveStatus === 'saving' ? 'Salvando...' : autoSaveStatus === 'success' ? 'Salvo!' : ''}
         >
-          <Swords className={`w-6 h-6 ${autoSaveStatus === 'saving' ? 'animate-spin' : ''}`} />
+          <Swords className={`w-6 h-6 ${autoSaveStatus === 'saving' ? 'animate-spin' : autoSaveStatus === 'success' ? 'animate-spin-once' : ''}`} />
           <div className="flex flex-col">
             <div className="flex items-baseline gap-1.5">
               <span className="text-xl">SGM</span>
