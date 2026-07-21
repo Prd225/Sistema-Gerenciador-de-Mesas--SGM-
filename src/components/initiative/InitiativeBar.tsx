@@ -43,8 +43,8 @@ export default function InitiativeBar() {
               }}
               title={token.fullName}
             >
-              {token.image ? (
-                <img src={token.image} alt={token.name} className="w-full h-full object-cover pointer-events-none" />
+              {token.imageUrl ? (
+                <img src={token.imageUrl} alt={token.name} className="w-full h-full object-cover pointer-events-none" />
               ) : (
                 <span className="whitespace-nowrap overflow-hidden px-1">{token.name}</span>
               )}
