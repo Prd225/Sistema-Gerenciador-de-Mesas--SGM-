@@ -1,47 +1,44 @@
 import { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Hourglass, Ban, Skull, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Condition } from '@/types/game';
 
 const PRESET_CONDITIONS: Condition[] = [
-  { name: 'Abalado', desc: 'O personagem sofre –1d20 em testes. Se ficar abalado novamente, em vez disso fica apavorado. Condição de medo.', color: 'purple' },
-  { name: 'Agarrado', desc: 'O personagem fica desprevenido e imóvel, sofre –1d20 em testes de ataque e só pode atacar com armas leves. Um personagem fazendo um ataque à distância contra um alvo envolvido na manobra agarrar tem 50% de chance de acertar o alvo errado. Condição de paralisia.', color: 'red' },
-  { name: 'Alquebrado', desc: 'O custo em pontos de esforço das habilidades e dos rituais do personagem aumenta em +1. Condição mental.', color: 'purple' },
-  { name: 'Apavorado', desc: 'O personagem sofre –2d20 em testes de perícia e deve fugir da fonte do medo da maneira mais eficiente possível. Condição de medo.', color: 'purple' },
-  { name: 'Asfixiado', desc: 'O personagem não pode respirar. Um personagem asfixiado pode prender seu fôlego por um total de rodadas igual ao seu Vigor e, a cada vez que sofre dano enquanto está nesta condição, reduz este valor em 1. Ao final de seu turno na última dessas rodadas, o personagem fica morrendo.', color: 'yellow' },
-  { name: 'Atordoado', desc: 'O personagem fica desprevenido e não pode fazer ações. Condição mental.', color: 'yellow' },
-  { name: 'Caído', desc: 'Deitado no chão. O personagem sofre –2d20 em ataques corpo a corpo e seu deslocamento é reduzido a 1,5m. Além disso, sofre –5 na Defesa contra ataques corpo a corpo, mas recebe +5 na Defesa contra ataques à distância.', color: 'yellow' },
-  { name: 'Cego', desc: 'O personagem fica desprevenido e lento, não pode fazer testes de Percepção para observar e sofre –2d20 em testes de perícias baseadas em Agilidade ou Força. Todos os alvos de seus ataques recebem camuflagem total. Condição de sentidos.', color: 'yellow' },
-  { name: 'Confuso', desc: 'O personagem comporta-se de modo aleatório. Role 1d6 no início de seus turnos: 1) Movimenta-se em direção aleatória; 2-3) Não pode fazer ações; 4-5) Ataca o ser mais próximo; 6) Age normalmente. Condição mental.', color: 'purple' },
-  { name: 'Debilitado', desc: 'O personagem sofre –2d20 em testes de Agilidade, Força e Vigor. Se o personagem ficar debilitado novamente, em vez disso fica inconsciente.', color: 'red' },
-  { name: 'Desprevenido', desc: 'Despreparado para reagir. O personagem sofre –5 na Defesa e –1d20 Reflexos. Você fica desprevenido contra inimigos que não possa perceber.', color: 'yellow' },
-  { name: 'Doente', desc: 'Sob efeito de uma doença.', color: 'green' },
-  { name: 'Em Chamas', desc: 'O personagem está pegando fogo. No início de seus turnos, sofre 1d6 pontos de dano de fogo. O personagem pode gastar uma ação padrão para apagar o fogo com as mãos.', color: 'red' },
-  { name: 'Enjoado', desc: 'O personagem só pode realizar uma ação padrão ou de movimento (não ambas) por rodada.', color: 'green' },
-  { name: 'Enredado', desc: 'O personagem fica lento, vulnerável e sofre –1d20 em testes de ataque. Condição de paralisia.', color: 'yellow' },
-  { name: 'Envenenado', desc: 'O efeito desta condição varia de acordo com o veneno. Pode ser outra condição ou dano recorrente.', color: 'green' },
-  { name: 'Esmorecido', desc: 'O personagem sofre –2d20 em testes de Intelecto e Presença. Condição mental.', color: 'purple' },
-  { name: 'Exausto', desc: 'O personagem fica debilitado, lento e vulnerável. Se ficar exausto novamente, em vez disso fica inconsciente. Condição de fadiga.', color: 'red' },
-  { name: 'Fascinado', desc: 'Com a atenção presa em alguma coisa. O personagem sofre –2d20 em Percepção e não pode fazer ações, exceto observar aquilo que o fascinou. Condição mental.', color: 'purple' },
-  { name: 'Fatigado', desc: 'O personagem fica fraco e vulnerável. Se o personagem ficar fatigado novamente, em vez disso fica exausto. Condição de fadiga.', color: 'red' },
-  { name: 'Fraco', desc: 'O personagem sofre –1d20 em testes de Agilidade, Físico e Vigor. Se ficar fraco novamente, em vez disso fica debilitado.', color: 'red' },
-  { name: 'Frustrado', desc: 'O personagem sofre –1d20 em testes de Intelecto e Presença. Se ficar frustrado novamente, em vez disso fica esmorecido. Condição mental.', color: 'purple' },
-  { name: 'Imóvel', desc: 'Todas as formas de deslocamento do personagem são reduzidas a 0m. Condição de paralisia.', color: 'yellow' },
-  { name: 'Inconsciente', desc: 'O personagem fica indefeso e não pode fazer ações, incluindo reações.', color: 'red' },
-  { name: 'Indefeso', desc: 'O personagem é considerado desprevenido, mas sofre –10 na Defesa, falha automaticamente em testes de Reflexos e pode sofrer golpes de misericórdia.', color: 'red' },
-  { name: 'Lento', desc: 'Todas as formas de deslocamento do personagem são reduzidas à metade (arredonde para baixo) e não pode correr ou fazer investidas. Condição de paralisia.', color: 'yellow' },
-  { name: 'Machucado', desc: 'O personagem tem menos da metade de seus pontos de vida totais.', color: 'red' },
-  { name: 'Morrendo', desc: 'Com 0 pontos de vida. Fica inconsciente e morre após três rodadas se não estabilizar.', color: 'red' },
-  { name: 'Ofuscado', desc: 'O personagem sofre –1d20 em testes de ataque e de Percepção. Condição de sentidos.', color: 'yellow' },
-  { name: 'Paralisado', desc: 'O personagem fica imóvel e indefeso e só pode realizar ações puramente mentais. Condição de paralisia.', color: 'red' },
-  { name: 'Pasmo', desc: 'O personagem não pode fazer ações. Condição mental.', color: 'purple' },
-  { name: 'Petrificado', desc: 'O personagem fica inconsciente e recebe resistência a dano 10.', color: 'yellow' },
-  { name: 'Sangrando', desc: 'Com um ferimento aberto. No início de seus turnos, o personagem deve fazer um teste de Vigor (DT 20) ou perde 1d6 PV.', color: 'red' },
-  { name: 'Surdo', desc: 'O personagem não pode ouvir, sofre –2d20 em Iniciativa e ruim p/ rituais. Condição de sentidos.', color: 'yellow' },
-  { name: 'Surpreendido', desc: 'Não ciente de seus inimigos. O personagem fica desprevenido e não pode fazer ações.', color: 'yellow' },
-  { name: 'Vulnerável', desc: 'O personagem sofre –5 na Defesa.', color: 'yellow' }
+  { name: 'Fora de Combate', desc: 'Sempre pulado na iniciativa.', color: 'gray', type: 'out_of_combat' },
+  { name: 'Atordoado', desc: 'Pula a vez, não pode fazer ações.', color: 'yellow', type: 'skip_turn', durationTurns: 1 },
+  { name: 'Abalado', desc: '–1d20 em testes.', color: 'purple' },
+  { name: 'Agarrado', desc: 'Desprevenido, imóvel, –1d20 ataque.', color: 'red' },
+  { name: 'Alquebrado', desc: 'Custo de esforço/rituais +1.', color: 'purple' },
+  { name: 'Apavorado', desc: '–2d20 testes, deve fugir.', color: 'purple' },
+  { name: 'Caído', desc: 'Deslocamento reduzido, –2d20 ataque corpo a corpo.', color: 'yellow' },
+  { name: 'Cego', desc: 'Desprevenido e lento. –2d20 Agi/For.', color: 'yellow' },
+  { name: 'Debilitado', desc: '–2d20 Agi, For e Vig.', color: 'red' },
+  { name: 'Desprevenido', desc: '–5 Defesa, –1d20 Reflexos.', color: 'yellow' },
+  { name: 'Em Chamas', desc: '1d6 fogo/turno.', color: 'red' },
+  { name: 'Enredado', desc: 'Lento, vulnerável, –1d20 ataque.', color: 'yellow' },
+  { name: 'Envenenado', desc: 'Efeito contínuo de veneno.', color: 'green' },
+  { name: 'Esmorecido', desc: '–2d20 Int e Pre.', color: 'purple' },
+  { name: 'Exausto', desc: 'Debilitado, lento e vulnerável.', color: 'red' },
+  { name: 'Fascinado', desc: 'Não faz ações além de observar.', color: 'purple', type: 'skip_turn' },
+  { name: 'Fatigado', desc: 'Fraco e vulnerável.', color: 'red' },
+  { name: 'Fraco', desc: '–1d20 Agi, For e Vig.', color: 'red' },
+  { name: 'Frustrado', desc: '–1d20 Int e Pre.', color: 'purple' },
+  { name: 'Imóvel', desc: 'Deslocamento reduzido a 0m.', color: 'yellow' },
+  { name: 'Inconsciente', desc: 'Indefeso, não pode agir.', color: 'red', type: 'skip_turn' },
+  { name: 'Indefeso', desc: 'Desprevenido, –10 Defesa.', color: 'red' },
+  { name: 'Lento', desc: 'Deslocamento metade, não corre.', color: 'yellow' },
+  { name: 'Machucado', desc: '< Metade dos PV totais.', color: 'red' },
+  { name: 'Morrendo', desc: '0 PV, inconsciente, morre em 3 rodadas.', color: 'red', type: 'skip_turn', durationTurns: 3 },
+  { name: 'Ofuscado', desc: '–1d20 ataque e Percepção.', color: 'yellow' },
+  { name: 'Paralisado', desc: 'Imóvel, indefeso, apenas ações mentais.', color: 'red', type: 'skip_turn' },
+  { name: 'Pasmo', desc: 'Não pode fazer ações.', color: 'purple', type: 'skip_turn', durationTurns: 1 },
+  { name: 'Petrificado', desc: 'Inconsciente, Resistência Dano 10.', color: 'yellow', type: 'skip_turn' },
+  { name: 'Sangrando', desc: 'Teste de Vig ou 1d6 PV/turno.', color: 'red' },
+  { name: 'Surdo', desc: '–2d20 Iniciativa e ruim p/ rituais.', color: 'yellow' },
+  { name: 'Surpreendido', desc: 'Desprevenido e não pode agir.', color: 'yellow', type: 'skip_turn', durationTurns: 1 },
+  { name: 'Vulnerável', desc: '–5 Defesa.', color: 'yellow' }
 ];
 
 interface ConditionManagerProps {
@@ -53,9 +50,13 @@ export default function ConditionManager({ conditions, onUpdate }: ConditionMana
   const [customName, setCustomName] = useState('');
   const [customDesc, setCustomDesc] = useState('');
   const [selectedPreset, setSelectedPreset] = useState<string>('');
+  
+  // Custom modifiers state
+  const [customType, setCustomType] = useState<string>('none');
+  const [customDuration, setCustomDuration] = useState<string>('');
 
   const addCondition = (cond: Condition) => {
-    onUpdate([...conditions, { ...cond }]);
+    onUpdate([...conditions, { ...cond, id: crypto.randomUUID() }]);
   };
 
   const removeCondition = (idx: number) => {
@@ -64,9 +65,24 @@ export default function ConditionManager({ conditions, onUpdate }: ConditionMana
 
   const handleAddCustom = () => {
     if (!customName.trim()) return;
-    addCondition({ name: customName, desc: customDesc, color: 'red' });
+    
+    let type: Condition['type'] = undefined;
+    if (customType !== 'none') type = customType as Condition['type'];
+    
+    const durationTurns = customDuration ? parseInt(customDuration, 10) : undefined;
+
+    addCondition({ 
+      name: customName, 
+      desc: customDesc, 
+      color: 'red',
+      type,
+      durationTurns: isNaN(durationTurns as number) ? undefined : durationTurns
+    });
+    
     setCustomName('');
     setCustomDesc('');
+    setCustomType('none');
+    setCustomDuration('');
   };
 
   const colorMap: Record<string, string> = {
@@ -74,22 +90,41 @@ export default function ConditionManager({ conditions, onUpdate }: ConditionMana
     yellow: '#ffd700',
     green: '#04d361',
     purple: '#8257e5',
+    gray: '#a8a8b3'
+  };
+
+  const getTypeIcon = (type?: string) => {
+    switch (type) {
+      case 'skip_turn': return <Ban className="w-3 h-3 text-red-400" title="Pula a Vez" />;
+      case 'out_of_combat': return <Skull className="w-3 h-3 text-gray-400" title="Fora de Combate" />;
+      case 'stat_modifier': return <Activity className="w-3 h-3 text-blue-400" title="Modificador de Status" />;
+      default: return null;
+    }
   };
 
   return (
     <div className="space-y-4">
+      {/* Lista de Condições */}
       <div className="space-y-2">
         {conditions.map((c, idx) => (
           <div
-            key={idx}
-            className="flex justify-between items-start bg-black/20 p-2 rounded border border-[#323238] border-l-4"
+            key={c.id || idx}
+            className="flex justify-between items-center bg-black/20 p-2 rounded border border-[#323238] border-l-4"
             style={{ borderLeftColor: colorMap[c.color] || c.color }}
           >
-            <div>
-              <strong className="text-sm text-[#e1e1e6] block">{c.name}</strong>
-              <span className="text-xs text-[#a8a8b3] block">{c.desc}</span>
+            <div className="flex-1 min-w-0 pr-2">
+              <div className="flex items-center gap-2">
+                <strong className="text-sm text-[#e1e1e6] truncate">{c.name}</strong>
+                {getTypeIcon(c.type)}
+                {c.durationTurns !== undefined && (
+                  <span className="flex items-center gap-1 text-[10px] bg-[#323238] text-[#a8a8b3] px-1.5 py-0.5 rounded-full" title="Duração (Turnos)">
+                    <Hourglass className="w-3 h-3" /> {c.durationTurns}
+                  </span>
+                )}
+              </div>
+              <span className="text-[11px] text-[#a8a8b3] block truncate" title={c.desc}>{c.desc}</span>
             </div>
-            <button className="text-[#a8a8b3] hover:text-[#e55757]" onClick={() => removeCondition(idx)}>
+            <button className="text-[#a8a8b3] hover:text-[#e55757] shrink-0" onClick={() => removeCondition(idx)}>
               <Trash2 className="w-4 h-4" />
             </button>
           </div>
@@ -97,54 +132,89 @@ export default function ConditionManager({ conditions, onUpdate }: ConditionMana
         {conditions.length === 0 && <span className="text-xs text-[#a8a8b3]">Nenhuma condição aplicada.</span>}
       </div>
 
-      <div className="flex gap-2 items-center">
+      {/* Adicionar Predefinido */}
+      <div className="flex gap-2 items-center bg-[#121214] p-2 rounded-lg border border-[#323238]">
         <Select value={selectedPreset} onValueChange={(val) => setSelectedPreset(val as string)}>
-          <SelectTrigger className="w-full bg-[#121214] border-[#323238] focus:ring-[#8257e5] text-[#e1e1e6]">
-            <SelectValue placeholder="Carregar do Compêndio..." />
+          <SelectTrigger className="w-full bg-transparent border-none focus:ring-0 text-[#e1e1e6] h-8 text-sm">
+            <SelectValue placeholder="Condição Predefinida..." />
           </SelectTrigger>
           <SelectContent className="bg-[#202024] border-[#323238] text-[#e1e1e6] max-h-[300px]">
             {PRESET_CONDITIONS.map(p => (
-              <SelectItem key={p.name} value={p.name} className="hover:bg-[#8257e5] cursor-pointer">
-                {p.name}
+              <SelectItem key={p.name} value={p.name} className="hover:bg-[#8257e5] cursor-pointer text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: colorMap[p.color] }} />
+                  {p.name}
+                </div>
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+        
+        {/* Duração para o Preset */}
+        <Input 
+          type="number"
+          placeholder="♾️"
+          title="Duração em Turnos"
+          value={customDuration}
+          onChange={(e) => setCustomDuration(e.target.value)}
+          className="w-12 h-8 text-center text-xs bg-[#202024] border-[#323238] px-1"
+        />
+
         <Button 
           onClick={() => {
             if (selectedPreset) {
               const preset = PRESET_CONDITIONS.find(p => p.name === selectedPreset);
               if (preset) {
-                addCondition(preset);
+                const durationTurns = customDuration ? parseInt(customDuration, 10) : preset.durationTurns;
+                addCondition({ 
+                  ...preset, 
+                  durationTurns: isNaN(durationTurns as number) ? undefined : durationTurns
+                });
                 setSelectedPreset('');
+                setCustomDuration('');
               }
             }
           }}
-          variant="outline" 
-          className="bg-transparent border-[#323238] hover:bg-white/5 hover:text-white shrink-0"
+          size="sm"
+          className="bg-[#8257e5] hover:bg-[#9466ff] text-white shrink-0 h-8"
         >
-          Adicionar
+          <Plus className="w-4 h-4" />
         </Button>
       </div>
 
-      <div className="flex gap-2">
-        <div className="flex-1 space-y-2">
+      {/* Condição Customizada */}
+      <div className="bg-[#121214] p-2 rounded-lg border border-[#323238] flex flex-col gap-2">
+        <div className="flex gap-2">
           <Input
-            placeholder="Nova Condição..."
+            placeholder="Nome (Nova)..."
             value={customName}
             onChange={(e) => setCustomName(e.target.value)}
-            className="bg-[#121214] border-[#323238] h-8 text-sm focus-visible:ring-[#8257e5] text-[#e1e1e6]"
+            className="flex-1 bg-transparent border-[#323238] h-8 text-sm text-[#e1e1e6]"
           />
           <Input
-            placeholder="Descrição..."
+            placeholder="Desc..."
             value={customDesc}
             onChange={(e) => setCustomDesc(e.target.value)}
-            className="bg-[#121214] border-[#323238] h-8 text-sm focus-visible:ring-[#8257e5] text-[#e1e1e6]"
+            className="flex-1 bg-transparent border-[#323238] h-8 text-sm text-[#e1e1e6]"
           />
         </div>
-        <Button onClick={handleAddCustom} variant="outline" className="bg-transparent border-[#323238] h-[72px] hover:bg-white/5 hover:text-white">
-          <Plus className="w-4 h-4" />
-        </Button>
+        <div className="flex gap-2 items-center">
+          <Select value={customType} onValueChange={setCustomType}>
+            <SelectTrigger className="flex-1 bg-[#202024] border-[#323238] text-[#e1e1e6] h-8 text-xs">
+              <SelectValue placeholder="Efeito no Turno" />
+            </SelectTrigger>
+            <SelectContent className="bg-[#202024] border-[#323238] text-[#e1e1e6]">
+              <SelectItem value="none">Normal</SelectItem>
+              <SelectItem value="skip_turn">Pula Turno</SelectItem>
+              <SelectItem value="out_of_combat">Fora de Combate</SelectItem>
+              <SelectItem value="stat_modifier">Modificador (+/-)</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button onClick={handleAddCustom} size="sm" variant="outline" className="border-[#323238] hover:bg-white/5 hover:text-white shrink-0 h-8">
+            Adicionar Custom
+          </Button>
+        </div>
       </div>
     </div>
   );

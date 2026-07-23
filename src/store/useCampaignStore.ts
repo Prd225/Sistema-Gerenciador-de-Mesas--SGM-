@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useTokenStore } from './useTokenStore';
 
 interface CampaignState {
   scene: number;
@@ -51,19 +52,79 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
   setTurn: (turn) => set({ turn }),
   addTurn: () => {
     const { turn, turnsPerRound, round, urgency } = get();
-    let nextTurn = turn + 1;
-    let nextRound = round;
-    let nextUrgency = urgency;
-    
-    if (nextTurn > turnsPerRound) {
-      nextTurn = 1;
-      nextRound += 1;
-      if (urgency !== null) {
-        nextUrgency = Math.max(0, urgency - 1);
+    // Pre-requisite: we need access to tokens and queue
+    const tokenStore = useTokenStore.getState();
+    const { initiativeQueue, tokens, updateToken } = tokenStore;
+
+    if (initiativeQueue.length === 0) {
+      // fallback to basic behavior if no queue
+      let nextTurn = turn + 1;
+      let nextRound = round;
+      let nextUrgency = urgency;
+      if (nextTurn > turnsPerRound) {
+        nextTurn = 1;
+        nextRound += 1;
+        if (urgency !== null) nextUrgency = Math.max(0, urgency - 1);
+      }
+      set({ turn: nextTurn, round: nextRound, urgency: nextUrgency });
+      return;
+    }
+
+    let currentTurn = turn;
+    let currentRound = round;
+    let currentUrgency = urgency;
+
+    // Loop to find the next valid turn, skipping 'skip_turn' and 'out_of_combat'
+    let sanityLimit = initiativeQueue.length + 1;
+    while (sanityLimit > 0) {
+      sanityLimit--;
+      
+      currentTurn++;
+      if (currentTurn > turnsPerRound) {
+        currentTurn = 1;
+        currentRound++;
+        if (currentUrgency !== null) currentUrgency = Math.max(0, currentUrgency - 1);
+      }
+
+      const queueItem = initiativeQueue[currentTurn - 1];
+      if (!queueItem) break; // Should not happen if turnsPerRound matches queue length
+
+      const token = tokens.find(t => t.id === queueItem.tokenId);
+      if (!token) break;
+
+      // Process conditions for this token as its turn is coming up
+      let shouldSkip = false;
+      let conditionsChanged = false;
+      const newConditions = token.conditions.map(c => {
+        if (c.type === 'out_of_combat') {
+          shouldSkip = true;
+          return c; // Out of combat usually doesn't decrement, it's persistent until removed
+        }
+        
+        let cpy = { ...c };
+        if (cpy.durationTurns !== undefined) {
+          cpy.durationTurns -= 1;
+          conditionsChanged = true;
+        }
+        
+        if (cpy.type === 'skip_turn' && (cpy.durationTurns === undefined || cpy.durationTurns >= 0)) {
+          shouldSkip = true;
+        }
+
+        return cpy;
+      }).filter(c => c.durationTurns === undefined || c.durationTurns >= 0);
+
+      if (conditionsChanged || newConditions.length !== token.conditions.length) {
+        updateToken(token.id, { conditions: newConditions });
+      }
+
+      if (!shouldSkip) {
+        // We found a valid turn
+        break;
       }
     }
-    
-    set({ turn: nextTurn, round: nextRound, urgency: nextUrgency });
+
+    set({ turn: currentTurn, round: currentRound, urgency: currentUrgency });
   },
   
   setUrgency: (urgency) => set({ urgency }),

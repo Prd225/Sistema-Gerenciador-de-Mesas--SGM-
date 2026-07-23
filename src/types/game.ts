@@ -51,9 +51,12 @@ export interface TokenStats {
 }
 
 export interface Condition {
+  id?: string;
   name: string;
   desc: string;
   color: string;
+  type?: 'skip_turn' | 'stat_modifier' | 'out_of_combat' | 'custom';
+  durationTurns?: number; // undefined = infinite
 }
 
 export interface Token {
@@ -164,6 +167,8 @@ export interface Marker {
 }
 
 // --- Initiative ---
+
+export type InitiativeSortMode = 'descending' | 'ascending' | 'custom';
 
 export interface InitiativeItem {
   tokenId: string;
