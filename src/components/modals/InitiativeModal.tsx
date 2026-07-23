@@ -60,14 +60,18 @@ export default function InitiativeModal({ open, onOpenChange }: InitiativeModalP
             <div key={token.id} className="flex items-center justify-between gap-4 p-2 bg-black/20 rounded border border-[#323238]">
               <div className="flex items-center gap-2">
                 <div
-                  className="w-7 h-7 rounded-full border-2 flex items-center justify-center text-[0.6rem] font-bold shrink-0"
+                  className="w-7 h-7 rounded-full border-2 flex items-center justify-center text-[0.6rem] font-bold shrink-0 overflow-hidden relative"
                   style={{
                     borderColor: token.colorBorder,
                     backgroundColor: token.colorFill,
                     color: token.colorText,
                   }}
                 >
-                  {token.name}
+                  {token.imageUrl ? (
+                    <img src={token.imageUrl} alt={token.name} className="w-full h-full object-cover pointer-events-none" />
+                  ) : (
+                    token.name
+                  )}
                 </div>
                 <span className="font-bold text-sm truncate">{token.fullName}</span>
               </div>
