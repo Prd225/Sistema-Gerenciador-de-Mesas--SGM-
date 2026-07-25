@@ -157,7 +157,7 @@ export default function ConditionManager({ conditions, onUpdate }: ConditionMana
           title="Duração em Turnos"
           value={customDuration}
           onChange={(e) => setCustomDuration(e.target.value)}
-          className="w-12 h-8 text-center text-xs bg-[#202024] border-[#323238] px-1"
+          className="w-12 h-8 text-center text-xs bg-[#202024] border-[#323238] px-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
 
         <Button 
@@ -176,7 +176,8 @@ export default function ConditionManager({ conditions, onUpdate }: ConditionMana
             }
           }}
           size="sm"
-          className="bg-[#8257e5] hover:bg-[#9466ff] text-white shrink-0 h-8"
+          variant="outline"
+          className="border-[#323238] bg-[#202024] hover:bg-[#8257e5] hover:text-white hover:border-[#8257e5] shrink-0 h-8"
         >
           <Plus className="w-4 h-4" />
         </Button>

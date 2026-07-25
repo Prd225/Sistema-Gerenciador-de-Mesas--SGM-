@@ -90,13 +90,13 @@ export function InitiativeToolbar() {
             placeholder="Ex: 2" 
             value={adjustValue}
             onChange={e => setAdjustValue(e.target.value)}
-            className="w-16 h-7 text-xs bg-[#121214] border-[#323238]"
+            className="w-16 h-7 text-xs bg-[#121214] border-[#323238] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
           <Button 
             variant="outline" 
             size="sm" 
             onClick={() => handleAdjustAll('sub')}
-            className="h-7 px-2 border-[#323238] text-[#e1e1e6] hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/50"
+            className="bg-transparent h-7 px-2 border-[#323238] text-[#e1e1e6] hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/50"
             title="Subtrair de todos"
             disabled={!adjustValue}
           >
@@ -106,7 +106,7 @@ export function InitiativeToolbar() {
             variant="outline" 
             size="sm" 
             onClick={() => handleAdjustAll('add')}
-            className="h-7 px-2 border-[#323238] text-[#e1e1e6] hover:bg-green-500/20 hover:text-green-400 hover:border-green-500/50"
+            className="bg-transparent h-7 px-2 border-[#323238] text-[#e1e1e6] hover:bg-green-500/20 hover:text-green-400 hover:border-green-500/50"
             title="Adicionar a todos"
             disabled={!adjustValue}
           >

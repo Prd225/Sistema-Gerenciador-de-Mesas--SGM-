@@ -66,7 +66,7 @@ function SortableTokenRow({ item, token, onValueChange, sortMode }: { item: any,
         placeholder="00.00"
         value={item.value === 0 && !item.valueAsString ? '' : item.value}
         onChange={(e) => onValueChange(e.target.value)}
-        className="w-20 bg-[#121214] border-[#323238] h-8 text-center text-[#e1e1e6]"
+        className="w-20 bg-[#121214] border-[#323238] h-8 text-center text-[#e1e1e6] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
       />
     </div>
   );
@@ -217,7 +217,7 @@ export default function InitiativeModal({ open, onOpenChange }: InitiativeModalP
               clearInitiative();
               setTurnsPerRound(0);
             }}
-            className="border-red-500 text-red-500 hover:bg-red-500/10 hover:text-red-400 w-full"
+            className="bg-transparent border-red-500/50 text-red-500 hover:bg-red-500/10 hover:text-red-400 w-full"
           >
             <Trash className="w-4 h-4 mr-2" /> Limpar Fila
           </Button>
