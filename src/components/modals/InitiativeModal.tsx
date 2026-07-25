@@ -141,7 +141,7 @@ export default function InitiativeModal({ open, onOpenChange }: InitiativeModalP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#1a1a1e] border-[#323238] text-[#e1e1e6] sm:max-w-[450px]">
+      <DialogContent className="bg-[#1a1a1e] border-[#323238] text-[#e1e1e6] sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle className="text-[#ffd700]">Fila de Iniciativa</DialogTitle>
         </DialogHeader>

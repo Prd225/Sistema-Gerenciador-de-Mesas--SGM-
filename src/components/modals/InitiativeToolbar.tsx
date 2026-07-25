@@ -51,7 +51,7 @@ export function InitiativeToolbar() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         {/* Sort Modes */}
         <div className="flex items-center gap-1 bg-[#121214] p-1 rounded-md border border-[#323238]">
           <Button
