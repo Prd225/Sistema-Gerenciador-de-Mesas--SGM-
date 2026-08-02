@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { useTokenStore } from './useTokenStore';
+import { triggerAutoSave } from '@/lib/saveHelpers';
 
 interface CampaignState {
   scene: number;
@@ -43,13 +44,13 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
     : null,
   autoSaveStatus: 'idle',
   
-  setScene: (scene) => set({ scene }),
-  nextScene: () => set((state) => ({ scene: state.scene + 1, round: 1, turn: 1 })),
+  setScene: (scene) => { set({ scene }); triggerAutoSave(); },
+  nextScene: () => { set((state) => ({ scene: state.scene + 1, round: 1, turn: 1 })); triggerAutoSave(); },
   
-  setRound: (round) => set({ round }),
-  nextRound: () => set((state) => ({ round: state.round + 1 })),
+  setRound: (round) => { set({ round }); triggerAutoSave(); },
+  nextRound: () => { set((state) => ({ round: state.round + 1 })); triggerAutoSave(); },
   
-  setTurn: (turn) => set({ turn }),
+  setTurn: (turn) => { set({ turn }); triggerAutoSave(); },
   addTurn: () => {
     const { turn, turnsPerRound, round, urgency } = get();
     // Pre-requisite: we need access to tokens and queue
@@ -67,6 +68,7 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
         if (urgency !== null) nextUrgency = Math.max(0, urgency - 1);
       }
       set({ turn: nextTurn, round: nextRound, urgency: nextUrgency });
+      triggerAutoSave();
       return;
     }
 
@@ -125,13 +127,14 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
     }
 
     set({ turn: currentTurn, round: currentRound, urgency: currentUrgency });
+    triggerAutoSave();
   },
   
-  setUrgency: (urgency) => set({ urgency }),
-  changeUrgency: (amount) => set((state) => ({ 
+  setUrgency: (urgency) => { set({ urgency }); triggerAutoSave(); },
+  changeUrgency: (amount) => { set((state) => ({ 
     urgency: state.urgency !== null ? Math.max(0, state.urgency + amount) : null 
-  })),
-  setTurnsPerRound: (turnsPerRound) => set({ turnsPerRound }),
+  })); triggerAutoSave(); },
+  setTurnsPerRound: (turnsPerRound) => { set({ turnsPerRound }); triggerAutoSave(); },
   setShowInitModal: (showInitModal) => set({ showInitModal }),
   setShowLoadModal: (showLoadModal) => set({ showLoadModal }),
   setShowSaveModal: (showSaveModal) => set({ showSaveModal }),

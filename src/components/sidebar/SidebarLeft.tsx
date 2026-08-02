@@ -181,11 +181,29 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                         <img src={zoneData.imageUrl} alt={zoneData.title} className="w-full h-auto object-contain max-h-[300px]" />
                       </div>
                     )}
-                    <div className="flex justify-between items-start border-b border-[#323238] pb-4 gap-4">
-                      <RichTextView content={zoneData.desc || ''} defaultText="Sem descrição..." />
-                      <div className="bg-black/20 px-3 py-1 rounded text-center shrink-0 border border-[#323238]">
-                        <span className="text-[0.6rem] text-[#a8a8b3] uppercase block">Visitas</span>
-                        <span className="text-xl font-bold text-[#ffd700] leading-none">{zoneData.visits || 0}</span>
+                    <div className="flex flex-col gap-4 mb-4 border-b border-[#323238] pb-6">
+                      <div className="bg-[#1a1a1e] p-5 rounded-lg border border-[#323238] relative shadow-[inset_0_2px_10px_rgba(0,0,0,0.3)]">
+                        <div className="absolute top-0 left-0 w-1.5 h-full bg-[#8257e5] rounded-l-lg"></div>
+                        <div className="relative z-10">
+                          <h3 className="text-[#a8a8b3] text-[10px] font-bold tracking-widest uppercase mb-3 flex items-center gap-2">
+                            <Map className="w-3 h-3 text-[#8257e5]" /> Anotações do Mestre
+                          </h3>
+                          <div className="text-[#d4d4d8] leading-relaxed text-[14.5px]">
+                            <RichTextView content={zoneData.desc || ''} defaultText="Sem anotações registradas. Os ventos não contam histórias sobre este lugar..." />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end">
+                        <div className="bg-black/30 px-4 py-2 rounded-lg text-center flex items-center gap-4 border border-[#323238] shadow-sm">
+                          <div className="text-right">
+                            <span className="text-[0.65rem] text-[#a8a8b3] uppercase font-bold tracking-wider block">Visitas Registradas</span>
+                            <span className="text-[#8257e5] text-[10px] uppercase font-medium">Histórico do Local</span>
+                          </div>
+                          <div className="text-2xl font-black text-[#ffd700] drop-shadow-[0_0_8px_rgba(255,215,0,0.2)] bg-[#121214] px-4 py-1.5 rounded border border-[#323238]">
+                            {zoneData.visits || 0}
+                          </div>
+                        </div>
                       </div>
                     </div>
 
