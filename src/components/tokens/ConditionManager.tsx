@@ -52,7 +52,7 @@ export default function ConditionManager({ conditions, onUpdate }: ConditionMana
   const [selectedPreset, setSelectedPreset] = useState<string>('');
   
   // Custom modifiers state
-  const [customType, setCustomType] = useState<string>('none');
+  const [customType, setCustomType] = useState<string>('normal');
   const [customDuration, setCustomDuration] = useState<string>('');
 
   const addCondition = (cond: Condition) => {
@@ -67,7 +67,7 @@ export default function ConditionManager({ conditions, onUpdate }: ConditionMana
     if (!customName.trim()) return;
     
     let type: Condition['type'] = undefined;
-    if (customType !== 'none') type = customType as Condition['type'];
+    if (customType !== 'normal') type = customType as Condition['type'];
     
     const durationTurns = customDuration ? parseInt(customDuration, 10) : undefined;
 
@@ -81,7 +81,7 @@ export default function ConditionManager({ conditions, onUpdate }: ConditionMana
     
     setCustomName('');
     setCustomDesc('');
-    setCustomType('none');
+    setCustomType('normal');
     setCustomDuration('');
   };
 
@@ -205,14 +205,14 @@ export default function ConditionManager({ conditions, onUpdate }: ConditionMana
               <SelectValue placeholder="Efeito no Turno" />
             </SelectTrigger>
             <SelectContent className="bg-[#202024] border-[#323238] text-[#e1e1e6]">
-              <SelectItem value="none">Normal</SelectItem>
+              <SelectItem value="normal">Normal</SelectItem>
               <SelectItem value="skip_turn">Pula Turno</SelectItem>
               <SelectItem value="out_of_combat">Fora de Combate</SelectItem>
               <SelectItem value="stat_modifier">Modificador (+/-)</SelectItem>
             </SelectContent>
           </Select>
 
-          <Button onClick={handleAddCustom} size="sm" variant="outline" className="border-[#323238] hover:bg-white/5 hover:text-white shrink-0 h-8">
+          <Button onClick={handleAddCustom} size="sm" variant="outline" className="border-[#323238] bg-[#202024] text-[#e1e1e6] hover:bg-white/5 hover:text-white shrink-0 h-8">
             Adicionar Custom
           </Button>
         </div>
