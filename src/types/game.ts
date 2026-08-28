@@ -133,6 +133,9 @@ export interface Zone {
   y: number;
   w: number;
   h: number;
+  rotation?: number;
+  scaleX?: number;
+  scaleY?: number;
   clipPath?: string;             // for polygon CSS clip-path
   points?: number[];  // [x1, y1, x2, y2, ...]
   data: {
@@ -188,4 +191,4 @@ export interface BgImage {
 
 // --- Tool ---
 
-export type ActiveTool = 'pan' | 'select' | 'draw-rect' | 'draw-ellipse' | 'draw-poly' | 'edit-bg' | 'add-marker';
+export type ActiveTool = 'pan' | 'select' | 'edit-zone' | 'draw-rect' | 'draw-ellipse' | 'draw-poly' | 'edit-bg' | 'add-marker';

@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { useZoneStore } from '@/store/useZoneStore';
 import { Button } from '@/components/ui/button';
-import { Move, MousePointer2, Square, Circle, Hexagon, MapPin, Image as ImageIcon, Plus, Pencil } from 'lucide-react';
+import { Move, MousePointer2, Square, Circle, Hexagon, MapPin, Image as ImageIcon, Plus, Pencil, Edit3 } from 'lucide-react';
 import type { ActiveTool } from '@/types/game';
 
 const generateId = () =>
@@ -34,12 +34,13 @@ export default function MapToolbar() {
 
   const tools: { id: string; icon: React.ReactNode; title: string; subTools?: { id: ActiveTool; icon: React.ReactNode; title: string }[] }[] = [
     { id: 'pan', icon: <Move className="w-5 h-5" />, title: 'Mover Fundo (Espaço)' },
-    { id: 'select', icon: <MousePointer2 className="w-5 h-5" />, title: 'Selecionar / Arrastar Itens (V)' },
+    { id: 'select', icon: <MousePointer2 className="w-5 h-5" />, title: 'Selecionar (V)' },
     { 
       id: 'draw-group', 
       icon: <Pencil className="w-5 h-5" />, 
-      title: 'Ferramentas de Desenho',
+      title: 'Ferramentas de Zona',
       subTools: [
+        { id: 'edit-zone', icon: <Edit3 className="w-4 h-4" />, title: 'Editar Zonas (Mover/Redimensionar)' },
         { id: 'draw-rect', icon: <Square className="w-4 h-4" />, title: 'Desenhar Zona Retangular' },
         { id: 'draw-ellipse', icon: <Circle className="w-4 h-4" />, title: 'Desenhar Zona Circular' },
         { id: 'draw-poly', icon: <Hexagon className="w-4 h-4" />, title: 'Desenhar Zona Poligonal' }

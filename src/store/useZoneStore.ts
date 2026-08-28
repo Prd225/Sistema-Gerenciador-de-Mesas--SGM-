@@ -43,8 +43,9 @@ interface ZoneState {
   setActiveTool: (tool: ActiveTool) => void;
   setSelectedNodeIds: (ids: string[]) => void;
 
-  // Select zone and open sidebar (matching original selectZone behavior)
   selectZone: (id: string) => void;
+  openZoneSidebar: (id: string) => void;
+  updateZoneTransform: (id: string, updates: Partial<Zone>) => void;
 }
 
 export const useZoneStore = create<ZoneState>((set) => ({
@@ -162,9 +163,21 @@ export const useZoneStore = create<ZoneState>((set) => ({
   setActiveTool: (activeTool) => set({ activeTool }),
   setSelectedNodeIds: (ids) => set({ selectedNodeIds: ids }),
 
-  // Select zone AND open left sidebar (matching original `mapSystem.selectZone`)
-  selectZone: (id) => set({
+  selectZone: (id) => set({ selectedZoneId: id }),
+
+  openZoneSidebar: (id) => set({
     selectedZoneId: id,
     leftSidebarOpen: true,
   }),
+
+  updateZoneTransform: (id, updates) => set((state) => {
+    const zone = state.zones[id];
+    if (!zone) return state;
+    return {
+      zones: {
+        ...state.zones,
+        [id]: { ...zone, ...updates }
+      }
+    };
+  })
 }));
