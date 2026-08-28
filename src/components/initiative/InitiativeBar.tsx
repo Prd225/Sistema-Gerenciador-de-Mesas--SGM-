@@ -25,7 +25,7 @@ export default function InitiativeBar() {
   };
 
   return (
-    <div className="absolute bottom-5 left-5 flex gap-4 px-4 pb-4 pt-8 bg-[#202024]/95 border border-[#323238] rounded-lg shadow-[0_4px_15px_rgba(0,0,0,0.7)] max-w-[calc(100%-100px)] overflow-x-auto z-[101] items-end pointer-events-auto">
+    <div className="absolute bottom-5 left-5 flex gap-4 px-4 pb-4 pt-8 bg-[#202024]/95 border border-[#323238] rounded-lg shadow-[0_4px_15px_rgba(0,0,0,0.7)] max-w-[calc(100%-100px)] overflow-x-auto z-30 items-end pointer-events-auto">
       {queue.map((item, index) => {
         const token = tokens.find(t => t.id === item.tokenId);
         if (!token) return null;

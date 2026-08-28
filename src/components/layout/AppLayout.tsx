@@ -118,9 +118,9 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
       {/* Token Context Menu Overlay */}
       {tokenCtx && (
         <>
-          <div className="fixed inset-0 z-[100]" onClick={() => setTokenCtx(null)} onContextMenu={(e) => { e.preventDefault(); setTokenCtx(null); }} />
+          <div className="fixed inset-0 z-[60]" onClick={() => setTokenCtx(null)} onContextMenu={(e) => { e.preventDefault(); setTokenCtx(null); }} />
           <div 
-            className="fixed z-[101] bg-[#202024] border border-[#323238] rounded shadow-lg min-w-[160px] overflow-hidden"
+            className="fixed z-[61] bg-[#202024] border border-[#323238] rounded shadow-lg min-w-[160px] overflow-hidden"
             style={{ left: tokenCtx.x, top: tokenCtx.y }}
           >
             <div className="flex items-center gap-2 px-4 py-2 hover:bg-[#8257e5] hover:text-white cursor-pointer transition-colors text-sm" onClick={() => { 

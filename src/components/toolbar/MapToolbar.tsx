@@ -50,7 +50,7 @@ export default function MapToolbar() {
   ];
 
   return (
-    <div className="absolute right-5 bottom-5 flex flex-col gap-2 z-[100] pointer-events-none">
+    <div className="absolute right-5 bottom-5 flex flex-col gap-2 z-30 pointer-events-none">
       {/* Hidden file input for image upload */}
       <input
         ref={fileInputRef}
