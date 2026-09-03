@@ -103,7 +103,7 @@ export default function MapToolbar() {
         onChange={handleFileChange}
       />
 
-      <div className="flex flex-col gap-2 bg-[#202024]/90 p-2 rounded-lg border border-[#323238] shadow-[0_4px_15px_rgba(0,0,0,0.5)] backdrop-blur-sm pointer-events-auto">
+      <div className="flex flex-col gap-2 bg-surface-elevated/90 p-2 rounded-lg border border-subtle shadow-xl backdrop-blur-sm pointer-events-auto transition-colors">
         {tools.map((tool) => (
           <div key={tool.id} className="relative group">
             <Button
@@ -117,8 +117,8 @@ export default function MapToolbar() {
               className={`w-10 h-10 transition-all ${
                 activeTool === tool.id ||
                 (tool.id === 'draw-group' && activeTool.startsWith('draw-'))
-                  ? 'bg-[#8257e5] text-white border-[#8257e5] hover:bg-[#9466ff]'
-                  : 'bg-transparent text-[#a8a8b3] border-transparent hover:bg-white/10 hover:text-white'
+                  ? 'bg-brand-purple text-white border-brand-purple hover:bg-brand-purple-hover'
+                  : 'bg-transparent text-muted-custom border-transparent hover:bg-surface hover:text-main'
               }`}
               title={tool.title}
             >
@@ -137,10 +137,10 @@ export default function MapToolbar() {
                       e.stopPropagation();
                       setActiveTool(sub.id);
                     }}
-                    className={`w-9 h-9 rounded-full transition-all shadow-[0_2px_5px_rgba(0,0,0,0.5)] ${
+                    className={`w-9 h-9 rounded-full transition-all shadow-md ${
                       activeTool === sub.id
-                        ? 'bg-[#9466ff] border-[#8257e5] text-white'
-                        : 'bg-[#202024] border-[#323238] text-[#a8a8b3] hover:bg-[#8257e5] hover:text-white'
+                        ? 'bg-brand-purple border-brand-purple text-white hover:bg-brand-purple-hover'
+                        : 'bg-surface-elevated border-subtle text-muted-custom hover:bg-brand-purple hover:text-white'
                     }`}
                     title={sub.title}
                   >
@@ -157,7 +157,7 @@ export default function MapToolbar() {
                   variant="outline"
                   size="icon"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-9 h-9 rounded-full bg-[#202024] border-[#323238] text-[#a8a8b3] hover:bg-[#8257e5] hover:text-white shadow-[0_2px_5px_rgba(0,0,0,0.5)] transition-all"
+                  className="w-9 h-9 rounded-full bg-surface-elevated border-subtle text-muted-custom hover:bg-brand-purple hover:text-white shadow-md transition-all"
                   title="Adicionar Imagem"
                 >
                   <Plus className="w-4 h-4" />

@@ -209,9 +209,11 @@ export default function TokenCreateModal() {
         open={showTokenCreateModal}
         onOpenChange={(open) => !open && setShowTokenCreateModal(false)}
       >
-        <DialogContent className="bg-[#202024] border-[#323238] text-[#e1e1e6] sm:max-w-[400px]">
+        <DialogContent className="bg-surface border border-subtle text-main sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle className="text-[#ffd700]">Ajustar Imagem</DialogTitle>
+            <DialogTitle className="text-brand-gold font-bold">
+              Ajustar Imagem
+            </DialogTitle>
           </DialogHeader>
           <ImageCropper
             imageSrc={rawImage}
@@ -228,15 +230,17 @@ export default function TokenCreateModal() {
 
   return (
     <Dialog open={showTokenCreateModal} onOpenChange={setShowTokenCreateModal}>
-      <DialogContent className="bg-[#202024] border-[#323238] text-[#e1e1e6] sm:max-w-[350px]">
+      <DialogContent className="bg-surface border border-subtle text-main sm:max-w-[350px]">
         <DialogHeader>
-          <DialogTitle className="text-[#ffd700]">Criar Novo Token</DialogTitle>
+          <DialogTitle className="text-brand-gold font-bold">
+            Criar Novo Token
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 my-2">
           {/* Imagem do Token */}
           <div className="flex justify-center">
-            <div className="relative group w-24 h-24 rounded-full border-2 border-dashed border-[#323238] flex items-center justify-center overflow-hidden hover:border-[#8257e5] transition-colors cursor-pointer bg-[#121214]">
+            <div className="relative group w-24 h-24 rounded-full border-2 border-dashed border-subtle flex items-center justify-center overflow-hidden hover:border-brand-purple transition-colors cursor-pointer bg-app">
               {croppedImage ? (
                 <>
                   <img
@@ -245,7 +249,7 @@ export default function TokenCreateModal() {
                     className="w-full h-full object-cover"
                   />
                   <div
-                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer"
                     onClick={(e) => {
                       e.preventDefault();
                       setCroppedImage(null);
@@ -263,7 +267,7 @@ export default function TokenCreateModal() {
                     onChange={handleFileChange}
                     title="Adicionar Imagem"
                   />
-                  <div className="flex flex-col items-center text-[#a8a8b3] group-hover:text-[#8257e5] pointer-events-none">
+                  <div className="flex flex-col items-center text-muted-custom group-hover:text-brand-purple pointer-events-none">
                     <ImagePlus className="w-6 h-6 mb-1" />
                     <span className="text-[10px]">Imagem</span>
                   </div>
@@ -273,18 +277,18 @@ export default function TokenCreateModal() {
           </div>
 
           <div>
-            <label className="text-xs text-[#a8a8b3] block mb-1">
+            <label className="text-xs text-muted-custom block mb-1">
               Nome do Personagem
             </label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ex: Gandalf"
-              className="bg-[#121214] border-[#323238] h-9 text-[#e1e1e6]"
+              className="bg-app border-subtle h-9 text-main focus:border-brand-purple"
             />
           </div>
           <div>
-            <label className="text-xs text-[#a8a8b3] block mb-1">
+            <label className="text-xs text-muted-custom block mb-1">
               Iniciais (Max 4)
             </label>
             <Input
@@ -292,19 +296,19 @@ export default function TokenCreateModal() {
               onChange={(e) => setInitials(e.target.value)}
               maxLength={4}
               placeholder="GAN"
-              className="bg-[#121214] border-[#323238] h-9 uppercase text-[#e1e1e6]"
+              className="bg-app border-subtle h-9 uppercase text-main focus:border-brand-purple"
             />
           </div>
 
           <div>
-            <label className="text-xs text-[#a8a8b3] block mb-1">
+            <label className="text-xs text-muted-custom block mb-1">
               Tipo de Ficha
             </label>
             <Select
               value={sheetType}
               onValueChange={(val) => setSheetType(val as string)}
             >
-              <SelectTrigger className="bg-[#121214] border-[#323238] text-[#e1e1e6] h-9">
+              <SelectTrigger className="bg-app border-subtle text-main h-9 cursor-pointer">
                 <SelectValue>
                   {
                     {
@@ -316,15 +320,20 @@ export default function TokenCreateModal() {
                   }
                 </SelectValue>
               </SelectTrigger>
-              <SelectContent className="bg-[#202024] border-[#323238] text-[#e1e1e6]">
-                <SelectItem value="player_san">
+              <SelectContent className="bg-surface-elevated border-subtle text-main">
+                <SelectItem value="player_san" className="cursor-pointer">
                   Investigador (Padrão)
                 </SelectItem>
-                <SelectItem value="player_det">Investigador (SaH)</SelectItem>
-                <SelectItem value="threat_realidade">
+                <SelectItem value="player_det" className="cursor-pointer">
+                  Investigador (SaH)
+                </SelectItem>
+                <SelectItem value="threat_realidade" className="cursor-pointer">
                   Ameaça da Realidade
                 </SelectItem>
-                <SelectItem value="threat_paranormal">
+                <SelectItem
+                  value="threat_paranormal"
+                  className="cursor-pointer"
+                >
                   Ameaça Paranormal
                 </SelectItem>
               </SelectContent>
@@ -332,7 +341,9 @@ export default function TokenCreateModal() {
           </div>
 
           <div>
-            <label className="text-xs text-[#a8a8b3] block mb-1">Cores</label>
+            <label className="text-xs text-muted-custom block mb-1">
+              Cores
+            </label>
             <div className="flex gap-4">
               <div className="flex flex-col items-center gap-1">
                 <input
@@ -341,7 +352,7 @@ export default function TokenCreateModal() {
                   onChange={(e) => setColorText(e.target.value)}
                   className="w-10 h-10 border-none p-0 cursor-pointer rounded-full overflow-hidden"
                 />
-                <span className="text-[10px] text-[#a8a8b3]">Letra</span>
+                <span className="text-[10px] text-muted-custom">Letra</span>
               </div>
               <div className="flex flex-col items-center gap-1">
                 <input
@@ -350,7 +361,7 @@ export default function TokenCreateModal() {
                   onChange={(e) => setColorBorder(e.target.value)}
                   className="w-10 h-10 border-none p-0 cursor-pointer rounded-full overflow-hidden"
                 />
-                <span className="text-[10px] text-[#a8a8b3]">Borda</span>
+                <span className="text-[10px] text-muted-custom">Borda</span>
               </div>
               <div className="flex flex-col items-center gap-1">
                 <input
@@ -359,7 +370,7 @@ export default function TokenCreateModal() {
                   onChange={(e) => setColorFill(e.target.value)}
                   className="w-10 h-10 border-none p-0 cursor-pointer rounded-full overflow-hidden"
                 />
-                <span className="text-[10px] text-[#a8a8b3]">Fundo</span>
+                <span className="text-[10px] text-muted-custom">Fundo</span>
               </div>
             </div>
           </div>
@@ -369,13 +380,13 @@ export default function TokenCreateModal() {
           <Button
             variant="outline"
             onClick={() => setShowTokenCreateModal(false)}
-            className="border-[#323238] bg-transparent text-[#e1e1e6] hover:bg-white/5"
+            className="border-subtle bg-transparent text-main hover:bg-surface-elevated cursor-pointer"
           >
             Cancelar
           </Button>
           <Button
             onClick={handleConfirm}
-            className="bg-[#8257e5] hover:bg-[#9466ff] text-white"
+            className="bg-brand-purple hover:bg-brand-purple-hover text-white cursor-pointer"
           >
             Salvar Token
           </Button>

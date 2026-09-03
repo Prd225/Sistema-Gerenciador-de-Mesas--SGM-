@@ -157,17 +157,17 @@ export default function LoadCampaignModal() {
             autoSaveSlot === null &&
             handleLoad(existingSave.data)
           }
-          className={`flex items-center justify-between p-3 rounded-md border border-[#323238] transition-colors
-            ${existingSave ? 'bg-[#121214]' : 'bg-transparent border-dashed opacity-50'}
-            ${!existingSave || autoSaveSlot !== null ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#202024] cursor-pointer'}
+          className={`flex items-center justify-between p-3 rounded-md border border-subtle transition-colors
+            ${existingSave ? 'bg-app' : 'bg-transparent border-dashed opacity-50'}
+            ${!existingSave || autoSaveSlot !== null ? 'cursor-not-allowed opacity-50' : 'hover:bg-surface-elevated cursor-pointer'}
           `}
         >
           <div className="flex flex-col">
-            <span className="font-bold text-[#e1e1e6] text-sm flex items-center gap-2">
+            <span className="font-bold text-main text-sm flex items-center gap-2">
               {i}. {existingSave ? existingSave.name : 'Slot Vazio'}
             </span>
             {existingSave && (
-              <span className="text-[0.65rem] text-[#a8a8b3] font-semibold uppercase">
+              <span className="text-[0.65rem] text-muted-custom font-semibold uppercase">
                 {timeAgo(existingSave.updatedAt)}
               </span>
             )}
@@ -179,7 +179,7 @@ export default function LoadCampaignModal() {
                 variant="outline"
                 size="sm"
                 disabled={autoSaveSlot !== null}
-                className="border-[#323238] bg-[#121214] text-red-500 hover:bg-red-500 hover:text-white h-8 px-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="border-subtle bg-app text-brand-red hover:bg-brand-red hover:text-white h-8 px-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={(e) => handleDelete(e, i, existingSave.name)}
                 title="Apagar Save"
               >
@@ -195,17 +195,17 @@ export default function LoadCampaignModal() {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#202024] border-[#323238] text-[#e1e1e6] sm:max-w-[600px] h-[85vh] flex flex-col">
+      <DialogContent className="bg-surface border border-subtle text-main sm:max-w-[600px] h-[85vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="text-[#ffd700] text-xl font-bold flex items-center gap-2">
+          <DialogTitle className="text-brand-gold text-xl font-bold flex items-center gap-2">
             <FolderOpen className="w-5 h-5" /> Carregar Salvamento
           </DialogTitle>
         </DialogHeader>
 
         {autoSaveSlot !== null && (
-          <div className="bg-yellow-500/10 border border-yellow-500/50 rounded-md p-3 mb-2 flex items-start gap-3 mt-2">
-            <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-yellow-500/90 leading-tight">
+          <div className="bg-brand-gold/10 border border-brand-gold/30 rounded-md p-3 mb-2 flex items-start gap-3 mt-2">
+            <AlertTriangle className="w-5 h-5 text-brand-gold flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-brand-gold leading-tight">
               O Carregamento de Mesas está desabilitado enquanto o{' '}
               <strong>Salvamento Automático (Slot {autoSaveSlot})</strong>{' '}
               estiver ativo. Desative o Auto-save na janela de "Salvar" para
@@ -218,14 +218,14 @@ export default function LoadCampaignModal() {
           {renderSlots()}
         </div>
 
-        <DialogFooter className="mt-4 border-t border-[#323238] pt-4 flex-col sm:flex-row items-center justify-between gap-4">
+        <DialogFooter className="mt-4 border-t border-subtle pt-4 flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="icon"
               disabled={currentPage === 1}
               onClick={() => setCurrentPage((p) => p - 1)}
-              className="border-[#323238] bg-transparent text-[#e1e1e6] hover:bg-white/5"
+              className="border-subtle bg-transparent text-main hover:bg-surface-elevated cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
@@ -245,8 +245,8 @@ export default function LoadCampaignModal() {
                     onClick={() => setCurrentPage(page)}
                     className={
                       currentPage === page
-                        ? 'bg-[#8257e5] hover:bg-[#9466ff] text-white'
-                        : 'border-[#323238] bg-transparent text-[#e1e1e6] hover:bg-white/5 disabled:opacity-30'
+                        ? 'bg-brand-purple hover:bg-brand-purple-hover text-white cursor-pointer'
+                        : 'border-subtle bg-transparent text-main hover:bg-surface-elevated cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed'
                     }
                   >
                     {page}
@@ -263,7 +263,7 @@ export default function LoadCampaignModal() {
                 filledSlotsCount < currentPage * SLOTS_PER_PAGE
               }
               onClick={() => setCurrentPage((p) => p + 1)}
-              className="border-[#323238] bg-transparent text-[#e1e1e6] hover:bg-white/5"
+              className="border-subtle bg-transparent text-main hover:bg-surface-elevated cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <ChevronRight className="w-4 h-4" />
             </Button>
@@ -272,7 +272,7 @@ export default function LoadCampaignModal() {
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="border-[#323238] bg-transparent text-[#e1e1e6] hover:bg-white/5 w-full sm:w-auto"
+            className="border-subtle bg-transparent text-main hover:bg-surface-elevated cursor-pointer w-full sm:w-auto"
           >
             Fechar
           </Button>

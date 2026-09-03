@@ -70,7 +70,7 @@ export default function MasterPanelMenu() {
     <div className="relative">
       <button
         onClick={() => setMenuOpen(!menuOpen)}
-        className="flex items-center gap-2 bg-[#202024] hover:bg-[#323238] border border-[#323238] rounded-md px-4 py-1.5 text-[#e1e1e6] font-medium transition-colors shadow-lg"
+        className="flex items-center gap-2 bg-surface-elevated hover:bg-surface border border-muted rounded-md px-4 py-1.5 text-main font-medium transition-colors shadow-lg cursor-pointer"
       >
         <Settings className="w-4 h-4" />
         MENU
@@ -82,14 +82,14 @@ export default function MasterPanelMenu() {
             className="fixed inset-0 z-40"
             onClick={() => setMenuOpen(false)}
           />
-          <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-80 bg-[#202024] border border-[#323238] rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between p-3 border-b border-[#323238] bg-[#121214]">
-              <h3 className="font-semibold text-sm text-[#e1e1e6]">
+          <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-80 bg-surface-elevated border border-muted rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-3 border-b border-muted bg-surface">
+              <h3 className="font-semibold text-sm text-main">
                 Configurar Painéis
               </h3>
               <button
                 onClick={() => setMenuOpen(false)}
-                className="text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors"
+                className="text-muted-custom hover:text-main transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -105,11 +105,11 @@ export default function MasterPanelMenu() {
                 return (
                   <div
                     key={panel.id}
-                    className="flex flex-col gap-2 p-2 hover:bg-[#29292e] rounded-md transition-colors border border-transparent hover:border-[#323238]"
+                    className="flex flex-col gap-2 p-2 hover:bg-surface rounded-md transition-colors border border-transparent hover:border-subtle"
                   >
                     <div className="flex items-center gap-2">
-                      <Icon className="w-4 h-4 text-[#8257e5]" />
-                      <span className="text-sm font-medium text-[#e1e1e6] flex-1">
+                      <Icon className="w-4 h-4 text-brand-purple" />
+                      <span className="text-sm font-medium text-main flex-1">
                         {panel.title}
                       </span>
                     </div>
@@ -129,10 +129,10 @@ export default function MasterPanelMenu() {
                             }}
                             className={`flex-1 text-xs py-1 rounded transition-colors ${
                               isSelected
-                                ? 'bg-[#8257e5] text-white'
+                                ? 'bg-brand-purple text-white'
                                 : !isAllowed
-                                  ? 'bg-[#121214] text-[#4d4d57] cursor-not-allowed border border-[#323238]/50'
-                                  : 'bg-[#121214] text-[#a8a8b3] hover:bg-[#323238] hover:text-[#e1e1e6] border border-[#323238]'
+                                  ? 'bg-app text-muted-custom/40 cursor-not-allowed border border-subtle/50'
+                                  : 'bg-app text-muted-custom hover:bg-surface hover:text-main border border-subtle cursor-pointer'
                             }`}
                           >
                             {slot === 'left'

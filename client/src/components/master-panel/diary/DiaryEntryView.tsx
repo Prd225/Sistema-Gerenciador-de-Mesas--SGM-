@@ -91,13 +91,13 @@ export default function DiaryEntryView({ entry, onBack }: DiaryEntryViewProps) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#121214]/60 rounded-md border border-[#323238] overflow-hidden">
+    <div className="flex flex-col h-full bg-app/60 rounded-md border border-subtle overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between p-3 bg-[#202024] border-b border-[#323238]">
+      <div className="flex items-center justify-between p-3 bg-surface-elevated border-b border-subtle">
         <div className="flex items-center gap-3">
           <button
             onClick={onBack}
-            className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white transition-colors"
+            className="p-1 hover:bg-surface rounded text-muted-custom hover:text-main transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -107,13 +107,13 @@ export default function DiaryEntryView({ entry, onBack }: DiaryEntryViewProps) {
               type="text"
               value={entry.name}
               onChange={(e) => updateEntry(entry.id, { name: e.target.value })}
-              className="bg-transparent text-white font-semibold outline-none focus:border-b border-[#8257e5] w-[200px]"
+              className="bg-transparent text-main font-semibold outline-none focus:border-b border-brand-purple w-[200px]"
             />
             <input
               type="text"
               value={entry.date}
               onChange={(e) => updateEntry(entry.id, { date: e.target.value })}
-              className="bg-transparent text-[#a8a8b3] text-xs outline-none focus:border-b border-[#8257e5] w-[150px]"
+              className="bg-transparent text-muted-custom text-xs outline-none focus:border-b border-brand-purple w-[150px]"
             />
           </div>
         </div>
@@ -121,13 +121,13 @@ export default function DiaryEntryView({ entry, onBack }: DiaryEntryViewProps) {
         <div className="flex items-center gap-2">
           <button
             onClick={() => handleAddPoint(false)}
-            className="flex items-center gap-1 px-2 py-1 bg-[#323238] hover:bg-[#8257e5] text-white rounded text-xs transition-colors"
+            className="flex items-center gap-1 px-2 py-1 bg-surface hover:bg-brand-purple text-main hover:text-white border border-subtle rounded text-xs transition-colors cursor-pointer"
           >
             <Plus className="w-3 h-3" /> Ponto Simples
           </button>
           <button
             onClick={() => handleAddPoint(true)}
-            className="flex items-center gap-1 px-2 py-1 bg-[#323238] hover:bg-[#8257e5] text-white rounded text-xs transition-colors"
+            className="flex items-center gap-1 px-2 py-1 bg-surface hover:bg-brand-purple text-main hover:text-white border border-subtle rounded text-xs transition-colors cursor-pointer"
             title="Descrição Longa"
           >
             <LayoutTemplate className="w-3 h-3" /> Ponto Complexo
@@ -150,13 +150,13 @@ export default function DiaryEntryView({ entry, onBack }: DiaryEntryViewProps) {
               onDragStart={(e) => handleDragStart(e, point.id)}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, point.id)}
-              className={`flex items-center gap-3 group relative bg-[#202024]/50 border border-[#323238]/50 rounded-md p-3 transition-colors ${
+              className={`flex items-center gap-3 group relative bg-surface-elevated/50 border border-subtle/50 rounded-md p-3 transition-colors ${
                 point.isComplex ? 'min-h-[120px]' : 'min-h-[60px]'
               }`}
             >
               <div className="flex items-center gap-2 shrink-0">
-                <GripVertical className="w-4 h-4 text-[#323238] group-hover:text-[#a8a8b3] cursor-grab transition-colors" />
-                <div className="w-2 h-2 rounded-full bg-[#8257e5]" />
+                <GripVertical className="w-4 h-4 text-muted-custom/40 group-hover:text-muted-custom cursor-grab transition-colors" />
+                <div className="w-2 h-2 rounded-full bg-brand-purple" />
               </div>
 
               <div className="flex-1 flex flex-col min-w-0 h-full justify-center">
@@ -175,14 +175,14 @@ export default function DiaryEntryView({ entry, onBack }: DiaryEntryViewProps) {
                 {editingPointId === point.id ? (
                   <button
                     onClick={() => setEditingPointId(null)}
-                    className="p-1.5 bg-[#8257e5] hover:bg-[#9466ff] text-white rounded"
+                    className="p-1.5 bg-brand-purple hover:bg-brand-purple-hover text-white rounded cursor-pointer"
                   >
                     <Check className="w-4 h-4" />
                   </button>
                 ) : (
                   <button
                     onClick={() => setEditingPointId(point.id)}
-                    className="p-1.5 bg-[#323238] hover:bg-[#8257e5] text-[#a8a8b3] hover:text-white rounded"
+                    className="p-1.5 bg-surface hover:bg-brand-purple text-muted-custom hover:text-white rounded transition-colors cursor-pointer"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
@@ -193,7 +193,7 @@ export default function DiaryEntryView({ entry, onBack }: DiaryEntryViewProps) {
                     confirm('Apagar este ponto?') &&
                     removePoint(entry.id, point.id)
                   }
-                  className="p-1.5 bg-[#323238] hover:bg-red-500 text-[#a8a8b3] hover:text-white rounded"
+                  className="p-1.5 bg-surface hover:bg-brand-red text-muted-custom hover:text-white rounded transition-colors cursor-pointer"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -202,7 +202,7 @@ export default function DiaryEntryView({ entry, onBack }: DiaryEntryViewProps) {
           ))}
 
           {currentPoints.length === 0 && (
-            <div className="flex-1 flex items-center justify-center text-[#a8a8b3] text-sm italic">
+            <div className="flex-1 flex items-center justify-center text-muted-custom text-sm italic">
               Nenhum ponto de destaque adicionado.
             </div>
           )}

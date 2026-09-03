@@ -59,19 +59,19 @@ export default function MasterNotes() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#09090b] relative">
+    <div className="flex flex-col h-full bg-canvas relative">
       {/* Header (Hidden when editing note) */}
       {!activeNoteId && (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border-b border-[#323238] gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border-b border-subtle gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-[#8257e5]/20 rounded-lg">
-              <NotebookPen className="w-5 h-5 text-[#8257e5]" />
+            <div className="p-2 bg-brand-purple/20 rounded-lg">
+              <NotebookPen className="w-5 h-5 text-brand-purple" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-[#e1e1e6] leading-none">
+              <h2 className="text-xl font-bold text-main leading-none">
                 Anotações
               </h2>
-              <p className="text-sm text-[#a8a8b3] mt-1">
+              <p className="text-sm text-muted-custom mt-1">
                 Sua coleção de ideias e notas rápidas.
               </p>
             </div>
@@ -97,12 +97,12 @@ export default function MasterNotes() {
 
       {/* Paginação no Rodapé */}
       {!activeNoteId && (
-        <div className="flex items-center justify-center p-2 sm:p-3 border-t border-[#323238] bg-[#1a1a1e] w-full">
-          <div className="flex items-center gap-1 sm:gap-2 bg-[#121214] border border-[#323238] rounded-md p-1 shadow-sm w-full max-w-fit overflow-x-auto custom-scrollbar">
+        <div className="flex items-center justify-center p-2 sm:p-3 border-t border-subtle bg-surface w-full">
+          <div className="flex items-center gap-1 sm:gap-2 bg-app border border-subtle rounded-md p-1 shadow-sm w-full max-w-fit overflow-x-auto custom-scrollbar">
             <button
               onClick={handlePrevPage}
               disabled={activePageIndex === 0}
-              className="p-1.5 hover:bg-[#202024] rounded text-[#a8a8b3] disabled:opacity-50 transition-colors"
+              className="p-1.5 hover:bg-surface-elevated rounded text-muted-custom hover:text-main disabled:opacity-50 transition-colors cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -115,17 +115,17 @@ export default function MasterNotes() {
                   onChange={(e) => setTitleValue(e.target.value)}
                   onBlur={handleTitleSubmit}
                   onKeyDown={(e) => e.key === 'Enter' && handleTitleSubmit()}
-                  className="bg-transparent border-b border-[#8257e5] outline-none text-[#e1e1e6] text-sm text-center w-full min-w-0"
+                  className="bg-transparent border-b border-brand-purple outline-none text-main text-sm text-center w-full min-w-0"
                 />
               ) : (
                 <div
                   className="flex items-center gap-1 sm:gap-2 group cursor-pointer min-w-0"
                   onClick={startEditing}
                 >
-                  <span className="text-sm font-medium text-[#e1e1e6] truncate">
+                  <span className="text-sm font-medium text-main truncate">
                     {activePage.name}
                   </span>
-                  <Edit2 className="w-3 h-3 text-[#a8a8b3] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                  <Edit2 className="w-3 h-3 text-muted-custom opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                 </div>
               )}
             </div>
@@ -133,16 +133,16 @@ export default function MasterNotes() {
             <button
               onClick={handleNextPage}
               disabled={activePageIndex === pages.length - 1}
-              className="p-1.5 hover:bg-[#202024] rounded text-[#a8a8b3] disabled:opacity-50 transition-colors"
+              className="p-1.5 hover:bg-surface-elevated rounded text-muted-custom hover:text-main disabled:opacity-50 transition-colors cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
 
-            <div className="w-px h-4 bg-[#323238] mx-1" />
+            <div className="w-px h-4 bg-border-subtle mx-1" />
 
             <button
               onClick={handleAddPage}
-              className="p-1.5 hover:bg-[#8257e5]/20 hover:text-[#8257e5] rounded text-[#a8a8b3] transition-colors"
+              className="p-1.5 hover:bg-brand-purple/20 hover:text-brand-purple rounded text-muted-custom transition-colors cursor-pointer"
               title="Nova Página"
             >
               <Plus className="w-4 h-4" />
@@ -151,7 +151,7 @@ export default function MasterNotes() {
             {pages.length > 1 && (
               <button
                 onClick={handleRemovePage}
-                className="p-1.5 hover:bg-red-500/20 hover:text-red-500 rounded text-[#a8a8b3] transition-colors"
+                className="p-1.5 hover:bg-brand-red/20 hover:text-brand-red rounded text-muted-custom transition-colors cursor-pointer"
                 title="Apagar Página"
               >
                 <X className="w-4 h-4" />

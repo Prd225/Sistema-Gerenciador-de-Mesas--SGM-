@@ -76,15 +76,15 @@ export default function DiaryList({ onOpenEntry }: DiaryListProps) {
         {currentEntries.map((entry) => (
           <div
             key={entry.id}
-            className={`group relative flex items-center bg-[#202024] hover:bg-[#29292e] rounded-md p-3 transition-colors cursor-pointer border ${entry.isFavorite ? 'border-yellow-500/50 shadow-[0_0_8px_rgba(234,179,8,0.15)]' : 'border-[#323238]'}`}
+            className={`group relative flex items-center bg-surface-elevated hover:bg-surface rounded-md p-3 transition-colors cursor-pointer border ${entry.isFavorite ? 'border-yellow-500/50 shadow-[0_0_8px_rgba(234,179,8,0.15)]' : 'border-subtle'}`}
             onClick={() => onOpenEntry(entry.id)}
             style={{
               borderLeftColor:
                 entry.color && entry.color !== 'transparent'
                   ? entry.color
                   : entry.isFavorite
-                    ? '#eab308'
-                    : '#323238',
+                    ? 'var(--brand-gold)'
+                    : 'var(--border-subtle)',
               borderLeftWidth:
                 (entry.color && entry.color !== 'transparent') ||
                 entry.isFavorite
@@ -93,8 +93,8 @@ export default function DiaryList({ onOpenEntry }: DiaryListProps) {
             }}
           >
             <div className="flex-1 flex flex-col">
-              <span className="font-semibold text-white">{entry.name}</span>
-              <span className="text-xs text-[#a8a8b3]">
+              <span className="font-semibold text-main">{entry.name}</span>
+              <span className="text-xs text-muted-custom">
                 {entry.date} • {entry.points.length} pontos de destaque
               </span>
             </div>
@@ -108,7 +108,7 @@ export default function DiaryList({ onOpenEntry }: DiaryListProps) {
                 onClick={() =>
                   updateEntry(entry.id, { isFavorite: !entry.isFavorite })
                 }
-                className={`p-1.5 rounded hover:bg-black/20 ${entry.isFavorite ? 'text-yellow-400' : 'text-[#a8a8b3] hover:text-white'}`}
+                className={`p-1.5 rounded hover:bg-black/20 cursor-pointer ${entry.isFavorite ? 'text-brand-gold' : 'text-muted-custom hover:text-main'}`}
                 title="Favoritar"
               >
                 <Star
@@ -118,20 +118,23 @@ export default function DiaryList({ onOpenEntry }: DiaryListProps) {
 
               <div className="relative group/color">
                 <button
-                  className="p-1.5 rounded hover:bg-black/20 text-[#a8a8b3] hover:text-white"
+                  className="p-1.5 rounded hover:bg-black/20 text-muted-custom hover:text-main cursor-pointer"
                   title="Cor"
                 >
                   <Palette className="w-4 h-4" />
                 </button>
                 <div className="absolute right-0 top-full pt-1 hidden group-hover/color:block z-10">
-                  <div className="flex bg-[#121214] border border-[#323238] rounded p-1 gap-1 shadow-xl">
+                  <div className="flex bg-surface border border-subtle rounded p-1 gap-1 shadow-xl">
                     {COLORS.map((c) => (
                       <button
                         key={c}
                         onClick={() => updateEntry(entry.id, { color: c })}
-                        className="w-5 h-5 rounded-sm border border-[#323238] hover:scale-110 transition-transform"
+                        className="w-5 h-5 rounded-sm border border-subtle hover:scale-110 transition-transform cursor-pointer"
                         style={{
-                          backgroundColor: c === 'transparent' ? '#202024' : c,
+                          backgroundColor:
+                            c === 'transparent'
+                              ? 'var(--bg-surface-elevated)'
+                              : c,
                         }}
                       />
                     ))}
@@ -143,7 +146,7 @@ export default function DiaryList({ onOpenEntry }: DiaryListProps) {
                 onClick={() =>
                   confirm('Apagar este registro?') && removeEntry(entry.id)
                 }
-                className="p-1.5 rounded hover:bg-red-500/20 text-[#a8a8b3] hover:text-red-400"
+                className="p-1.5 rounded hover:bg-brand-red/20 text-muted-custom hover:text-brand-red cursor-pointer"
                 title="Apagar"
               >
                 <Trash2 className="w-4 h-4" />
@@ -153,7 +156,7 @@ export default function DiaryList({ onOpenEntry }: DiaryListProps) {
         ))}
 
         {currentEntries.length === 0 && (
-          <div className="flex-1 flex items-center justify-center text-[#a8a8b3] text-sm italic">
+          <div className="flex-1 flex items-center justify-center text-muted-custom text-sm italic">
             Nenhum registro encontrado nesta página.
           </div>
         )}
@@ -161,7 +164,7 @@ export default function DiaryList({ onOpenEntry }: DiaryListProps) {
 
       <button
         onClick={handleAddEntry}
-        className="mt-4 flex items-center justify-center gap-2 w-full py-2 bg-[#8257e5] hover:bg-[#9466ff] text-white rounded-md font-medium transition-colors"
+        className="mt-4 flex items-center justify-center gap-2 w-full py-2 bg-brand-purple hover:bg-brand-purple-hover text-white rounded-md font-medium transition-colors cursor-pointer"
       >
         <Plus className="w-4 h-4" /> Novo Registro
       </button>

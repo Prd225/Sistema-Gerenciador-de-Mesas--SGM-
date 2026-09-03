@@ -123,20 +123,20 @@ export default function SaveCampaignModal() {
             autoSaveSlot !== i &&
             handleSaveToSlot(i, existingSave?.name)
           }
-          className={`flex flex-col justify-center p-3 rounded-md border border-[#323238] transition-colors
-            ${existingSave ? 'bg-[#121214] hover:bg-[#202024]' : 'bg-transparent hover:bg-white/5 border-dashed'}
+          className={`flex flex-col justify-center p-3 rounded-md border border-subtle transition-colors
+            ${existingSave ? 'bg-app hover:bg-surface-elevated' : 'bg-transparent hover:bg-surface-elevated border-dashed'}
             ${loadingSlot || autoSaveSlot === i ? 'cursor-not-allowed' : 'cursor-pointer'}
             ${loadingSlot ? 'opacity-50' : ''}
-            ${autoSaveSlot === i ? 'border-[#8257e5]/50 bg-[#8257e5]/5 hover:bg-[#8257e5]/5' : ''}
+            ${autoSaveSlot === i ? 'border-brand-purple/50 bg-brand-purple/10 hover:bg-brand-purple/10' : ''}
           `}
         >
           <div className="flex justify-between items-center mb-1">
             <div className="flex flex-col">
-              <span className="font-bold text-[#e1e1e6] text-sm">
+              <span className="font-bold text-main text-sm">
                 {i}. {existingSave ? existingSave.name : 'Slot Vazio'}
               </span>
               {existingSave && (
-                <span className="text-[0.65rem] text-[#a8a8b3] font-semibold uppercase">
+                <span className="text-[0.65rem] text-muted-custom font-semibold uppercase">
                   {timeAgo(existingSave.updatedAt)}
                 </span>
               )}
@@ -146,10 +146,10 @@ export default function SaveCampaignModal() {
               <Button
                 size="sm"
                 variant="outline"
-                className={`h-7 px-2 ml-2 transition-colors border-[#323238] ${
+                className={`h-7 px-2 ml-2 transition-colors border-subtle cursor-pointer ${
                   autoSaveSlot === i
-                    ? 'bg-[#8257e5] text-white hover:bg-[#9466ff]'
-                    : 'bg-transparent text-[#a8a8b3] hover:text-[#e1e1e6] hover:bg-white/5'
+                    ? 'bg-brand-purple text-white hover:bg-brand-purple-hover'
+                    : 'bg-transparent text-muted-custom hover:text-main hover:bg-surface-elevated'
                 }`}
                 onClick={(e) => handleToggleAutoSave(e, i)}
                 title={
@@ -166,7 +166,7 @@ export default function SaveCampaignModal() {
             )}
           </div>
           {!existingSave && (
-            <span className="text-xs text-[#a8a8b3]">
+            <span className="text-xs text-muted-custom">
               Clique para salvar neste espaço
             </span>
           )}
@@ -178,19 +178,19 @@ export default function SaveCampaignModal() {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#202024] border-[#323238] text-[#e1e1e6] sm:max-w-[600px] h-[85vh] flex flex-col">
+      <DialogContent className="bg-surface border border-subtle text-main sm:max-w-[600px] h-[85vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="text-[#ffd700] text-xl font-bold flex items-center gap-2">
+          <DialogTitle className="text-brand-gold text-xl font-bold flex items-center gap-2">
             <Save className="w-5 h-5" /> Salvar Campanha
           </DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto pr-2 space-y-2 mt-2 relative">
           {loadingSlot !== null && (
-            <div className="absolute inset-0 bg-[#202024]/60 flex items-center justify-center z-10 rounded-md backdrop-blur-sm">
-              <div className="flex flex-col items-center bg-[#121214] p-5 rounded-lg border border-[#323238] shadow-lg">
-                <div className="w-8 h-8 border-4 border-[#8257e5] border-t-transparent rounded-full animate-spin mb-3"></div>
-                <span className="font-bold text-[#e1e1e6]">
+            <div className="absolute inset-0 bg-surface/60 flex items-center justify-center z-10 rounded-md backdrop-blur-sm">
+              <div className="flex flex-col items-center bg-app p-5 rounded-lg border border-subtle shadow-lg">
+                <div className="w-8 h-8 border-4 border-brand-purple border-t-transparent rounded-full animate-spin mb-3"></div>
+                <span className="font-bold text-main">
                   Salvando Campanha...
                 </span>
               </div>
@@ -199,14 +199,14 @@ export default function SaveCampaignModal() {
           {renderSlots()}
         </div>
 
-        <DialogFooter className="mt-4 border-t border-[#323238] pt-4 flex-col sm:flex-row items-center justify-between gap-4">
+        <DialogFooter className="mt-4 border-t border-subtle pt-4 flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="icon"
               disabled={currentPage === 1}
               onClick={() => setCurrentPage((p) => p - 1)}
-              className="border-[#323238] bg-transparent text-[#e1e1e6] hover:bg-white/5"
+              className="border-subtle bg-transparent text-main hover:bg-surface-elevated cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
@@ -228,8 +228,8 @@ export default function SaveCampaignModal() {
                     onClick={() => setCurrentPage(page)}
                     className={
                       currentPage === page
-                        ? 'bg-[#8257e5] hover:bg-[#9466ff] text-white'
-                        : 'border-[#323238] bg-transparent text-[#e1e1e6] hover:bg-white/5 disabled:opacity-30'
+                        ? 'bg-brand-purple hover:bg-brand-purple-hover text-white cursor-pointer'
+                        : 'border-subtle bg-transparent text-main hover:bg-surface-elevated cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed'
                     }
                   >
                     {page}
@@ -246,7 +246,7 @@ export default function SaveCampaignModal() {
                 filledSlotsCount < currentPage * SLOTS_PER_PAGE
               }
               onClick={() => setCurrentPage((p) => p + 1)}
-              className="border-[#323238] bg-transparent text-[#e1e1e6] hover:bg-white/5"
+              className="border-subtle bg-transparent text-main hover:bg-surface-elevated cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <ChevronRight className="w-4 h-4" />
             </Button>
@@ -255,7 +255,7 @@ export default function SaveCampaignModal() {
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="border-[#323238] bg-transparent text-[#e1e1e6] hover:bg-white/5 w-full sm:w-auto"
+            className="border-subtle bg-transparent text-main hover:bg-surface-elevated cursor-pointer w-full sm:w-auto"
           >
             Fechar
           </Button>

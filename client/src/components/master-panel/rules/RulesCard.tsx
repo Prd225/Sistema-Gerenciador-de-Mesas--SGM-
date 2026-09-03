@@ -131,16 +131,16 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
         setShowSizes(false);
         setIsDragEnabled(false);
       }}
-      className={`relative bg-[#202024]/50 border border-[#323238] rounded-md transition-all group hover:border-[#8257e5]/50 flex flex-col ${spanClasses}`}
+      className={`relative bg-surface-elevated/50 border border-subtle rounded-md transition-all group hover:border-brand-purple/50 flex flex-col ${spanClasses}`}
     >
       {/* Title Bar / Drag Handle */}
       <div
-        className="flex items-center gap-2 px-3 py-1.5 bg-[#121214]/50 border-b border-[#323238]/50 cursor-grab active:cursor-grabbing rounded-t-md"
+        className="flex items-center gap-2 px-3 py-1.5 bg-app/50 border-b border-subtle/50 cursor-grab active:cursor-grabbing rounded-t-md"
         onMouseEnter={() => setIsDragEnabled(true)}
         onMouseLeave={() => setIsDragEnabled(false)}
       >
         <GripVertical
-          className={`w-4 h-4 text-[#a8a8b3] ${isEditingMode ? 'opacity-20 cursor-not-allowed' : 'opacity-50 group-hover:opacity-100 transition-opacity'}`}
+          className={`w-4 h-4 text-muted-custom ${isEditingMode ? 'opacity-20 cursor-not-allowed' : 'opacity-50 group-hover:opacity-100 transition-opacity'}`}
         />
 
         <div className="flex-1 truncate">
@@ -152,11 +152,11 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
               onChange={(e) => setTitleValue(e.target.value)}
               onBlur={handleTitleSave}
               onKeyDown={(e) => e.key === 'Enter' && handleTitleSave()}
-              className="bg-[#323238] text-white text-sm rounded px-1 outline-none w-full"
+              className="bg-surface text-main border border-subtle text-sm rounded px-1 outline-none w-full"
             />
           ) : (
             <h3
-              className={`text-sm font-medium text-[#e1e1e6] select-none ${isEditingMode ? 'hover:text-white cursor-text' : 'opacity-80'}`}
+              className={`text-sm font-medium text-main select-none ${isEditingMode ? 'hover:text-main cursor-text' : 'opacity-80'}`}
               onDoubleClick={() => isEditingMode && setIsEditingTitle(true)}
             >
               {widget.title || 'Nova Regra'}
@@ -170,7 +170,7 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
         >
           <button
             onClick={() => setIsEditingMode(!isEditingMode)}
-            className={`p-1 rounded transition-colors ${isEditingMode ? 'bg-[#8257e5] text-white' : 'text-[#a8a8b3] hover:bg-[#323238] hover:text-[#e1e1e6]'}`}
+            className={`p-1 rounded transition-colors cursor-pointer ${isEditingMode ? 'bg-brand-purple text-white' : 'text-muted-custom hover:bg-surface hover:text-main'}`}
             title={isEditingMode ? 'Modo Visualização' : 'Modo Edição'}
           >
             <Edit3 className="w-3.5 h-3.5" />
@@ -185,7 +185,7 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
                   widget.contentType === 'image' ? 'text' : 'image',
                 )
               }
-              className={`p-1 rounded transition-colors ${widget.contentType === 'image' ? 'bg-[#8257e5] text-white' : 'text-[#a8a8b3] hover:bg-[#323238] hover:text-[#e1e1e6]'}`}
+              className={`p-1 rounded transition-colors cursor-pointer ${widget.contentType === 'image' ? 'bg-brand-purple text-white' : 'text-muted-custom hover:bg-surface hover:text-main'}`}
               title="Modo Imagem"
             >
               {widget.contentType === 'image' ? (
@@ -205,7 +205,7 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
                   columnsCount === 3 ? 1 : ((columnsCount + 1) as 1 | 2 | 3),
                 )
               }
-              className="flex items-center gap-0.5 p-1 text-[#a8a8b3] hover:text-[#e1e1e6] hover:bg-[#323238] rounded transition-colors"
+              className="flex items-center gap-0.5 p-1 text-muted-custom hover:text-main hover:bg-surface rounded transition-colors cursor-pointer"
               title={`${columnsCount} Coluna(s)`}
             >
               <Columns className="w-3.5 h-3.5" />
@@ -217,20 +217,20 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
             <div className="relative">
               <button
                 onClick={() => setShowSizes(!showSizes)}
-                className="p-1 text-[#a8a8b3] hover:text-[#e1e1e6] hover:bg-[#323238] rounded transition-colors"
+                className="p-1 text-muted-custom hover:text-main hover:bg-surface rounded transition-colors cursor-pointer"
                 title="Mudar Tamanho"
               >
                 <Maximize2 className="w-3.5 h-3.5" />
               </button>
 
               {showSizes && (
-                <div className="absolute top-full right-0 mt-1 bg-[#121214] border border-[#323238] rounded shadow-xl z-50 flex flex-col min-w-[100px] overflow-hidden">
+                <div className="absolute top-full right-0 mt-1 bg-surface-elevated border border-subtle rounded shadow-xl z-50 flex flex-col min-w-[100px] overflow-hidden">
                   <button
                     onClick={() => {
                       updateWidgetSize(pageId, widget.id, '1x1');
                       setShowSizes(false);
                     }}
-                    className={`px-3 py-1.5 text-xs text-left hover:bg-[#8257e5] transition-colors ${widget.size === '1x1' ? 'bg-[#323238] text-white' : 'text-[#a8a8b3]'}`}
+                    className={`px-3 py-1.5 text-xs text-left hover:bg-brand-purple hover:text-white transition-colors cursor-pointer ${widget.size === '1x1' ? 'bg-surface text-main font-semibold' : 'text-muted-custom'}`}
                   >
                     Pequeno (1x1)
                   </button>
@@ -239,7 +239,7 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
                       updateWidgetSize(pageId, widget.id, '2x1');
                       setShowSizes(false);
                     }}
-                    className={`px-3 py-1.5 text-xs text-left hover:bg-[#8257e5] transition-colors ${widget.size === '2x1' ? 'bg-[#323238] text-white' : 'text-[#a8a8b3]'}`}
+                    className={`px-3 py-1.5 text-xs text-left hover:bg-brand-purple hover:text-white transition-colors cursor-pointer ${widget.size === '2x1' ? 'bg-surface text-main font-semibold' : 'text-muted-custom'}`}
                   >
                     Largo (2x1)
                   </button>
@@ -248,7 +248,7 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
                       updateWidgetSize(pageId, widget.id, '1x2');
                       setShowSizes(false);
                     }}
-                    className={`px-3 py-1.5 text-xs text-left hover:bg-[#8257e5] transition-colors ${widget.size === '1x2' ? 'bg-[#323238] text-white' : 'text-[#a8a8b3]'}`}
+                    className={`px-3 py-1.5 text-xs text-left hover:bg-brand-purple hover:text-white transition-colors cursor-pointer ${widget.size === '1x2' ? 'bg-surface text-main font-semibold' : 'text-muted-custom'}`}
                   >
                     Alto (1x2)
                   </button>
@@ -257,7 +257,7 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
                       updateWidgetSize(pageId, widget.id, '2x2');
                       setShowSizes(false);
                     }}
-                    className={`px-3 py-1.5 text-xs text-left hover:bg-[#8257e5] transition-colors ${widget.size === '2x2' ? 'bg-[#323238] text-white' : 'text-[#a8a8b3]'}`}
+                    className={`px-3 py-1.5 text-xs text-left hover:bg-brand-purple hover:text-white transition-colors cursor-pointer ${widget.size === '2x2' ? 'bg-surface text-main font-semibold' : 'text-muted-custom'}`}
                   >
                     Grande (2x2)
                   </button>
@@ -269,7 +269,7 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
           {isEditingMode && (
             <button
               onClick={() => removeWidget(pageId, widget.id)}
-              className="p-1 text-[#a8a8b3] hover:text-red-400 hover:bg-[#323238] rounded transition-colors"
+              className="p-1 text-muted-custom hover:text-brand-red hover:bg-surface rounded transition-colors cursor-pointer"
               title="Remover Card"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -281,7 +281,7 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
       {/* Content Area */}
       <div className="flex-1 overflow-hidden relative rounded-b-md">
         {widget.contentType === 'image' && canHaveImage ? (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-[#121214]">
+          <div className="w-full h-full flex flex-col items-center justify-center bg-app">
             {widget.imageUrl ? (
               <img
                 src={widget.imageUrl}
@@ -290,17 +290,17 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
               />
             ) : (
               <div className="flex flex-col items-center justify-center text-center p-4">
-                <ImageIcon className="w-8 h-8 text-[#8257e5] mb-2 opacity-50" />
-                <p className="text-xs text-[#a8a8b3] mb-1">
+                <ImageIcon className="w-8 h-8 text-brand-purple mb-2 opacity-50" />
+                <p className="text-xs text-muted-custom mb-1">
                   Modo Imagem Ativado
                 </p>
-                <p className="text-[10px] text-[#a8a8b3]/60 mb-4">
+                <p className="text-[10px] text-muted-custom/60 mb-4">
                   Proporção Recomendada: 1:2 (ex: 300x600px)
                 </p>
                 {isEditingMode && (
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-2 bg-[#202024] hover:bg-[#323238] border border-[#323238] px-3 py-1.5 rounded text-xs text-[#e1e1e6] transition-colors"
+                    className="flex items-center gap-2 bg-surface hover:bg-surface-elevated border border-subtle px-3 py-1.5 rounded text-xs text-main transition-colors cursor-pointer"
                   >
                     <Upload className="w-3.5 h-3.5" /> Enviar Imagem
                   </button>
@@ -317,7 +317,7 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
           </div>
         ) : (
           <div
-            className={`w-full h-full flex ${canHaveColumns && columnsCount > 1 ? 'divide-x divide-[#323238]' : ''}`}
+            className={`w-full h-full flex ${canHaveColumns && columnsCount > 1 ? 'divide-x divide-border-subtle' : ''}`}
           >
             {Array.from({ length: columnsCount }).map((_, i) => (
               <div key={i} className="flex-1 min-w-0 h-full p-2">

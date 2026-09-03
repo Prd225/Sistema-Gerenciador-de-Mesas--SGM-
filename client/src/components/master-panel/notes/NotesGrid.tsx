@@ -35,11 +35,11 @@ export default function NotesGrid({ pageId, onOpenNote }: NotesGridProps) {
         {/* Add Note Button */}
         <div
           onClick={handleAddNote}
-          className="aspect-square flex flex-col items-center justify-center p-4 rounded-xl cursor-pointer transition-all border-2 border-dashed border-[#323238] hover:border-[#8257e5] hover:bg-[#8257e5]/5 text-[#a8a8b3] hover:text-[#e1e1e6] group"
+          className="aspect-square flex flex-col items-center justify-center p-4 rounded-xl cursor-pointer transition-all border-2 border-dashed border-subtle hover:border-brand-purple hover:bg-brand-purple/5 text-muted-custom hover:text-main group"
         >
-          <div className="w-12 h-12 rounded-full bg-[#202024] group-hover:bg-[#8257e5]/20 flex items-center justify-center mb-3 transition-colors relative">
-            <NotebookPen className="w-6 h-6 text-[#8257e5]" />
-            <Plus className="w-4 h-4 text-[#e1e1e6] absolute bottom-2 right-2 translate-x-1 translate-y-1 bg-[#121214] rounded-full" />
+          <div className="w-12 h-12 rounded-full bg-surface-elevated group-hover:bg-brand-purple/20 flex items-center justify-center mb-3 transition-colors relative">
+            <NotebookPen className="w-6 h-6 text-brand-purple" />
+            <Plus className="w-4 h-4 text-main absolute bottom-2 right-2 translate-x-1 translate-y-1 bg-app rounded-full" />
           </div>
           <span className="font-semibold text-sm">Anotações</span>
         </div>

@@ -25,8 +25,8 @@ export default function MasterDiary() {
     <div className="flex flex-col h-full w-full relative p-2">
       <div className="flex items-center justify-between mb-1 px-1">
         <div className="flex items-center gap-2">
-          <Book className="w-5 h-5 text-[#8257e5]" />
-          <h2 className="text-white font-semibold text-sm">Diário do Mestre</h2>
+          <Book className="w-5 h-5 text-brand-purple" />
+          <h2 className="text-main font-semibold text-sm">Diário do Mestre</h2>
         </div>
       </div>
       <DiaryList onOpenEntry={setActiveEntryId} />

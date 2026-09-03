@@ -10,12 +10,15 @@ import {
   RefreshCw,
   CheckCircle2,
   Radio,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTokenStore } from '@/store/useTokenStore';
 import { useZoneStore } from '@/store/useZoneStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useMultiplayerStore } from '@/store/useMultiplayerStore';
+import { useThemeStore } from '@/store/useThemeStore';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,7 +34,10 @@ import {
 } from '@/components/ui/dialog';
 
 export default function Header() {
+  const theme = useThemeStore((state) => state.theme);
+  const toggleTheme = useThemeStore((state) => state.toggleTheme);
   const tokens = useTokenStore((state) => state.tokens);
+
   const setShowTokenCreateModal = useTokenStore(
     (state) => state.setShowTokenCreateModal,
   );
@@ -82,31 +88,33 @@ export default function Header() {
   };
 
   return (
-    <header className="h-[70px] bg-[#202024]/95 border-b border-[#323238] flex items-center justify-between px-5 z-50 shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
+    <header className="h-[70px] bg-surface-elevated border-b border-subtle flex items-center justify-between px-5 z-50 shadow-sm transition-colors duration-200">
       {/* Logo & File Menu */}
       <div className="flex items-center gap-4">
-        <div className="font-bold text-[#ffd700] flex items-center gap-2">
+        <div className="font-bold text-brand-gold flex items-center gap-2">
           <Swords className="w-6 h-6" />
           <div className="flex flex-col">
             <div className="flex items-baseline gap-1.5">
-              <span className="text-xl">SGM</span>
-              <span className="text-xs text-[#a8a8b3] font-medium tracking-wider">
+              <span className="text-xl font-extrabold tracking-tight text-main">
+                SGM
+              </span>
+              <span className="text-xs text-muted-custom font-medium tracking-wider">
                 v7.0
               </span>
             </div>
-            <span className="text-[0.60rem] text-[#7a7a80] font-semibold uppercase tracking-wider leading-none mt-0.5">
+            <span className="text-[0.60rem] text-muted-custom font-semibold uppercase tracking-wider leading-none mt-0.5">
               Sistema Gerenciador de Mesas
             </span>
           </div>
 
           {autoSaveStatus === 'saving' && (
-            <div className="flex items-center gap-1.5 ml-2 text-xs text-[#8257e5] font-semibold animate-pulse">
+            <div className="flex items-center gap-1.5 ml-2 text-xs text-brand-purple font-semibold animate-pulse">
               <RefreshCw className="w-3.5 h-3.5 animate-spin" />
               <span className="opacity-80">Salvando...</span>
             </div>
           )}
           {autoSaveStatus === 'success' && (
-            <div className="flex items-center gap-1.5 ml-2 text-xs text-green-400 font-semibold animate-in fade-in slide-in-from-left-2 duration-300">
+            <div className="flex items-center gap-1.5 ml-2 text-xs text-brand-green font-semibold animate-in fade-in slide-in-from-left-2 duration-300">
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span className="opacity-80">Salvo!</span>
             </div>
@@ -114,16 +122,16 @@ export default function Header() {
         </div>
 
         <DropdownMenu>
-          <DropdownMenuTrigger className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input h-9 px-4 py-2 bg-transparent border-none font-bold text-[#e1e1e6] hover:bg-white/5 hover:text-white">
+          <DropdownMenuTrigger className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input h-9 px-4 py-2 bg-transparent border-none font-bold text-main hover:bg-surface hover:text-main">
             <FileText className="w-4 h-4 mr-2" />
             Arquivo
             <ChevronDown className="w-4 h-4 ml-1" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="bg-[#202024] border-[#323238] text-[#e1e1e6]">
+          <DropdownMenuContent className="bg-surface-elevated border border-subtle text-main shadow-xl">
             <DropdownMenuItem
               onClick={handleNew}
               disabled={autoSaveSlot !== null}
-              className="cursor-pointer hover:bg-[#8257e5] hover:text-white focus:bg-[#8257e5] focus:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              className="cursor-pointer hover:bg-brand-purple hover:text-white focus:bg-brand-purple focus:text-white disabled:opacity-50 disabled:cursor-not-allowed"
               title={
                 autoSaveSlot !== null
                   ? 'Desative o Auto-Save para criar um mapa novo'
@@ -134,13 +142,13 @@ export default function Header() {
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={handleLoad}
-              className="cursor-pointer hover:bg-[#8257e5] hover:text-white focus:bg-[#8257e5] focus:text-white"
+              className="cursor-pointer hover:bg-brand-purple hover:text-white focus:bg-brand-purple focus:text-white"
             >
               <FolderOpen className="w-4 h-4 mr-2" /> Carregar Salvamento
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={handleSave}
-              className="cursor-pointer hover:bg-[#8257e5] hover:text-white focus:bg-[#8257e5] focus:text-white"
+              className="cursor-pointer hover:bg-brand-purple hover:text-white focus:bg-brand-purple focus:text-white"
             >
               <Download className="w-4 h-4 mr-2" /> Salvar
             </DropdownMenuItem>
@@ -277,21 +285,21 @@ export default function Header() {
           variant="outline"
           className={`font-bold transition-all border ${
             isMultiplayerConnected
-              ? 'bg-[#04d361]/15 border-[#04d361]/40 text-[#04d361] hover:bg-[#04d361]/25 hover:text-[#04d361]'
-              : 'bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5'
+              ? 'bg-brand-green/15 border-brand-green/40 text-brand-green hover:bg-brand-green/25 hover:text-brand-green'
+              : 'bg-transparent border-muted text-main hover:bg-surface'
           }`}
         >
           <Radio
             className={`w-4 h-4 mr-2 ${
               isMultiplayerConnected
-                ? 'text-[#04d361] animate-pulse'
-                : 'text-[#8257e5]'
+                ? 'text-brand-green animate-pulse'
+                : 'text-brand-purple'
             }`}
           />
           {isMultiplayerConnected ? (
             <span className="flex items-center gap-1.5">
               Mesa Online
-              <span className="w-2 h-2 rounded-full bg-[#04d361] animate-ping" />
+              <span className="w-2 h-2 rounded-full bg-brand-green animate-ping" />
             </span>
           ) : (
             'Multiplayer'
@@ -300,9 +308,27 @@ export default function Header() {
         <Button
           onClick={() => setShowTokenCreateModal(true)}
           variant="outline"
-          className="bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5 font-bold"
+          className="bg-transparent border-muted text-main hover:bg-surface font-bold"
         >
           <Plus className="w-4 h-4 mr-2" /> Novo Token
+        </Button>
+        {/* Alternador de Tema (Modo Claro / Modo Escuro) */}
+        <Button
+          onClick={toggleTheme}
+          variant="outline"
+          size="icon"
+          className="bg-transparent border-muted text-main hover:bg-surface transition-colors cursor-pointer"
+          title={
+            theme === 'dark'
+              ? 'Alternar para Modo Claro'
+              : 'Alternar para Modo Escuro'
+          }
+        >
+          {theme === 'dark' ? (
+            <Sun className="w-4 h-4 text-brand-gold transition-transform hover:rotate-45" />
+          ) : (
+            <Moon className="w-4 h-4 text-brand-purple transition-transform hover:-rotate-12" />
+          )}
         </Button>
       </div>
     </header>

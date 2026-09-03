@@ -94,26 +94,26 @@ export default function RichTextEditor({
   if (!isEditing) {
     return (
       <div
-        className="prose prose-invert max-w-none text-sm text-gray-300 pointer-events-none break-words"
+        className="prose prose-invert max-w-none text-sm text-main pointer-events-none break-words"
         dangerouslySetInnerHTML={{
           __html:
             initialValue ||
-            '<span class="italic text-gray-500">Sem descrição...</span>',
+            '<span class="italic text-muted-custom">Sem descrição...</span>',
         }}
       />
     );
   }
 
   return (
-    <div className="flex flex-col border border-[#323238] rounded-md bg-[#121214] overflow-hidden focus-within:border-[#8257e5] transition-colors">
+    <div className="flex flex-col border border-subtle rounded-md bg-app overflow-hidden focus-within:border-brand-purple transition-colors">
       {/* Toolbar */}
-      <div className="flex items-center gap-1 p-1 bg-[#202024] border-b border-[#323238]">
+      <div className="flex items-center gap-1 p-1 bg-surface-elevated border-b border-subtle">
         <button
           onMouseDown={(e) => {
             e.preventDefault();
             exec('bold');
           }}
-          className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white"
+          className="p-1 hover:bg-surface rounded text-muted-custom hover:text-main cursor-pointer"
         >
           <Bold className="w-4 h-4" />
         </button>
@@ -122,7 +122,7 @@ export default function RichTextEditor({
             e.preventDefault();
             exec('italic');
           }}
-          className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white"
+          className="p-1 hover:bg-surface rounded text-muted-custom hover:text-main cursor-pointer"
         >
           <Italic className="w-4 h-4" />
         </button>
@@ -131,19 +131,19 @@ export default function RichTextEditor({
             e.preventDefault();
             exec('underline');
           }}
-          className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white"
+          className="p-1 hover:bg-surface rounded text-muted-custom hover:text-main cursor-pointer"
         >
           <Underline className="w-4 h-4" />
         </button>
 
-        <div className="w-px h-4 bg-[#323238] mx-1" />
+        <div className="w-px h-4 bg-border-subtle mx-1" />
 
         <div className="relative group/color">
-          <button className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white">
+          <button className="p-1 hover:bg-surface rounded text-muted-custom hover:text-main cursor-pointer">
             <Palette className="w-4 h-4" />
           </button>
           <div className="absolute left-0 top-full pt-1 hidden group-hover/color:block z-10">
-            <div className="flex bg-[#121214] border border-[#323238] rounded p-1 gap-1">
+            <div className="flex bg-surface border border-subtle rounded p-1 gap-1 shadow-lg">
               {COLORS.map((c) => (
                 <button
                   key={c}
@@ -151,7 +151,7 @@ export default function RichTextEditor({
                     e.preventDefault();
                     exec('foreColor', c);
                   }}
-                  className="w-4 h-4 rounded-full border border-[#323238] hover:scale-110 transition-transform"
+                  className="w-4 h-4 rounded-full border border-subtle hover:scale-110 transition-transform cursor-pointer"
                   style={{ backgroundColor: c }}
                 />
               ))}
@@ -160,11 +160,11 @@ export default function RichTextEditor({
         </div>
 
         <div className="relative group/emoji">
-          <button className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white">
+          <button className="p-1 hover:bg-surface rounded text-muted-custom hover:text-main cursor-pointer">
             <Smile className="w-4 h-4" />
           </button>
           <div className="absolute left-0 top-full pt-1 hidden group-hover/emoji:block z-10 w-[140px]">
-            <div className="flex flex-wrap bg-[#121214] border border-[#323238] rounded p-1 gap-1">
+            <div className="flex flex-wrap bg-surface border border-subtle rounded p-1 gap-1 shadow-lg">
               {EMOJIS.map((e) => (
                 <button
                   key={e}
@@ -172,7 +172,7 @@ export default function RichTextEditor({
                     evt.preventDefault();
                     insertText(e);
                   }}
-                  className="w-6 h-6 hover:bg-[#323238] rounded flex items-center justify-center text-sm"
+                  className="w-6 h-6 hover:bg-surface-elevated rounded flex items-center justify-center text-sm cursor-pointer"
                 >
                   {e}
                 </button>
@@ -185,7 +185,7 @@ export default function RichTextEditor({
       {/* Editor */}
       <div
         ref={editorRef}
-        className="p-2 min-h-[60px] max-h-[200px] overflow-y-auto text-sm text-gray-300 outline-none"
+        className="p-2 min-h-[60px] max-h-[200px] overflow-y-auto text-sm text-main outline-none"
         contentEditable
         onInput={handleInput}
         onKeyDown={handleKeyDown}
@@ -194,9 +194,9 @@ export default function RichTextEditor({
       />
 
       {/* Footer */}
-      <div className="flex justify-end p-1 pr-2 bg-[#202024] border-t border-[#323238]">
+      <div className="flex justify-end p-1 pr-2 bg-surface-elevated border-t border-subtle">
         <span
-          className={`text-[10px] ${charCount >= maxLength ? 'text-red-400 font-medium' : 'text-[#a8a8b3]'}`}
+          className={`text-[10px] ${charCount >= maxLength ? 'text-brand-red font-medium' : 'text-muted-custom'}`}
         >
           {charCount} / {maxLength}
         </span>

@@ -54,10 +54,10 @@ export default function SidebarRight({ isOpen, toggle }: SidebarRightProps) {
 
   if (!isOpen) {
     return (
-      <div className="bg-[#202024] border-l border-[#323238] h-full flex flex-col items-center py-4 z-40 w-12 transition-all">
+      <div className="bg-surface-elevated border-l border-subtle h-full flex flex-col items-center py-4 z-40 w-12 transition-all">
         <button
           onClick={toggle}
-          className="text-[#a8a8b3] hover:text-[#e1e1e6] p-2 hover:bg-white/5 rounded"
+          className="text-muted-custom hover:text-main p-2 hover:bg-surface rounded transition-colors"
         >
           <ChevronRight className="rotate-180" />
         </button>
@@ -68,19 +68,19 @@ export default function SidebarRight({ isOpen, toggle }: SidebarRightProps) {
   return (
     <aside
       style={{ width: `${width}px` }}
-      className="bg-[#202024] border-l border-[#323238] flex flex-col h-full z-40 overflow-hidden shrink-0 relative"
+      className="bg-surface-elevated border-l border-subtle flex flex-col h-full z-40 overflow-hidden shrink-0 relative transition-colors"
     >
       {/* Resize Handle */}
       <div
-        className="absolute top-0 left-0 w-1.5 h-full cursor-col-resize hover:bg-[#8257e5]/50 active:bg-[#8257e5] z-50 transition-colors"
+        className="absolute top-0 left-0 w-1.5 h-full cursor-col-resize hover:bg-brand-purple/50 active:bg-brand-purple z-50 transition-colors"
         onMouseDown={handleDragStart}
       />
       <div className="p-5 overflow-y-auto flex-1 h-full relative">
         {/* Header */}
-        <div className="flex justify-between items-center mb-5 text-[#8257e5] font-bold uppercase tracking-wide border-b-2 border-[#323238] pb-2">
+        <div className="flex justify-between items-center mb-5 text-brand-purple font-bold uppercase tracking-wide border-b-2 border-subtle pb-2">
           <button
             onClick={toggle}
-            className="text-[#a8a8b3] hover:text-[#e1e1e6] p-1 -ml-2 rounded hover:bg-white/5"
+            className="text-muted-custom hover:text-main p-1 -ml-2 rounded hover:bg-surface transition-colors"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -88,7 +88,7 @@ export default function SidebarRight({ isOpen, toggle }: SidebarRightProps) {
             <span>Marcadores</span>
             <button
               onClick={() => setEditingMarkers(!editingMarkers)}
-              className={`p-1 rounded hover:bg-white/5 ${editingMarkers ? 'text-[#ffd700]' : 'text-[#a8a8b3] hover:text-[#e1e1e6]'}`}
+              className={`p-1 rounded hover:bg-surface transition-colors ${editingMarkers ? 'text-brand-gold' : 'text-muted-custom hover:text-main'}`}
               title="Alternar Edição"
             >
               {editingMarkers ? (
@@ -103,7 +103,7 @@ export default function SidebarRight({ isOpen, toggle }: SidebarRightProps) {
         {/* Markers List */}
         <div id="markerList" className="flex flex-col gap-4">
           {markersList.length === 0 ? (
-            <div className="text-[#a8a8b3] text-center text-sm mt-10 opacity-50 italic">
+            <div className="text-muted-custom text-center text-sm mt-10 opacity-50 italic">
               Nenhum marcador no mapa.
             </div>
           ) : (
@@ -122,7 +122,7 @@ export default function SidebarRight({ isOpen, toggle }: SidebarRightProps) {
               return (
                 <div
                   key={marker.id}
-                  className="bg-black/20 p-3 rounded border border-[#323238] flex flex-col gap-2 relative group cursor-pointer hover:border-[#8257e5] transition-colors"
+                  className="bg-surface p-3 rounded border border-subtle flex flex-col gap-2 relative group cursor-pointer hover:border-brand-purple transition-colors shadow-sm"
                   onClick={() => {
                     window.dispatchEvent(
                       new CustomEvent('panTo', {
@@ -133,19 +133,19 @@ export default function SidebarRight({ isOpen, toggle }: SidebarRightProps) {
                 >
                   <Icon
                     className="absolute top-3 right-3 w-4 h-4"
-                    style={{ color: marker.color || '#e55757' }}
+                    style={{ color: marker.color || 'var(--brand-red)' }}
                   />
 
                   {!editingMarkers ? (
                     <>
                       <h4
-                        className="font-bold pr-6"
-                        style={{ color: marker.textColor || '#e1e1e6' }}
+                        className="font-bold pr-6 text-main"
+                        style={{ color: marker.textColor || undefined }}
                       >
                         {marker.text}
                       </h4>
                       {marker.description && (
-                        <p className="text-xs text-[#a8a8b3] mt-1 whitespace-pre-wrap">
+                        <p className="text-xs text-muted-custom mt-1 whitespace-pre-wrap">
                           {marker.description}
                         </p>
                       )}
@@ -160,7 +160,7 @@ export default function SidebarRight({ isOpen, toggle }: SidebarRightProps) {
                         onChange={(e) =>
                           updateMarker(marker.id, { text: e.target.value })
                         }
-                        className="bg-[#121214] border-[#323238] h-8 text-sm text-[#e1e1e6]"
+                        className="bg-surface-elevated border-subtle h-8 text-sm text-main"
                         placeholder="Título do Marcador"
                       />
 
@@ -171,12 +171,12 @@ export default function SidebarRight({ isOpen, toggle }: SidebarRightProps) {
                             description: e.target.value,
                           })
                         }
-                        className="bg-[#121214] border border-[#323238] rounded-md p-2 text-sm text-[#e1e1e6] min-h-[60px] resize-y w-full focus:outline-none focus:ring-1 focus:ring-[#8257e5]"
+                        className="bg-surface-elevated border border-subtle rounded-md p-2 text-sm text-main min-h-[60px] resize-y w-full focus:outline-none focus:ring-1 focus:ring-brand-purple placeholder:text-muted-custom"
                         placeholder="Descrição rápida..."
                       />
 
                       <div className="flex items-center gap-2 mt-1">
-                        <label className="text-xs text-[#a8a8b3] flex items-center gap-1">
+                        <label className="text-xs text-muted-custom flex items-center gap-1">
                           Cor:
                           <input
                             type="color"
@@ -187,7 +187,7 @@ export default function SidebarRight({ isOpen, toggle }: SidebarRightProps) {
                             className="w-6 h-6 p-0 border-0 rounded cursor-pointer bg-transparent"
                           />
                         </label>
-                        <label className="text-xs text-[#a8a8b3] flex items-center gap-1 ml-2">
+                        <label className="text-xs text-muted-custom flex items-center gap-1 ml-2">
                           Texto:
                           <input
                             type="color"
@@ -212,7 +212,12 @@ export default function SidebarRight({ isOpen, toggle }: SidebarRightProps) {
                                   iconType: iconType as any,
                                 })
                               }
-                              className={`p-1 rounded border ${marker.iconType === iconType || (!marker.iconType && iconType === 'pin') ? 'border-[#8257e5] bg-[#8257e5]/20' : 'border-[#323238] hover:bg-[#323238]'}`}
+                              className={`p-1 rounded border transition-colors ${
+                                marker.iconType === iconType ||
+                                (!marker.iconType && iconType === 'pin')
+                                  ? 'border-brand-purple bg-brand-purple/20 text-brand-purple'
+                                  : 'border-subtle hover:bg-surface-elevated text-muted-custom hover:text-main'
+                              }`}
                               title={iconType}
                             >
                               {iconType === 'pin' && (
@@ -238,7 +243,7 @@ export default function SidebarRight({ isOpen, toggle }: SidebarRightProps) {
                       <Button
                         variant="outline"
                         onClick={() => removeMarker(marker.id)}
-                        className="h-7 text-xs border-red-500/50 text-red-500 hover:bg-red-500/10 hover:text-red-400 mt-2"
+                        className="h-7 text-xs border-brand-red/50 text-brand-red hover:bg-brand-red/10 hover:text-brand-red mt-2"
                       >
                         <Trash className="w-3 h-3 mr-2" /> Remover
                       </Button>

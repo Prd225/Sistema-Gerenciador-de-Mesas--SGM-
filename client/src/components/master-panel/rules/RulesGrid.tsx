@@ -9,7 +9,7 @@ interface RulesGridProps {
 export default function RulesGrid({ pageId, widgets }: RulesGridProps) {
   if (widgets.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-[#a8a8b3] opacity-60">
+      <div className="flex-1 flex flex-col items-center justify-center text-muted-custom opacity-60">
         <p>Esta página está vazia.</p>
         <p className="text-xs mt-1">
           Adicione novos blocos pelo botão superior.

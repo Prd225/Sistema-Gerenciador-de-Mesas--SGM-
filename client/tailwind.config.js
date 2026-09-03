@@ -38,7 +38,31 @@ export default {
           DEFAULT: 'var(--card)',
           foreground: 'var(--card-foreground)',
         },
+        // SGM Semantic Surface & Brand tokens
+        canvas: 'var(--bg-canvas)',
+        app: 'var(--bg-app)',
+        surface: 'var(--bg-surface)',
+        'surface-elevated': 'var(--bg-surface-elevated)',
+        'border-subtle': 'var(--border-subtle)',
+        'border-muted': 'var(--border-muted)',
+        'text-main': 'var(--text-main)',
+        'text-muted-custom': 'var(--text-muted)',
+        'brand-purple': 'var(--brand-purple)',
+        'brand-purple-hover': 'var(--brand-purple-hover)',
+        'brand-green': 'var(--brand-green)',
+        'brand-gold': 'var(--brand-gold)',
+        'brand-red': 'var(--brand-red)',
+        'brand-cyan': 'var(--brand-cyan)',
       },
+      borderColor: {
+        subtle: 'var(--border-subtle)',
+        muted: 'var(--border-muted)',
+      },
+      textColor: {
+        main: 'var(--text-main)',
+        'muted-custom': 'var(--text-muted)',
+      },
+
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',

@@ -164,12 +164,12 @@ export default function RouletteEditorFullscreen({
   const conicGradient = `conic-gradient(${gradientStops})`;
 
   return (
-    <div className="absolute inset-0 z-10 flex flex-col bg-[#09090b]">
+    <div className="absolute inset-0 z-10 flex flex-col bg-canvas">
       {/* Header */}
-      <div className="flex items-center gap-3 p-3 border-b border-[#323238] bg-[#121214]">
+      <div className="flex items-center gap-3 p-3 border-b border-subtle bg-surface">
         <button
           onClick={onBack}
-          className="p-1.5 hover:bg-[#202024] rounded-md text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors"
+          className="p-1.5 hover:bg-surface-elevated rounded-md text-muted-custom hover:text-main transition-colors cursor-pointer"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
@@ -180,19 +180,19 @@ export default function RouletteEditorFullscreen({
           onChange={(e) => setTitleValue(e.target.value)}
           onBlur={handleTitleBlur}
           placeholder="Título da Roleta"
-          className="bg-transparent border-none outline-none text-[#e1e1e6] font-semibold flex-1 min-w-0"
+          className="bg-transparent border-none outline-none text-main font-semibold flex-1 min-w-0 placeholder:text-muted-custom"
         />
 
-        <div className="flex items-center gap-2 bg-[#202024] p-1 rounded-md">
+        <div className="flex items-center gap-2 bg-surface-elevated p-1 rounded-md">
           <button
             onClick={() => setMode('view')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded transition-colors text-sm font-medium ${mode === 'view' ? 'bg-[#323238] text-[#e1e1e6]' : 'text-[#a8a8b3] hover:text-[#e1e1e6]'}`}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded transition-colors text-sm font-medium cursor-pointer ${mode === 'view' ? 'bg-surface text-main font-semibold' : 'text-muted-custom hover:text-main'}`}
           >
             <Eye className="w-4 h-4" /> Visualizar
           </button>
           <button
             onClick={() => setMode('edit')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded transition-colors text-sm font-medium ${mode === 'edit' ? 'bg-[#323238] text-[#e1e1e6]' : 'text-[#a8a8b3] hover:text-[#e1e1e6]'}`}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded transition-colors text-sm font-medium cursor-pointer ${mode === 'edit' ? 'bg-surface text-main font-semibold' : 'text-muted-custom hover:text-main'}`}
           >
             <Edit2 className="w-4 h-4" /> Editar
           </button>
@@ -206,7 +206,7 @@ export default function RouletteEditorFullscreen({
       >
         {mode === 'edit' ? (
           <div className="w-full max-w-2xl p-6 space-y-4">
-            <h3 className="text-[#e1e1e6] font-medium text-lg mb-4">
+            <h3 className="text-main font-medium text-lg mb-4">
               Opções da Roleta
             </h3>
 
@@ -214,9 +214,9 @@ export default function RouletteEditorFullscreen({
               {roulette.options.map((opt, index) => (
                 <div
                   key={opt.id}
-                  className="flex items-center gap-3 bg-[#121214] p-3 rounded-lg border border-[#323238]"
+                  className="flex items-center gap-3 bg-surface p-3 rounded-lg border border-subtle"
                 >
-                  <span className="text-[#7a7a80] font-mono text-sm w-6">
+                  <span className="text-muted-custom font-mono text-sm w-6">
                     {index + 1}.
                   </span>
 
@@ -226,12 +226,12 @@ export default function RouletteEditorFullscreen({
                     onChange={(e) =>
                       updateOption(opt.id, { text: e.target.value })
                     }
-                    className="flex-1 bg-transparent border-b border-[#323238] focus:border-[#8257e5] outline-none text-[#e1e1e6] px-2 py-1"
+                    className="flex-1 bg-transparent border-b border-subtle focus:border-brand-purple outline-none text-main px-2 py-1"
                     placeholder="Nome da opção"
                   />
 
                   <div className="flex items-center gap-2">
-                    <label className="text-[#a8a8b3] text-xs">Peso:</label>
+                    <label className="text-muted-custom text-xs">Peso:</label>
                     <input
                       type="number"
                       min="1"
@@ -241,7 +241,7 @@ export default function RouletteEditorFullscreen({
                           weight: parseInt(e.target.value) || 1,
                         })
                       }
-                      className="w-16 bg-[#202024] border border-[#323238] rounded outline-none text-[#e1e1e6] px-2 py-1 text-center"
+                      className="w-16 bg-surface-elevated border border-subtle rounded outline-none text-main px-2 py-1 text-center"
                     />
                   </div>
 
@@ -256,7 +256,7 @@ export default function RouletteEditorFullscreen({
 
                   <button
                     onClick={() => removeOption(opt.id)}
-                    className="p-1.5 text-[#a8a8b3] hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
+                    className="p-1.5 text-muted-custom hover:text-brand-red hover:bg-brand-red/10 rounded transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -266,7 +266,7 @@ export default function RouletteEditorFullscreen({
 
             <button
               onClick={addOption}
-              className="mt-4 flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-[#323238] hover:border-[#8257e5] rounded-lg text-[#a8a8b3] hover:text-[#e1e1e6] hover:bg-[#8257e5]/5 transition-all font-medium"
+              className="mt-4 flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-subtle hover:border-brand-purple rounded-lg text-muted-custom hover:text-main hover:bg-brand-purple/5 transition-all font-medium cursor-pointer"
             >
               <Plus className="w-5 h-5" />
               Adicionar Opção
@@ -277,14 +277,14 @@ export default function RouletteEditorFullscreen({
             {/* Winner Display */}
             <div className="h-16 flex items-center justify-center mb-6 z-20">
               {winner ? (
-                <div className="animate-in slide-in-from-bottom-2 fade-in px-6 py-3 rounded-full bg-[#121214] border border-[#323238] shadow-lg flex items-center gap-3">
+                <div className="animate-in slide-in-from-bottom-2 fade-in px-6 py-3 rounded-full bg-surface border border-subtle shadow-lg flex items-center gap-3">
                   <Dices className="w-6 h-6" style={{ color: winner.color }} />
-                  <span className="text-[#e1e1e6] font-bold text-xl truncate max-w-[200px]">
+                  <span className="text-main font-bold text-xl truncate max-w-[200px]">
                     {winner.text}
                   </span>
                 </div>
               ) : (
-                <span className="text-[#a8a8b3] italic">
+                <span className="text-muted-custom italic">
                   Gire a roleta para sortear
                 </span>
               )}
@@ -297,7 +297,7 @@ export default function RouletteEditorFullscreen({
                 onClick={handleSpin}
               >
                 <div
-                  className="w-full h-full rounded-full border-[5px] border-[#202024] overflow-hidden shadow-2xl"
+                  className="w-full h-full rounded-full border-[5px] border-surface-elevated overflow-hidden shadow-2xl"
                   style={{
                     background: conicGradient,
                     transform: `translateZ(0) rotate(${rotation}deg)`,
@@ -329,13 +329,13 @@ export default function RouletteEditorFullscreen({
                   ))}
 
                   {/* Center dot */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-[#202024] rounded-full shadow-inner" />
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-surface-elevated rounded-full shadow-inner" />
                 </div>
               </div>
 
               {/* Bottom Pin */}
               <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 flex flex-col items-center z-20 drop-shadow-lg">
-                <div className="w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-b-[24px] border-b-[#e1e1e6]" />
+                <div className="w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-b-[24px] border-b-brand-purple" />
               </div>
             </div>
           </div>

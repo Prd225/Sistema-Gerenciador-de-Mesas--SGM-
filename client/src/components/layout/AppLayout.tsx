@@ -75,14 +75,14 @@ export default function AppLayout({
   }, [autoSaveSlot]);
 
   return (
-    <div className="h-screen w-screen bg-[#121214] text-[#e1e1e6] overflow-hidden flex flex-col font-sans">
+    <div className="h-screen w-screen bg-app text-main overflow-hidden flex flex-col font-sans transition-colors duration-200">
       <Header />
 
       <div className="flex-1 flex overflow-hidden">
         <SidebarLeft isOpen={leftOpen} toggle={toggleLeft} />
 
         {/* Main Viewport */}
-        <main className="flex-1 relative overflow-hidden bg-[#0d0d0f] select-none">
+        <main className="flex-1 relative overflow-hidden bg-canvas select-none transition-colors duration-200">
           <StageMap />
           <MapToolbar />
           <InitiativeBar />
@@ -112,11 +112,11 @@ export default function AppLayout({
             }}
           />
           <div
-            className="fixed z-[101] bg-[#202024] border border-[#323238] rounded shadow-lg min-w-[160px] overflow-hidden"
+            className="fixed z-[101] bg-surface-elevated border border-subtle rounded shadow-xl min-w-[160px] overflow-hidden text-main"
             style={{ left: tokenCtx.x, top: tokenCtx.y }}
           >
             <div
-              className="flex items-center gap-2 px-4 py-2 hover:bg-[#8257e5] hover:text-white cursor-pointer transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 hover:bg-brand-purple hover:text-white cursor-pointer transition-colors text-sm"
               onClick={() => {
                 setTokenCtx(null);
                 const t = getTokenById(tokenCtx.id);
@@ -130,7 +130,7 @@ export default function AppLayout({
               <Search className="w-4 h-4" /> Localizar
             </div>
             <div
-              className="flex items-center gap-2 px-4 py-2 hover:bg-[#8257e5] hover:text-white cursor-pointer transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 hover:bg-brand-purple hover:text-white cursor-pointer transition-colors text-sm"
               onClick={() => {
                 setTokenCtx(null);
                 setEditingTokenId(tokenCtx.id);
@@ -139,7 +139,7 @@ export default function AppLayout({
               <Edit className="w-4 h-4" /> Cor e Nome
             </div>
             <div
-              className="flex items-center gap-2 px-4 py-2 hover:bg-[#8257e5] hover:text-white cursor-pointer transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 hover:bg-brand-purple hover:text-white cursor-pointer transition-colors text-sm"
               onClick={() => {
                 setTokenCtx(null); /* handle duplicate */
               }}
@@ -147,7 +147,7 @@ export default function AppLayout({
               <Copy className="w-4 h-4" /> Duplicar
             </div>
             <div
-              className="flex items-center gap-2 px-4 py-2 hover:bg-[#8257e5] hover:text-white cursor-pointer transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 hover:bg-brand-purple hover:text-white cursor-pointer transition-colors text-sm"
               onClick={() => {
                 setTokenCtx(null);
                 setEditingTokenId(tokenCtx.id);
@@ -155,9 +155,9 @@ export default function AppLayout({
             >
               <IdCard className="w-4 h-4" /> Ficha
             </div>
-            <div className="border-t border-[#323238] my-1" />
+            <div className="border-t border-subtle my-1" />
             <div
-              className="flex items-center gap-2 px-4 py-2 hover:bg-red-600 hover:text-white cursor-pointer transition-colors text-red-500 text-sm"
+              className="flex items-center gap-2 px-4 py-2 hover:bg-brand-red hover:text-white cursor-pointer transition-colors text-brand-red text-sm"
               onClick={() => {
                 setTokenCtx(null);
                 updateToken(tokenCtx.id, { x: null, y: null });
@@ -166,7 +166,7 @@ export default function AppLayout({
               <Map className="w-4 h-4" /> Remover do Mapa
             </div>
             <div
-              className="flex items-center gap-2 px-4 py-2 hover:bg-red-600 hover:text-white cursor-pointer transition-colors text-red-500 text-sm"
+              className="flex items-center gap-2 px-4 py-2 hover:bg-brand-red hover:text-white cursor-pointer transition-colors text-brand-red text-sm"
               onClick={() => {
                 if (
                   confirm(

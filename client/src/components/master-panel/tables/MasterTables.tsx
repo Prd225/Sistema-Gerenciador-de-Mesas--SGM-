@@ -58,10 +58,7 @@ export default function MasterTables() {
   if (!activePage) return null;
 
   return (
-    <div
-      className="flex flex-col h-full bg-[#09090b] relative"
-      ref={containerRef}
-    >
+    <div className="flex flex-col h-full bg-canvas relative" ref={containerRef}>
       <div className="flex-1 overflow-hidden min-h-0 relative">
         <TablesGrid
           page={activePage}
@@ -79,12 +76,12 @@ export default function MasterTables() {
 
       {/* Paginação no Rodapé */}
       {!activeTableId && (
-        <div className="flex items-center justify-center p-2 sm:p-3 border-t border-[#323238] bg-[#1a1a1e] w-full">
-          <div className="flex items-center gap-1 sm:gap-2 bg-[#121214] border border-[#323238] rounded-md p-1 shadow-sm w-full max-w-fit overflow-x-auto custom-scrollbar">
+        <div className="flex items-center justify-center p-2 sm:p-3 border-t border-subtle bg-surface w-full">
+          <div className="flex items-center gap-1 sm:gap-2 bg-app border border-subtle rounded-md p-1 shadow-sm w-full max-w-fit overflow-x-auto custom-scrollbar">
             <button
               onClick={handlePrevPage}
               disabled={activePageIndex === 0}
-              className="p-1.5 hover:bg-[#202024] rounded text-[#a8a8b3] disabled:opacity-50 transition-colors"
+              className="p-1.5 hover:bg-surface-elevated rounded text-muted-custom hover:text-main disabled:opacity-50 transition-colors cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -97,17 +94,17 @@ export default function MasterTables() {
                   onChange={(e) => setTitleValue(e.target.value)}
                   onBlur={handleTitleSubmit}
                   onKeyDown={(e) => e.key === 'Enter' && handleTitleSubmit()}
-                  className="bg-transparent border-b border-[#8257e5] outline-none text-[#e1e1e6] text-sm text-center w-full min-w-0"
+                  className="bg-transparent border-b border-brand-purple outline-none text-main text-sm text-center w-full min-w-0"
                 />
               ) : (
                 <div
                   className="flex items-center gap-1 sm:gap-2 group cursor-pointer min-w-0"
                   onClick={startEditing}
                 >
-                  <span className="text-sm font-medium text-[#e1e1e6] truncate">
+                  <span className="text-sm font-medium text-main truncate">
                     {activePage.name}
                   </span>
-                  <Edit2 className="w-3 h-3 text-[#a8a8b3] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                  <Edit2 className="w-3 h-3 text-muted-custom opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                 </div>
               )}
             </div>
@@ -115,16 +112,16 @@ export default function MasterTables() {
             <button
               onClick={handleNextPage}
               disabled={activePageIndex === pages.length - 1}
-              className="p-1.5 hover:bg-[#202024] rounded text-[#a8a8b3] disabled:opacity-50 transition-colors"
+              className="p-1.5 hover:bg-surface-elevated rounded text-muted-custom hover:text-main disabled:opacity-50 transition-colors cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
 
-            <div className="w-px h-4 bg-[#323238] mx-1 shrink-0" />
+            <div className="w-px h-4 bg-border-subtle mx-1 shrink-0" />
 
             <button
               onClick={handleAddPage}
-              className="p-1.5 hover:bg-[#8257e5]/20 hover:text-[#8257e5] rounded text-[#a8a8b3] transition-colors shrink-0"
+              className="p-1.5 hover:bg-brand-purple/20 hover:text-brand-purple rounded text-muted-custom transition-colors shrink-0 cursor-pointer"
               title="Nova Página"
             >
               <Plus className="w-4 h-4" />
@@ -133,7 +130,7 @@ export default function MasterTables() {
             {pages.length > 1 && (
               <button
                 onClick={handleRemovePage}
-                className="p-1.5 hover:bg-red-500/20 hover:text-red-500 rounded text-[#a8a8b3] transition-colors shrink-0"
+                className="p-1.5 hover:bg-brand-red/20 hover:text-brand-red rounded text-muted-custom transition-colors shrink-0 cursor-pointer"
                 title="Apagar Página"
               >
                 <X className="w-4 h-4" />

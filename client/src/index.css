@@ -43,6 +43,22 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+
+    /* SGM Semantic Design Tokens - Light Mode */
+    --bg-canvas: #e8e8ec;
+    --bg-app: #f4f4f7;
+    --bg-surface: #ffffff;
+    --bg-surface-elevated: #ffffff;
+    --border-subtle: #e2e2e8;
+    --border-muted: #d0d0d8;
+    --text-main: #121214;
+    --text-muted: #666672;
+    --brand-purple: #7042dc;
+    --brand-purple-hover: #8257e5;
+    --brand-green: #029a46;
+    --brand-gold: #b8860b;
+    --brand-red: #cf3b3b;
+    --brand-cyan: #0284c7;
   }
   .dark {
     --background: oklch(0.145 0 0);
@@ -76,7 +92,24 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+
+    /* SGM Semantic Design Tokens - Dark Mode (RPG Default) */
+    --bg-canvas: #0d0d0f;
+    --bg-app: #121214;
+    --bg-surface: #18181b;
+    --bg-surface-elevated: #202024;
+    --border-subtle: #27272a;
+    --border-muted: #323238;
+    --text-main: #f4f4f5;
+    --text-muted: #a1a1aa;
+    --brand-purple: #8257e5;
+    --brand-purple-hover: #9466ff;
+    --brand-green: #04d361;
+    --brand-gold: #ffd700;
+    --brand-red: #e55757;
+    --brand-cyan: #2ac7e3;
   }
+
   * {
     @apply border-border outline-ring;
   }

@@ -32,14 +32,12 @@ export default function SubPanelPlaceholder({
   const Icon = details.icon;
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center bg-[#121214]/60 border border-[#323238] rounded-xl overflow-hidden backdrop-blur-sm shadow-xl p-4 transition-all hover:border-[#8257e5]/50">
-      <div className="w-16 h-16 bg-[#202024] rounded-full flex items-center justify-center mb-4 shadow-inner">
-        <Icon className="w-8 h-8 text-[#8257e5]" />
+    <div className="w-full h-full flex flex-col items-center justify-center bg-app/60 border border-muted rounded-xl overflow-hidden backdrop-blur-sm shadow-xl p-4 transition-all hover:border-brand-purple/50">
+      <div className="w-16 h-16 bg-surface-elevated rounded-full flex items-center justify-center mb-4 shadow-inner">
+        <Icon className="w-8 h-8 text-brand-purple" />
       </div>
-      <h3 className="text-xl font-semibold text-[#e1e1e6] mb-2">
-        {details.title}
-      </h3>
-      <p className="text-sm text-[#a8a8b3] text-center max-w-[80%]">
+      <h3 className="text-xl font-semibold text-main mb-2">{details.title}</h3>
+      <p className="text-sm text-muted-custom text-center max-w-[80%]">
         Em construção. Espaço reservado para a interface de {details.title}.
       </p>
     </div>

@@ -24,7 +24,7 @@ export default function TableCard({ pageId, table, onClick }: TableCardProps) {
   return (
     <div
       onClick={onClick}
-      className="group relative bg-[#121214] rounded-lg p-4 cursor-pointer hover:bg-[#202024] transition-all shadow-md hover:shadow-lg flex flex-col h-[120px] overflow-hidden"
+      className="group relative bg-surface-elevated rounded-lg p-4 cursor-pointer hover:bg-surface transition-all shadow-md hover:shadow-lg flex flex-col h-[120px] overflow-hidden"
       style={{
         backgroundColor: `${table.color || '#8257e5'}15`,
         border: `1px solid ${table.color || '#8257e5'}40`,
@@ -32,12 +32,12 @@ export default function TableCard({ pageId, table, onClick }: TableCardProps) {
       }}
     >
       <div className="flex items-start justify-between mb-2 flex-1">
-        <h4 className="font-semibold text-[#e1e1e6] text-sm break-words line-clamp-3 pr-4 leading-tight">
+        <h4 className="font-semibold text-main text-sm break-words line-clamp-3 pr-4 leading-tight">
           {table.title || 'Sem Título'}
         </h4>
         <button
           onClick={handleDelete}
-          className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-500/20 text-[#a8a8b3] hover:text-red-500 rounded transition-all shrink-0 absolute right-2 top-2"
+          className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-brand-red/20 text-muted-custom hover:text-brand-red rounded transition-all shrink-0 absolute right-2 top-2 cursor-pointer"
           title="Apagar Tabela"
         >
           <Trash2 className="w-3.5 h-3.5" />
@@ -45,7 +45,7 @@ export default function TableCard({ pageId, table, onClick }: TableCardProps) {
       </div>
 
       <div className="mt-auto flex justify-end items-end">
-        <span className="text-xs font-medium text-[#a8a8b3]">
+        <span className="text-xs font-medium text-muted-custom">
           {rows}x{cols}
         </span>
       </div>

@@ -61,6 +61,8 @@ export default function Footer() {
     addTurn,
     setTurnsPerRound,
     setShowInitModal,
+    nextRound,
+    setRound,
   } = useCampaignStore();
   const [urgencyFlashing, setUrgencyFlashing] = useState(false);
   const [timerFlashing, setTimerFlashing] = useState(false);
@@ -106,17 +108,17 @@ export default function Footer() {
     }
   };
   return (
-    <footer className="h-[60px] bg-[#202024] border-t border-[#323238] flex items-center justify-center gap-5 px-5 z-50 transition-colors duration-300">
+    <footer className="h-[60px] bg-surface-elevated border-t border-subtle flex items-center justify-center gap-5 px-5 z-50 transition-colors duration-200">
       {/* Timer */}
       <div
-        className={`flex items-center gap-4 border rounded-lg px-3 py-1 shadow-[0_4px_15px_rgba(0,0,0,0.7)] backdrop-blur-sm transition-all ${
+        className={`flex items-center gap-4 border rounded-lg px-3 py-1 shadow-sm backdrop-blur-sm transition-all ${
           timerFlashing
             ? 'bg-red-950/50 border-red-500 shadow-[0_0_15px_red] animate-pulse'
-            : 'bg-[#202024]/95 border-[#323238]'
+            : 'bg-surface border-subtle'
         }`}
       >
         <div
-          className={`text-2xl font-bold font-mono cursor-pointer w-[70px] text-left select-none transition-colors ${timerFlashing ? 'text-white' : 'text-[#e1e1e6] hover:text-[#ffd700]'}`}
+          className={`text-2xl font-bold font-mono cursor-pointer w-[70px] text-left select-none transition-colors ${timerFlashing ? 'text-white' : 'text-main hover:text-brand-gold'}`}
           onClick={toggleMinimize}
         >
           {formatTime(totalSeconds)}
@@ -128,7 +130,7 @@ export default function Footer() {
                 onClick={() => setTotalSeconds(60)}
                 variant="outline"
                 size="sm"
-                className="h-6 px-2 text-[0.7rem] bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5"
+                className="h-6 px-2 text-[0.7rem] bg-transparent border-muted text-main hover:bg-surface-elevated"
               >
                 1m
               </Button>
@@ -136,7 +138,7 @@ export default function Footer() {
                 onClick={() => setTotalSeconds(180)}
                 variant="outline"
                 size="sm"
-                className="h-6 px-2 text-[0.7rem] bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5"
+                className="h-6 px-2 text-[0.7rem] bg-transparent border-muted text-main hover:bg-surface-elevated"
               >
                 3m
               </Button>
@@ -144,17 +146,28 @@ export default function Footer() {
                 onClick={() => setTotalSeconds(300)}
                 variant="outline"
                 size="sm"
-                className="h-6 px-2 text-[0.7rem] bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5"
+                className="h-6 px-2 text-[0.7rem] bg-transparent border-muted text-main hover:bg-surface-elevated"
               >
                 5m
               </Button>
+              <Button
+                onClick={() => setTotalSeconds(600)}
+                variant="outline"
+                size="sm"
+                className="h-6 px-2 text-[0.7rem] bg-transparent border-muted text-main hover:bg-surface-elevated"
+              >
+                10m
+              </Button>
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-1 border-l border-subtle pl-2">
               <Button
                 onClick={toggleIsRunning}
                 variant="outline"
                 size="icon"
-                className={`h-7 w-7 bg-transparent border-[#323238] hover:text-white hover:bg-white/5 ${isRunning ? 'text-[#04d361]' : 'text-[#a8a8b3]'}`}
+                className={`h-7 w-7 bg-transparent border-muted hover:bg-surface-elevated cursor-pointer ${
+                  isRunning ? 'text-brand-green' : 'text-muted-custom'
+                }`}
+                title={isRunning ? 'Pausar' : 'Iniciar'}
               >
                 <Play className="h-3 w-3" fill="currentColor" />
               </Button>
@@ -162,7 +175,8 @@ export default function Footer() {
                 onClick={stop}
                 variant="outline"
                 size="icon"
-                className="h-7 w-7 bg-transparent border-[#323238] text-[#a8a8b3] hover:text-white hover:bg-white/5"
+                className="h-7 w-7 bg-transparent border-muted text-muted-custom hover:bg-surface-elevated cursor-pointer"
+                title="Parar"
               >
                 <Square className="h-3 w-3" fill="currentColor" />
               </Button>
@@ -170,7 +184,8 @@ export default function Footer() {
                 onClick={handleManualTimer}
                 variant="outline"
                 size="icon"
-                className="h-7 w-7 bg-transparent border-[#323238] text-[#a8a8b3] hover:text-white hover:bg-white/5"
+                className="h-7 w-7 bg-transparent border-muted text-muted-custom hover:bg-surface-elevated cursor-pointer"
+                title="Inserir minutos manualmente"
               >
                 <Keyboard className="h-3 w-3" />
               </Button>
@@ -179,56 +194,71 @@ export default function Footer() {
         )}
       </div>
 
-      <div className="w-[1px] h-[30px] bg-[#323238] ml-2"></div>
+      <div className="w-[1px] h-[30px] bg-subtle" />
 
       {/* Counters */}
       <div className="flex items-center gap-2 text-[1.1rem]">
-        <span className="text-[#a8a8b3]">Cena</span>
-        <span className="font-bold text-[#ffd700] text-[1.4rem] min-w-[30px] text-center">
+        <span className="text-muted-custom font-medium">Cena</span>
+        <span className="font-bold text-brand-gold text-[1.4rem] min-w-[30px] text-center">
           {scene}
         </span>
       </div>
 
-      <div className="w-[1px] h-[30px] bg-[#323238]"></div>
+      <div className="w-[1px] h-[30px] bg-subtle" />
 
+      {/* Rounds & Turns */}
       <div className="flex items-center gap-2 text-[1.1rem]">
-        <span className="text-[#a8a8b3]">Rodada</span>
-        <span className="font-bold text-[#ffd700] text-[1.4rem] min-w-[30px] text-center">
+        <span className="text-muted-custom font-medium">Rodada</span>
+        <span className="font-bold text-brand-gold text-[1.4rem] min-w-[30px] text-center">
           {round}
         </span>
+        <div className="flex flex-col ml-1">
+          <button
+            onClick={nextRound}
+            className="text-muted-custom hover:text-main h-[12px] flex items-center justify-center p-0 cursor-pointer"
+          >
+            <ChevronUp className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => setRound(Math.max(1, round - 1))}
+            className="text-muted-custom hover:text-main h-[12px] flex items-center justify-center p-0 cursor-pointer"
+          >
+            <ChevronDown className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
 
       <div className="flex items-center gap-2 text-[1.1rem]">
-        <span className="text-[#a8a8b3]">Turno</span>
-        <span className="font-bold text-[#ffd700] text-[1.4rem] min-w-[30px] text-center">
+        <span className="text-muted-custom font-medium">Turno</span>
+        <span className="font-bold text-brand-gold text-[1.4rem] min-w-[30px] text-center">
           {turn}
         </span>
       </div>
 
-      <div className="w-[1px] h-[30px] bg-[#323238]"></div>
+      <div className="w-[1px] h-[30px] bg-subtle" />
 
       {/* Urgency */}
       <div
-        className={`flex items-center gap-1 ml-2 pl-2 border-l border-[#323238] rounded transition-all ${urgencyFlashing ? 'bg-red-950/50 shadow-[0_0_15px_red] animate-pulse' : ''}`}
+        className={`flex items-center gap-1 ml-2 pl-2 border-l border-subtle rounded transition-all ${urgencyFlashing ? 'bg-red-950/50 shadow-[0_0_15px_red] animate-pulse' : ''}`}
       >
-        <span className="text-[#a8a8b3] text-[0.8rem] uppercase mr-1">
+        <span className="text-muted-custom text-[0.8rem] uppercase font-semibold mr-1">
           Urgência
         </span>
         <div className="flex flex-col ml-1 items-center">
           <button
             onClick={() => changeUrgency(1)}
-            className="text-[#a8a8b3] hover:text-[#e1e1e6] h-[10px] flex items-center justify-center p-0"
+            className="text-muted-custom hover:text-main h-[10px] flex items-center justify-center p-0 cursor-pointer"
           >
             <ChevronUp className="h-3 w-3" />
           </button>
           <span
-            className={`font-bold text-[1.4rem] min-w-[25px] text-center leading-none my-1 ${urgencyFlashing || urgency === 0 ? 'text-red-500' : 'text-[#e55757]'}`}
+            className={`font-bold text-[1.4rem] min-w-[25px] text-center leading-none my-1 ${urgencyFlashing || urgency === 0 ? 'text-red-500' : 'text-brand-red'}`}
           >
             {urgency !== null ? urgency : '---'}
           </span>
           <button
             onClick={() => changeUrgency(-1)}
-            className="text-[#a8a8b3] hover:text-[#e1e1e6] h-[10px] flex items-center justify-center p-0"
+            className="text-muted-custom hover:text-main h-[10px] flex items-center justify-center p-0 cursor-pointer"
           >
             <ChevronDown className="h-3 w-3" />
           </button>
@@ -238,7 +268,7 @@ export default function Footer() {
             onClick={() => setUrgency(3)}
             variant="outline"
             size="sm"
-            className="h-6 px-1.5 text-[0.7rem] bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5"
+            className="h-6 px-1.5 text-[0.7rem] bg-transparent border-muted text-main hover:bg-surface-elevated"
           >
             3
           </Button>
@@ -246,7 +276,7 @@ export default function Footer() {
             onClick={() => setUrgency(5)}
             variant="outline"
             size="sm"
-            className="h-6 px-1.5 text-[0.7rem] bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5"
+            className="h-6 px-1.5 text-[0.7rem] bg-transparent border-muted text-main hover:bg-surface-elevated"
           >
             5
           </Button>
@@ -254,7 +284,7 @@ export default function Footer() {
             onClick={() => setUrgency(7)}
             variant="outline"
             size="sm"
-            className="h-6 px-1.5 text-[0.7rem] bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5"
+            className="h-6 px-1.5 text-[0.7rem] bg-transparent border-muted text-main hover:bg-surface-elevated"
           >
             7
           </Button>
@@ -262,37 +292,37 @@ export default function Footer() {
       </div>
 
       {/* Controls */}
-      <div className="flex items-center gap-3.5 ml-5 bg-black/20 px-4 py-1.5 rounded-lg">
+      <div className="flex items-center gap-3.5 ml-5 bg-surface border border-subtle px-4 py-1.5 rounded-lg shadow-sm">
         <Button
           onClick={() => setShowInitModal(true)}
           variant="outline"
-          className="bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5 font-bold"
+          className="bg-transparent border-muted text-main hover:bg-surface-elevated font-bold"
         >
           <ListOrdered className="w-4 h-4 mr-2" /> Iniciativa
         </Button>
         <Button
           onClick={addTurn}
           variant="outline"
-          className="bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5"
+          className="bg-transparent border-muted text-main hover:bg-surface-elevated"
           title="Próximo Turno"
         >
           <StepForward className="w-4 h-4" />
         </Button>
         <div className="flex flex-col items-center">
-          <label className="text-[0.6rem] text-[#a8a8b3] m-0 leading-tight">
+          <label className="text-[0.6rem] text-muted-custom m-0 leading-tight">
             T/Rodada
           </label>
           <input
             type="number"
             value={turnsPerRound}
             onChange={(e) => setTurnsPerRound(Number(e.target.value))}
-            className="w-10 text-center p-0.5 h-[25px] bg-[#121214] border border-[#323238] rounded text-[#e1e1e6] focus:border-[#8257e5] outline-none"
+            className="w-10 text-center p-0.5 h-[25px] bg-app border border-muted rounded text-main focus:border-brand-purple outline-none text-xs font-semibold"
           />
         </div>
         <Button
           onClick={nextScene}
           variant="outline"
-          className="bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5 font-bold"
+          className="bg-transparent border-muted text-main hover:bg-surface-elevated font-bold"
           title="Nova Cena (Reset)"
         >
           <Film className="w-4 h-4 mr-2" /> Cena

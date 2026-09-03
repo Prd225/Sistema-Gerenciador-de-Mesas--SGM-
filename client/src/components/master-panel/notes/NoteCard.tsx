@@ -32,7 +32,7 @@ export default function NoteCard({ note, pageId, onClick }: NoteCardProps) {
     >
       <div className="flex justify-between items-start w-full">
         <h4
-          className="font-bold text-[#e1e1e6] text-base leading-tight break-words"
+          className="font-bold text-main text-base leading-tight break-words"
           style={{
             wordBreak: 'break-word',
             display: '-webkit-box',
@@ -45,14 +45,14 @@ export default function NoteCard({ note, pageId, onClick }: NoteCardProps) {
         </h4>
         <button
           onClick={handleDelete}
-          className="opacity-0 group-hover:opacity-100 p-1.5 bg-red-500/10 text-red-500 rounded hover:bg-red-500 hover:text-white transition-colors"
+          className="opacity-0 group-hover:opacity-100 p-1.5 bg-brand-red/10 text-brand-red rounded hover:bg-brand-red hover:text-white transition-colors cursor-pointer"
         >
           <Trash2 className="w-4 h-4" />
         </button>
       </div>
 
       <div className="flex justify-end items-end w-full">
-        <span className="text-xs font-semibold text-[#a8a8b3] uppercase tracking-wider">
+        <span className="text-xs font-semibold text-muted-custom uppercase tracking-wider">
           {timeAgo(note.updatedAt)}
         </span>
       </div>

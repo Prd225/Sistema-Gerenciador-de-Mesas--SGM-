@@ -57,13 +57,13 @@ export default function InitiativeModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#202024] border-[#323238] text-[#e1e1e6] sm:max-w-[400px]">
+      <DialogContent className="bg-surface border border-subtle text-main sm:max-w-[400px]">
         <DialogHeader>
-          <DialogTitle className="text-[#ffd700]">
+          <DialogTitle className="text-brand-gold font-bold">
             Fila de Iniciativa
           </DialogTitle>
         </DialogHeader>
-        <p className="text-sm text-[#a8a8b3] mb-4">
+        <p className="text-sm text-muted-custom mb-4">
           Insira o valor da iniciativa (ex: 15.02). Deixe em branco para
           ignorar/remover.
         </p>
@@ -72,7 +72,7 @@ export default function InitiativeModal({
           {tokens.map((token) => (
             <div
               key={token.id}
-              className="flex items-center justify-between gap-4 p-2 bg-black/20 rounded border border-[#323238]"
+              className="flex items-center justify-between gap-4 p-2 bg-app rounded border border-subtle"
             >
               <div className="flex items-center gap-2">
                 <div
@@ -85,7 +85,7 @@ export default function InitiativeModal({
                 >
                   {token.name}
                 </div>
-                <span className="font-bold text-sm truncate">
+                <span className="font-bold text-sm truncate text-main">
                   {token.fullName}
                 </span>
               </div>
@@ -97,12 +97,12 @@ export default function InitiativeModal({
                 onChange={(e) =>
                   setLocalValues({ ...localValues, [token.id]: e.target.value })
                 }
-                className="w-20 bg-[#121214] border-[#323238] h-8 text-center text-[#e1e1e6]"
+                className="w-20 bg-surface-elevated border-subtle h-8 text-center text-main"
               />
             </div>
           ))}
           {tokens.length === 0 && (
-            <span className="text-sm text-[#a8a8b3]">
+            <span className="text-sm text-muted-custom">
               Crie tokens primeiro.
             </span>
           )}
@@ -116,7 +116,7 @@ export default function InitiativeModal({
               clearInitiative();
               onOpenChange(false);
             }}
-            className="border-red-500 text-red-500 hover:bg-red-500/10 hover:text-red-400"
+            className="border-brand-red/40 text-brand-red hover:bg-brand-red/10 hover:text-brand-red cursor-pointer"
           >
             <Trash className="w-4 h-4 mr-2" /> Limpar Fila
           </Button>
@@ -124,13 +124,13 @@ export default function InitiativeModal({
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="border-[#323238] bg-transparent text-[#e1e1e6] hover:bg-white/5"
+              className="border-subtle bg-transparent text-main hover:bg-surface-elevated cursor-pointer"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleApply}
-              className="bg-[#8257e5] hover:bg-[#9466ff] text-white"
+              className="bg-brand-purple hover:bg-brand-purple-hover text-white cursor-pointer"
             >
               Aplicar
             </Button>

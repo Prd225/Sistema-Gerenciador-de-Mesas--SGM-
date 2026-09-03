@@ -1,5 +1,6 @@
 import { Group, Rect } from 'react-konva';
 import React, { useEffect, useState } from 'react';
+import { useThemeStore } from '@/store/useThemeStore';
 
 const GRID_SIZE = 40;
 const GRID_EXTENT = 10000;
@@ -10,6 +11,7 @@ const GRID_EXTENT = 10000;
  * to tile it across the entire extent.
  */
 function GridLayer() {
+  const theme = useThemeStore((state) => state.theme);
   const [patternImage, setPatternImage] = useState<HTMLImageElement | null>(
     null,
   );
@@ -21,8 +23,9 @@ function GridLayer() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Draw one grid cell
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+    // Draw one grid cell adapting to dark or light mode
+    ctx.strokeStyle =
+      theme === 'dark' ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.09)';
     ctx.lineWidth = 1;
 
     // Right edge
@@ -43,7 +46,7 @@ function GridLayer() {
     img.onload = () => {
       setPatternImage(img);
     };
-  }, []);
+  }, [theme]);
 
   if (!patternImage) return <Group listening={false} />;
 

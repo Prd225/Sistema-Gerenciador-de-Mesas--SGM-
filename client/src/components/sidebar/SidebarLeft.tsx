@@ -108,10 +108,10 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
 
   if (!isOpen) {
     return (
-      <div className="bg-[#202024] border-r border-[#323238] h-full flex flex-col items-center py-4 z-40 w-12 transition-all">
+      <div className="bg-surface-elevated border-r border-subtle h-full flex flex-col items-center py-4 z-40 w-12 transition-all">
         <button
           onClick={toggle}
-          className="text-[#a8a8b3] hover:text-[#e1e1e6] p-2 hover:bg-white/5 rounded"
+          className="text-muted-custom hover:text-main p-2 hover:bg-surface rounded transition-colors"
         >
           <ChevronLeft className="rotate-180" />
         </button>
@@ -123,30 +123,30 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
     <>
       <aside
         style={{ width: `${width}px` }}
-        className="bg-[#202024] border-r border-[#323238] flex flex-col h-full z-40 overflow-hidden shrink-0 relative"
+        className="bg-surface-elevated border-r border-subtle flex flex-col h-full z-40 overflow-hidden shrink-0 relative transition-colors"
       >
         <div className="p-5 overflow-y-auto flex-1 h-full flex flex-col relative">
           {/* Header */}
-          <div className="flex justify-between items-center mb-5 text-[#8257e5] font-bold uppercase tracking-wide border-b-2 border-[#323238] pb-2 shrink-0">
+          <div className="flex justify-between items-center mb-5 text-brand-purple font-bold uppercase tracking-wide border-b-2 border-subtle pb-2 shrink-0">
             <span className="flex items-center gap-2">
               <Map className="w-5 h-5" /> Dados da Zona
             </span>
             <div className="flex items-center gap-1 relative">
               <button
                 onClick={() => setShowPalette(!showPalette)}
-                className={`p-1 rounded hover:bg-white/5 ${showPalette ? 'text-[#ffd700]' : 'text-[#a8a8b3] hover:text-[#e1e1e6]'}`}
+                className={`p-1 rounded hover:bg-surface transition-colors ${showPalette ? 'text-brand-gold' : 'text-muted-custom hover:text-main'}`}
                 title="Cores da Zona"
               >
                 <Palette className="w-4 h-4" />
               </button>
               {showPalette && (
-                <div className="absolute top-full right-0 mt-2 bg-[#121214] border border-[#323238] rounded p-3 z-50 w-64 shadow-xl">
-                  <div className="text-xs font-bold text-[#e1e1e6] mb-3 uppercase">
+                <div className="absolute top-full right-0 mt-2 bg-surface-elevated border border-subtle rounded p-3 z-50 w-64 shadow-xl">
+                  <div className="text-xs font-bold text-main mb-3 uppercase">
                     Cores do Mapa
                   </div>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-[#a8a8b3]">Borda</span>
+                      <span className="text-xs text-muted-custom">Borda</span>
                       <input
                         type="color"
                         value={zoneData?.style?.borderColor || '#8257e5'}
@@ -165,7 +165,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                       />
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-[#a8a8b3]">
+                      <span className="text-xs text-muted-custom">
                         Preenchimento
                       </span>
                       <input
@@ -186,7 +186,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                       />
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-[#a8a8b3]">Texto</span>
+                      <span className="text-xs text-muted-custom">Texto</span>
                       <input
                         type="color"
                         value={zoneData?.style?.textColor || '#ffffff'}
@@ -209,7 +209,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
               )}
               <button
                 onClick={() => setEditingZone(!editingZone)}
-                className={`p-1 rounded hover:bg-white/5 ${editingZone ? 'text-[#ffd700]' : 'text-[#a8a8b3] hover:text-[#e1e1e6]'}`}
+                className={`p-1 rounded hover:bg-surface transition-colors ${editingZone ? 'text-brand-gold' : 'text-muted-custom hover:text-main'}`}
                 title="Alternar Leitura/Edição"
               >
                 {editingZone ? (
@@ -220,7 +220,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
               </button>
               <button
                 onClick={toggle}
-                className="text-[#a8a8b3] hover:text-[#e1e1e6] p-1 rounded hover:bg-white/5"
+                className="text-muted-custom hover:text-main p-1 rounded hover:bg-surface transition-colors"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -228,14 +228,14 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
           </div>
 
           {!zone || !zoneData ? (
-            <div className="text-[#a8a8b3] text-center mt-[50px] flex flex-col items-center">
+            <div className="text-muted-custom text-center mt-[50px] flex flex-col items-center">
               <SquareDashed className="w-[30px] h-[30px] mb-[10px]" />
               <span className="text-sm">Selecione ou desenhe uma zona.</span>
             </div>
           ) : (
             <div className="flex flex-col flex-1">
               {/* Tabs */}
-              <div className="flex border-b border-[#323238] mb-4 overflow-x-auto shrink-0 no-scrollbar">
+              <div className="flex border-b border-subtle mb-4 overflow-x-auto shrink-0 no-scrollbar">
                 {[
                   { id: 'geral', label: 'Geral' },
                   { id: 'destaques', label: 'Destaques' },
@@ -247,8 +247,8 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                     onClick={() => setActiveTab(t.id as any)}
                     className={`px-3 py-2 text-sm font-bold uppercase border-b-2 transition-colors whitespace-nowrap ${
                       activeTab === t.id
-                        ? 'border-[#8257e5] text-[#e1e1e6]'
-                        : 'border-transparent text-[#a8a8b3] hover:text-[#e1e1e6]'
+                        ? 'border-brand-purple text-brand-purple'
+                        : 'border-transparent text-muted-custom hover:text-main'
                     }`}
                   >
                     {t.label}
@@ -261,11 +261,11 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                 <div className="space-y-6 flex-1 min-w-0">
                   {activeTab === 'geral' && (
                     <>
-                      <h2 className="text-[#e1e1e6] text-xl font-bold mb-2">
+                      <h2 className="text-main text-xl font-bold mb-2">
                         {zoneData.title || 'Nova Zona'}
                       </h2>
                       {zoneData.imageUrl && (
-                        <div className="mb-4 rounded overflow-hidden border border-[#323238] shrink-0">
+                        <div className="mb-4 rounded overflow-hidden border border-subtle shrink-0">
                           <img
                             src={zoneData.imageUrl}
                             alt={zoneData.title}
@@ -273,16 +273,16 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                           />
                         </div>
                       )}
-                      <div className="flex justify-between items-start border-b border-[#323238] pb-4 gap-4">
+                      <div className="flex justify-between items-start border-b border-subtle pb-4 gap-4">
                         <RichTextView
                           content={zoneData.desc || ''}
                           defaultText="Sem descrição..."
                         />
-                        <div className="bg-black/20 px-3 py-1 rounded text-center shrink-0 border border-[#323238]">
-                          <span className="text-[0.6rem] text-[#a8a8b3] uppercase block">
+                        <div className="bg-surface px-3 py-1 rounded text-center shrink-0 border border-subtle shadow-sm">
+                          <span className="text-[0.6rem] text-muted-custom uppercase block">
                             Visitas
                           </span>
-                          <span className="text-xl font-bold text-[#ffd700] leading-none">
+                          <span className="text-xl font-bold text-brand-gold leading-none">
                             {zoneData.visits || 0}
                           </span>
                         </div>
@@ -292,27 +292,29 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                       {zoneData.customPois &&
                         zoneData.customPois.length > 0 && (
                           <div className="min-w-0">
-                            <h3 className="text-[#a8a8b3] text-sm font-bold mb-3 uppercase border-b border-[#323238] pb-1">
+                            <h3 className="text-muted-custom text-sm font-bold mb-3 uppercase border-b border-subtle pb-1">
                               Pontos de Interesse
                             </h3>
                             {zoneData.customPois.map((cat, idx) => (
                               <div key={idx} className="mb-4">
-                                <div className="font-bold text-sm uppercase tracking-wider flex items-center gap-1 text-[#e1e1e6] mb-2">
+                                <div className="font-bold text-sm uppercase tracking-wider flex items-center gap-1 text-main mb-2">
                                   {cat.icon === 'star' && (
-                                    <span className="text-[#ffd700]">★</span>
+                                    <span className="text-brand-gold">★</span>
                                   )}
                                   {cat.icon === 'spiral' && (
-                                    <span className="text-[#8257e5]">🌀</span>
+                                    <span className="text-brand-purple">
+                                      🌀
+                                    </span>
                                   )}
                                   {cat.icon === 'triangle' && (
-                                    <span className="text-[#04d361]">▲</span>
+                                    <span className="text-brand-green">▲</span>
                                   )}
                                   {cat.title || 'Categoria'}
                                 </div>
                                 {cat.options.map((opt, oi) => (
                                   <div
                                     key={oi}
-                                    className={`ml-3 mb-2 pl-3 border-l-2 border-[#323238] min-w-0 transition-opacity ${opt.isRevealed ? 'opacity-50' : ''}`}
+                                    className={`ml-3 mb-2 pl-3 border-l-2 border-subtle min-w-0 transition-opacity ${opt.isRevealed ? 'opacity-50' : ''}`}
                                   >
                                     <div className="flex items-center gap-2 mb-1">
                                       <button
@@ -327,16 +329,16 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                             customPois: newPois,
                                           });
                                         }}
-                                        className="text-[#a8a8b3] hover:text-[#8257e5] transition-colors"
+                                        className="text-muted-custom hover:text-brand-purple transition-colors"
                                         title="Marcar como revelado"
                                       >
                                         {opt.isRevealed ? (
-                                          <CheckSquare className="w-4 h-4 text-[#04d361]" />
+                                          <CheckSquare className="w-4 h-4 text-brand-green" />
                                         ) : (
                                           <Square className="w-4 h-4" />
                                         )}
                                       </button>
-                                      <div className="font-bold text-[#e1e1e6]">
+                                      <div className="font-bold text-main">
                                         {opt.name}:
                                       </div>
                                     </div>
@@ -355,7 +357,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                       {zoneData.customEvents &&
                         zoneData.customEvents.length > 0 && (
                           <div className="min-w-0">
-                            <h3 className="text-[#a8a8b3] text-sm font-bold mb-3 uppercase border-b border-[#323238] pb-1">
+                            <h3 className="text-muted-custom text-sm font-bold mb-3 uppercase border-b border-subtle pb-1">
                               Eventos
                             </h3>
                             {zoneData.customEvents.map((evt, idx) => {
@@ -374,7 +376,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                               return (
                                 <div
                                   key={idx}
-                                  className={`bg-black/20 p-3 rounded mb-3 border-l-[3px] min-w-0 ${borderColors[evt.color] || borderColors.red}`}
+                                  className={`bg-surface p-3 rounded mb-3 border border-subtle border-l-[3px] min-w-0 shadow-sm ${borderColors[evt.color] || borderColors.red}`}
                                 >
                                   <span
                                     className={`font-bold block mb-2 text-lg ${textColors[evt.color] || textColors.red}`}
@@ -397,13 +399,13 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                     <div className="min-w-0">
                       {!zoneData.customHighlights ||
                       zoneData.customHighlights.length === 0 ? (
-                        <span className="text-[#a8a8b3] italic flex-1 whitespace-pre-wrap">
+                        <span className="text-muted-custom italic flex-1 whitespace-pre-wrap">
                           Nenhum destaque documentado para esta zona.
                         </span>
                       ) : (
                         zoneData.customHighlights.map((cat, idx) => (
                           <div key={idx} className="mb-4 min-w-0">
-                            <div className="font-bold text-sm uppercase tracking-wider text-[#e1e1e6] mb-2 border-b border-[#323238] pb-1">
+                            <div className="font-bold text-sm uppercase tracking-wider text-main mb-2 border-b border-subtle pb-1">
                               {cat.title || 'Categoria'}
                             </div>
                             {cat.options.map((hl, hlIdx) => {
@@ -426,7 +428,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                               return (
                                 <div
                                   key={hlIdx}
-                                  className={`bg-black/20 p-3 rounded mb-3 border-l-[3px] ml-3 min-w-0 transition-opacity ${hl.isRevealed ? 'opacity-50' : ''} ${borderColors[hl.color] || borderColors.gray}`}
+                                  className={`bg-surface p-3 rounded mb-3 border border-subtle border-l-[3px] ml-3 min-w-0 transition-opacity shadow-sm ${hl.isRevealed ? 'opacity-50' : ''} ${borderColors[hl.color] || borderColors.gray}`}
                                 >
                                   <div className="flex justify-between items-start mb-2">
                                     <div className="flex items-center gap-2">
@@ -444,11 +446,11 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                             customHighlights: newHl,
                                           });
                                         }}
-                                        className="text-[#a8a8b3] hover:text-[#8257e5] transition-colors mt-0.5"
+                                        className="text-muted-custom hover:text-brand-purple transition-colors mt-0.5"
                                         title="Marcar como revelado"
                                       >
                                         {hl.isRevealed ? (
-                                          <CheckSquare className="w-4 h-4 text-[#04d361]" />
+                                          <CheckSquare className="w-4 h-4 text-brand-green" />
                                         ) : (
                                           <Square className="w-4 h-4" />
                                         )}
@@ -466,7 +468,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                             tag.trim() && (
                                               <span
                                                 key={tIdx}
-                                                className="bg-[#121214] text-[#a8a8b3] px-2 py-0.5 rounded text-xs border border-[#323238] uppercase break-all"
+                                                className="bg-surface-elevated text-muted-custom px-2 py-0.5 rounded text-xs border border-subtle uppercase break-all"
                                               >
                                                 {tag.trim()}
                                               </span>
@@ -491,14 +493,14 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                     <div className="min-w-0">
                       {!zoneData.customThreats ||
                       zoneData.customThreats.length === 0 ? (
-                        <span className="text-[#a8a8b3] italic flex-1 whitespace-pre-wrap">
+                        <span className="text-muted-custom italic flex-1 whitespace-pre-wrap">
                           Nenhuma ameaça documentada para esta zona.
                         </span>
                       ) : (
                         zoneData.customThreats.map((threat, idx) => (
                           <div
                             key={idx}
-                            className={`bg-black/20 p-3 rounded mb-3 border border-[#323238] min-w-0 transition-opacity ${threat.isRevealed ? 'opacity-50' : ''}`}
+                            className={`bg-surface p-3 rounded mb-3 border border-subtle min-w-0 transition-opacity shadow-sm ${threat.isRevealed ? 'opacity-50' : ''}`}
                           >
                             <div className="flex justify-between items-center mb-1">
                               <div className="flex items-center gap-2">
@@ -513,32 +515,32 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                       customThreats: newTh,
                                     });
                                   }}
-                                  className="text-[#a8a8b3] hover:text-[#8257e5] transition-colors"
+                                  className="text-muted-custom hover:text-brand-purple transition-colors"
                                   title="Marcar como revelada"
                                 >
                                   {threat.isRevealed ? (
-                                    <CheckSquare className="w-5 h-5 text-red-500" />
+                                    <CheckSquare className="w-5 h-5 text-brand-red" />
                                   ) : (
                                     <Square className="w-5 h-5" />
                                   )}
                                 </button>
-                                <span className="font-bold text-[#e1e1e6] text-lg">
+                                <span className="font-bold text-main text-lg">
                                   {threat.name}
                                 </span>
                               </div>
-                              <span className="bg-red-500/20 text-red-500 text-xs px-2 py-0.5 rounded border border-red-500/30 uppercase shrink-0 ml-2">
+                              <span className="bg-brand-red/10 text-brand-red text-xs px-2 py-0.5 rounded border border-brand-red/30 uppercase shrink-0 ml-2">
                                 {threat.type}
                               </span>
                             </div>
-                            <div className="flex gap-4 mb-2 text-sm text-[#a8a8b3] break-all pl-7">
+                            <div className="flex gap-4 mb-2 text-sm text-muted-custom break-all pl-7">
                               <div>
-                                <span className="font-bold text-[#e1e1e6]">
+                                <span className="font-bold text-main">
                                   Dano:
                                 </span>{' '}
                                 {threat.damage}
                               </div>
                               <div>
-                                <span className="font-bold text-[#e1e1e6]">
+                                <span className="font-bold text-main">
                                   Tipo:
                                 </span>{' '}
                                 {threat.damageType}
@@ -560,7 +562,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                     <div className="min-w-0">
                       {!zoneData.customInventory ||
                       zoneData.customInventory.length === 0 ? (
-                        <span className="text-[#a8a8b3] italic flex-1 whitespace-pre-wrap">
+                        <span className="text-muted-custom italic flex-1 whitespace-pre-wrap">
                           Nenhum item documentado para esta zona.
                         </span>
                       ) : (
@@ -569,14 +571,14 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                             Sangue:
                               'text-red-500 border-red-500/30 bg-red-500/10',
                             Morte:
-                              'text-gray-400 border-gray-400/30 bg-gray-400/10',
+                              'text-muted-custom border-subtle bg-surface-elevated',
                             Conhecimento:
                               'text-yellow-500 border-yellow-500/30 bg-yellow-500/10',
                             Energia:
                               'text-purple-500 border-purple-500/30 bg-purple-500/10',
-                            Medo: 'text-white border-white/30 bg-white/10',
+                            Medo: 'text-main border-subtle bg-surface-elevated',
                             Comum:
-                              'text-[#a8a8b3] border-[#323238] bg-[#121214]',
+                              'text-muted-custom border-subtle bg-surface-elevated',
                           };
                           const elColor =
                             elementColors[item.element] ||
@@ -585,7 +587,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                           return (
                             <div
                               key={idx}
-                              className={`bg-black/20 p-3 rounded mb-3 border border-[#323238] min-w-0 transition-opacity ${item.isFound ? 'opacity-50 grayscale' : ''}`}
+                              className={`bg-surface p-3 rounded mb-3 border border-subtle min-w-0 transition-opacity shadow-sm ${item.isFound ? 'opacity-50 grayscale' : ''}`}
                             >
                               <div className="flex justify-between items-center mb-1">
                                 <div className="flex items-center gap-2 truncate mr-2">
@@ -602,23 +604,23 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                         customInventory: newInv,
                                       });
                                     }}
-                                    className="text-[#a8a8b3] hover:text-[#8257e5] transition-colors shrink-0"
+                                    className="text-muted-custom hover:text-brand-purple transition-colors shrink-0"
                                     title="Marcar como encontrado"
                                   >
                                     {item.isFound ? (
-                                      <CheckSquare className="w-5 h-5 text-[#ffd700]" />
+                                      <CheckSquare className="w-5 h-5 text-brand-gold" />
                                     ) : (
                                       <Square className="w-5 h-5" />
                                     )}
                                   </button>
                                   <span
-                                    className={`font-bold text-lg truncate ${item.isFound ? 'text-[#a8a8b3] line-through' : 'text-[#e1e1e6]'}`}
+                                    className={`font-bold text-lg truncate ${item.isFound ? 'text-muted-custom line-through' : 'text-main'}`}
                                   >
                                     {item.name}
                                   </span>
                                 </div>
                                 <div className="flex gap-2 shrink-0">
-                                  <span className="bg-[#121214] text-[#a8a8b3] text-xs px-2 py-0.5 rounded border border-[#323238] uppercase">
+                                  <span className="bg-surface-elevated text-muted-custom text-xs px-2 py-0.5 rounded border border-subtle uppercase">
                                     {item.type}
                                   </span>
                                   <span
@@ -628,15 +630,15 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                   </span>
                                 </div>
                               </div>
-                              <div className="flex gap-4 mb-2 text-sm text-[#a8a8b3] break-all pl-7">
+                              <div className="flex gap-4 mb-2 text-sm text-muted-custom break-all pl-7">
                                 <div>
-                                  <span className="font-bold text-[#e1e1e6]">
+                                  <span className="font-bold text-main">
                                     Peso:
                                   </span>{' '}
                                   {item.weight}
                                 </div>
                                 <div>
-                                  <span className="font-bold text-[#e1e1e6]">
+                                  <span className="font-bold text-main">
                                     Efeito:
                                   </span>{' '}
                                   {item.effect}
@@ -662,7 +664,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                     <>
                       <div className="flex gap-2 items-end">
                         <div className="flex-1">
-                          <label className="text-xs text-[#a8a8b3] block mb-1">
+                          <label className="text-xs text-muted-custom block mb-1">
                             Nome da Zona
                           </label>
                           <Input
@@ -670,14 +672,14 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                             onChange={(e) =>
                               updateZoneData(zone.id, { title: e.target.value })
                             }
-                            className="bg-[#121214] border-[#323238] h-9 text-[#e1e1e6]"
+                            className="bg-surface border-subtle h-9 text-main"
                           />
                         </div>
                         <div className="w-[100px] shrink-0">
-                          <label className="text-xs text-[#a8a8b3] block mb-1">
+                          <label className="text-xs text-muted-custom block mb-1">
                             Visitas
                           </label>
-                          <div className="flex items-center bg-[#121214] border border-[#323238] rounded-md h-9">
+                          <div className="flex items-center bg-surface border border-subtle rounded-md h-9">
                             <button
                               onClick={() =>
                                 updateZoneData(zone.id, {
@@ -687,11 +689,11 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                   ),
                                 })
                               }
-                              className="px-2 text-[#a8a8b3] hover:text-white"
+                              className="px-2 text-muted-custom hover:text-main"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
-                            <span className="flex-1 text-center font-bold text-[#e1e1e6]">
+                            <span className="flex-1 text-center font-bold text-main">
                               {zoneData.visits || 0}
                             </span>
                             <button
@@ -700,7 +702,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                   visits: (zoneData.visits || 0) + 1,
                                 })
                               }
-                              className="px-2 text-[#a8a8b3] hover:text-white"
+                              className="px-2 text-muted-custom hover:text-main"
                             >
                               <Plus className="w-3 h-3" />
                             </button>
@@ -709,10 +711,10 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                       </div>
 
                       <div>
-                        <label className="text-xs text-[#a8a8b3] block mb-1">
+                        <label className="text-xs text-muted-custom block mb-1">
                           Imagem de Capa
                         </label>
-                        <div className="relative group w-full h-[120px] rounded border-2 border-dashed border-[#323238] flex items-center justify-center overflow-hidden hover:border-[#8257e5] transition-colors cursor-pointer bg-[#121214]">
+                        <div className="relative group w-full h-[120px] rounded border-2 border-dashed border-subtle flex items-center justify-center overflow-hidden hover:border-brand-purple transition-colors cursor-pointer bg-surface">
                           {zoneData.imageUrl ? (
                             <>
                               <img
@@ -752,7 +754,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                 }}
                                 title="Adicionar Imagem"
                               />
-                              <div className="flex flex-col items-center text-[#a8a8b3] group-hover:text-[#8257e5] pointer-events-none">
+                              <div className="flex flex-col items-center text-muted-custom group-hover:text-brand-purple pointer-events-none">
                                 <ImagePlus className="w-6 h-6 mb-1" />
                                 <span className="text-[10px] uppercase font-bold tracking-wider">
                                   Arraste ou Clique
@@ -764,7 +766,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                       </div>
 
                       <div>
-                        <label className="text-xs text-[#a8a8b3] block mb-1">
+                        <label className="text-xs text-muted-custom block mb-1">
                           Descrição Geral
                         </label>
                         <RichTextEditor
@@ -775,21 +777,21 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                         />
                       </div>
 
-                      <hr className="border-[#323238] my-4" />
+                      <hr className="border-subtle my-4" />
 
                       {/* POIs Edit View */}
                       <div className="min-w-0">
-                        <label className="text-xs text-[#a8a8b3] block mb-2 uppercase font-bold">
+                        <label className="text-xs text-muted-custom block mb-2 uppercase font-bold">
                           Pontos de Interesse
                         </label>
                         {zoneData.customPois?.map((cat, catIdx) => (
                           <div
                             key={catIdx}
-                            className="bg-black/20 border border-[#323238] rounded p-3 mb-4 min-w-0"
+                            className="bg-surface border border-subtle rounded p-3 mb-4 min-w-0 shadow-sm"
                           >
                             <div className="flex gap-2 mb-3">
                               <select
-                                className="bg-[#121214] border border-[#323238] text-[#e1e1e6] text-xs h-8 rounded px-1 outline-none focus:border-[#8257e5]"
+                                className="bg-surface-elevated border border-subtle text-main text-xs h-8 rounded px-1 outline-none focus:border-brand-purple"
                                 value={cat.icon || 'none'}
                                 onChange={(e) => {
                                   const newPois = [
@@ -824,10 +826,10 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                     customPois: newPois,
                                   });
                                 }}
-                                className="flex-1 bg-[#121214] border-[#323238] h-8 text-xs text-[#e1e1e6]"
+                                className="flex-1 bg-surface-elevated border-subtle h-8 text-xs text-main"
                               />
                               <button
-                                className="text-[#a8a8b3] hover:text-red-500"
+                                className="text-muted-custom hover:text-brand-red"
                                 title="Remover Categoria"
                                 onClick={() => {
                                   const newPois = (
@@ -842,7 +844,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                               </button>
                             </div>
 
-                            <div className="ml-2 pl-3 border-l border-[#323238] space-y-4 min-w-0">
+                            <div className="ml-2 pl-3 border-l border-subtle space-y-4 min-w-0">
                               {cat.options.map((opt, optIdx) => (
                                 <div
                                   key={optIdx}
@@ -862,10 +864,10 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                           customPois: newPois,
                                         });
                                       }}
-                                      className="flex-1 bg-[#121214] border-[#323238] h-8 text-sm font-bold text-[#e1e1e6]"
+                                      className="flex-1 bg-surface-elevated border-subtle h-8 text-sm font-bold text-main"
                                     />
                                     <button
-                                      className="text-[#a8a8b3] hover:text-red-500 px-1"
+                                      className="text-muted-custom hover:text-brand-red px-1"
                                       onClick={() => {
                                         const newPois = [
                                           ...(zoneData.customPois || []),
@@ -900,7 +902,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                 </div>
                               ))}
                               <button
-                                className="text-xs text-[#8257e5] hover:text-[#9466ff] flex items-center font-bold"
+                                className="text-xs text-brand-purple hover:text-brand-purple-hover flex items-center font-bold"
                                 onClick={() => {
                                   const newPois = [
                                     ...(zoneData.customPois || []),
@@ -921,7 +923,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                           </div>
                         ))}
                         <Button
-                          className="w-full h-8 text-xs font-bold bg-[#8257e5] text-white hover:bg-[#9466ff] border-none"
+                          className="w-full h-8 text-xs font-bold bg-brand-purple text-white hover:bg-brand-purple-hover border-none"
                           onClick={() => {
                             const newPois = [
                               ...(zoneData.customPois || []),
@@ -938,16 +940,16 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                         </Button>
                       </div>
 
-                      <hr className="border-[#323238] my-4" />
+                      <hr className="border-subtle my-4" />
 
                       {/* Events Edit View */}
                       <div className="min-w-0">
                         <div className="flex justify-between items-center mb-2">
-                          <label className="text-xs text-[#a8a8b3] uppercase font-bold">
+                          <label className="text-xs text-muted-custom uppercase font-bold">
                             Eventos
                           </label>
                           <button
-                            className="text-[#a8a8b3] hover:text-[#e1e1e6] p-1 rounded hover:bg-white/5"
+                            className="text-muted-custom hover:text-main p-1 rounded hover:bg-surface transition-colors"
                             title="Limpar Predefinições"
                             onClick={clearPresets}
                           >
@@ -958,7 +960,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                         {/* Presets loader */}
                         <div className="flex gap-2 mb-4">
                           <select
-                            className="flex-1 bg-[#121214] border border-[#323238] text-[#e1e1e6] text-xs h-8 rounded px-2 outline-none focus:border-[#8257e5]"
+                            className="flex-1 bg-surface border border-subtle text-main text-xs h-8 rounded px-2 outline-none focus:border-brand-purple"
                             onChange={(e) => {
                               addPresetEvent(e.target.value);
                               e.target.value = '';
@@ -977,11 +979,11 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                         {zoneData.customEvents?.map((evt, evtIdx) => (
                           <div
                             key={evtIdx}
-                            className="bg-black/20 border border-[#323238] rounded p-3 mb-4 flex flex-col gap-3 relative min-w-0"
+                            className="bg-surface border border-subtle rounded p-3 mb-4 flex flex-col gap-3 relative min-w-0 shadow-sm"
                           >
                             <div className="flex gap-2 pr-16">
                               <select
-                                className="bg-[#121214] border border-[#323238] text-[#e1e1e6] text-xs h-8 rounded px-1 outline-none focus:border-[#8257e5] w-[100px] shrink-0"
+                                className="bg-surface-elevated border border-subtle text-main text-xs h-8 rounded px-1 outline-none focus:border-brand-purple w-[100px] shrink-0"
                                 value={evt.color}
                                 onChange={(e) => {
                                   const newEvents = [
@@ -1016,20 +1018,20 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                     customEvents: newEvents,
                                   });
                                 }}
-                                className="flex-1 bg-[#121214] border-[#323238] h-8 text-sm font-bold text-[#e1e1e6]"
+                                className="flex-1 bg-surface-elevated border-subtle h-8 text-sm font-bold text-main"
                               />
                             </div>
 
                             <div className="absolute top-3 right-3 flex gap-2">
                               <button
-                                className="text-[#a8a8b3] hover:text-[#ffd700]"
+                                className="text-muted-custom hover:text-brand-gold transition-colors"
                                 title="Salvar como Predefinição"
                                 onClick={() => saveEventAsPreset(evt)}
                               >
                                 <Save className="w-4 h-4" />
                               </button>
                               <button
-                                className="text-[#a8a8b3] hover:text-red-500"
+                                className="text-muted-custom hover:text-brand-red transition-colors"
                                 onClick={() => {
                                   const newEvents = (
                                     zoneData.customEvents || []
@@ -1059,7 +1061,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                           </div>
                         ))}
                         <Button
-                          className="w-full h-8 text-xs font-bold bg-[#8257e5] text-white hover:bg-[#9466ff] border-none"
+                          className="w-full h-8 text-xs font-bold bg-brand-purple text-white hover:bg-brand-purple-hover border-none"
                           onClick={() => {
                             const newEvents = [
                               ...(zoneData.customEvents || []),
@@ -1083,7 +1085,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                           removeZone(zone.id);
                           setSelectedZoneId(null);
                         }}
-                        className="w-full mt-6 bg-red-600/20 text-red-500 border border-red-900 hover:bg-red-600/30 hover:text-red-400"
+                        className="w-full mt-6 bg-brand-red/10 text-brand-red border border-brand-red/30 hover:bg-brand-red/20 hover:text-brand-red"
                       >
                         <Trash className="w-4 h-4 mr-2" /> Excluir Zona
                       </Button>
@@ -1095,7 +1097,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                       {zoneData.customHighlights?.map((cat, catIdx) => (
                         <div
                           key={catIdx}
-                          className="bg-black/20 border border-[#323238] rounded p-3 mb-4 min-w-0"
+                          className="bg-surface border border-subtle rounded p-3 mb-4 min-w-0 shadow-sm"
                         >
                           <div className="flex gap-2 mb-3">
                             <Input
@@ -1113,10 +1115,10 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                   customHighlights: list,
                                 });
                               }}
-                              className="flex-1 bg-[#121214] border-[#323238] h-8 text-xs font-bold text-[#e1e1e6] uppercase tracking-wider"
+                              className="flex-1 bg-surface-elevated border-subtle h-8 text-xs font-bold text-main uppercase tracking-wider"
                             />
                             <button
-                              className="text-[#a8a8b3] hover:text-red-500"
+                              className="text-muted-custom hover:text-brand-red transition-colors"
                               title="Remover Categoria"
                               onClick={() => {
                                 const list = (
@@ -1131,15 +1133,15 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                             </button>
                           </div>
 
-                          <div className="ml-2 pl-3 border-l border-[#323238] space-y-4 min-w-0">
+                          <div className="ml-2 pl-3 border-l border-subtle space-y-4 min-w-0">
                             {cat.options.map((hl, hlIdx) => (
                               <div
                                 key={hlIdx}
-                                className="bg-[#121214] border border-[#323238] rounded p-3 relative flex flex-col gap-3 min-w-0"
+                                className="bg-surface-elevated border border-subtle rounded p-3 relative flex flex-col gap-3 min-w-0"
                               >
                                 <div className="flex gap-2 pr-8">
                                   <select
-                                    className="bg-black border border-[#323238] text-[#e1e1e6] text-xs h-8 rounded px-1 outline-none focus:border-[#8257e5] w-[100px] shrink-0"
+                                    className="bg-surface border border-subtle text-main text-xs h-8 rounded px-1 outline-none focus:border-brand-purple w-[100px] shrink-0"
                                     value={hl.color}
                                     onChange={(e) => {
                                       const list = [
@@ -1176,13 +1178,13 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                         customHighlights: list,
                                       });
                                     }}
-                                    className="flex-1 bg-black border-[#323238] h-8 text-sm font-bold text-[#e1e1e6]"
+                                    className="flex-1 bg-surface border-subtle h-8 text-sm font-bold text-main"
                                   />
                                 </div>
 
                                 <div className="absolute top-3 right-3 flex gap-2">
                                   <button
-                                    className="text-[#a8a8b3] hover:text-red-500"
+                                    className="text-muted-custom hover:text-brand-red transition-colors"
                                     onClick={() => {
                                       const list = [
                                         ...(zoneData.customHighlights || []),
@@ -1214,7 +1216,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                       customHighlights: list,
                                     });
                                   }}
-                                  className="w-full bg-black border-[#323238] h-8 text-xs text-[#a8a8b3]"
+                                  className="w-full bg-surface border-subtle h-8 text-xs text-muted-custom"
                                 />
 
                                 <RichTextEditor
@@ -1238,7 +1240,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                             ))}
 
                             <button
-                              className="text-xs text-[#8257e5] hover:text-[#9466ff] flex items-center font-bold"
+                              className="text-xs text-brand-purple hover:text-brand-purple-hover flex items-center font-bold"
                               onClick={() => {
                                 const list = [
                                   ...(zoneData.customHighlights || []),
@@ -1260,7 +1262,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                         </div>
                       ))}
                       <Button
-                        className="w-full h-8 text-xs font-bold bg-[#8257e5] text-white hover:bg-[#9466ff] border-none"
+                        className="w-full h-8 text-xs font-bold bg-brand-purple text-white hover:bg-brand-purple-hover border-none"
                         onClick={() => {
                           const list = [
                             ...(zoneData.customHighlights || []),
@@ -1279,7 +1281,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                       {zoneData.customThreats?.map((threat, idx) => (
                         <div
                           key={idx}
-                          className="bg-black/20 border border-[#323238] rounded p-3 mb-4 flex flex-col gap-3 relative min-w-0"
+                          className="bg-surface border border-subtle rounded p-3 mb-4 flex flex-col gap-3 relative min-w-0 shadow-sm"
                         >
                           <div className="flex gap-2 pr-8">
                             <Input
@@ -1294,7 +1296,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                   customThreats: list,
                                 });
                               }}
-                              className="flex-1 bg-[#121214] border-[#323238] h-8 text-sm font-bold text-[#e1e1e6]"
+                              className="flex-1 bg-surface-elevated border-subtle h-8 text-sm font-bold text-main"
                             />
                             <Input
                               placeholder="Tipo (ex: Armadilha)"
@@ -1308,13 +1310,13 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                   customThreats: list,
                                 });
                               }}
-                              className="w-[120px] bg-[#121214] border-[#323238] h-8 text-xs text-[#a8a8b3]"
+                              className="w-[120px] bg-surface-elevated border-subtle h-8 text-xs text-muted-custom"
                             />
                           </div>
 
                           <div className="absolute top-3 right-3 flex gap-2">
                             <button
-                              className="text-[#a8a8b3] hover:text-red-500"
+                              className="text-muted-custom hover:text-brand-red transition-colors"
                               onClick={() => {
                                 const list = (
                                   zoneData.customThreats || []
@@ -1344,7 +1346,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                   customThreats: list,
                                 });
                               }}
-                              className="w-1/2 bg-[#121214] border-[#323238] h-8 text-xs text-[#a8a8b3]"
+                              className="w-1/2 bg-surface-elevated border-subtle h-8 text-xs text-muted-custom"
                             />
                             <Input
                               placeholder="Tipo Dano (ex: Fogo)"
@@ -1361,7 +1363,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                   customThreats: list,
                                 });
                               }}
-                              className="w-1/2 bg-[#121214] border-[#323238] h-8 text-xs text-[#a8a8b3]"
+                              className="w-1/2 bg-surface-elevated border-subtle h-8 text-xs text-muted-custom"
                             />
                           </div>
 
@@ -1378,7 +1380,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                         </div>
                       ))}
                       <Button
-                        className="w-full h-8 text-xs font-bold bg-[#8257e5] text-white hover:bg-[#9466ff] border-none"
+                        className="w-full h-8 text-xs font-bold bg-brand-purple text-white hover:bg-brand-purple-hover border-none"
                         onClick={() => {
                           const list = [
                             ...(zoneData.customThreats || []),
@@ -1403,7 +1405,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                       {zoneData.customInventory?.map((item, idx) => (
                         <div
                           key={idx}
-                          className="bg-black/20 border border-[#323238] rounded p-3 mb-4 flex flex-col gap-3 relative min-w-0"
+                          className="bg-surface border border-subtle rounded p-3 mb-4 flex flex-col gap-3 relative min-w-0 shadow-sm"
                         >
                           <div className="flex gap-2 pr-8">
                             <Input
@@ -1418,7 +1420,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                   customInventory: list,
                                 });
                               }}
-                              className="flex-1 bg-[#121214] border-[#323238] h-8 text-sm font-bold text-[#e1e1e6]"
+                              className="flex-1 bg-surface-elevated border-subtle h-8 text-sm font-bold text-main"
                             />
                             <Input
                               placeholder="Tipo (ex: Arma)"
@@ -1432,13 +1434,13 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                   customInventory: list,
                                 });
                               }}
-                              className="w-[100px] bg-[#121214] border-[#323238] h-8 text-xs text-[#a8a8b3]"
+                              className="w-[100px] bg-surface-elevated border-subtle h-8 text-xs text-muted-custom"
                             />
                           </div>
 
                           <div className="absolute top-3 right-3 flex gap-2">
                             <button
-                              className="text-[#a8a8b3] hover:text-red-500"
+                              className="text-muted-custom hover:text-brand-red transition-colors"
                               onClick={() => {
                                 const list = (
                                   zoneData.customInventory || []
@@ -1465,7 +1467,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                   customInventory: list,
                                 });
                               }}
-                              className="w-1/4 bg-[#121214] border-[#323238] h-8 text-xs text-[#a8a8b3]"
+                              className="w-1/4 bg-surface-elevated border-subtle h-8 text-xs text-muted-custom"
                             />
                             <Input
                               placeholder="Efeito"
@@ -1479,10 +1481,10 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                   customInventory: list,
                                 });
                               }}
-                              className="w-2/4 bg-[#121214] border-[#323238] h-8 text-xs text-[#a8a8b3]"
+                              className="w-2/4 bg-surface-elevated border-subtle h-8 text-xs text-muted-custom"
                             />
                             <select
-                              className="w-1/4 bg-[#121214] border border-[#323238] text-[#a8a8b3] text-xs h-8 rounded px-1 outline-none focus:border-[#8257e5]"
+                              className="w-1/4 bg-surface-elevated border border-subtle text-muted-custom text-xs h-8 rounded px-1 outline-none focus:border-brand-purple"
                               value={item.element}
                               onChange={(e) => {
                                 const list = [
@@ -1523,7 +1525,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                         </div>
                       ))}
                       <Button
-                        className="w-full h-8 text-xs font-bold bg-[#8257e5] text-white hover:bg-[#9466ff] border-none"
+                        className="w-full h-8 text-xs font-bold bg-brand-purple text-white hover:bg-brand-purple-hover border-none"
                         onClick={() => {
                           const list = [
                             ...(zoneData.customInventory || []),
@@ -1551,7 +1553,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
 
         {/* Resize Handle */}
         <div
-          className="absolute top-0 right-0 w-1.5 h-full cursor-col-resize hover:bg-[#8257e5]/50 active:bg-[#8257e5] z-50 transition-colors"
+          className="absolute top-0 right-0 w-1.5 h-full cursor-col-resize hover:bg-brand-purple/50 active:bg-brand-purple z-50 transition-colors"
           onMouseDown={handleDragStart}
         />
       </aside>
@@ -1561,9 +1563,9 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
           open={!!rawImage}
           onOpenChange={(open) => !open && setRawImage(null)}
         >
-          <DialogContent className="bg-[#202024] border-[#323238] text-[#e1e1e6] sm:max-w-[400px]">
+          <DialogContent className="bg-surface-elevated border-subtle text-main sm:max-w-[400px]">
             <DialogHeader>
-              <DialogTitle className="text-[#ffd700]">
+              <DialogTitle className="text-brand-gold">
                 Ajustar Capa da Zona
               </DialogTitle>
             </DialogHeader>
