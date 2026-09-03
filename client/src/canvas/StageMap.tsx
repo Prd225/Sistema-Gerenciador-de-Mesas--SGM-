@@ -13,6 +13,7 @@ import ZoneLayer, { type NewShapeState } from './ZoneLayer';
 import TokenLayer from './TokenLayer';
 import MarkerLayer from './MarkerLayer';
 import DrawingLayer from './DrawingLayer';
+import CanvasContextMenu from './CanvasContextMenu';
 
 const generateId = () =>
   window.crypto?.randomUUID?.() ?? Math.random().toString(36).substring(2, 11);
@@ -43,6 +44,23 @@ export default function StageMap() {
   const isSpaceDownRef = useRef(false);
   const [newShape, setNewShape] = useState<NewShapeState | null>(null);
   const drawStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{
+    isOpen: boolean;
+    x: number;
+    y: number;
+    worldX: number;
+    worldY: number;
+    zoneId?: string | null;
+  }>({
+    isOpen: false,
+    x: 0,
+    y: 0,
+    worldX: 0,
+    worldY: 0,
+    zoneId: null,
+  });
 
   // Polygon state
   const [polyPoints, setPolyPoints] = useState<number[]>([]);
@@ -121,6 +139,17 @@ export default function StageMap() {
   // --- Mouse Down ---
   const handleMouseDown = useCallback(
     (e: KonvaEventObject<MouseEvent>) => {
+      // If context menu was open, close it
+      setContextMenu((prev) =>
+        prev.isOpen ? { ...prev, isOpen: false } : prev,
+      );
+
+      // Right-click is handled by onContextMenu, do not draw or drag
+      if (e.evt.button === 2) {
+        e.evt.preventDefault();
+        return;
+      }
+
       // Don't interfere when clicking on existing shapes/tokens
       if (e.target !== e.target.getStage()) return;
 
@@ -146,19 +175,6 @@ export default function StageMap() {
         setIsDrawing(true);
         drawStartRef.current = { x: pos.x, y: pos.y };
         setSelectionRect({ x: pos.x, y: pos.y, width: 0, height: 0 });
-        return;
-      }
-
-      // Right-click → create marker (matching original contextmenu behavior)
-      if (e.evt.button === 2) {
-        e.evt.preventDefault();
-        addMarker({
-          id: generateId(),
-          x: pos.x,
-          y: pos.y,
-          text: 'Novo Marcador',
-        });
-        setRightSidebarOpen(true);
         return;
       }
 
@@ -362,10 +378,51 @@ export default function StageMap() {
     selectionRect,
   ]);
 
-  // --- Context menu prevention ---
-  const handleContextMenu = useCallback((e: KonvaEventObject<PointerEvent>) => {
-    e.evt.preventDefault();
-  }, []);
+  // --- Context menu handlers ---
+  const handleContextMenu = useCallback(
+    (e: KonvaEventObject<PointerEvent>) => {
+      e.evt.preventDefault();
+      const stage = stageRef.current;
+      if (!stage) return;
+      const pos = getRelativePointerPosition(stage);
+      setContextMenu({
+        isOpen: true,
+        x: e.evt.clientX,
+        y: e.evt.clientY,
+        worldX: pos.x,
+        worldY: pos.y,
+        zoneId: null,
+      });
+    },
+    [getRelativePointerPosition],
+  );
+
+  const handleZoneContextMenu = useCallback(
+    (zoneId: string, e: any) => {
+      const stage = stageRef.current;
+      if (!stage) return;
+      const pos = getRelativePointerPosition(stage);
+      setContextMenu({
+        isOpen: true,
+        x: e.evt?.clientX ?? e.clientX ?? 0,
+        y: e.evt?.clientY ?? e.clientY ?? 0,
+        worldX: pos.x,
+        worldY: pos.y,
+        zoneId,
+      });
+    },
+    [getRelativePointerPosition],
+  );
+
+  const handleCenterView = useCallback(
+    (targetX: number, targetY: number) => {
+      setPosition({
+        x: dimensions.width / 2 - targetX * scale,
+        y: dimensions.height / 2 - targetY * scale,
+      });
+    },
+    [dimensions.width, dimensions.height, scale],
+  );
 
   // --- HTML5 Drag & Drop (for tokens from roster + image files) ---
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -582,7 +639,7 @@ export default function StageMap() {
           <BackgroundLayer />
         </Layer>
         <Layer>
-          <ZoneLayer scale={scale} />
+          <ZoneLayer scale={scale} onContextMenuZone={handleZoneContextMenu} />
           <TokenLayer scale={scale} />
           <MarkerLayer scale={scale} />
           {selectionRect && (
@@ -607,6 +664,18 @@ export default function StageMap() {
           <DrawingLayer newShape={newShape} />
         </Layer>
       </Stage>
+
+      {/* Modern Context Menu on Canvas / Zones */}
+      <CanvasContextMenu
+        isOpen={contextMenu.isOpen}
+        x={contextMenu.x}
+        y={contextMenu.y}
+        worldX={contextMenu.worldX}
+        worldY={contextMenu.worldY}
+        zoneId={contextMenu.zoneId}
+        onClose={() => setContextMenu((prev) => ({ ...prev, isOpen: false }))}
+        onCenterView={handleCenterView}
+      />
     </div>
   );
 }

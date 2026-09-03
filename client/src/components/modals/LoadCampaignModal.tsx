@@ -23,6 +23,7 @@ import {
   ChevronRight,
   FolderOpen,
   AlertTriangle,
+  X,
 } from 'lucide-react';
 import { timeAgo } from '@/lib/utils';
 
@@ -34,6 +35,11 @@ export default function LoadCampaignModal() {
   const onOpenChange = useCampaignStore((state) => state.setShowLoadModal);
   const autoSaveSlot = useCampaignStore((state) => state.autoSaveSlot);
   const [currentPage, setCurrentPage] = useState(1);
+  const [pendingDelete, setPendingDelete] = useState<{
+    slotNumber: number;
+    name: string;
+  } | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Fetch only slots for current page
   const minSlot = (currentPage - 1) * SLOTS_PER_PAGE + 1;
@@ -122,26 +128,25 @@ export default function LoadCampaignModal() {
         });
       }
       onOpenChange(false);
-      alert('Campanha carregada com sucesso!');
     } catch (err) {
       console.error('Falha ao carregar save', err);
-      alert('Arquivo corrompido ou inválido.');
+      setErrorMessage('Arquivo de save corrompido ou formato inválido.');
     }
   };
 
-  const handleDelete = async (
+  const handleDeleteClick = (
     e: React.MouseEvent,
     slotNumber: number,
     name: string,
   ) => {
     e.stopPropagation(); // Prevent trigger load on row click
-    if (
-      window.confirm(
-        `Tem certeza que deseja apagar permanentemente o save "${name}" do Slot ${slotNumber}?`,
-      )
-    ) {
-      await db.campaignSlots.delete(slotNumber);
-    }
+    setPendingDelete({ slotNumber, name });
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    await db.campaignSlots.delete(pendingDelete.slotNumber);
+    setPendingDelete(null);
   };
 
   const renderSlots = () => {
@@ -180,7 +185,7 @@ export default function LoadCampaignModal() {
                 size="sm"
                 disabled={autoSaveSlot !== null}
                 className="border-subtle bg-app text-brand-red hover:bg-brand-red hover:text-white h-8 px-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                onClick={(e) => handleDelete(e, i, existingSave.name)}
+                onClick={(e) => handleDeleteClick(e, i, existingSave.name)}
                 title="Apagar Save"
               >
                 <Trash2 className="w-4 h-4" />
@@ -195,12 +200,27 @@ export default function LoadCampaignModal() {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-surface border border-subtle text-main sm:max-w-[600px] h-[85vh] flex flex-col">
+      <DialogContent className="bg-surface border border-subtle text-main sm:max-w-[600px] h-[85vh] flex flex-col relative overflow-hidden">
         <DialogHeader>
           <DialogTitle className="text-brand-gold text-xl font-bold flex items-center gap-2">
             <FolderOpen className="w-5 h-5" /> Carregar Salvamento
           </DialogTitle>
         </DialogHeader>
+
+        {errorMessage && (
+          <div className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-red-500/10 border border-brand-red/30 text-brand-red text-xs font-semibold animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+            <button
+              onClick={() => setErrorMessage(null)}
+              className="hover:opacity-75 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         {autoSaveSlot !== null && (
           <div className="bg-brand-gold/10 border border-brand-gold/30 rounded-md p-3 mb-2 flex items-start gap-3 mt-2">
@@ -214,9 +234,51 @@ export default function LoadCampaignModal() {
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto pr-2 space-y-2 mt-2">
+        <div className="flex-1 overflow-y-auto pr-2 space-y-2 mt-2 relative">
           {renderSlots()}
         </div>
+
+        {/* Delete Confirmation Overlay */}
+        {pendingDelete && (
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-30 animate-in fade-in">
+            <div className="bg-surface border border-subtle text-main w-full max-w-md p-5 rounded-xl shadow-2xl space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-subtle">
+                <div className="flex items-center gap-2 font-bold text-base text-brand-red">
+                  <Trash2 className="w-4 h-4" />
+                  <span>Apagar Salvamento</span>
+                </div>
+                <button
+                  onClick={() => setPendingDelete(null)}
+                  className="text-muted-custom hover:text-main cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <p className="text-sm text-muted-custom">
+                Tem certeza que deseja excluir permanentemente o save{' '}
+                <strong>"{pendingDelete.name}"</strong> do Slot{' '}
+                {pendingDelete.slotNumber}? Esta ação não pode ser desfeita.
+              </p>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setPendingDelete(null)}
+                  className="border-subtle bg-transparent text-main hover:bg-surface-elevated cursor-pointer"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={confirmDelete}
+                  className="bg-red-600 hover:bg-red-700 text-white font-bold cursor-pointer"
+                >
+                  Apagar Save
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <DialogFooter className="mt-4 border-t border-subtle pt-4 flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">

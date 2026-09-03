@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button';
 import { useTimerStore } from '@/store/useTimerStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useEffect, useState, useRef } from 'react';
+import TimerSetupModal from '@/components/modals/TimerSetupModal';
+import { SimpleTooltip } from '@/components/ui/tooltip';
 
 const playAlarmSound = () => {
   const AudioContext =
@@ -43,6 +45,7 @@ export default function Footer() {
     totalSeconds,
     isRunning,
     minimized,
+    urgencyMode,
     setTotalSeconds,
     decrement,
     stop,
@@ -66,6 +69,7 @@ export default function Footer() {
   } = useCampaignStore();
   const [urgencyFlashing, setUrgencyFlashing] = useState(false);
   const [timerFlashing, setTimerFlashing] = useState(false);
+  const [showTimerModal, setShowTimerModal] = useState(false);
   const prevUrgency = useRef(urgency);
 
   useEffect(() => {
@@ -100,29 +104,50 @@ export default function Footer() {
     return `${m}:${s}`;
   };
 
-  const handleManualTimer = () => {
-    const min = prompt('Digite os minutos:');
-    if (min && !isNaN(Number(min))) {
-      setTotalSeconds(Number(min) * 60);
-      stop();
-    }
-  };
   return (
     <footer className="h-[60px] bg-surface-elevated border-t border-subtle flex items-center justify-center gap-5 px-5 z-50 transition-colors duration-200">
+      {/* Timer Setup Modal */}
+      <TimerSetupModal open={showTimerModal} onOpenChange={setShowTimerModal} />
+
       {/* Timer */}
       <div
         className={`flex items-center gap-4 border rounded-lg px-3 py-1 shadow-sm backdrop-blur-sm transition-all ${
           timerFlashing
             ? 'bg-red-950/50 border-red-500 shadow-[0_0_15px_red] animate-pulse'
-            : 'bg-surface border-subtle'
+            : urgencyMode === 'critical'
+              ? 'bg-red-950/20 border-red-500/60 shadow-[0_0_10px_rgba(239,68,68,0.3)]'
+              : urgencyMode === 'tension'
+                ? 'bg-amber-950/20 border-amber-500/60 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
+                : 'bg-surface border-subtle'
         }`}
       >
         <div
-          className={`text-2xl font-bold font-mono cursor-pointer w-[70px] text-left select-none transition-colors ${timerFlashing ? 'text-white' : 'text-main hover:text-brand-gold'}`}
-          onClick={toggleMinimize}
+          className={`text-2xl font-bold font-mono cursor-pointer w-[70px] text-left select-none transition-colors ${
+            timerFlashing
+              ? 'text-white'
+              : urgencyMode === 'critical'
+                ? 'text-brand-red animate-pulse'
+                : urgencyMode === 'tension'
+                  ? 'text-amber-500'
+                  : 'text-main hover:text-brand-gold'
+          }`}
+          onClick={() => setShowTimerModal(true)}
+          title="Clique para configurar o temporizador"
         >
           {formatTime(totalSeconds)}
         </div>
+        <button
+          type="button"
+          onClick={toggleMinimize}
+          className="text-muted-custom hover:text-main p-0.5 rounded hover:bg-surface-elevated cursor-pointer transition-colors"
+          title={minimized ? 'Expandir atalhos' : 'Recolher atalhos'}
+        >
+          {minimized ? (
+            <ChevronDown className="w-3.5 h-3.5" />
+          ) : (
+            <ChevronUp className="w-3.5 h-3.5" />
+          )}
+        </button>
         {!minimized && (
           <>
             <div className="flex gap-1">
@@ -181,11 +206,11 @@ export default function Footer() {
                 <Square className="h-3 w-3" fill="currentColor" />
               </Button>
               <Button
-                onClick={handleManualTimer}
+                onClick={() => setShowTimerModal(true)}
                 variant="outline"
                 size="icon"
                 className="h-7 w-7 bg-transparent border-muted text-muted-custom hover:bg-surface-elevated cursor-pointer"
-                title="Inserir minutos manualmente"
+                title="Configurar temporizador"
               >
                 <Keyboard className="h-3 w-3" />
               </Button>
@@ -292,41 +317,70 @@ export default function Footer() {
       </div>
 
       {/* Controls */}
-      <div className="flex items-center gap-3.5 ml-5 bg-surface border border-subtle px-4 py-1.5 rounded-lg shadow-sm">
-        <Button
-          onClick={() => setShowInitModal(true)}
-          variant="outline"
-          className="bg-transparent border-muted text-main hover:bg-surface-elevated font-bold"
+      <div className="flex items-center gap-2.5 ml-5 bg-surface border border-subtle px-3 py-1.5 rounded-lg shadow-sm">
+        <SimpleTooltip
+          side="top"
+          content="Abrir Gerenciador e Fila de Iniciativa de Combate"
         >
-          <ListOrdered className="w-4 h-4 mr-2" /> Iniciativa
-        </Button>
-        <Button
-          onClick={addTurn}
-          variant="outline"
-          className="bg-transparent border-muted text-main hover:bg-surface-elevated"
-          title="Próximo Turno"
+          <Button
+            onClick={() => setShowInitModal(true)}
+            variant="outline"
+            className="bg-transparent border-muted text-main hover:bg-surface-elevated font-bold h-9 cursor-pointer"
+          >
+            <ListOrdered className="w-4 h-4 mr-2 text-brand-gold" /> Iniciativa
+          </Button>
+        </SimpleTooltip>
+
+        <SimpleTooltip side="top" content="Avançar para o Próximo Turno">
+          <Button
+            onClick={addTurn}
+            variant="outline"
+            className="bg-transparent border-muted text-main hover:bg-surface-elevated h-9 w-9 p-0 cursor-pointer"
+          >
+            <StepForward className="w-4 h-4" />
+          </Button>
+        </SimpleTooltip>
+
+        <SimpleTooltip
+          side="top"
+          content={
+            <div className="space-y-0.5 text-center">
+              <p className="font-bold text-brand-gold">Turnos por Rodada</p>
+              <p className="text-[11px] text-muted-custom">
+                Quantidade de turnos antes de avançar a rodada automaticamente
+              </p>
+            </div>
+          }
         >
-          <StepForward className="w-4 h-4" />
-        </Button>
-        <div className="flex flex-col items-center">
-          <label className="text-[0.6rem] text-muted-custom m-0 leading-tight">
-            T/Rodada
-          </label>
-          <input
-            type="number"
-            value={turnsPerRound}
-            onChange={(e) => setTurnsPerRound(Number(e.target.value))}
-            className="w-10 text-center p-0.5 h-[25px] bg-app border border-muted rounded text-main focus:border-brand-purple outline-none text-xs font-semibold"
-          />
-        </div>
-        <Button
-          onClick={nextScene}
-          variant="outline"
-          className="bg-transparent border-muted text-main hover:bg-surface-elevated font-bold"
-          title="Nova Cena (Reset)"
+          <div className="flex items-center gap-1 px-2.5 h-9 bg-app border border-muted rounded-md text-xs font-semibold text-main hover:border-brand-purple transition-colors cursor-pointer select-none">
+            <span className="text-muted-custom text-[11px] font-bold">
+              T/R:
+            </span>
+            <input
+              type="number"
+              min={1}
+              max={99}
+              value={turnsPerRound}
+              onChange={(e) =>
+                setTurnsPerRound(Math.max(1, Number(e.target.value) || 1))
+              }
+              className="w-6 text-center bg-transparent border-0 text-main font-bold outline-none text-xs p-0 cursor-text"
+            />
+          </div>
+        </SimpleTooltip>
+
+        <SimpleTooltip
+          side="top"
+          content="Iniciar Nova Cena (Reinicia contagem de rodadas e turnos)"
         >
-          <Film className="w-4 h-4 mr-2" /> Cena
-        </Button>
+          <Button
+            onClick={nextScene}
+            variant="outline"
+            className="bg-transparent border-muted text-main hover:bg-surface-elevated font-bold h-9 cursor-pointer"
+          >
+            <Film className="w-4 h-4 mr-2 text-brand-purple" /> Cena
+          </Button>
+        </SimpleTooltip>
       </div>
     </footer>
   );

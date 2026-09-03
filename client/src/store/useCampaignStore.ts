@@ -45,35 +45,50 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
     : null,
   autoSaveStatus: 'idle',
 
-  setScene: (scene) => set({ scene }),
+  setScene: (scene) => set({ scene: Math.max(1, scene) }),
   nextScene: () => {
-    set((state) => ({ scene: state.scene + 1, round: 1, turn: 1 }));
+    set((state) => ({
+      scene: state.scene + 1,
+      round: 1,
+      turn: 1,
+      urgency: null,
+    }));
     if (socket.connected) {
       socket.emit('campaign:update-round-turn', { round: 1, turn: 1 });
     }
   },
 
   setRound: (round) => {
-    set({ round });
+    const validRound = Math.max(1, round);
+    set({ round: validRound });
     if (socket.connected) {
-      socket.emit('campaign:update-round-turn', { round, turn: get().turn });
+      socket.emit('campaign:update-round-turn', {
+        round: validRound,
+        turn: get().turn,
+      });
     }
   },
   nextRound: () => {
-    const nextRound = get().round + 1;
-    set({ round: nextRound });
+    const { round, urgency } = get();
+    const nextRound = round + 1;
+    const nextUrgency = urgency !== null ? Math.max(0, urgency - 1) : null;
+    set({ round: nextRound, turn: 1, urgency: nextUrgency });
     if (socket.connected) {
       socket.emit('campaign:update-round-turn', {
         round: nextRound,
-        turn: get().turn,
+        turn: 1,
       });
     }
   },
 
   setTurn: (turn) => {
-    set({ turn });
+    const validTurn = Math.max(1, turn);
+    set({ turn: validTurn });
     if (socket.connected) {
-      socket.emit('campaign:update-round-turn', { round: get().round, turn });
+      socket.emit('campaign:update-round-turn', {
+        round: get().round,
+        turn: validTurn,
+      });
     }
   },
   addTurn: () => {
@@ -101,7 +116,8 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
 
   setRoundTurnFromRemote: (round, turn) => set({ round, turn }),
 
-  setUrgency: (urgency) => set({ urgency }),
+  setUrgency: (urgency) =>
+    set({ urgency: urgency !== null ? Math.max(0, urgency) : null }),
   changeUrgency: (amount) =>
     set((state) => ({
       urgency:

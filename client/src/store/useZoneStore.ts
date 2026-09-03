@@ -8,6 +8,7 @@ interface ZoneState {
   markers: Record<string, Marker>;
   bgImages: BgImage[];
   selectedZoneId: string | null;
+  selectedZoneIds: string[];
   editingZone: boolean;
   editingMarkers: boolean;
   activeTool: ActiveTool;
@@ -53,6 +54,9 @@ interface ZoneState {
   removeBgImageFromRemote: (id: string) => void;
 
   setSelectedZoneId: (id: string | null) => void;
+  setSelectedZoneIds: (ids: string[]) => void;
+  selectAllZones: () => void;
+  deselectAllZones: () => void;
   setEditingZone: (isEditing: boolean) => void;
   setEditingMarkers: (isEditing: boolean) => void;
   setActiveTool: (tool: ActiveTool) => void;
@@ -67,6 +71,7 @@ export const useZoneStore = create<ZoneState>((set) => ({
   markers: {},
   bgImages: [],
   selectedZoneId: null,
+  selectedZoneIds: [],
   editingZone: false,
   editingMarkers: false,
   activeTool: 'pan',
@@ -135,10 +140,16 @@ export const useZoneStore = create<ZoneState>((set) => ({
     set((state) => {
       const newZones = { ...state.zones };
       delete newZones[id];
+      const newSelectedIds = (state.selectedZoneIds || []).filter(
+        (zid) => zid !== id,
+      );
       return {
         zones: newZones,
         selectedZoneId:
-          state.selectedZoneId === id ? null : state.selectedZoneId,
+          state.selectedZoneId === id
+            ? newSelectedIds[0] || null
+            : state.selectedZoneId,
+        selectedZoneIds: newSelectedIds,
       };
     });
     triggerAutoSave();
@@ -236,10 +247,16 @@ export const useZoneStore = create<ZoneState>((set) => ({
     set((state) => {
       const newZones = { ...state.zones };
       delete newZones[id];
+      const newSelectedIds = (state.selectedZoneIds || []).filter(
+        (zid) => zid !== id,
+      );
       return {
         zones: newZones,
         selectedZoneId:
-          state.selectedZoneId === id ? null : state.selectedZoneId,
+          state.selectedZoneId === id
+            ? newSelectedIds[0] || null
+            : state.selectedZoneId,
+        selectedZoneIds: newSelectedIds,
       };
     });
   },
@@ -288,7 +305,30 @@ export const useZoneStore = create<ZoneState>((set) => ({
     }));
   },
 
-  setSelectedZoneId: (selectedZoneId) => set({ selectedZoneId }),
+  setSelectedZoneId: (selectedZoneId) =>
+    set({
+      selectedZoneId,
+      selectedZoneIds: selectedZoneId ? [selectedZoneId] : [],
+    }),
+  setSelectedZoneIds: (selectedZoneIds) =>
+    set({
+      selectedZoneIds,
+      selectedZoneId: selectedZoneIds.length > 0 ? selectedZoneIds[0] : null,
+    }),
+  selectAllZones: () =>
+    set((state) => {
+      const allIds = Object.keys(state.zones);
+      return {
+        selectedZoneIds: allIds,
+        selectedZoneId: allIds.length > 0 ? allIds[0] : null,
+        leftSidebarOpen: true,
+      };
+    }),
+  deselectAllZones: () =>
+    set({
+      selectedZoneIds: [],
+      selectedZoneId: null,
+    }),
   setEditingZone: (editingZone) => set({ editingZone }),
   setEditingMarkers: (isEditing) => set({ editingMarkers: isEditing }),
   setActiveTool: (activeTool) => set({ activeTool }),
@@ -298,6 +338,7 @@ export const useZoneStore = create<ZoneState>((set) => ({
   selectZone: (id) =>
     set({
       selectedZoneId: id,
+      selectedZoneIds: [id],
       leftSidebarOpen: true,
     }),
 }));

@@ -11,46 +11,86 @@ export interface NewShapeState {
   points?: number[]; // [x1, y1, x2, y2, ...]
 }
 
+interface ZoneLayerProps {
+  scale?: number;
+  onContextMenuZone?: (zoneId: string, e: any) => void;
+}
+
 /**
  * Renders zones on the map canvas.
  * Matches the .zone styling from DM_tool_6v.html with labels.
  */
-function ZoneLayer({ scale = 1 }: { scale?: number }) {
+function ZoneLayer({ scale = 1, onContextMenuZone }: ZoneLayerProps) {
   const zonesMap = useZoneStore((state) => state.zones);
   const zones = Object.values(zonesMap);
   const selectedZoneId = useZoneStore((state) => state.selectedZoneId);
+  const selectedZoneIds = useZoneStore((state) => state.selectedZoneIds);
   const selectZone = useZoneStore((state) => state.selectZone);
   const activeTool = useZoneStore((state) => state.activeTool);
+
+  const DEFAULT_COLOR = '#8257e5';
 
   return (
     <Group>
       {zones.map((z) => {
-        const isActive = z.id === selectedZoneId;
+        const isActive =
+          selectedZoneIds && selectedZoneIds.length > 0
+            ? selectedZoneIds.includes(z.id)
+            : z.id === selectedZoneId;
         const s = z.data?.style;
 
         // Helper to apply opacity to hex
         const applyOp = (hex: string | undefined, active: boolean) => {
-          if (!hex)
-            return active
-              ? 'rgba(130, 87, 229, 0.3)'
-              : 'rgba(130, 87, 229, 0.08)';
-          if (hex.startsWith('#') && hex.length === 7)
-            return active ? `${hex}4D` : `${hex}1A`; // 30% and 10%
-          return hex;
+          const raw = hex && hex.trim() !== '' ? hex.trim() : DEFAULT_COLOR;
+          if (raw.startsWith('#') && raw.length === 7) {
+            return active ? `${raw}4D` : `${raw}1A`; // 30% and 10%
+          }
+          return raw;
         };
 
         const fill = applyOp(s?.fillColor, isActive);
-        const stroke = isActive
-          ? '#ffd700'
-          : s?.borderColor || 'rgba(130, 87, 229, 0.5)';
-        const textColor = s?.textColor || 'white';
-        const strokeWidth = isActive ? 2.5 : 1.5;
+        // ALWAYS keep the zone's real border color
+        const stroke =
+          s?.borderColor && s.borderColor.trim() !== ''
+            ? s.borderColor.trim()
+            : DEFAULT_COLOR;
+        const textColor =
+          s?.textColor && s.textColor.trim() !== ''
+            ? s.textColor.trim()
+            : '#ffffff';
+        const strokeWidth = 2;
         const title = z.data?.title || '';
+
+        const handleContextMenu = (e: any) => {
+          e.evt.preventDefault();
+          e.cancelBubble = true;
+          onContextMenuZone?.(z.id, e);
+        };
 
         if (z.type === 'rect') {
           return (
             <Group key={z.id}>
+              {/* Highlight externo quando selecionada */}
+              {isActive && (
+                <Rect
+                  x={z.x - 4}
+                  y={z.y - 4}
+                  width={z.w + 8}
+                  height={z.h + 8}
+                  stroke="#ffd700"
+                  strokeWidth={1.5}
+                  dash={[6, 4]}
+                  cornerRadius={4}
+                  shadowColor="#ffd700"
+                  shadowBlur={5}
+                  shadowOpacity={0.8}
+                  listening={false}
+                  perfectDrawEnabled={false}
+                  shadowForStrokeEnabled={true}
+                />
+              )}
               <Rect
+                id={z.id}
                 x={z.x}
                 y={z.y}
                 width={z.w}
@@ -60,6 +100,7 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
                 strokeWidth={strokeWidth}
                 onClick={() => selectZone(z.id)}
                 onTap={() => selectZone(z.id)}
+                onContextMenu={handleContextMenu}
                 onMouseEnter={(e) => {
                   if (activeTool === 'select') {
                     const stage = e.target.getStage();
@@ -102,7 +143,26 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
         if (z.type === 'ellipse') {
           return (
             <Group key={z.id}>
+              {/* Highlight externo quando selecionada */}
+              {isActive && (
+                <Ellipse
+                  x={z.x + z.w / 2}
+                  y={z.y + z.h / 2}
+                  radiusX={z.w / 2 + 4}
+                  radiusY={z.h / 2 + 4}
+                  stroke="#ffd700"
+                  strokeWidth={1.5}
+                  dash={[6, 4]}
+                  shadowColor="#ffd700"
+                  shadowBlur={5}
+                  shadowOpacity={0.8}
+                  listening={false}
+                  perfectDrawEnabled={false}
+                  shadowForStrokeEnabled={true}
+                />
+              )}
               <Ellipse
+                id={z.id}
                 x={z.x + z.w / 2}
                 y={z.y + z.h / 2}
                 radiusX={z.w / 2}
@@ -112,6 +172,7 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
                 strokeWidth={strokeWidth}
                 onClick={() => selectZone(z.id)}
                 onTap={() => selectZone(z.id)}
+                onContextMenu={handleContextMenu}
                 onMouseEnter={(e) => {
                   if (activeTool === 'select') {
                     const stage = e.target.getStage();
@@ -160,7 +221,23 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
 
           return (
             <Group key={z.id}>
+              {/* Highlight externo quando selecionada (sob a linha base) */}
+              {isActive && (
+                <Line
+                  points={z.points}
+                  stroke="#ffd700"
+                  strokeWidth={6}
+                  dash={[8, 4]}
+                  closed={true}
+                  shadowColor="#ffd700"
+                  shadowBlur={5}
+                  shadowOpacity={0.8}
+                  listening={false}
+                  perfectDrawEnabled={false}
+                />
+              )}
               <Line
+                id={z.id}
                 points={z.points}
                 fill={fill}
                 stroke={stroke}
@@ -168,6 +245,7 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
                 closed={true}
                 onClick={() => selectZone(z.id)}
                 onTap={() => selectZone(z.id)}
+                onContextMenu={handleContextMenu}
                 onMouseEnter={(e) => {
                   if (activeTool === 'select') {
                     const stage = e.target.getStage();
@@ -181,7 +259,6 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
                   }
                 }}
                 listening={activeTool === 'pan' || activeTool === 'select'}
-
                 perfectDrawEnabled={false}
                 shadowForStrokeEnabled={false}
               />

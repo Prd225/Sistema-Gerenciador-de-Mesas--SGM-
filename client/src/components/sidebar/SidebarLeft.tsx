@@ -33,9 +33,47 @@ interface SidebarLeftProps {
   toggle: () => void;
 }
 
+const DEFAULT_ZONE_STYLE = {
+  borderColor: '#8257e5',
+  fillColor: '#8257e5',
+  textColor: '#ffffff',
+};
+
+const PRESET_COLORS = [
+  { name: 'Vermelho', hex: '#e55757' },
+  { name: 'Roxo', hex: '#8257e5' },
+  { name: 'Dourado', hex: '#ffd700' },
+  { name: 'Verde', hex: '#04d361' },
+  { name: 'Azul', hex: '#3b82f6' },
+  { name: 'Ciano', hex: '#2ac7e3' },
+];
+
+const getSafeZoneStyle = (style?: {
+  borderColor?: string;
+  fillColor?: string;
+  textColor?: string;
+}) => ({
+  borderColor:
+    style?.borderColor && style.borderColor.trim() !== ''
+      ? style.borderColor.trim()
+      : DEFAULT_ZONE_STYLE.borderColor,
+  fillColor:
+    style?.fillColor && style.fillColor.trim() !== ''
+      ? style.fillColor.trim()
+      : DEFAULT_ZONE_STYLE.fillColor,
+  textColor:
+    style?.textColor && style.textColor.trim() !== ''
+      ? style.textColor.trim()
+      : DEFAULT_ZONE_STYLE.textColor,
+});
+
 export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
   const zones = useZoneStore((state) => state.zones);
   const selectedZoneId = useZoneStore((state) => state.selectedZoneId);
+  const selectedZoneIds = useZoneStore((state) => state.selectedZoneIds);
+  const selectZone = useZoneStore((state) => state.selectZone);
+  const selectAllZones = useZoneStore((state) => state.selectAllZones);
+  const deselectAllZones = useZoneStore((state) => state.deselectAllZones);
   const editingZone = useZoneStore((state) => state.editingZone);
   const setEditingZone = useZoneStore((state) => state.setEditingZone);
   const updateZoneData = useZoneStore((state) => state.updateZoneData);
@@ -45,8 +83,40 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
   const width = useZoneStore((state) => state.leftSidebarWidth);
   const setWidth = useZoneStore((state) => state.setLeftSidebarWidth);
 
+  const zoneList = Object.values(zones);
+  const allSelected =
+    zoneList.length > 0 && selectedZoneIds.length === zoneList.length;
   const zone = selectedZoneId ? zones[selectedZoneId] : null;
   const zoneData = zone?.data;
+  const currentStyle = getSafeZoneStyle(zoneData?.style);
+
+  const updateStyleProperty = (
+    property: 'borderColor' | 'fillColor' | 'textColor',
+    value: string,
+  ) => {
+    if (!zone) return;
+    const current = getSafeZoneStyle(zoneData?.style);
+    updateZoneData(zone.id, {
+      style: {
+        ...zoneData?.style,
+        ...current,
+        [property]: value,
+      },
+    });
+  };
+
+  const applyPresetToBoth = (hex: string) => {
+    if (!zone) return;
+    const current = getSafeZoneStyle(zoneData?.style);
+    updateZoneData(zone.id, {
+      style: {
+        ...zoneData?.style,
+        ...current,
+        borderColor: hex,
+        fillColor: hex,
+      },
+    });
+  };
 
   // Event Presets
   const [eventPresets, setEventPresets] = useState<any[]>([]);
@@ -128,88 +198,227 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
         <div className="p-5 overflow-y-auto flex-1 h-full flex flex-col relative">
           {/* Header */}
           <div className="flex justify-between items-center mb-5 text-brand-purple font-bold uppercase tracking-wide border-b-2 border-subtle pb-2 shrink-0">
-            <span className="flex items-center gap-2">
-              <Map className="w-5 h-5" /> Dados da Zona
+            <span className="flex items-center gap-2 truncate pr-2">
+              <Map className="w-5 h-5 shrink-0" />
+              <span className="truncate">
+                {selectedZoneIds.length > 1
+                  ? `Zonas (${selectedZoneIds.length})`
+                  : zoneData?.title || 'Dados da Zona'}
+              </span>
             </span>
-            <div className="flex items-center gap-1 relative">
+            <div className="flex items-center gap-1 relative shrink-0">
+              {/* Botão de Selecionar Todas as Zonas */}
+              <button
+                onClick={() => {
+                  if (allSelected) {
+                    deselectAllZones();
+                  } else {
+                    selectAllZones();
+                  }
+                }}
+                className={`p-1.5 rounded transition-colors ${
+                  allSelected
+                    ? 'text-brand-gold bg-brand-gold/15'
+                    : 'text-muted-custom hover:text-main hover:bg-surface'
+                }`}
+                title={
+                  allSelected
+                    ? 'Desmarcar todas as zonas'
+                    : `Selecionar todas as zonas (${zoneList.length})`
+                }
+              >
+                <CheckSquare className="w-4 h-4" />
+              </button>
+
+              {/* Botão de Paleta de Cores */}
               <button
                 onClick={() => setShowPalette(!showPalette)}
-                className={`p-1 rounded hover:bg-surface transition-colors ${showPalette ? 'text-brand-gold' : 'text-muted-custom hover:text-main'}`}
-                title="Cores da Zona"
+                disabled={!zone}
+                className={`p-1.5 rounded transition-colors ${
+                  !zone
+                    ? 'opacity-40 cursor-not-allowed text-muted-custom'
+                    : showPalette
+                      ? 'text-brand-gold bg-brand-gold/15'
+                      : 'text-muted-custom hover:text-main hover:bg-surface'
+                }`}
+                title={
+                  zone
+                    ? 'Cores da Zona'
+                    : 'Selecione uma zona para alterar cores'
+                }
               >
                 <Palette className="w-4 h-4" />
               </button>
-              {showPalette && (
-                <div className="absolute top-full right-0 mt-2 bg-surface-elevated border border-subtle rounded p-3 z-50 w-64 shadow-xl">
-                  <div className="text-xs font-bold text-main mb-3 uppercase">
-                    Cores do Mapa
+
+              {showPalette && zone && (
+                <div className="absolute top-full right-0 mt-2 bg-surface-elevated border border-subtle rounded-lg p-3 z-50 w-72 shadow-2xl">
+                  <div className="text-xs font-bold text-main mb-2 uppercase tracking-wide">
+                    Cores da Zona
                   </div>
+
+                  {/* Paleta Rápida (Borda + Preenchimento) */}
+                  <div className="mb-3 p-2 bg-surface rounded-md border border-subtle">
+                    <span className="text-[10px] font-semibold text-muted-custom block mb-1.5 uppercase">
+                      Paleta Rápida (Borda + Fundo)
+                    </span>
+                    <div className="flex items-center justify-between gap-1">
+                      {PRESET_COLORS.map((c) => (
+                        <button
+                          key={c.hex}
+                          type="button"
+                          onClick={() => applyPresetToBoth(c.hex)}
+                          title={`${c.name} (${c.hex})`}
+                          className="w-6 h-6 rounded-full border border-white/20 hover:scale-110 transition-transform shadow-sm cursor-pointer"
+                          style={{ backgroundColor: c.hex }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-custom">Borda</span>
-                      <input
-                        type="color"
-                        value={zoneData?.style?.borderColor || '#8257e5'}
-                        onChange={(e) => {
-                          if (zone)
-                            updateZoneData(zone.id, {
-                              style: {
-                                ...zoneData?.style,
-                                borderColor: e.target.value,
-                                fillColor: zoneData?.style?.fillColor || '',
-                                textColor: zoneData?.style?.textColor || '',
-                              },
-                            });
-                        }}
-                        className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer"
-                      />
+                    {/* Borda */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-muted-custom font-medium">
+                          Borda
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-mono text-muted-custom">
+                            {currentStyle.borderColor}
+                          </span>
+                          <input
+                            type="color"
+                            value={currentStyle.borderColor}
+                            onChange={(e) =>
+                              updateStyleProperty('borderColor', e.target.value)
+                            }
+                            className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer rounded overflow-hidden"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {PRESET_COLORS.map((c) => (
+                          <button
+                            key={c.hex}
+                            type="button"
+                            onClick={() =>
+                              updateStyleProperty('borderColor', c.hex)
+                            }
+                            title={`Borda ${c.name}`}
+                            className={`w-4 h-4 rounded-full border transition-transform cursor-pointer ${
+                              currentStyle.borderColor.toLowerCase() ===
+                              c.hex.toLowerCase()
+                                ? 'scale-125 border-brand-gold shadow'
+                                : 'border-white/20 hover:scale-110'
+                            }`}
+                            style={{ backgroundColor: c.hex }}
+                          />
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-custom">
-                        Preenchimento
-                      </span>
-                      <input
-                        type="color"
-                        value={zoneData?.style?.fillColor || '#8257e5'}
-                        onChange={(e) => {
-                          if (zone)
-                            updateZoneData(zone.id, {
-                              style: {
-                                ...zoneData?.style,
-                                fillColor: e.target.value,
-                                borderColor: zoneData?.style?.borderColor || '',
-                                textColor: zoneData?.style?.textColor || '',
-                              },
-                            });
-                        }}
-                        className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer"
-                      />
+
+                    {/* Preenchimento */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-muted-custom font-medium">
+                          Preenchimento
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-mono text-muted-custom">
+                            {currentStyle.fillColor}
+                          </span>
+                          <input
+                            type="color"
+                            value={currentStyle.fillColor}
+                            onChange={(e) =>
+                              updateStyleProperty('fillColor', e.target.value)
+                            }
+                            className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer rounded overflow-hidden"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {PRESET_COLORS.map((c) => (
+                          <button
+                            key={c.hex}
+                            type="button"
+                            onClick={() =>
+                              updateStyleProperty('fillColor', c.hex)
+                            }
+                            title={`Preenchimento ${c.name}`}
+                            className={`w-4 h-4 rounded-full border transition-transform cursor-pointer ${
+                              currentStyle.fillColor.toLowerCase() ===
+                              c.hex.toLowerCase()
+                                ? 'scale-125 border-brand-gold shadow'
+                                : 'border-white/20 hover:scale-110'
+                            }`}
+                            style={{ backgroundColor: c.hex }}
+                          />
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-custom">Texto</span>
-                      <input
-                        type="color"
-                        value={zoneData?.style?.textColor || '#ffffff'}
-                        onChange={(e) => {
-                          if (zone)
-                            updateZoneData(zone.id, {
-                              style: {
-                                ...zoneData?.style,
-                                textColor: e.target.value,
-                                borderColor: zoneData?.style?.borderColor || '',
-                                fillColor: zoneData?.style?.fillColor || '',
-                              },
-                            });
-                        }}
-                        className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer"
-                      />
+
+                    {/* Texto */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-muted-custom font-medium">
+                          Texto
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-mono text-muted-custom">
+                            {currentStyle.textColor}
+                          </span>
+                          <input
+                            type="color"
+                            value={currentStyle.textColor}
+                            onChange={(e) =>
+                              updateStyleProperty('textColor', e.target.value)
+                            }
+                            className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer rounded overflow-hidden"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {[
+                          '#ffffff',
+                          '#000000',
+                          '#ffd700',
+                          '#e55757',
+                          '#04d361',
+                          '#3b82f6',
+                        ].map((hex) => (
+                          <button
+                            key={hex}
+                            type="button"
+                            onClick={() =>
+                              updateStyleProperty('textColor', hex)
+                            }
+                            title={`Texto ${hex}`}
+                            className={`w-4 h-4 rounded-full border transition-transform cursor-pointer ${
+                              currentStyle.textColor.toLowerCase() ===
+                              hex.toLowerCase()
+                                ? 'scale-125 border-brand-gold shadow'
+                                : 'border-white/20 hover:scale-110'
+                            }`}
+                            style={{ backgroundColor: hex }}
+                          />
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
+
               <button
                 onClick={() => setEditingZone(!editingZone)}
-                className={`p-1 rounded hover:bg-surface transition-colors ${editingZone ? 'text-brand-gold' : 'text-muted-custom hover:text-main'}`}
+                disabled={!zone}
+                className={`p-1.5 rounded transition-colors ${
+                  !zone
+                    ? 'opacity-40 cursor-not-allowed text-muted-custom'
+                    : editingZone
+                      ? 'text-brand-gold bg-brand-gold/15'
+                      : 'text-muted-custom hover:text-main hover:bg-surface'
+                }`}
                 title="Alternar Leitura/Edição"
               >
                 {editingZone ? (
@@ -220,7 +429,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
               </button>
               <button
                 onClick={toggle}
-                className="text-muted-custom hover:text-main p-1 rounded hover:bg-surface transition-colors"
+                className="text-muted-custom hover:text-main p-1.5 rounded hover:bg-surface transition-colors"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -228,10 +437,86 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
           </div>
 
           {!zone || !zoneData ? (
-            <div className="text-muted-custom text-center mt-[50px] flex flex-col items-center">
-              <SquareDashed className="w-[30px] h-[30px] mb-[10px]" />
-              <span className="text-sm">Selecione ou desenhe uma zona.</span>
-            </div>
+            /* Visualização das Zonas da Cena quando nenhuma zona está ativa */
+            zoneList.length > 0 ? (
+              <div className="flex-1 flex flex-col min-w-0 space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-subtle">
+                  <span className="text-xs font-bold text-muted-custom uppercase tracking-wider">
+                    Zonas no Mapa ({zoneList.length})
+                  </span>
+                  <button
+                    onClick={allSelected ? deselectAllZones : selectAllZones}
+                    className="text-xs text-brand-purple hover:text-brand-purple-hover font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <CheckSquare className="w-3.5 h-3.5" />
+                    {allSelected ? 'Desmarcar Todas' : 'Selecionar Todas'}
+                  </button>
+                </div>
+
+                <div className="space-y-2 overflow-y-auto flex-1 pr-1">
+                  {zoneList.map((z) => {
+                    const s = getSafeZoneStyle(z.data?.style);
+                    const isZActive =
+                      selectedZoneIds.includes(z.id) || selectedZoneId === z.id;
+                    const shapeLabel =
+                      z.type === 'rect'
+                        ? 'Retângulo'
+                        : z.type === 'ellipse'
+                          ? 'Círculo'
+                          : 'Polígono';
+                    return (
+                      <div
+                        key={z.id}
+                        onClick={() => selectZone(z.id)}
+                        className={`p-3 rounded-lg border cursor-pointer transition-all flex items-center justify-between group ${
+                          isZActive
+                            ? 'bg-brand-purple/10 border-brand-purple/50 shadow-sm'
+                            : 'bg-surface border-subtle hover:border-brand-purple/30'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span
+                            className="w-3.5 h-3.5 rounded-full border border-white/20 shrink-0"
+                            style={{ backgroundColor: s.borderColor }}
+                          />
+                          <div className="truncate">
+                            <div className="font-bold text-sm text-main truncate">
+                              {z.data?.title || 'Nova Zona'}
+                            </div>
+                            <div className="text-[11px] text-muted-custom flex items-center gap-2">
+                              <span>{shapeLabel}</span>
+                              <span>•</span>
+                              <span>{z.data?.visits || 0} visitas</span>
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeZone(z.id);
+                          }}
+                          className="text-muted-custom hover:text-red-400 p-1.5 rounded transition-colors opacity-0 group-hover:opacity-100"
+                          title="Excluir zona"
+                        >
+                          <Trash className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="text-muted-custom text-center mt-[50px] flex flex-col items-center">
+                <SquareDashed className="w-[30px] h-[30px] mb-[10px]" />
+                <span className="text-sm font-medium">
+                  Nenhuma zona no mapa.
+                </span>
+                <span className="text-xs mt-1 text-muted-custom/70 text-center max-w-[200px]">
+                  Desenhe com a barra superior ou clique com botão direito no
+                  canvas.
+                </span>
+              </div>
+            )
           ) : (
             <div className="flex flex-col flex-1">
               {/* Tabs */}
@@ -261,6 +546,55 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                 <div className="space-y-6 flex-1 min-w-0">
                   {activeTab === 'geral' && (
                     <>
+                      {/* Visualização de Zonas da Cena */}
+                      {zoneList.length > 1 && (
+                        <div className="mb-4 p-2.5 bg-surface rounded-lg border border-subtle">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10px] font-bold text-muted-custom uppercase tracking-wider">
+                              Zonas na Cena ({zoneList.length})
+                            </span>
+                            <button
+                              onClick={
+                                allSelected ? deselectAllZones : selectAllZones
+                              }
+                              className="text-[11px] text-brand-purple hover:text-brand-purple-hover font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                              title="Selecionar todas as zonas"
+                            >
+                              <CheckSquare className="w-3 h-3" />
+                              {allSelected
+                                ? 'Desmarcar Todas'
+                                : 'Selecionar Todas'}
+                            </button>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                            {zoneList.map((z) => {
+                              const s = getSafeZoneStyle(z.data?.style);
+                              const isCurrent = z.id === zone.id;
+                              return (
+                                <button
+                                  key={z.id}
+                                  type="button"
+                                  onClick={() => selectZone(z.id)}
+                                  className={`text-xs px-2 py-1 rounded-md border flex items-center gap-1.5 transition-all cursor-pointer ${
+                                    isCurrent
+                                      ? 'bg-brand-purple/20 border-brand-purple text-main font-bold'
+                                      : 'bg-surface-elevated border-subtle text-muted-custom hover:text-main hover:border-brand-purple/30'
+                                  }`}
+                                >
+                                  <span
+                                    className="w-2 h-2 rounded-full shrink-0"
+                                    style={{ backgroundColor: s.borderColor }}
+                                  />
+                                  <span className="truncate max-w-[120px]">
+                                    {z.data?.title || 'Zona'}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
                       <h2 className="text-main text-xl font-bold mb-2">
                         {zoneData.title || 'Nova Zona'}
                       </h2>
@@ -662,6 +996,55 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                 <div className="space-y-4 flex-1 min-w-0">
                   {activeTab === 'geral' && (
                     <>
+                      {/* Visualização de Zonas da Cena */}
+                      {zoneList.length > 1 && (
+                        <div className="mb-4 p-2.5 bg-surface rounded-lg border border-subtle">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10px] font-bold text-muted-custom uppercase tracking-wider">
+                              Zonas na Cena ({zoneList.length})
+                            </span>
+                            <button
+                              onClick={
+                                allSelected ? deselectAllZones : selectAllZones
+                              }
+                              className="text-[11px] text-brand-purple hover:text-brand-purple-hover font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                              title="Selecionar todas as zonas"
+                            >
+                              <CheckSquare className="w-3 h-3" />
+                              {allSelected
+                                ? 'Desmarcar Todas'
+                                : 'Selecionar Todas'}
+                            </button>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                            {zoneList.map((z) => {
+                              const s = getSafeZoneStyle(z.data?.style);
+                              const isCurrent = z.id === zone.id;
+                              return (
+                                <button
+                                  key={z.id}
+                                  type="button"
+                                  onClick={() => selectZone(z.id)}
+                                  className={`text-xs px-2 py-1 rounded-md border flex items-center gap-1.5 transition-all cursor-pointer ${
+                                    isCurrent
+                                      ? 'bg-brand-purple/20 border-brand-purple text-main font-bold'
+                                      : 'bg-surface-elevated border-subtle text-muted-custom hover:text-main hover:border-brand-purple/30'
+                                  }`}
+                                >
+                                  <span
+                                    className="w-2 h-2 rounded-full shrink-0"
+                                    style={{ backgroundColor: s.borderColor }}
+                                  />
+                                  <span className="truncate max-w-[120px]">
+                                    {z.data?.title || 'Zona'}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="flex gap-2 items-end">
                         <div className="flex-1">
                           <label className="text-xs text-muted-custom block mb-1">

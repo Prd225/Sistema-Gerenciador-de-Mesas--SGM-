@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   FolderOpen,
   Download,
@@ -30,6 +31,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
   DialogTrigger,
 } from '@/components/ui/dialog';
 
@@ -55,28 +57,29 @@ export default function Header() {
     (state) => state.setIsModalOpen,
   );
 
+  const [showNewMapConfirm, setShowNewMapConfirm] = useState(false);
+
   const handleNew = () => {
-    if (
-      window.confirm(
-        'Deseja criar um novo mapa? Todo progresso não salvo será perdido.',
-      )
-    ) {
-      useTokenStore.setState({
-        tokens: [],
-        initiativeQueue: [],
-        editingTokenId: null,
-        tokenContextMenu: null,
-      });
-      useZoneStore.setState({
-        zones: {},
-        markers: {},
-        bgImages: [],
-        selectedZoneId: null,
-        editingMarkers: false,
-        activeTool: 'pan',
-      });
-      useCampaignStore.setState({ turn: 1 });
-    }
+    setShowNewMapConfirm(true);
+  };
+
+  const confirmNewMap = () => {
+    useTokenStore.setState({
+      tokens: [],
+      initiativeQueue: [],
+      editingTokenId: null,
+      tokenContextMenu: null,
+    });
+    useZoneStore.setState({
+      zones: {},
+      markers: {},
+      bgImages: [],
+      selectedZoneId: null,
+      editingMarkers: false,
+      activeTool: 'pan',
+    });
+    useCampaignStore.setState({ turn: 1 });
+    setShowNewMapConfirm(false);
   };
 
   const handleSave = () => {
@@ -357,6 +360,36 @@ export default function Header() {
           )}
         </Button>
       </div>
+
+      {/* Confirmação de Novo Mapa sem janela nativa do navegador */}
+      <Dialog open={showNewMapConfirm} onOpenChange={setShowNewMapConfirm}>
+        <DialogContent className="bg-surface border border-subtle text-main sm:max-w-[420px] p-5 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-brand-gold text-lg font-bold flex items-center gap-2">
+              <FilePlus2 className="w-5 h-5" /> Criar Novo Mapa
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-custom my-2 leading-relaxed">
+            Deseja criar um novo mapa? Todos os tokens no tabuleiro, zonas e
+            marcadores não salvos serão limpos.
+          </p>
+          <DialogFooter className="flex-row justify-end gap-2 pt-3 border-t border-subtle">
+            <Button
+              variant="outline"
+              onClick={() => setShowNewMapConfirm(false)}
+              className="border-subtle bg-transparent text-main hover:bg-surface-elevated cursor-pointer"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={confirmNewMap}
+              className="bg-brand-purple hover:bg-brand-purple-hover text-white font-bold cursor-pointer"
+            >
+              Novo Mapa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }
