@@ -1,5 +1,6 @@
 export * from './types/game';
 export * from './types/room';
+export * from './types/audio';
 export * from './types/socketEvents';
 export * from './types/content';
 export * from './types/cardGallery';

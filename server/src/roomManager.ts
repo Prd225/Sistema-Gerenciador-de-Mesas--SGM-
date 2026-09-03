@@ -7,6 +7,8 @@ import type {
   Zone,
   Marker,
   SyncStatePayload,
+  RoomAudioState,
+  AudioControlPayload,
 } from '@sgm/shared';
 
 export interface ActiveRoom {
@@ -21,6 +23,7 @@ export interface ActiveRoom {
   round: number;
   turn: number;
   createdAt: number;
+  audio: RoomAudioState;
 }
 
 const MEMBER_COLORS = [
@@ -72,6 +75,14 @@ export class RoomManager {
       round: 1,
       turn: 1,
       createdAt: Date.now(),
+      audio: {
+        currentTrack: null,
+        isPlaying: false,
+        currentTime: 0,
+        volume: 80,
+        loop: false,
+        updatedAt: Date.now(),
+      },
     };
 
     this.rooms.set(code, room);
@@ -148,6 +159,7 @@ export class RoomManager {
       markers: room.markers,
       round: room.round,
       turn: room.turn,
+      audio: room.audio,
     };
   }
 
@@ -294,6 +306,65 @@ export class RoomManager {
     if (!room) return;
     room.round = round;
     room.turn = turn;
+  }
+
+  // Audio / Soundpad
+  public updateAudio(
+    code: string,
+    payload: AudioControlPayload,
+  ): RoomAudioState | null {
+    const room = this.getRoom(code);
+    if (!room) return null;
+
+    const now = Date.now();
+    switch (payload.action) {
+      case 'track':
+        if (payload.track) {
+          room.audio.currentTrack = payload.track;
+          room.audio.currentTime = 0;
+          room.audio.isPlaying = true;
+          room.audio.updatedAt = now;
+        }
+        break;
+      case 'play':
+        room.audio.isPlaying = true;
+        if (payload.currentTime !== undefined) {
+          room.audio.currentTime = payload.currentTime;
+        }
+        room.audio.updatedAt = now;
+        break;
+      case 'pause':
+        room.audio.isPlaying = false;
+        if (payload.currentTime !== undefined) {
+          room.audio.currentTime = payload.currentTime;
+        }
+        room.audio.updatedAt = now;
+        break;
+      case 'stop':
+        room.audio.isPlaying = false;
+        room.audio.currentTime = 0;
+        room.audio.updatedAt = now;
+        break;
+      case 'seek':
+        if (payload.currentTime !== undefined) {
+          room.audio.currentTime = Math.max(0, payload.currentTime);
+          room.audio.updatedAt = now;
+        }
+        break;
+      case 'volume':
+        if (payload.volume !== undefined) {
+          room.audio.volume = Math.max(0, Math.min(100, payload.volume));
+          room.audio.updatedAt = now;
+        }
+        break;
+      case 'loop':
+        if (payload.loop !== undefined) {
+          room.audio.loop = payload.loop;
+          room.audio.updatedAt = now;
+        }
+        break;
+    }
+    return room.audio;
   }
 }
 

@@ -12,15 +12,43 @@ import {
 
 const PANEL_DETAILS: Record<
   SubPanelId,
-  { title: string; icon: React.ElementType }
+  { title: string; description: string; icon: React.ElementType }
 > = {
-  diary: { title: 'Diário do Mestre', icon: BookOpen },
-  rules: { title: 'Regras', icon: Scale },
-  scenes: { title: 'Cenas', icon: Clapperboard },
-  soundpad: { title: 'Soundpad', icon: Music },
-  table: { title: 'Tabelas', icon: Table },
-  roulette: { title: 'Roleta', icon: Dices },
-  notes: { title: 'Anotações', icon: NotebookPen },
+  diary: {
+    title: 'Diário da Sessão',
+    description: 'Registro narrativo, pontos de interesse e acontecimentos',
+    icon: BookOpen,
+  },
+  rules: {
+    title: 'Grimório de Regras',
+    description: 'Tópicos de regras rápidas, condições e referências',
+    icon: Scale,
+  },
+  scenes: {
+    title: 'Roteiro de Cenas',
+    description: 'Planejamento de atos, transições e encontros',
+    icon: Clapperboard,
+  },
+  soundpad: {
+    title: 'Soundpad & Músicas',
+    description: 'Trilha sonora, ambiente e efeitos sonoros sincronizados',
+    icon: Music,
+  },
+  table: {
+    title: 'Tabelas Táticas',
+    description: 'Tabelas de itens, tesouros e sorteios rápidos',
+    icon: Table,
+  },
+  roulette: {
+    title: 'Roletas da Sorte',
+    description: 'Roletas visuais animadas para sorteios e eventos',
+    icon: Dices,
+  },
+  notes: {
+    title: 'Bloco de Notas',
+    description: 'Editor livre de rascunhos e lembretes',
+    icon: NotebookPen,
+  },
 };
 
 export default function SubPanelPlaceholder({
@@ -36,8 +64,11 @@ export default function SubPanelPlaceholder({
       <div className="w-16 h-16 bg-surface-elevated rounded-full flex items-center justify-center mb-4 shadow-inner">
         <Icon className="w-8 h-8 text-brand-purple" />
       </div>
-      <h3 className="text-xl font-semibold text-main mb-2">{details.title}</h3>
-      <p className="text-sm text-muted-custom text-center max-w-[80%]">
+      <h3 className="text-xl font-semibold text-main mb-1">{details.title}</h3>
+      <p className="text-xs text-brand-purple font-medium text-center mb-2">
+        {details.description}
+      </p>
+      <p className="text-xs text-muted-custom/70 text-center max-w-[80%]">
         Em construção. Espaço reservado para a interface de {details.title}.
       </p>
     </div>

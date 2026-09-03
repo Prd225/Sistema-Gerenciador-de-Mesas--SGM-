@@ -14,6 +14,7 @@ import MultiplayerModal from '../modals/MultiplayerModal';
 import MapToolbar from '../toolbar/MapToolbar';
 import MasterPanelTrigger from '../master-panel/MasterPanelTrigger';
 import MasterPanelOverlay from '../master-panel/MasterPanelOverlay';
+import GlobalAudioPlayer from '../audio/GlobalAudioPlayer';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useEffect } from 'react';
 import { triggerAutoSave } from '@/lib/saveHelpers';
@@ -187,6 +188,9 @@ export default function AppLayout({
       {/* Painel do Mestre */}
       <MasterPanelTrigger />
       <MasterPanelOverlay />
+
+      {/* Áudio Sincronizado Global (YouTube, Spotify, Áudio Direto) */}
+      <GlobalAudioPlayer />
     </div>
   );
 }

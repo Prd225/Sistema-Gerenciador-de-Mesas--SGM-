@@ -3,6 +3,14 @@ import { useRulesStore } from '@/store/useRulesStore';
 import { Scale, Plus, Trash2, Edit2, Check } from 'lucide-react';
 import RulesGrid from './RulesGrid';
 import RulesPagination from './RulesPagination';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 export default function MasterRules() {
   const pages = useRulesStore((state) => state.pages);
@@ -12,6 +20,7 @@ export default function MasterRules() {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitleValue, setEditTitleValue] = useState('');
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // Safeguard in case pages are deleted
   const safePageIndex = Math.min(
@@ -39,12 +48,11 @@ export default function MasterRules() {
     if (e.key === 'Escape') setIsEditingTitle(false);
   };
 
-  const handleRemovePage = () => {
+  const handleConfirmRemovePage = () => {
     if (pages.length <= 1) return;
-    if (confirm('Tem certeza que deseja remover esta página inteira?')) {
-      removePage(currentPage.id);
-      setCurrentPageIndex(Math.max(0, safePageIndex - 1));
-    }
+    removePage(currentPage.id);
+    setCurrentPageIndex(Math.max(0, safePageIndex - 1));
+    setIsDeleteModalOpen(false);
   };
 
   return (
@@ -96,7 +104,7 @@ export default function MasterRules() {
 
           {pages.length > 1 && (
             <button
-              onClick={handleRemovePage}
+              onClick={() => setIsDeleteModalOpen(true)}
               className="p-1.5 text-muted-custom hover:text-brand-red hover:bg-surface rounded transition-colors cursor-pointer"
               title="Excluir Página"
             >
@@ -115,6 +123,39 @@ export default function MasterRules() {
         totalPages={pages.length}
         onPageChange={setCurrentPageIndex}
       />
+
+      {/* Modal de Confirmação para Exclusão de Página */}
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent className="bg-surface-elevated border-subtle text-main sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-main font-semibold flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-brand-red" />
+              Remover Página de Regras
+            </DialogTitle>
+            <DialogDescription className="text-muted-custom text-sm pt-2">
+              Tem certeza que deseja remover esta página inteira (
+              {currentPage.name || 'Sem Título'}) e todos os seus blocos de
+              regras? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 flex gap-2 sm:justify-end">
+            <button
+              type="button"
+              onClick={() => setIsDeleteModalOpen(false)}
+              className="px-3 py-1.5 rounded-md text-xs font-medium border border-subtle bg-surface hover:bg-surface-hover text-muted-custom hover:text-main transition-colors cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmRemovePage}
+              className="px-3 py-1.5 rounded-md text-xs font-medium bg-brand-red hover:bg-brand-red/90 text-white transition-colors cursor-pointer"
+            >
+              Remover Página
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

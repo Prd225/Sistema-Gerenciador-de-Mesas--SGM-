@@ -1,5 +1,6 @@
 import type { Token, InitiativeItem, Zone, Marker, BgImage } from './game';
 import type { RoomMember, RoomPing, RoomState } from './room';
+import type { RoomAudioState, AudioControlPayload } from './audio';
 
 export interface SyncStatePayload {
   tokens: Token[];
@@ -73,6 +74,9 @@ export interface ClientToServerEvents {
 
   // Map ping
   'map:ping': (payload: { x: number; y: number }) => void;
+
+  // Audio / Soundpad
+  'audio:control': (payload: AudioControlPayload) => void;
 }
 
 export interface ServerToClientEvents {
@@ -80,6 +84,9 @@ export interface ServerToClientEvents {
   'room:member-left': (payload: { memberId: string }) => void;
   'room:members-updated': (payload: { members: RoomMember[] }) => void;
   'room:state-synced': (payload: SyncStatePayload) => void;
+
+  // Audio / Soundpad
+  'audio:sync': (state: RoomAudioState) => void;
 
   // Tokens
   'token:moved': (payload: {

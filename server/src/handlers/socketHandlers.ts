@@ -46,6 +46,8 @@ export function registerSocketHandlers(io: SgmServer, socket: SgmSocket) {
 
       // Retorna estado completo para o novo jogador
       callback({ success: true, state: roomManager.toState(room) });
+      // Sincroniza áudio imediatamente com o novo participante
+      socket.emit('audio:sync', room.audio);
       console.log(`[Jogador Entrou] ${name} entrou na sala ${room.code}`);
     } catch (err: any) {
       callback({
@@ -212,6 +214,27 @@ export function registerSocketHandlers(io: SgmServer, socket: SgmSocket) {
 
     // Pings vão para TODO MUNDO na sala (inclusive quem pingou, para confirmação visual)
     io.to(room.code).emit('map:pinged', ping);
+  });
+
+  // Controle de Áudio Sincronizado / Soundpad
+  socket.on('audio:control', (payload) => {
+    const room = roomManager.getRoomBySocketId(socket.id);
+    if (!room) return;
+
+    const member = room.members.get(socket.id);
+    // Validação de Segurança Rigorosa: Apenas o Mestre (role === 'gm') pode controlar áudio
+    if (!member || member.role !== 'gm') {
+      console.warn(
+        `[Audio Não Autorizado] Tentativa de controle de áudio rejeitada para socket ${socket.id} (${member?.name || 'anônimo'}) com role='${member?.role}' na sala ${room.code}`,
+      );
+      return;
+    }
+
+    const updatedAudio = roomManager.updateAudio(room.code, payload);
+    if (updatedAudio) {
+      // Broadcast para toda a sala
+      io.to(room.code).emit('audio:sync', updatedAudio);
+    }
   });
 
   // Sair da Sala

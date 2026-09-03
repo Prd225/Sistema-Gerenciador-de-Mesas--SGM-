@@ -1,8 +1,23 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRoulettesStore } from '@/store/useRoulettesStore';
-import { ChevronLeft, ChevronRight, Plus, X, Edit2 } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  X,
+  Edit2,
+  Trash2,
+} from 'lucide-react';
 import RoulettesGrid from './RoulettesGrid';
 import RouletteEditorFullscreen from './RouletteEditorFullscreen';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 export default function MasterRoulettes() {
   const pages = useRoulettesStore((state) => state.pages);
@@ -15,6 +30,7 @@ export default function MasterRoulettes() {
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState('');
+  const [isDeletePageModalOpen, setIsDeletePageModalOpen] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -33,14 +49,11 @@ export default function MasterRoulettes() {
     addPage(`Página ${pages.length + 1}`);
     setActivePageIndex(pages.length);
   };
-  const handleRemovePage = () => {
-    if (
-      pages.length > 1 &&
-      window.confirm('Deseja mesmo apagar esta página e todas as suas roletas?')
-    ) {
-      removePage(activePage.id);
-      setActivePageIndex((p) => Math.max(0, p - 1));
-    }
+  const handleConfirmRemovePage = () => {
+    if (pages.length <= 1) return;
+    removePage(activePage.id);
+    setActivePageIndex((p) => Math.max(0, p - 1));
+    setIsDeletePageModalOpen(false);
   };
 
   const startEditing = () => {
@@ -129,7 +142,7 @@ export default function MasterRoulettes() {
 
             {pages.length > 1 && (
               <button
-                onClick={handleRemovePage}
+                onClick={() => setIsDeletePageModalOpen(true)}
                 className="p-1.5 hover:bg-brand-red/20 hover:text-brand-red rounded text-muted-custom transition-colors shrink-0 cursor-pointer"
                 title="Apagar Página"
               >
@@ -139,6 +152,42 @@ export default function MasterRoulettes() {
           </div>
         </div>
       )}
+
+      {/* Modal de Confirmação para Excluir Página */}
+      <Dialog
+        open={isDeletePageModalOpen}
+        onOpenChange={setIsDeletePageModalOpen}
+      >
+        <DialogContent className="bg-surface-elevated border-subtle text-main sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-main font-semibold flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-brand-red" />
+              Remover Página de Roletas
+            </DialogTitle>
+            <DialogDescription className="text-muted-custom text-sm pt-2">
+              Tem certeza que deseja remover esta página inteira (
+              {activePage.name || 'Sem Título'}) e todas as suas roletas? Esta
+              ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 flex gap-2 sm:justify-end">
+            <button
+              type="button"
+              onClick={() => setIsDeletePageModalOpen(false)}
+              className="px-3 py-1.5 rounded-md text-xs font-medium border border-subtle bg-surface hover:bg-surface-hover text-muted-custom hover:text-main transition-colors cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmRemovePage}
+              className="px-3 py-1.5 rounded-md text-xs font-medium bg-brand-red hover:bg-brand-red/90 text-white transition-colors cursor-pointer"
+            >
+              Remover Página
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

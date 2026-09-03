@@ -4,6 +4,7 @@ import { socket } from '../lib/socket';
 import { useTokenStore } from './useTokenStore';
 import { useZoneStore } from './useZoneStore';
 import { useCampaignStore } from './useCampaignStore';
+import { useAudioStore } from './useAudioStore';
 
 interface MultiplayerState {
   isConnected: boolean;
@@ -262,6 +263,9 @@ export const useMultiplayerStore = create<MultiplayerState>((set, get) => {
                 round: response.state.round,
                 turn: response.state.turn,
               });
+            }
+            if (response.state.audio) {
+              useAudioStore.getState().syncFromRemote(response.state.audio);
             }
 
             resolve(true);

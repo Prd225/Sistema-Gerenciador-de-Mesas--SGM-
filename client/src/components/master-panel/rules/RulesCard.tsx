@@ -35,6 +35,7 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
 
   const [isHovered, setIsHovered] = useState(false);
   const [showSizes, setShowSizes] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isEditingMode, setIsEditingMode] = useState(false);
   const [isDragEnabled, setIsDragEnabled] = useState(false);
@@ -130,8 +131,9 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
         setIsHovered(false);
         setShowSizes(false);
         setIsDragEnabled(false);
+        setShowDeleteConfirm(false);
       }}
-      className={`relative bg-surface-elevated/50 border border-subtle rounded-md transition-all group hover:border-brand-purple/50 flex flex-col ${spanClasses}`}
+      className={`relative bg-surface-elevated/50 border border-subtle rounded-md transition-all group hover:border-brand-purple/50 flex flex-col ${showDeleteConfirm || showSizes ? 'z-30' : ''} ${spanClasses}`}
     >
       {/* Title Bar / Drag Handle */}
       <div
@@ -166,7 +168,7 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
 
         {/* Actions (visible on hover or when editing) */}
         <div
-          className={`flex items-center gap-1 transition-opacity duration-200 ${isHovered || isEditingMode ? 'opacity-100' : 'opacity-0'}`}
+          className={`flex items-center gap-1 transition-opacity duration-200 ${isHovered || isEditingMode || showDeleteConfirm ? 'opacity-100' : 'opacity-0'}`}
         >
           <button
             onClick={() => setIsEditingMode(!isEditingMode)}
@@ -266,15 +268,49 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
             </div>
           )}
 
-          {isEditingMode && (
+          <div className="relative">
             <button
-              onClick={() => removeWidget(pageId, widget.id)}
-              className="p-1 text-muted-custom hover:text-brand-red hover:bg-surface rounded transition-colors cursor-pointer"
-              title="Remover Card"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDeleteConfirm(!showDeleteConfirm);
+              }}
+              className="p-1 text-brand-red hover:bg-brand-red/10 rounded transition-colors cursor-pointer"
+              title="Excluir Bloco"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
-          )}
+
+            {showDeleteConfirm && (
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="absolute top-full right-0 mt-1 bg-surface-elevated border border-subtle rounded-md shadow-2xl z-50 p-2.5 min-w-[140px] flex flex-col gap-2 animate-in fade-in zoom-in-95 duration-150"
+              >
+                <span className="text-[11px] font-semibold text-main text-center whitespace-nowrap">
+                  Excluir Bloco?
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      removeWidget(pageId, widget.id);
+                      setShowDeleteConfirm(false);
+                    }}
+                    className="flex-1 px-2 py-1 text-[11px] font-medium bg-brand-red hover:bg-brand-red/90 text-white rounded transition-colors cursor-pointer text-center"
+                  >
+                    Excluir
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="flex-1 px-2 py-1 text-[11px] text-muted-custom hover:text-main hover:bg-surface rounded border border-subtle transition-colors cursor-pointer text-center"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

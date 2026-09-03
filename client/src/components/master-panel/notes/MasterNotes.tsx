@@ -7,9 +7,18 @@ import {
   ChevronLeft,
   ChevronRight,
   Edit2,
+  Trash2,
 } from 'lucide-react';
 import NotesGrid from './NotesGrid';
 import NoteEditorFullscreen from './NoteEditorFullscreen';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 export default function MasterNotes() {
   const pages = useNotesStore((state) => state.pages);
@@ -20,6 +29,7 @@ export default function MasterNotes() {
   const [activePageIndex, setActivePageIndex] = useState(0);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState('');
+  const [isDeletePageModalOpen, setIsDeletePageModalOpen] = useState(false);
 
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
 
@@ -38,12 +48,11 @@ export default function MasterNotes() {
     setActivePageIndex(pages.length);
   };
 
-  const handleRemovePage = () => {
+  const handleConfirmRemovePage = () => {
     if (pages.length <= 1) return;
-    if (confirm('Deseja realmente apagar esta página inteira de anotações?')) {
-      removePage(activePage.id);
-      setActivePageIndex(Math.max(0, activePageIndex - 1));
-    }
+    removePage(activePage.id);
+    setActivePageIndex(Math.max(0, activePageIndex - 1));
+    setIsDeletePageModalOpen(false);
   };
 
   const startEditing = () => {
@@ -69,10 +78,10 @@ export default function MasterNotes() {
             </div>
             <div>
               <h2 className="text-xl font-bold text-main leading-none">
-                Anotações
+                Bloco de Notas
               </h2>
               <p className="text-sm text-muted-custom mt-1">
-                Sua coleção de ideias e notas rápidas.
+                Editor livre de rascunhos e lembretes.
               </p>
             </div>
           </div>
@@ -115,17 +124,17 @@ export default function MasterNotes() {
                   onChange={(e) => setTitleValue(e.target.value)}
                   onBlur={handleTitleSubmit}
                   onKeyDown={(e) => e.key === 'Enter' && handleTitleSubmit()}
-                  className="bg-transparent border-b border-brand-purple outline-none text-main text-sm text-center w-full min-w-0"
+                  className="bg-surface text-main text-xs border border-brand-purple rounded px-1.5 py-0.5 outline-none text-center font-medium max-w-[120px]"
                 />
               ) : (
                 <div
-                  className="flex items-center gap-1 sm:gap-2 group cursor-pointer min-w-0"
+                  className="flex items-center gap-1.5 cursor-pointer group px-1 py-0.5 rounded hover:bg-surface"
                   onClick={startEditing}
                 >
-                  <span className="text-sm font-medium text-main truncate">
+                  <span className="text-xs font-semibold text-main select-none">
                     {activePage.name}
                   </span>
-                  <Edit2 className="w-3 h-3 text-muted-custom opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                  <Edit2 className="w-3 h-3 text-muted-custom opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               )}
             </div>
@@ -150,7 +159,7 @@ export default function MasterNotes() {
 
             {pages.length > 1 && (
               <button
-                onClick={handleRemovePage}
+                onClick={() => setIsDeletePageModalOpen(true)}
                 className="p-1.5 hover:bg-brand-red/20 hover:text-brand-red rounded text-muted-custom transition-colors cursor-pointer"
                 title="Apagar Página"
               >
@@ -160,6 +169,42 @@ export default function MasterNotes() {
           </div>
         </div>
       )}
+
+      {/* Modal de Confirmação para Excluir Página */}
+      <Dialog
+        open={isDeletePageModalOpen}
+        onOpenChange={setIsDeletePageModalOpen}
+      >
+        <DialogContent className="bg-surface-elevated border-subtle text-main sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-main font-semibold flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-brand-red" />
+              Remover Página de Anotações
+            </DialogTitle>
+            <DialogDescription className="text-muted-custom text-sm pt-2">
+              Tem certeza que deseja remover esta página inteira (
+              {activePage.name || 'Sem Título'}) e todas as suas anotações? Esta
+              ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 flex gap-2 sm:justify-end">
+            <button
+              type="button"
+              onClick={() => setIsDeletePageModalOpen(false)}
+              className="px-3 py-1.5 rounded-md text-xs font-medium border border-subtle bg-surface hover:bg-surface-hover text-muted-custom hover:text-main transition-colors cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmRemovePage}
+              className="px-3 py-1.5 rounded-md text-xs font-medium bg-brand-red hover:bg-brand-red/90 text-white transition-colors cursor-pointer"
+            >
+              Remover Página
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

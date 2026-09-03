@@ -1,4 +1,5 @@
 import type { Token, InitiativeItem, Zone, Marker, BgImage } from './game';
+import type { RoomAudioState } from './audio';
 
 export type UserRole = 'gm' | 'player';
 
@@ -30,4 +31,5 @@ export interface RoomState {
   markers: Record<string, Marker>;
   round: number;
   turn: number;
+  audio?: RoomAudioState;
 }
