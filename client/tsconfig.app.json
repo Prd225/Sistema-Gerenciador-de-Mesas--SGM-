@@ -24,7 +24,8 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@sgm/shared": ["../shared/src/index.ts"]
     },
     "ignoreDeprecations": "6.0"
   },

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import type { Token, InitiativeItem } from '@/types/game';
+import type { Token, InitiativeItem } from '@sgm/shared';
 import { triggerAutoSave } from '@/lib/saveHelpers';
+import { socket } from '@/lib/socket';
 
 interface TokenState {
   tokens: Token[];
@@ -10,12 +11,19 @@ interface TokenState {
   showTokenCreateModal: boolean;
   tokenContextMenu: { id: string; x: number; y: number } | null;
 
+  // Ações locais (disparam evento pro servidor se conectado)
   addToken: (token: Token) => void;
   updateToken: (id: string, updates: Partial<Token>) => void;
   removeToken: (id: string) => void;
 
   setInitiativeQueue: (queue: InitiativeItem[]) => void;
   clearInitiative: () => void;
+
+  // Ações remotas (vindas do WebSocket, sem re-emitir)
+  addTokenFromRemote: (token: Token) => void;
+  updateTokenFromRemote: (id: string, updates: Partial<Token>) => void;
+  removeTokenFromRemote: (id: string) => void;
+  setInitiativeQueueFromRemote: (queue: InitiativeItem[]) => void;
 
   setActiveCtxTokenId: (id: string | null) => void;
   setEditingTokenId: (id: string | null) => void;
@@ -35,9 +43,15 @@ export const useTokenStore = create<TokenState>((set, get) => ({
   showTokenCreateModal: false,
   tokenContextMenu: null,
 
+  // --- Ações Locais ---
   addToken: (token) => {
     set((state) => ({ tokens: [...state.tokens, token] }));
     triggerAutoSave();
+
+    // Notifica servidor se estiver conectado
+    if (socket.connected) {
+      socket.emit('token:add', { token });
+    }
   },
 
   updateToken: (id, updates) => {
@@ -47,6 +61,15 @@ export const useTokenStore = create<TokenState>((set, get) => ({
       ),
     }));
     triggerAutoSave();
+
+    // Notifica servidor se estiver conectado
+    if (socket.connected) {
+      if (updates.x !== undefined && updates.y !== undefined) {
+        socket.emit('token:move', { tokenId: id, x: updates.x, y: updates.y });
+      } else {
+        socket.emit('token:update', { tokenId: id, updates });
+      }
+    }
   },
 
   removeToken: (id) => {
@@ -57,16 +80,58 @@ export const useTokenStore = create<TokenState>((set, get) => ({
       ),
     }));
     triggerAutoSave();
+
+    if (socket.connected) {
+      socket.emit('token:remove', { tokenId: id });
+    }
   },
 
   setInitiativeQueue: (initiativeQueue) => {
     set({ initiativeQueue });
     triggerAutoSave();
+
+    if (socket.connected) {
+      socket.emit('initiative:update', { queue: initiativeQueue });
+    }
   },
 
   clearInitiative: () => {
     set({ initiativeQueue: [] });
     triggerAutoSave();
+
+    if (socket.connected) {
+      socket.emit('initiative:update', { queue: [] });
+    }
+  },
+
+  // --- Ações Remotas (sem re-emitir) ---
+  addTokenFromRemote: (token) => {
+    set((state) => {
+      // Evita duplicatas caso já exista
+      if (state.tokens.find((t) => t.id === token.id)) return state;
+      return { tokens: [...state.tokens, token] };
+    });
+  },
+
+  updateTokenFromRemote: (id, updates) => {
+    set((state) => ({
+      tokens: state.tokens.map((token) =>
+        token.id === id ? { ...token, ...updates } : token,
+      ),
+    }));
+  },
+
+  removeTokenFromRemote: (id) => {
+    set((state) => ({
+      tokens: state.tokens.filter((token) => token.id !== id),
+      initiativeQueue: state.initiativeQueue.filter(
+        (item) => item.tokenId !== id,
+      ),
+    }));
+  },
+
+  setInitiativeQueueFromRemote: (initiativeQueue) => {
+    set({ initiativeQueue });
   },
 
   setActiveCtxTokenId: (activeCtxTokenId) => set({ activeCtxTokenId }),

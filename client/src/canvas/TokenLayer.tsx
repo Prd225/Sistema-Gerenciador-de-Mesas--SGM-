@@ -3,6 +3,7 @@ import { Group, Circle, Text } from 'react-konva';
 import { useTokenStore } from '@/store/useTokenStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useZoneStore } from '@/store/useZoneStore';
+import { useMultiplayerStore } from '@/store/useMultiplayerStore';
 
 /**
  * Renders token circles on the map.
@@ -102,6 +103,7 @@ function TokenLayer({ scale = 1 }: { scale?: number }) {
   const activeTool = useZoneStore((state) => state.activeTool);
   const selectedNodeIds = useZoneStore((state) => state.selectedNodeIds);
   const setSelectedNodeIds = useZoneStore((state) => state.setSelectedNodeIds);
+  const isPlayer = useMultiplayerStore((state) => state.role === 'player');
   const dragStartPositions = React.useRef<
     Record<string, { x: number; y: number }>
   >({});
@@ -118,15 +120,21 @@ function TokenLayer({ scale = 1 }: { scale?: number }) {
         .map((t) => {
           const isActive = t.id === activeTokenId;
           const isSelected = selectedNodeIds.includes(t.id);
+          const isThreat = t.stats?.type === 'threat';
+          const canInteract = !isPlayer || !isThreat;
+          const isDraggable =
+            (activeTool === 'pan' || activeTool === 'select') && canInteract;
+
           return (
             <Group
               key={t.id}
               id={t.id}
               x={t.x!}
               y={t.y!}
-              draggable={activeTool === 'pan' || activeTool === 'select'}
+              draggable={isDraggable}
               listening={activeTool === 'pan' || activeTool === 'select'}
               onClick={(e) => {
+                if (!canInteract) return;
                 if (activeTool === 'select') {
                   e.cancelBubble = true;
                   if (e.evt.shiftKey) {
@@ -139,6 +147,7 @@ function TokenLayer({ scale = 1 }: { scale?: number }) {
                   }
                 }
               }}
+
               onMouseEnter={(e) => {
                 if (activeTool !== 'select' && activeTool !== 'pan') return;
                 document.body.style.cursor = 'pointer';
@@ -283,10 +292,17 @@ function TokenLayer({ scale = 1 }: { scale?: number }) {
                   });
                 }
               }}
-              onDblClick={() => setEditingTokenId(t.id)}
-              onDblTap={() => setEditingTokenId(t.id)}
+              onDblClick={() => {
+                if (isPlayer && isThreat) return;
+                setEditingTokenId(t.id);
+              }}
+              onDblTap={() => {
+                if (isPlayer && isThreat) return;
+                setEditingTokenId(t.id);
+              }}
               onContextMenu={(e) => {
                 e.evt.preventDefault();
+                if (isPlayer) return;
                 if (window.confirm(`Deseja retirar ${t.fullName} do Mapa?`)) {
                   updateToken(t.id, { x: null, y: null });
                 }

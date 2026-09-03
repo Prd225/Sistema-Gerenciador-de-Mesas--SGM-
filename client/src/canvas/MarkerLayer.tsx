@@ -1,6 +1,7 @@
 import React from 'react';
-import { Group, Text, Image as KonvaImage, Rect } from 'react-konva';
+import { Group, Text, Image as KonvaImage, Rect, Circle } from 'react-konva';
 import { useZoneStore } from '@/store/useZoneStore';
+import { useMultiplayerStore } from '@/store/useMultiplayerStore';
 import useImage from 'use-image';
 
 const iconTypeSvgMap = {
@@ -49,9 +50,50 @@ function MarkerLayer({ scale = 1 }: { scale?: number }) {
   const markers = Object.values(markersMap);
   const updateMarker = useZoneStore((state) => state.updateMarker);
   const activeTool = useZoneStore((state) => state.activeTool);
+  const pings = useMultiplayerStore((state) => state.pings);
 
   return (
     <Group>
+      {/* Live Multiplayer Pings */}
+      {pings.map((ping) => {
+        const dynamicFontSize = Math.max(12, 13 / scale);
+        const dynamicY = -35 / scale;
+        return (
+          <Group key={ping.id} x={ping.x} y={ping.y} listening={false}>
+            {/* Outer Pulse Wave */}
+            <Circle
+              radius={28 / scale}
+              stroke={ping.color || '#2ac7e3'}
+              strokeWidth={3 / scale}
+              dash={[8 / scale, 4 / scale]}
+              opacity={0.9}
+            />
+            {/* Inner Dot */}
+            <Circle
+              radius={10 / scale}
+              fill={ping.color || '#2ac7e3'}
+              shadowColor="black"
+              shadowBlur={6}
+              opacity={0.85}
+            />
+            {/* Sender Name Badge */}
+            <Text
+              text={`📍 ${ping.senderName}`}
+              x={-100}
+              y={dynamicY}
+              width={200}
+              align="center"
+              fontSize={dynamicFontSize}
+              fontStyle="bold"
+              fill="#ffffff"
+              shadowColor="black"
+              shadowBlur={4}
+              shadowOffset={{ x: 1, y: 1 }}
+              shadowOpacity={1}
+            />
+          </Group>
+        );
+      })}
       {markers.map((marker) => {
         const dynamicFontSize = Math.max(12, 14 / scale);
         const dynamicY = -40 / scale;

@@ -9,11 +9,13 @@ import {
   ChevronDown,
   RefreshCw,
   CheckCircle2,
+  Radio,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTokenStore } from '@/store/useTokenStore';
 import { useZoneStore } from '@/store/useZoneStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
+import { useMultiplayerStore } from '@/store/useMultiplayerStore';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +42,12 @@ export default function Header() {
   const setShowSaveModal = useCampaignStore((state) => state.setShowSaveModal);
   const autoSaveSlot = useCampaignStore((state) => state.autoSaveSlot);
   const autoSaveStatus = useCampaignStore((state) => state.autoSaveStatus);
+  const isMultiplayerConnected = useMultiplayerStore(
+    (state) => state.isConnected,
+  );
+  const setIsMultiplayerModalOpen = useMultiplayerStore(
+    (state) => state.setIsModalOpen,
+  );
 
   const handleNew = () => {
     if (
@@ -264,6 +272,31 @@ export default function Header() {
             </div>
           </DialogContent>
         </Dialog>
+        <Button
+          onClick={() => setIsMultiplayerModalOpen(true)}
+          variant="outline"
+          className={`font-bold transition-all border ${
+            isMultiplayerConnected
+              ? 'bg-[#04d361]/15 border-[#04d361]/40 text-[#04d361] hover:bg-[#04d361]/25 hover:text-[#04d361]'
+              : 'bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5'
+          }`}
+        >
+          <Radio
+            className={`w-4 h-4 mr-2 ${
+              isMultiplayerConnected
+                ? 'text-[#04d361] animate-pulse'
+                : 'text-[#8257e5]'
+            }`}
+          />
+          {isMultiplayerConnected ? (
+            <span className="flex items-center gap-1.5">
+              Mesa Online
+              <span className="w-2 h-2 rounded-full bg-[#04d361] animate-ping" />
+            </span>
+          ) : (
+            'Multiplayer'
+          )}
+        </Button>
         <Button
           onClick={() => setShowTokenCreateModal(true)}
           variant="outline"

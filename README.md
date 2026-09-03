@@ -1,17 +1,25 @@
 # 🎲 Sistema Gerenciador de Mesas (SGM v7.0)
 
 > **Virtual Tabletop (VTT) & Ferramenta do Mestre para RPG de Mesa**  
-> Uma plataforma moderna, rápida e _offline-first_ para mestres e jogadores gerenciarem combates, mapas táticos, anotações e fichas com fluidez.
+> Uma plataforma moderna, rápida, colaborativa e em tempo real para mestres e jogadores gerenciarem combates, mapas táticos, anotações e fichas com fluidez.
 
 ---
 
 ## 🚀 Visão Geral
 
-O **SGM v7.0** é uma ferramenta pensada para mestres que precisam de agilidade na preparação e condução de sessões de RPG de mesa. O projeto combina um **Battlemap 2D interativo** com um **Painel do Mestre completo**, armazenando tudo localmente no navegador sem depender de servidores externos.
+O **SGM v7.0** é uma ferramenta pensada para mestres que precisam de agilidade na preparação e condução de sessões de RPG de mesa. O projeto combina um **Battlemap 2D interativo** com um **Painel do Mestre completo**, com suporte a **Sincronização Multiplayer em Tempo Real (WebSockets)** e persistência local via IndexedDB.
 
 ---
 
 ## ✨ Funcionalidades Principais
+
+### 🌐 Multiplayer & Sincronização em Tempo Real (NOVO)
+
+- **Salas com Código Rápido**: O Mestre cria a sala e compartilha um código de 6 caracteres (ex: `SGM-7X2A`).
+- **Sincronização de Tokens**: Movimentação, adição, remoção e alteração de HP refletem instantaneamente nas telas de todos os jogadores na mesma sala.
+- **Iniciativa Compartilhada**: Passagem de turnos e ordem do combate atualizados ao vivo para o grupo.
+- **Pings Táticos**: Clique no mapa com `Alt + Clique` ou botão do meio do mouse para emitir um ping com onda animada e seu nome para alertar o grupo.
+- **Lista de Jogadores Online**: Indicador de presença e papéis (Mestre vs Jogador).
 
 ### 🗺️ Battlemap & Grid Tático
 
@@ -36,9 +44,9 @@ O **SGM v7.0** é uma ferramenta pensada para mestres que precisam de agilidade 
 - 🎲 **Tabelas Roláveis**: Criação e rolagem de tabelas de encontros, itens e eventos.
 - 📜 **Compêndio de Regras**: Consulta rápida a resumos de regras do sistema de jogo.
 
-### 💾 Persistência Offline-First
+### 💾 Persistência Offline-First & Nuvem Híbrida
 
-- **Banco IndexedDB via Dexie.js**: Suporte a até 50 slots de salvamento independentes.
+- **Banco IndexedDB via Dexie.js**: Suporte a até 50 slots de salvamento independentes no navegador.
 - **Auto-Save Inteligente**: Salvamento automático periódico (a cada 10 minutos) e atalho global `Ctrl + S`.
 - **Exportação/Importação**: Salve ou restaure campanhas completas em arquivos `.json`.
 
@@ -46,11 +54,10 @@ O **SGM v7.0** é uma ferramenta pensada para mestres que precisam de agilidade 
 
 ## 🛠️ Stack Tecnológica
 
-- **Core**: [React 19](https://react.dev/), [TypeScript](https://www.typescriptlang.org/), [Vite](https://vitejs.dev/)
-- **Canvas 2D**: [Konva](https://konvajs.org/) & [react-konva](https://github.com/konvajs/react-konva)
-- **Gerenciamento de Estado**: [Zustand](https://zustand.docs.pmnd.rs/)
-- **Estilização & UI**: [Tailwind CSS](https://tailwindcss.com/), [Lucide Icons](https://lucide.dev/), [Base UI / Radix](https://base-ui.com/)
-- **Banco de Dados Local**: [Dexie.js](https://dexie.org/) (IndexedDB)
+- **Monorepo**: npm workspaces (`@sgm/shared`, `@sgm/client`, `@sgm/server`)
+- **Frontend (`client/`)**: [React 19](https://react.dev/), [TypeScript](https://www.typescriptlang.org/), [Vite](https://vitejs.dev/), [Konva](https://konvajs.org/), [Zustand](https://zustand.docs.pmnd.rs/), [Tailwind CSS](https://tailwindcss.com/)
+- **Backend (`server/`)**: [Node.js](https://nodejs.org/), [Express](https://expressjs.com/), [Socket.io](https://socket.io/), [TSX](https://github.com/privatenumber/tsx)
+- **Tipos Compartilhados (`shared/`)**: TypeScript types contratos estritos de WebSocket e modelos de dados
 - **Linter & Formatador**: [Oxlint](https://oxc.rs/) & [Prettier](https://prettier.io/)
 
 ---
@@ -60,83 +67,79 @@ O **SGM v7.0** é uma ferramenta pensada para mestres que precisam de agilidade 
 ### Pré-requisitos
 
 - **Node.js** (versão 18 ou superior recomendada)
-- **npm** (ou pnpm/yarn)
+- **npm** (versão 7+ com suporte a workspaces)
 
-### 1. Clonar o repositório
+### 1. Clonar e Instalar
 
 ```bash
 git clone https://github.com/Prd225/Sistema-Gerenciador-de-Mesas--SGM-.git
 cd Sistema-Gerenciador-de-Mesas--SGM-
-```
-
-### 2. Instalar as dependências
-
-```bash
 npm install
 ```
 
-### 3. Executar o servidor de desenvolvimento
+### 2. Executar o Projeto Completo (Frontend + Servidor WebSocket)
 
 ```bash
 npm run dev
 ```
 
-Abra o navegador em `http://localhost:5173` (ou execute `npm run dev -- --open` para abrir automaticamente).
+- O Frontend (Vite) iniciará em `http://localhost:5173`
+- O Servidor WebSocket iniciará em `ws://localhost:3001`
 
 ---
 
-## 📜 Scripts Disponíveis
+## 📜 Scripts Disponíveis (Executados na Raiz)
 
-| Comando                | Descrição                                                                     |
-| :--------------------- | :---------------------------------------------------------------------------- |
-| `npm run dev`          | Inicia o servidor Vite para desenvolvimento local com HMR.                    |
-| `npm run build`        | Compila o TypeScript (`tsc -b`) e gera o bundle de produção otimizado.        |
-| `npm run preview`      | Pré-visualiza localmente o build gerado em `dist/`.                           |
-| `npm run typecheck`    | Executa a verificação de tipos do TypeScript sem gerar arquivos.              |
-| `npm run lint`         | Executa a análise estática ultrarrápida de código com **Oxlint**.             |
-| `npm run format`       | Formata todos os arquivos do projeto de acordo com as regras do **Prettier**. |
-| `npm run format:check` | Verifica se há arquivos que não estão formatados com o **Prettier**.          |
+| Comando                | Descrição                                                                                     |
+| :--------------------- | :-------------------------------------------------------------------------------------------- |
+| `npm run dev`          | Inicia o client (Vite) e o server (Socket.io) em paralelo via `concurrently`.                 |
+| `npm run dev:client`   | Inicia apenas o frontend React/Vite.                                                          |
+| `npm run dev:server`   | Inicia apenas o servidor de WebSockets.                                                       |
+| `npm run build`        | Compila os pacotes `@sgm/shared`, `@sgm/server` e gera o bundle de produção em `@sgm/client`. |
+| `npm run typecheck`    | Executa a validação de tipos TypeScript em todos os pacotes.                                  |
+| `npm run lint`         | Executa a análise estática com **Oxlint**.                                                    |
+| `npm run format`       | Formata todo o repositório com **Prettier**.                                                  |
+| `npm run format:check` | Verifica a formatação do código com **Prettier**.                                             |
+| `npm run preview`      | Pré-visualiza localmente o build gerado de produção.                                          |
 
 ---
 
-## 📁 Estrutura do Projeto
+## 📁 Estrutura do Monorepo
 
 ```text
 Sistema-Gerenciador-de-Mesas--SGM-/
-├── legacy/                # Arquivos arquivados da versão v6.x (HTML/JS monolítico)
+├── client/                     # 🎨 Aplicação Frontend (React + Vite + Konva)
+│   ├── src/
+│   │   ├── canvas/             # Camadas do mapa Konva (StageMap, Grid, Tokens, Zonas, etc.)
+│   │   ├── components/         # Componentes React (layout, iniciativa, mestre, modais)
+│   │   ├── store/              # Stores Zustand (useTokenStore, useMultiplayerStore, etc.)
+│   │   └── lib/                # Socket.io client, Dexie DB e helpers
+│   ├── public/                 # Assets estáticos
+│   ├── index.html              # Shell HTML
+│   ├── package.json            # @sgm/client
+│   ├── tailwind.config.js      # Estilização Tailwind
+│   └── vite.config.ts          # Configuração do Vite
+├── server/                     # ⚡ Servidor Backend WebSocket (Node.js + Socket.io)
+│   ├── src/
+│   │   ├── handlers/           # Listeners de eventos de socket (token, sala, ping)
+│   │   ├── roomManager.ts      # Gerenciamento de salas e presença em memória
+│   │   └── index.ts            # Ponto de entrada do servidor HTTP/WS (porta 3001)
+│   ├── package.json            # @sgm/server
+│   └── tsconfig.json
+├── shared/                     # 📦 Pacote de Tipos Compartilhados
+│   ├── src/
+│   │   ├── types/
+│   │   │   ├── game.ts         # Tokens, Zonas, Atributos, Iniciativa
+│   │   │   ├── room.ts         # Membros, Salas, Presença, Pings
+│   │   │   └── socketEvents.ts # Contrato estrito ClientToServer / ServerToClient
+│   │   └── index.ts
+│   ├── package.json            # @sgm/shared
+│   └── tsconfig.json
+├── legacy/                     # 📁 Versão histórica v6.x (HTML/JS legado)
 │   └── v6/
-│       ├── DM_tool_6v.html
-│       ├── css/
-│       └── js/
-├── public/                # Favicons, ícones e assets estáticos
-├── src/
-│   ├── assets/            # Imagens e vetores da interface
-│   ├── canvas/            # Componentes Konva do Battlemap (StageMap, Grid, Tokens, Zonas, etc.)
-│   ├── components/        # Componentes React modulares
-│   │   ├── initiative/    # Barra e modal de iniciativa
-│   │   ├── layout/        # Shell da aplicação (Header, Footer, Sidebars, AppLayout)
-│   │   ├── master-panel/  # Telas do Painel do Mestre (diário, notas, roletas, regras, tabelas)
-│   │   ├── modals/        # Modais de ficha, criação de token, save/load
-│   │   ├── sidebar/       # Menus retráteis esquerdo e direito
-│   │   ├── tokens/        # Gestão de condições e status
-│   │   ├── toolbar/       # Barra de ferramentas do mapa
-│   │   └── ui/            # Primitivos de UI reutilizáveis (botões, inputs, dialogs)
-│   ├── hooks/             # Custom React Hooks
-│   ├── lib/               # Instância do Dexie (db.ts), helpers de persistência e UUIDs
-│   ├── store/             # Stores Zustand fatiados por domínio
-│   ├── types/             # Tipagens TypeScript (campanha, tokens, regras, tabelas, etc.)
-│   ├── App.tsx            # Componente raiz da aplicação
-│   ├── main.tsx           # Ponto de entrada do React
-│   └── index.css          # Configurações globais do Tailwind e temas
-├── .oxlintrc.json         # Configuração do Oxlint
-├── .prettierrc            # Regras de formatação do Prettier
-├── .prettierignore        # Arquivos ignorados pelo Prettier
-├── components.json        # Configuração do Shadcn UI
-├── index.html             # Shell HTML servido pelo Vite
-├── package.json           # Dependências e scripts
-├── tailwind.config.js     # Configuração do Tailwind CSS
-├── tsconfig.json          # Configuração base do TypeScript
-└── vite.config.ts         # Configuração do Vite (com alias @ -> ./src)
+├── .github/workflows/ci.yml    # Pipeline de CI (build, lint, typecheck, prettier)
+├── .prettierrc                 # Regras do Prettier
+└── package.json                # Orquestrador raiz do Monorepo
 ```
 
 ---
@@ -147,18 +150,14 @@ Para manter o repositório organizado entre múltiplos desenvolvedores:
 
 ### Padrão de Branches
 
-Crie sempre uma branch a partir da `master` para suas alterações:
-
 - `feat/nome-da-feature`: Novas funcionalidades.
 - `fix/nome-do-bug`: Correção de bugs.
-- `chore/descricao`: Manutenção, documentação, organização de arquivos e tooling.
-- `refactor/descricao`: Refatoração sem alteração de comportamento.
+- `chore/descricao`: Manutenção, infraestrutura e documentação.
 
 ### Padrão de Commits
 
-Utilize o padrão **Conventional Commits**:
+Utilize **Conventional Commits**:
 
-- `feat: adiciona filtro por tipo na lista de tokens`
-- `fix: corrige clique duplo na roleta`
-- `style: ajusta espaçamento do painel lateral`
-- `chore: adiciona prettier e atualiza readme`
+- `feat: adiciona sincronização de pings no mapa`
+- `fix: corrige dessincronização de iniciativa`
+- `chore: adiciona monorepo e socket.io`

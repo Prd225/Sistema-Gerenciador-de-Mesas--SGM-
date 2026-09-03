@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { socket } from '@/lib/socket';
 
 interface CampaignState {
   scene: number;
@@ -18,6 +19,8 @@ interface CampaignState {
   nextRound: () => void;
   setTurn: (turn: number) => void;
   addTurn: () => void;
+  setRoundTurnFromRemote: (round: number, turn: number) => void;
+
   setUrgency: (urgency: number | null) => void;
   changeUrgency: (amount: number) => void;
   setTurnsPerRound: (amount: number) => void;
@@ -43,13 +46,36 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
   autoSaveStatus: 'idle',
 
   setScene: (scene) => set({ scene }),
-  nextScene: () =>
-    set((state) => ({ scene: state.scene + 1, round: 1, turn: 1 })),
+  nextScene: () => {
+    set((state) => ({ scene: state.scene + 1, round: 1, turn: 1 }));
+    if (socket.connected) {
+      socket.emit('campaign:update-round-turn', { round: 1, turn: 1 });
+    }
+  },
 
-  setRound: (round) => set({ round }),
-  nextRound: () => set((state) => ({ round: state.round + 1 })),
+  setRound: (round) => {
+    set({ round });
+    if (socket.connected) {
+      socket.emit('campaign:update-round-turn', { round, turn: get().turn });
+    }
+  },
+  nextRound: () => {
+    const nextRound = get().round + 1;
+    set({ round: nextRound });
+    if (socket.connected) {
+      socket.emit('campaign:update-round-turn', {
+        round: nextRound,
+        turn: get().turn,
+      });
+    }
+  },
 
-  setTurn: (turn) => set({ turn }),
+  setTurn: (turn) => {
+    set({ turn });
+    if (socket.connected) {
+      socket.emit('campaign:update-round-turn', { round: get().round, turn });
+    }
+  },
   addTurn: () => {
     const { turn, turnsPerRound, round, urgency } = get();
     let nextTurn = turn + 1;
@@ -65,7 +91,15 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
     }
 
     set({ turn: nextTurn, round: nextRound, urgency: nextUrgency });
+    if (socket.connected) {
+      socket.emit('campaign:update-round-turn', {
+        round: nextRound,
+        turn: nextTurn,
+      });
+    }
   },
+
+  setRoundTurnFromRemote: (round, turn) => set({ round, turn }),
 
   setUrgency: (urgency) => set({ urgency }),
   changeUrgency: (amount) =>
