@@ -60,8 +60,20 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
                 strokeWidth={strokeWidth}
                 onClick={() => selectZone(z.id)}
                 onTap={() => selectZone(z.id)}
+                onMouseEnter={(e) => {
+                  if (activeTool === 'select') {
+                    const stage = e.target.getStage();
+                    if (stage) stage.container().style.cursor = 'pointer';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (activeTool === 'select') {
+                    const stage = e.target.getStage();
+                    if (stage) stage.container().style.cursor = '';
+                  }
+                }}
                 cornerRadius={2}
-                listening={activeTool === 'pan'}
+                listening={activeTool === 'pan' || activeTool === 'select'}
                 perfectDrawEnabled={false}
                 shadowForStrokeEnabled={false}
               />
@@ -100,7 +112,19 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
                 strokeWidth={strokeWidth}
                 onClick={() => selectZone(z.id)}
                 onTap={() => selectZone(z.id)}
-                listening={activeTool === 'pan'}
+                onMouseEnter={(e) => {
+                  if (activeTool === 'select') {
+                    const stage = e.target.getStage();
+                    if (stage) stage.container().style.cursor = 'pointer';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (activeTool === 'select') {
+                    const stage = e.target.getStage();
+                    if (stage) stage.container().style.cursor = '';
+                  }
+                }}
+                listening={activeTool === 'pan' || activeTool === 'select'}
                 perfectDrawEnabled={false}
                 shadowForStrokeEnabled={false}
               />
@@ -144,7 +168,20 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
                 closed={true}
                 onClick={() => selectZone(z.id)}
                 onTap={() => selectZone(z.id)}
-                listening={activeTool === 'pan'}
+                onMouseEnter={(e) => {
+                  if (activeTool === 'select') {
+                    const stage = e.target.getStage();
+                    if (stage) stage.container().style.cursor = 'pointer';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (activeTool === 'select') {
+                    const stage = e.target.getStage();
+                    if (stage) stage.container().style.cursor = '';
+                  }
+                }}
+                listening={activeTool === 'pan' || activeTool === 'select'}
+
                 perfectDrawEnabled={false}
                 shadowForStrokeEnabled={false}
               />

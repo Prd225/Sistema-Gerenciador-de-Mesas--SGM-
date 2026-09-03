@@ -5,6 +5,7 @@ import { useZoneStore } from '@/store/useZoneStore';
 import { useTokenStore } from '@/store/useTokenStore';
 import { useMasterPanelStore } from '@/store/useMasterPanelStore';
 import { useMultiplayerStore } from '@/store/useMultiplayerStore';
+import type { ActiveTool } from '@/types/game';
 
 import GridLayer from './GridLayer';
 import BackgroundLayer from './BackgroundLayer';
@@ -37,6 +38,9 @@ export default function StageMap() {
   const updateToken = useTokenStore((state) => state.updateToken);
 
   const [isDrawing, setIsDrawing] = useState(false);
+  const [isDraggingStage, setIsDraggingStage] = useState(false);
+  const previousToolRef = useRef<ActiveTool>('pan');
+  const isSpaceDownRef = useRef(false);
   const [newShape, setNewShape] = useState<NewShapeState | null>(null);
   const drawStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
@@ -131,7 +135,11 @@ export default function StageMap() {
         return;
       }
 
-      if (activeTool === 'pan' || activeTool === 'edit-bg') return;
+      if (activeTool === 'pan') {
+        if (e.evt.button === 0) setIsDraggingStage(true);
+        return;
+      }
+      if (activeTool === 'edit-bg') return;
 
       if (activeTool === 'select') {
         useZoneStore.getState().setSelectedNodeIds([]);
@@ -256,6 +264,7 @@ export default function StageMap() {
 
   // --- Mouse Up ---
   const handleMouseUp = useCallback(() => {
+    setIsDraggingStage(false);
     if (!isDrawing) return;
 
     if (activeTool === 'select' && selectionRect) {
@@ -338,8 +347,7 @@ export default function StageMap() {
 
       // Auto-select and open sidebar (matching original behavior)
       selectZone(id);
-      // Switch back to pan
-      setActiveTool('pan');
+      // Keeps active tool for continuous drawing workflow
     }
 
     setNewShape(null);
@@ -348,6 +356,7 @@ export default function StageMap() {
     newShape,
     addZone,
     selectZone,
+
     setActiveTool,
     activeTool,
     selectionRect,
@@ -408,7 +417,7 @@ export default function StageMap() {
 
   // --- Keyboard (Shortcuts & Polygon) ---
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement ||
@@ -418,12 +427,13 @@ export default function StageMap() {
         return;
       }
 
-      if (e.code === 'Space') {
+      if (e.code === 'Space' && !e.repeat && !isSpaceDownRef.current) {
         e.preventDefault();
-        setActiveTool('pan');
-        setIsDrawing(false);
-        setNewShape(null);
-        setPolyPoints([]);
+        isSpaceDownRef.current = true;
+        if (activeTool !== 'pan') {
+          previousToolRef.current = activeTool;
+          setActiveTool('pan');
+        }
       }
 
       if (e.key === 'v' || e.key === 'V') {
@@ -478,27 +488,65 @@ export default function StageMap() {
         });
 
         selectZone(id);
-        setActiveTool('pan');
+        // Keeps active tool for continuous drawing workflow
         setIsDrawing(false);
         setNewShape(null);
         setPolyPoints([]);
       }
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && isSpaceDownRef.current) {
+        isSpaceDownRef.current = false;
+        if (previousToolRef.current && previousToolRef.current !== 'pan') {
+          setActiveTool(previousToolRef.current);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
   }, [activeTool, polyPoints, setActiveTool, addZone, selectZone]);
 
-  const cursorStyle =
-    activeTool === 'pan'
-      ? 'grab'
-      : activeTool === 'edit-bg'
-        ? 'default'
-        : 'crosshair';
+  const cursorStyle = (() => {
+    if (activeTool === 'pan') {
+      return isDraggingStage ? 'grabbing' : 'grab';
+    }
+    if (activeTool === 'select') {
+      return selectionRect ? 'crosshair' : 'default';
+    }
+    if (activeTool === 'add-marker') {
+      return 'crosshair';
+    }
+    if (activeTool.startsWith('draw')) {
+      return 'crosshair';
+    }
+    if (activeTool === 'edit-bg') {
+      return 'move';
+    }
+    return 'default';
+  })();
+
+  // Synchronize cursor with stage container and outer element
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (stage) {
+      stage.container().style.cursor = cursorStyle;
+    }
+    if (containerRef.current) {
+      containerRef.current.style.cursor = cursorStyle;
+    }
+  }, [cursorStyle]);
 
   return (
     <div
       ref={containerRef}
       className="absolute inset-0"
+      style={{ cursor: cursorStyle }}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
@@ -511,8 +559,14 @@ export default function StageMap() {
         x={position.x}
         y={position.y}
         draggable={activeTool === 'pan'}
+        onDragStart={(e) => {
+          if (e.target === stageRef.current) {
+            setIsDraggingStage(true);
+          }
+        }}
         onDragEnd={(e) => {
           if (e.target === stageRef.current) {
+            setIsDraggingStage(false);
             setPosition({ x: e.target.x(), y: e.target.y() });
           }
         }}

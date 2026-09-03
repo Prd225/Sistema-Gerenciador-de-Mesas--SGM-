@@ -110,8 +110,13 @@ function MarkerLayer({ scale = 1 }: { scale?: number }) {
               e.cancelBubble = true;
             }}
             onMouseEnter={(e) => {
-              if (activeTool !== 'add-marker') return;
-              document.body.style.cursor = 'pointer';
+              const stage = e.target.getStage();
+              if (
+                stage &&
+                (activeTool === 'add-marker' || activeTool === 'select')
+              ) {
+                stage.container().style.cursor = 'pointer';
+              }
               e.currentTarget.to({
                 scaleX: 0.95,
                 scaleY: 0.95,
@@ -120,7 +125,10 @@ function MarkerLayer({ scale = 1 }: { scale?: number }) {
               });
             }}
             onMouseLeave={(e) => {
-              document.body.style.cursor = 'default';
+              const stage = e.target.getStage();
+              if (stage) {
+                stage.container().style.cursor = '';
+              }
               e.currentTarget.to({
                 scaleX: 1,
                 scaleY: 1,
@@ -129,6 +137,10 @@ function MarkerLayer({ scale = 1 }: { scale?: number }) {
               });
             }}
             onDragStart={(e) => {
+              const stage = e.target.getStage();
+              if (stage) {
+                stage.container().style.cursor = 'grabbing';
+              }
               e.currentTarget.to({
                 scaleX: 0.85,
                 scaleY: 0.85,
@@ -137,10 +149,14 @@ function MarkerLayer({ scale = 1 }: { scale?: number }) {
               });
             }}
             onDragEnd={(e) => {
+              const stage = e.target.getStage();
+              if (stage) {
+                stage.container().style.cursor = '';
+              }
               e.currentTarget.to({
-                scaleX: 0.95,
-                scaleY: 0.95,
-                opacity: 0.85,
+                scaleX: 1,
+                scaleY: 1,
+                opacity: 1,
                 duration: 0.15,
               });
               updateMarker(marker.id, { x: e.target.x(), y: e.target.y() });

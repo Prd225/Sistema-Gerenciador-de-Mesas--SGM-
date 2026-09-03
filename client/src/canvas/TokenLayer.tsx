@@ -150,7 +150,10 @@ function TokenLayer({ scale = 1 }: { scale?: number }) {
 
               onMouseEnter={(e) => {
                 if (activeTool !== 'select' && activeTool !== 'pan') return;
-                document.body.style.cursor = 'pointer';
+                const stage = e.target.getStage();
+                if (stage) {
+                  stage.container().style.cursor = 'grab';
+                }
                 e.currentTarget.to({
                   scaleX: 0.95,
                   scaleY: 0.95,
@@ -159,7 +162,10 @@ function TokenLayer({ scale = 1 }: { scale?: number }) {
                 });
               }}
               onMouseLeave={(e) => {
-                document.body.style.cursor = 'default';
+                const stage = e.target.getStage();
+                if (stage) {
+                  stage.container().style.cursor = '';
+                }
                 e.currentTarget.to({
                   scaleX: 1,
                   scaleY: 1,
@@ -168,12 +174,17 @@ function TokenLayer({ scale = 1 }: { scale?: number }) {
                 });
               }}
               onDragStart={(e) => {
+                const stage = e.target.getStage();
+                if (stage) {
+                  stage.container().style.cursor = 'grabbing';
+                }
                 e.currentTarget.to({
                   scaleX: 0.85,
                   scaleY: 0.85,
                   opacity: 0.7,
                   duration: 0.15,
                 });
+
                 if (activeTool !== 'select') return;
                 let currentSelected = selectedNodeIds;
                 if (!isSelected) {
@@ -195,7 +206,6 @@ function TokenLayer({ scale = 1 }: { scale?: number }) {
                   {},
                 );
 
-                const stage = e.target.getStage();
                 if (stage) {
                   currentSelected.forEach((id) => {
                     if (id === t.id) return;
@@ -242,16 +252,21 @@ function TokenLayer({ scale = 1 }: { scale?: number }) {
                 }
               }}
               onDragEnd={(e) => {
+                const stage = e.target.getStage();
+                if (stage) {
+                  stage.container().style.cursor = '';
+                }
                 e.currentTarget.to({
-                  scaleX: 0.95,
-                  scaleY: 0.95,
-                  opacity: 0.85,
+                  scaleX: 1,
+                  scaleY: 1,
+                  opacity: 1,
                   duration: 0.15,
                 });
                 if (activeTool !== 'select') {
                   updateToken(t.id, { x: e.target.x(), y: e.target.y() });
                   return;
                 }
+
                 const startX = dragStartPositions.current[t.id]?.x || t.x!;
                 const startY = dragStartPositions.current[t.id]?.y || t.y!;
                 const dx = e.target.x() - startX;
@@ -277,11 +292,11 @@ function TokenLayer({ scale = 1 }: { scale?: number }) {
                   }
                 });
 
-                const stage = e.target.getStage();
                 if (stage) {
                   selectedNodeIds.forEach((id) => {
                     if (id === t.id) return;
                     const node = stage.findOne('#' + id);
+
                     if (node)
                       node.to({
                         scaleX: 1,
