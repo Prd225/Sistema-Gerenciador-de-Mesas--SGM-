@@ -12,18 +12,18 @@ export class SGMDatabase extends Dexie {
 
   constructor() {
     super('SGMDatabase');
-    
+
     // Initial schema setup
     this.version(3).stores({
       saveSlots: null, // Delete old table that had 'id' as primary key
-      campaignSlots: 'slotNumber' // slotNumber is primary key
+      campaignSlots: 'slotNumber', // slotNumber is primary key
     });
     // Limpando o banco de dados (a pedido do usuário) e recriando limpo
     this.version(4).stores({
-      campaignSlots: null
+      campaignSlots: null,
     });
     this.version(5).stores({
-      campaignSlots: 'slotNumber'
+      campaignSlots: 'slotNumber',
     });
   }
 }

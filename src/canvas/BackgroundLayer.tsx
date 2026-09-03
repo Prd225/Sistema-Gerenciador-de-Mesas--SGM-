@@ -5,8 +5,8 @@ import type { BgImage } from '@/types/game';
 
 function BgImageComponent({ bg }: { bg: BgImage }) {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
-  const activeTool = useZoneStore(state => state.activeTool);
-  const updateBgImage = useZoneStore(state => state.updateBgImage);
+  const activeTool = useZoneStore((state) => state.activeTool);
+  const updateBgImage = useZoneStore((state) => state.updateBgImage);
 
   useEffect(() => {
     const img = new window.Image();
@@ -48,7 +48,7 @@ function BgImageComponent({ bg }: { bg: BgImage }) {
         if (!isDraggable) return;
         e.cancelBubble = true;
         e.evt.preventDefault();
-        if (window.confirm("Deseja deletar esta imagem?")) {
+        if (window.confirm('Deseja deletar esta imagem?')) {
           useZoneStore.getState().removeBgImage(bg.id);
         }
       }}
@@ -58,11 +58,13 @@ function BgImageComponent({ bg }: { bg: BgImage }) {
 }
 
 function BackgroundLayer() {
-  const bgImages = useZoneStore(state => state.bgImages);
+  const bgImages = useZoneStore((state) => state.bgImages);
 
   return (
     <Group>
-      {bgImages.map(bg => <BgImageComponent key={bg.id} bg={bg} />)}
+      {bgImages.map((bg) => (
+        <BgImageComponent key={bg.id} bg={bg} />
+      ))}
     </Group>
   );
 }

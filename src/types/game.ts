@@ -1,8 +1,24 @@
-export type ElementType = 'Sangue' | 'Morte' | 'Conhecimento' | 'Energia' | 'Medo';
+export type ElementType =
+  'Sangue' | 'Morte' | 'Conhecimento' | 'Energia' | 'Medo';
 
-export type DamageType = 'Balístico' | 'Impacto' | 'Perfuração' | 'Corte' | 'Eletricidade' | 'Fogo' | 'Frio' | 'Mental' | 'Químico' | 'Sangue' | 'Morte' | 'Conhecimento' | 'Energia' | 'Medo';
+export type DamageType =
+  | 'Balístico'
+  | 'Impacto'
+  | 'Perfuração'
+  | 'Corte'
+  | 'Eletricidade'
+  | 'Fogo'
+  | 'Frio'
+  | 'Mental'
+  | 'Químico'
+  | 'Sangue'
+  | 'Morte'
+  | 'Conhecimento'
+  | 'Energia'
+  | 'Medo';
 
-export type ActionType = 'Padrão' | 'Movimento' | 'Reação' | 'Ação Livre' | 'Completa';
+export type ActionType =
+  'Padrão' | 'Movimento' | 'Reação' | 'Ação Livre' | 'Completa';
 
 // --- Token Types (matching DM_tool_6v AppState.tokens) ---
 
@@ -47,7 +63,14 @@ export interface TokenStats {
   resistances?: { type: string; val: number }[];
   vulnerabilities?: string[];
   abilities?: { title: string; desc: string }[];
-  actions?: { type: string; name: string; test: string; damage: string; mult: string; desc: string }[];
+  actions?: {
+    type: string;
+    name: string;
+    test: string;
+    damage: string;
+    mult: string;
+    desc: string;
+  }[];
 }
 
 export interface Condition {
@@ -58,15 +81,15 @@ export interface Condition {
 
 export interface Token {
   id: string;
-  name: string;        // initials (displayed on token circle)
-  fullName: string;     // full character name
+  name: string; // initials (displayed on token circle)
+  fullName: string; // full character name
   colorText: string;
   colorBorder: string;
   colorFill: string;
-  x: number | null;     // null = not on map
+  x: number | null; // null = not on map
   y: number | null;
-  imageUrl?: string;    // Base64 cropped image
-  desc: string;         // notes/lore
+  imageUrl?: string; // Base64 cropped image
+  desc: string; // notes/lore
   conditions: Condition[];
   stats: TokenStats;
 }
@@ -130,8 +153,8 @@ export interface Zone {
   y: number;
   w: number;
   h: number;
-  clipPath?: string;             // for polygon CSS clip-path
-  points?: number[];  // [x1, y1, x2, y2, ...]
+  clipPath?: string; // for polygon CSS clip-path
+  points?: number[]; // [x1, y1, x2, y2, ...]
   data: {
     title: string;
     desc: string;
@@ -174,7 +197,7 @@ export interface InitiativeItem {
 
 export interface BgImage {
   id: string;
-  src: string;       // data URL
+  src: string; // data URL
   x: number;
   y: number;
   scale: number;
@@ -183,4 +206,11 @@ export interface BgImage {
 
 // --- Tool ---
 
-export type ActiveTool = 'pan' | 'select' | 'draw-rect' | 'draw-ellipse' | 'draw-poly' | 'edit-bg' | 'add-marker';
+export type ActiveTool =
+  | 'pan'
+  | 'select'
+  | 'draw-rect'
+  | 'draw-ellipse'
+  | 'draw-poly'
+  | 'edit-bg'
+  | 'add-marker';

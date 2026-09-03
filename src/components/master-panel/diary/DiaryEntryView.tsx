@@ -1,7 +1,15 @@
 import { useState } from 'react';
 import { useDiaryStore } from '@/store/useDiaryStore';
 import type { DiaryEntry, DiaryPoint } from '@/types/diary';
-import { ArrowLeft, Plus, Trash2, Edit2, Check, LayoutTemplate, GripVertical } from 'lucide-react';
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Edit2,
+  Check,
+  LayoutTemplate,
+  GripVertical,
+} from 'lucide-react';
 import DiaryPagination from './DiaryPagination';
 import RichTextEditor from './RichTextEditor';
 import { generateId } from '@/lib/uuid';
@@ -23,7 +31,7 @@ export default function DiaryEntryView({ entry, onBack }: DiaryEntryViewProps) {
   let currentSlots = 0;
   let page: DiaryPoint[] = [];
 
-  entry.points.forEach(point => {
+  entry.points.forEach((point) => {
     const cost = point.isComplex ? 2 : 1;
     if (currentSlots + cost > SLOTS_PER_PAGE && page.length > 0) {
       pages.push(page);
@@ -45,11 +53,11 @@ export default function DiaryEntryView({ entry, onBack }: DiaryEntryViewProps) {
       id: generateId(),
       text: '',
       isComplex,
-      createdAt: Date.now()
+      createdAt: Date.now(),
     };
     addPoint(entry.id, newPoint);
     setEditingPointId(newPoint.id);
-    
+
     // Auto navigate to the last page (it will be capped during next render)
     setCurrentPage(9999);
   };
@@ -72,9 +80,9 @@ export default function DiaryEntryView({ entry, onBack }: DiaryEntryViewProps) {
     if (!sourceId || sourceId === targetId) return;
 
     const newPoints = [...entry.points];
-    const sourceIndex = newPoints.findIndex(p => p.id === sourceId);
-    const targetIndex = newPoints.findIndex(p => p.id === targetId);
-    
+    const sourceIndex = newPoints.findIndex((p) => p.id === sourceId);
+    const targetIndex = newPoints.findIndex((p) => p.id === targetId);
+
     if (sourceIndex >= 0 && targetIndex >= 0) {
       const [removed] = newPoints.splice(sourceIndex, 1);
       newPoints.splice(targetIndex, 0, removed);
@@ -87,21 +95,21 @@ export default function DiaryEntryView({ entry, onBack }: DiaryEntryViewProps) {
       {/* Header */}
       <div className="flex items-center justify-between p-3 bg-[#202024] border-b border-[#323238]">
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={onBack}
             className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          
+
           <div className="flex flex-col">
-            <input 
+            <input
               type="text"
               value={entry.name}
               onChange={(e) => updateEntry(entry.id, { name: e.target.value })}
               className="bg-transparent text-white font-semibold outline-none focus:border-b border-[#8257e5] w-[200px]"
             />
-            <input 
+            <input
               type="text"
               value={entry.date}
               onChange={(e) => updateEntry(entry.id, { date: e.target.value })}
@@ -111,13 +119,13 @@ export default function DiaryEntryView({ entry, onBack }: DiaryEntryViewProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <button 
+          <button
             onClick={() => handleAddPoint(false)}
             className="flex items-center gap-1 px-2 py-1 bg-[#323238] hover:bg-[#8257e5] text-white rounded text-xs transition-colors"
           >
             <Plus className="w-3 h-3" /> Ponto Simples
           </button>
-          <button 
+          <button
             onClick={() => handleAddPoint(true)}
             className="flex items-center gap-1 px-2 py-1 bg-[#323238] hover:bg-[#8257e5] text-white rounded text-xs transition-colors"
             title="Descrição Longa"
@@ -128,15 +136,15 @@ export default function DiaryEntryView({ entry, onBack }: DiaryEntryViewProps) {
       </div>
 
       <div className="flex-1 flex flex-col p-3 overflow-hidden relative">
-        <DiaryPagination 
+        <DiaryPagination
           currentPage={safeCurrentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}
         />
 
         <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-2 custom-scrollbar">
-          {currentPoints.map(point => (
-            <div 
+          {currentPoints.map((point) => (
+            <div
               key={point.id}
               draggable={editingPointId !== point.id}
               onDragStart={(e) => handleDragStart(e, point.id)}
@@ -150,12 +158,14 @@ export default function DiaryEntryView({ entry, onBack }: DiaryEntryViewProps) {
                 <GripVertical className="w-4 h-4 text-[#323238] group-hover:text-[#a8a8b3] cursor-grab transition-colors" />
                 <div className="w-2 h-2 rounded-full bg-[#8257e5]" />
               </div>
-              
+
               <div className="flex-1 flex flex-col min-w-0 h-full justify-center">
                 <RichTextEditor
                   initialValue={point.text}
                   isEditing={editingPointId === point.id}
-                  onChange={(val) => updatePoint(entry.id, point.id, { text: val })}
+                  onChange={(val) =>
+                    updatePoint(entry.id, point.id, { text: val })
+                  }
                   maxLength={point.isComplex ? 250 : 150}
                 />
               </div>
@@ -163,23 +173,26 @@ export default function DiaryEntryView({ entry, onBack }: DiaryEntryViewProps) {
               {/* Actions */}
               <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
                 {editingPointId === point.id ? (
-                  <button 
+                  <button
                     onClick={() => setEditingPointId(null)}
                     className="p-1.5 bg-[#8257e5] hover:bg-[#9466ff] text-white rounded"
                   >
                     <Check className="w-4 h-4" />
                   </button>
                 ) : (
-                  <button 
+                  <button
                     onClick={() => setEditingPointId(point.id)}
                     className="p-1.5 bg-[#323238] hover:bg-[#8257e5] text-[#a8a8b3] hover:text-white rounded"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
                 )}
-                
-                <button 
-                  onClick={() => confirm('Apagar este ponto?') && removePoint(entry.id, point.id)}
+
+                <button
+                  onClick={() =>
+                    confirm('Apagar este ponto?') &&
+                    removePoint(entry.id, point.id)
+                  }
                   className="p-1.5 bg-[#323238] hover:bg-red-500 text-[#a8a8b3] hover:text-white rounded"
                 >
                   <Trash2 className="w-4 h-4" />

@@ -65,8 +65,10 @@ export const useZoneStore = create<ZoneState>((set) => ({
   setRightSidebarOpen: (open) => set({ rightSidebarOpen: open }),
   setLeftSidebarWidth: (width) => set({ leftSidebarWidth: width }),
   setRightSidebarWidth: (width) => set({ rightSidebarWidth: width }),
-  toggleLeftSidebar: () => set((state) => ({ leftSidebarOpen: !state.leftSidebarOpen })),
-  toggleRightSidebar: () => set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen })),
+  toggleLeftSidebar: () =>
+    set((state) => ({ leftSidebarOpen: !state.leftSidebarOpen })),
+  toggleRightSidebar: () =>
+    set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen })),
 
   addZone: (zone) => {
     set((state) => ({ zones: { ...state.zones, [zone.id]: zone } }));
@@ -77,8 +79,8 @@ export const useZoneStore = create<ZoneState>((set) => ({
     set((state) => ({
       zones: {
         ...state.zones,
-        [id]: { ...state.zones[id], ...updates }
-      }
+        [id]: { ...state.zones[id], ...updates },
+      },
     }));
     triggerAutoSave();
   },
@@ -90,8 +92,8 @@ export const useZoneStore = create<ZoneState>((set) => ({
       return {
         zones: {
           ...state.zones,
-          [id]: { ...zone, data: { ...zone.data, ...dataUpdates } }
-        }
+          [id]: { ...zone, data: { ...zone.data, ...dataUpdates } },
+        },
       };
     });
     triggerAutoSave();
@@ -103,7 +105,8 @@ export const useZoneStore = create<ZoneState>((set) => ({
       delete newZones[id];
       return {
         zones: newZones,
-        selectedZoneId: state.selectedZoneId === id ? null : state.selectedZoneId
+        selectedZoneId:
+          state.selectedZoneId === id ? null : state.selectedZoneId,
       };
     });
     triggerAutoSave();
@@ -111,7 +114,7 @@ export const useZoneStore = create<ZoneState>((set) => ({
 
   addMarker: (marker) => {
     set((state) => ({
-      markers: { ...state.markers, [marker.id]: marker }
+      markers: { ...state.markers, [marker.id]: marker },
     }));
     triggerAutoSave();
   },
@@ -120,8 +123,8 @@ export const useZoneStore = create<ZoneState>((set) => ({
     set((state) => ({
       markers: {
         ...state.markers,
-        [id]: { ...state.markers[id], ...updates }
-      }
+        [id]: { ...state.markers[id], ...updates },
+      },
     }));
     triggerAutoSave();
   },
@@ -137,21 +140,23 @@ export const useZoneStore = create<ZoneState>((set) => ({
 
   addBgImage: (bg) => {
     set((state) => ({
-      bgImages: [...state.bgImages, bg]
+      bgImages: [...state.bgImages, bg],
     }));
     triggerAutoSave();
   },
 
   updateBgImage: (id, updates) => {
     set((state) => ({
-      bgImages: state.bgImages.map(bg => bg.id === id ? { ...bg, ...updates } : bg)
+      bgImages: state.bgImages.map((bg) =>
+        bg.id === id ? { ...bg, ...updates } : bg,
+      ),
     }));
     triggerAutoSave();
   },
 
   removeBgImage: (id) => {
     set((state) => ({
-      bgImages: state.bgImages.filter(bg => bg.id !== id)
+      bgImages: state.bgImages.filter((bg) => bg.id !== id),
     }));
     triggerAutoSave();
   },
@@ -163,8 +168,9 @@ export const useZoneStore = create<ZoneState>((set) => ({
   setSelectedNodeIds: (ids) => set({ selectedNodeIds: ids }),
 
   // Select zone AND open left sidebar (matching original `mapSystem.selectZone`)
-  selectZone: (id) => set({
-    selectedZoneId: id,
-    leftSidebarOpen: true,
-  }),
+  selectZone: (id) =>
+    set({
+      selectedZoneId: id,
+      leftSidebarOpen: true,
+    }),
 }));

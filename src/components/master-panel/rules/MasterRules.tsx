@@ -5,16 +5,19 @@ import RulesGrid from './RulesGrid';
 import RulesPagination from './RulesPagination';
 
 export default function MasterRules() {
-  const pages = useRulesStore(state => state.pages);
-  const addWidget = useRulesStore(state => state.addWidget);
-  const renamePage = useRulesStore(state => state.renamePage);
-  const removePage = useRulesStore(state => state.removePage);
+  const pages = useRulesStore((state) => state.pages);
+  const addWidget = useRulesStore((state) => state.addWidget);
+  const renamePage = useRulesStore((state) => state.renamePage);
+  const removePage = useRulesStore((state) => state.removePage);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitleValue, setEditTitleValue] = useState('');
 
   // Safeguard in case pages are deleted
-  const safePageIndex = Math.min(currentPageIndex, Math.max(0, pages.length - 1));
+  const safePageIndex = Math.min(
+    currentPageIndex,
+    Math.max(0, pages.length - 1),
+  );
   const currentPage = pages[safePageIndex];
 
   if (!currentPage) return null;
@@ -50,7 +53,7 @@ export default function MasterRules() {
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-2">
           <Scale className="w-5 h-5 text-[#8257e5]" />
-          
+
           {isEditingTitle ? (
             <div className="flex items-center gap-1 bg-[#121214] border border-[#8257e5] rounded px-2 py-0.5">
               <input
@@ -62,11 +65,22 @@ export default function MasterRules() {
                 onBlur={handleSaveEdit}
                 className="bg-transparent text-sm text-white outline-none w-32"
               />
-              <Check className="w-3.5 h-3.5 text-[#8257e5] cursor-pointer" onMouseDown={(e) => { e.preventDefault(); handleSaveEdit(); }} />
+              <Check
+                className="w-3.5 h-3.5 text-[#8257e5] cursor-pointer"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleSaveEdit();
+                }}
+              />
             </div>
           ) : (
-            <div className="flex items-center gap-2 group cursor-pointer" onClick={handleStartEdit}>
-              <h2 className="text-white font-semibold text-sm">{currentPage.name || 'Regras'}</h2>
+            <div
+              className="flex items-center gap-2 group cursor-pointer"
+              onClick={handleStartEdit}
+            >
+              <h2 className="text-white font-semibold text-sm">
+                {currentPage.name || 'Regras'}
+              </h2>
               <Edit2 className="w-3 h-3 text-[#a8a8b3] opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           )}
@@ -79,7 +93,7 @@ export default function MasterRules() {
           >
             <Plus className="w-3.5 h-3.5" /> Adicionar Bloco
           </button>
-          
+
           {pages.length > 1 && (
             <button
               onClick={handleRemovePage}
@@ -96,10 +110,10 @@ export default function MasterRules() {
       <RulesGrid pageId={currentPage.id} widgets={currentPage.widgets} />
 
       {/* Pagination Container */}
-      <RulesPagination 
-        currentPageIndex={safePageIndex} 
-        totalPages={pages.length} 
-        onPageChange={setCurrentPageIndex} 
+      <RulesPagination
+        currentPageIndex={safePageIndex}
+        totalPages={pages.length}
+        onPageChange={setCurrentPageIndex}
       />
     </div>
   );

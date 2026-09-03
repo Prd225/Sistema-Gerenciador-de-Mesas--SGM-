@@ -1,6 +1,11 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Button } from './button';
-import { RotateCcw, RotateCw, FlipHorizontal, FlipVertical } from 'lucide-react';
+import {
+  RotateCcw,
+  RotateCw,
+  FlipHorizontal,
+  FlipVertical,
+} from 'lucide-react';
 
 interface ImageCropperProps {
   imageSrc: string;
@@ -11,10 +16,17 @@ interface ImageCropperProps {
   aspectRatio?: number; // width / height for rect crop
 }
 
-export function ImageCropper({ imageSrc, onConfirm, onCancel, size = 256, cropType = 'circle', aspectRatio = 1 }: ImageCropperProps) {
+export function ImageCropper({
+  imageSrc,
+  onConfirm,
+  onCancel,
+  size = 256,
+  cropType = 'circle',
+  aspectRatio = 1,
+}: ImageCropperProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [image, setImage] = useState<HTMLImageElement | null>(null);
-  
+
   // Transform state
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0); // 0, 90, 180, 270
@@ -38,7 +50,10 @@ export function ImageCropper({ imageSrc, onConfirm, onCancel, size = 256, cropTy
     img.onload = () => {
       setImage(img);
       // Center image initially
-      const initScale = Math.max((radius * 2) / img.width, (radius * 2) / img.height);
+      const initScale = Math.max(
+        (radius * 2) / img.width,
+        (radius * 2) / img.height,
+      );
       setScale(initScale);
       setPos({ x: canvasWidth / 2, y: canvasHeight / 2 });
     };
@@ -53,14 +68,14 @@ export function ImageCropper({ imageSrc, onConfirm, onCancel, size = 256, cropTy
 
     // Clear background
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-    
+
     // Draw checkered background (optional, or just dark)
     ctx.fillStyle = '#121214';
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     // Save context for image transform
     ctx.save();
-    
+
     // Move to position
     ctx.translate(pos.x, pos.y);
     // Apply rotation
@@ -70,7 +85,7 @@ export function ImageCropper({ imageSrc, onConfirm, onCancel, size = 256, cropTy
 
     // Draw image centered at 0,0
     ctx.drawImage(image, -image.width / 2, -image.height / 2);
-    
+
     ctx.restore();
 
     // Draw overlay mask (darkened area outside the shape)
@@ -78,11 +93,11 @@ export function ImageCropper({ imageSrc, onConfirm, onCancel, size = 256, cropTy
     ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
     ctx.beginPath();
     ctx.rect(0, 0, canvasWidth, canvasHeight);
-    
+
     if (cropType === 'circle') {
       ctx.arc(canvasWidth / 2, canvasHeight / 2, radius, 0, Math.PI * 2, true);
       ctx.fill('evenodd');
-      
+
       // Draw circle border
       ctx.beginPath();
       ctx.arc(canvasWidth / 2, canvasHeight / 2, radius, 0, Math.PI * 2);
@@ -110,7 +125,6 @@ export function ImageCropper({ imageSrc, onConfirm, onCancel, size = 256, cropTy
       ctx.stroke();
     }
     ctx.restore();
-
   }, [image, pos, scale, rotation, flipH, flipV, cropType, aspectRatio]);
 
   useEffect(() => {
@@ -136,7 +150,7 @@ export function ImageCropper({ imageSrc, onConfirm, onCancel, size = 256, cropTy
     e.preventDefault();
     const zoomFactor = 0.05;
     const dir = e.deltaY > 0 ? -1 : 1;
-    setScale(prev => Math.max(0.1, Math.min(prev + dir * zoomFactor, 5)));
+    setScale((prev) => Math.max(0.1, Math.min(prev + dir * zoomFactor, 5)));
   };
 
   const handleConfirm = () => {
@@ -144,7 +158,7 @@ export function ImageCropper({ imageSrc, onConfirm, onCancel, size = 256, cropTy
     // For export, we need the export canvas to match the aspect ratio if rect
     const exportW = cropType === 'rect' ? size * aspectRatio : size;
     const exportH = size;
-    
+
     const exportCanvas = document.createElement('canvas');
     exportCanvas.width = exportW;
     exportCanvas.height = exportH;
@@ -164,27 +178,33 @@ export function ImageCropper({ imageSrc, onConfirm, onCancel, size = 256, cropTy
     }
 
     const scaleFactor = exportW / previewCropW;
-    
+
     // Offset of image center relative to the center in the preview canvas
-    const offsetX = pos.x - (canvasWidth / 2);
-    const offsetY = pos.y - (canvasHeight / 2);
+    const offsetX = pos.x - canvasWidth / 2;
+    const offsetY = pos.y - canvasHeight / 2;
 
     ctx.save();
-    
+
     if (cropType === 'circle') {
       ctx.beginPath();
       ctx.arc(exportW / 2, exportH / 2, exportW / 2, 0, Math.PI * 2);
       ctx.clip();
     }
-    
+
     // Translate to the center of the export canvas, plus the relative offset
-    ctx.translate(exportW / 2 + offsetX * scaleFactor, exportH / 2 + offsetY * scaleFactor);
-    
+    ctx.translate(
+      exportW / 2 + offsetX * scaleFactor,
+      exportH / 2 + offsetY * scaleFactor,
+    );
+
     ctx.rotate((rotation * Math.PI) / 180);
-    
+
     const finalScale = scale * scaleFactor;
-    ctx.scale(flipH ? -finalScale : finalScale, flipV ? -finalScale : finalScale);
-    
+    ctx.scale(
+      flipH ? -finalScale : finalScale,
+      flipV ? -finalScale : finalScale,
+    );
+
     ctx.drawImage(image, -image.width / 2, -image.height / 2);
     ctx.restore();
 
@@ -227,16 +247,36 @@ export function ImageCropper({ imageSrc, onConfirm, onCancel, size = 256, cropTy
 
         {/* Buttons */}
         <div className="flex justify-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => setRotation(r => (r - 90) % 360)} title="Girar Esquerda">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setRotation((r) => (r - 90) % 360)}
+            title="Girar Esquerda"
+          >
             <RotateCcw className="w-4 h-4" />
           </Button>
-          <Button variant="outline" size="icon" onClick={() => setRotation(r => (r + 90) % 360)} title="Girar Direita">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setRotation((r) => (r + 90) % 360)}
+            title="Girar Direita"
+          >
             <RotateCw className="w-4 h-4" />
           </Button>
-          <Button variant="outline" size="icon" onClick={() => setFlipH(f => !f)} title="Espelhar Horizontalmente">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setFlipH((f) => !f)}
+            title="Espelhar Horizontalmente"
+          >
             <FlipHorizontal className="w-4 h-4" />
           </Button>
-          <Button variant="outline" size="icon" onClick={() => setFlipV(f => !f)} title="Espelhar Verticalmente">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setFlipV((f) => !f)}
+            title="Espelhar Verticalmente"
+          >
             <FlipVertical className="w-4 h-4" />
           </Button>
         </div>
@@ -244,10 +284,17 @@ export function ImageCropper({ imageSrc, onConfirm, onCancel, size = 256, cropTy
 
       {/* Actions */}
       <div className="flex justify-end gap-2 w-full mt-2">
-        <Button variant="outline" onClick={onCancel} className="border-[#323238] bg-transparent text-[#e1e1e6] hover:bg-white/5">
+        <Button
+          variant="outline"
+          onClick={onCancel}
+          className="border-[#323238] bg-transparent text-[#e1e1e6] hover:bg-white/5"
+        >
           Voltar
         </Button>
-        <Button onClick={handleConfirm} className="bg-[#8257e5] hover:bg-[#9466ff] text-white">
+        <Button
+          onClick={handleConfirm}
+          className="bg-[#8257e5] hover:bg-[#9466ff] text-white"
+        >
           Aplicar Imagem
         </Button>
       </div>

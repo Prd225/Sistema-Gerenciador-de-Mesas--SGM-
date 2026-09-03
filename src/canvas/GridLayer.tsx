@@ -10,7 +10,9 @@ const GRID_EXTENT = 10000;
  * to tile it across the entire extent.
  */
 function GridLayer() {
-  const [patternImage, setPatternImage] = useState<HTMLImageElement | null>(null);
+  const [patternImage, setPatternImage] = useState<HTMLImageElement | null>(
+    null,
+  );
 
   useEffect(() => {
     const canvas = document.createElement('canvas');
@@ -54,7 +56,10 @@ function GridLayer() {
         height={GRID_EXTENT * 2}
         fillPatternImage={patternImage}
         fillPatternRepeat="repeat"
-        fillPatternOffset={{ x: GRID_EXTENT % GRID_SIZE, y: GRID_EXTENT % GRID_SIZE }}
+        fillPatternOffset={{
+          x: GRID_EXTENT % GRID_SIZE,
+          y: GRID_EXTENT % GRID_SIZE,
+        }}
         listening={false}
         perfectDrawEnabled={false}
       />

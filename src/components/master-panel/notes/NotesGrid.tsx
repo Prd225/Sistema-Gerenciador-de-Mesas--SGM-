@@ -1,4 +1,3 @@
-
 import { useNotesStore } from '@/store/useNotesStore';
 import NoteCard from './NoteCard';
 import { NotebookPen, Plus } from 'lucide-react';
@@ -9,8 +8,10 @@ interface NotesGridProps {
 }
 
 export default function NotesGrid({ pageId, onOpenNote }: NotesGridProps) {
-  const page = useNotesStore(state => state.pages.find(p => p.id === pageId));
-  const addNote = useNotesStore(state => state.addNote);
+  const page = useNotesStore((state) =>
+    state.pages.find((p) => p.id === pageId),
+  );
+  const addNote = useNotesStore((state) => state.addNote);
 
   if (!page) return null;
 
@@ -22,18 +23,17 @@ export default function NotesGrid({ pageId, onOpenNote }: NotesGridProps) {
   return (
     <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
       <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-4">
-        
-        {page.notes.map(note => (
-          <NoteCard 
-            key={note.id} 
-            note={note} 
+        {page.notes.map((note) => (
+          <NoteCard
+            key={note.id}
+            note={note}
             pageId={pageId}
-            onClick={() => onOpenNote(note.id)} 
+            onClick={() => onOpenNote(note.id)}
           />
         ))}
 
         {/* Add Note Button */}
-        <div 
+        <div
           onClick={handleAddNote}
           className="aspect-square flex flex-col items-center justify-center p-4 rounded-xl cursor-pointer transition-all border-2 border-dashed border-[#323238] hover:border-[#8257e5] hover:bg-[#8257e5]/5 text-[#a8a8b3] hover:text-[#e1e1e6] group"
         >
@@ -43,7 +43,6 @@ export default function NotesGrid({ pageId, onOpenNote }: NotesGridProps) {
           </div>
           <span className="font-semibold text-sm">Anotações</span>
         </div>
-
       </div>
     </div>
   );

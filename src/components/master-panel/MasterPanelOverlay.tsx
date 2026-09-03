@@ -19,21 +19,22 @@ function RenderPanel({ panelId }: { panelId: string }) {
 }
 
 export default function MasterPanelOverlay() {
-  const isOpen = useMasterPanelStore(state => state.isOpen);
-  const toggleOpen = useMasterPanelStore(state => state.toggleOpen);
-  const layout = useMasterPanelStore(state => state.layout);
+  const isOpen = useMasterPanelStore((state) => state.isOpen);
+  const toggleOpen = useMasterPanelStore((state) => state.toggleOpen);
+  const layout = useMasterPanelStore((state) => state.layout);
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[200] flex flex-col pointer-events-auto bg-[#09090bfa] animate-in fade-in duration-200">
-      
       {/* Cabeçalho do Painel */}
       <div className="relative flex flex-col items-center pt-8 pb-2 w-full">
         {/* Decorative GM Title */}
         <div className="absolute left-6 top-4 flex items-center gap-2 opacity-60">
           <Sparkles className="w-5 h-5 text-[#8257e5]" />
-          <span className="text-[#8257e5] font-semibold tracking-wider text-sm uppercase">Painel do Mestre</span>
+          <span className="text-[#8257e5] font-semibold tracking-wider text-sm uppercase">
+            Painel do Mestre
+          </span>
         </div>
 
         {/* Aba de Fechar */}
@@ -43,7 +44,7 @@ export default function MasterPanelOverlay() {
         >
           <ChevronDown className="w-4 h-4 text-[#8257e5] group-hover:translate-y-0.5 transition-transform" />
         </button>
-        
+
         <div className="mt-2">
           <MasterPanelMenu />
         </div>
@@ -51,7 +52,6 @@ export default function MasterPanelOverlay() {
 
       {/* Grid de Sub-Painéis */}
       <div className="flex-1 flex gap-4 p-4 overflow-hidden">
-        
         {/* Esquerda (40%) */}
         <div className="flex-[4] flex flex-col h-full bg-[#121214]/40 rounded-xl overflow-hidden border border-[#323238]/50">
           {layout.left ? (
@@ -84,7 +84,6 @@ export default function MasterPanelOverlay() {
             </div>
           )}
         </div>
-
       </div>
     </div>
   );

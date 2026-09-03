@@ -4,7 +4,7 @@ import type { NewShapeState } from './ZoneLayer';
 
 /**
  * Renders the shape currently being drawn on the canvas.
- * Isolated into its own layer so it can re-render frequently 
+ * Isolated into its own layer so it can re-render frequently
  * without causing the rest of the canvas to re-render.
  */
 function DrawingLayer({ newShape }: { newShape: NewShapeState | null }) {
@@ -14,8 +14,10 @@ function DrawingLayer({ newShape }: { newShape: NewShapeState | null }) {
     <Group listening={false}>
       {newShape.type === 'rect' && (
         <Rect
-          x={newShape.x} y={newShape.y}
-          width={newShape.width} height={newShape.height}
+          x={newShape.x}
+          y={newShape.y}
+          width={newShape.width}
+          height={newShape.height}
           fill="rgba(255, 255, 255, 0.2)"
           stroke="#fff"
           strokeWidth={1}
@@ -24,8 +26,10 @@ function DrawingLayer({ newShape }: { newShape: NewShapeState | null }) {
       )}
       {newShape.type === 'ellipse' && (
         <Ellipse
-          x={newShape.x + (newShape.width || 0) / 2} y={newShape.y + (newShape.height || 0) / 2}
-          radiusX={Math.abs((newShape.width || 0) / 2)} radiusY={Math.abs((newShape.height || 0) / 2)}
+          x={newShape.x + (newShape.width || 0) / 2}
+          y={newShape.y + (newShape.height || 0) / 2}
+          radiusX={Math.abs((newShape.width || 0) / 2)}
+          radiusY={Math.abs((newShape.height || 0) / 2)}
           fill="rgba(255, 255, 255, 0.2)"
           stroke="#fff"
           strokeWidth={1}
@@ -42,11 +46,11 @@ function DrawingLayer({ newShape }: { newShape: NewShapeState | null }) {
             closed={false}
           />
           {newShape.points.length >= 2 && (
-            <Circle 
-              x={newShape.points[0]} 
-              y={newShape.points[1]} 
-              radius={5} 
-              fill="#ffd700" 
+            <Circle
+              x={newShape.points[0]}
+              y={newShape.points[1]}
+              radius={5}
+              fill="#ffd700"
             />
           )}
         </Group>

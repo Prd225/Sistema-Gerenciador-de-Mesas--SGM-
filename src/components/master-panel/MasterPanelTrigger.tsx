@@ -2,8 +2,8 @@ import { useMasterPanelStore } from '@/store/useMasterPanelStore';
 import { ChevronUp } from 'lucide-react';
 
 export default function MasterPanelTrigger() {
-  const isOpen = useMasterPanelStore(state => state.isOpen);
-  const toggleOpen = useMasterPanelStore(state => state.toggleOpen);
+  const isOpen = useMasterPanelStore((state) => state.isOpen);
+  const toggleOpen = useMasterPanelStore((state) => state.toggleOpen);
 
   // Se o painel já estiver aberto, o overlay cuidará do botão de fechar.
   if (isOpen) return null;

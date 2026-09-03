@@ -9,7 +9,7 @@ export default function MasterDiary() {
   const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
 
   if (activeEntryId) {
-    const entry = entries.find(e => e.id === activeEntryId);
+    const entry = entries.find((e) => e.id === activeEntryId);
     if (!entry) {
       setActiveEntryId(null);
       return null;

@@ -23,25 +23,32 @@ export default function StageMap() {
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
 
-  const activeTool = useZoneStore(state => state.activeTool);
-  const setActiveTool = useZoneStore(state => state.setActiveTool);
-  const addZone = useZoneStore(state => state.addZone);
-  const selectZone = useZoneStore(state => state.selectZone);
-  const addMarker = useZoneStore(state => state.addMarker);
-  const addBgImage = useZoneStore(state => state.addBgImage);
-  const setRightSidebarOpen = useZoneStore(state => state.setRightSidebarOpen);
+  const activeTool = useZoneStore((state) => state.activeTool);
+  const setActiveTool = useZoneStore((state) => state.setActiveTool);
+  const addZone = useZoneStore((state) => state.addZone);
+  const selectZone = useZoneStore((state) => state.selectZone);
+  const addMarker = useZoneStore((state) => state.addMarker);
+  const addBgImage = useZoneStore((state) => state.addBgImage);
+  const setRightSidebarOpen = useZoneStore(
+    (state) => state.setRightSidebarOpen,
+  );
 
-  const updateToken = useTokenStore(state => state.updateToken);
+  const updateToken = useTokenStore((state) => state.updateToken);
 
   const [isDrawing, setIsDrawing] = useState(false);
   const [newShape, setNewShape] = useState<NewShapeState | null>(null);
   const drawStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  
+
   // Polygon state
   const [polyPoints, setPolyPoints] = useState<number[]>([]);
 
   // Selection state
-  const [selectionRect, setSelectionRect] = useState<{ x: number; y: number; width: number; height: number; } | null>(null);
+  const [selectionRect, setSelectionRect] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null>(null);
 
   // --- Resize Observer ---
   useEffect(() => {
@@ -107,56 +114,90 @@ export default function StageMap() {
   }, []);
 
   // --- Mouse Down ---
-  const handleMouseDown = useCallback((e: KonvaEventObject<MouseEvent>) => {
-    // Don't interfere when clicking on existing shapes/tokens
-    if (e.target !== e.target.getStage()) return;
+  const handleMouseDown = useCallback(
+    (e: KonvaEventObject<MouseEvent>) => {
+      // Don't interfere when clicking on existing shapes/tokens
+      if (e.target !== e.target.getStage()) return;
 
-    const stage = stageRef.current;
-    if (!stage) return;
-    const pos = getRelativePointerPosition(stage);
+      const stage = stageRef.current;
+      if (!stage) return;
+      const pos = getRelativePointerPosition(stage);
 
-    if (activeTool === 'pan' || activeTool === 'edit-bg') return;
+      if (activeTool === 'pan' || activeTool === 'edit-bg') return;
 
-    if (activeTool === 'select') {
-      useZoneStore.getState().setSelectedNodeIds([]);
-      setIsDrawing(true);
-      drawStartRef.current = { x: pos.x, y: pos.y };
-      setSelectionRect({ x: pos.x, y: pos.y, width: 0, height: 0 });
-      return;
-    }
-
-    // Right-click → create marker (matching original contextmenu behavior)
-    if (e.evt.button === 2) {
-      e.evt.preventDefault();
-      addMarker({ id: generateId(), x: pos.x, y: pos.y, text: 'Novo Marcador' });
-      setRightSidebarOpen(true);
-      return;
-    }
-
-    if (activeTool === 'add-marker') {
-      addMarker({ id: generateId(), x: pos.x, y: pos.y, text: 'Novo Marcador' });
-      setRightSidebarOpen(true);
-      return;
-    }
-
-    // Start drawing zone
-    if (activeTool === 'draw-rect' || activeTool === 'draw-ellipse') {
-      setIsDrawing(true);
-      drawStartRef.current = { x: pos.x, y: pos.y };
-      setNewShape({ type: activeTool === 'draw-rect' ? 'rect' : 'ellipse', x: pos.x, y: pos.y, width: 0, height: 0 });
-    }
-
-    if (activeTool === 'draw-poly') {
-      if (!isDrawing) {
+      if (activeTool === 'select') {
+        useZoneStore.getState().setSelectedNodeIds([]);
         setIsDrawing(true);
-        setPolyPoints([pos.x, pos.y]);
-        setNewShape({ type: 'polygon', x: pos.x, y: pos.y, points: [pos.x, pos.y] });
-      } else {
-        setPolyPoints(prev => [...prev, pos.x, pos.y]);
-        setNewShape(prev => prev ? { ...prev, points: [...(prev.points || []), pos.x, pos.y] } : null);
+        drawStartRef.current = { x: pos.x, y: pos.y };
+        setSelectionRect({ x: pos.x, y: pos.y, width: 0, height: 0 });
+        return;
       }
-    }
-  }, [activeTool, addMarker, getRelativePointerPosition, setRightSidebarOpen, isDrawing]);
+
+      // Right-click → create marker (matching original contextmenu behavior)
+      if (e.evt.button === 2) {
+        e.evt.preventDefault();
+        addMarker({
+          id: generateId(),
+          x: pos.x,
+          y: pos.y,
+          text: 'Novo Marcador',
+        });
+        setRightSidebarOpen(true);
+        return;
+      }
+
+      if (activeTool === 'add-marker') {
+        addMarker({
+          id: generateId(),
+          x: pos.x,
+          y: pos.y,
+          text: 'Novo Marcador',
+        });
+        setRightSidebarOpen(true);
+        return;
+      }
+
+      // Start drawing zone
+      if (activeTool === 'draw-rect' || activeTool === 'draw-ellipse') {
+        setIsDrawing(true);
+        drawStartRef.current = { x: pos.x, y: pos.y };
+        setNewShape({
+          type: activeTool === 'draw-rect' ? 'rect' : 'ellipse',
+          x: pos.x,
+          y: pos.y,
+          width: 0,
+          height: 0,
+        });
+      }
+
+      if (activeTool === 'draw-poly') {
+        if (!isDrawing) {
+          setIsDrawing(true);
+          setPolyPoints([pos.x, pos.y]);
+          setNewShape({
+            type: 'polygon',
+            x: pos.x,
+            y: pos.y,
+            points: [pos.x, pos.y],
+          });
+        } else {
+          setPolyPoints((prev) => [...prev, pos.x, pos.y]);
+          setNewShape((prev) =>
+            prev
+              ? { ...prev, points: [...(prev.points || []), pos.x, pos.y] }
+              : null,
+          );
+        }
+      }
+    },
+    [
+      activeTool,
+      addMarker,
+      getRelativePointerPosition,
+      setRightSidebarOpen,
+      isDrawing,
+    ],
+  );
 
   // --- Mouse Move ---
   const handleMouseMove = useCallback(() => {
@@ -170,7 +211,7 @@ export default function StageMap() {
       setSelectionRect({
         ...selectionRect,
         width: pos.x - drawStartRef.current.x,
-        height: pos.y - drawStartRef.current.y
+        height: pos.y - drawStartRef.current.y,
       });
       return;
     }
@@ -178,7 +219,7 @@ export default function StageMap() {
     if (!newShape) return;
 
     if (newShape.type === 'polygon' && activeTool === 'draw-poly') {
-      setNewShape(prev => {
+      setNewShape((prev) => {
         if (!prev || !prev.points) return prev;
         const currentPoints = [...polyPoints, pos.x, pos.y];
         return { ...prev, points: currentPoints };
@@ -196,7 +237,14 @@ export default function StageMap() {
       width: w,
       height: h,
     });
-  }, [isDrawing, newShape, getRelativePointerPosition, polyPoints, activeTool, selectionRect]);
+  }, [
+    isDrawing,
+    newShape,
+    getRelativePointerPosition,
+    polyPoints,
+    activeTool,
+    selectionRect,
+  ]);
 
   // --- Mouse Up ---
   const handleMouseUp = useCallback(() => {
@@ -208,28 +256,38 @@ export default function StageMap() {
         x: Math.min(selectionRect.x, selectionRect.x + selectionRect.width),
         y: Math.min(selectionRect.y, selectionRect.y + selectionRect.height),
         width: Math.abs(selectionRect.width),
-        height: Math.abs(selectionRect.height)
+        height: Math.abs(selectionRect.height),
       };
 
       if (box.width > 5 && box.height > 5) {
-         const tState = useTokenStore.getState();
-         const zState = useZoneStore.getState();
-         const newSelected: string[] = [];
-         
-         tState.tokens.forEach(t => {
-            if (t.x !== null && t.y !== null) {
-              if (t.x >= box.x && t.x <= box.x + box.width && t.y >= box.y && t.y <= box.y + box.height) {
-                 newSelected.push(t.id);
-              }
+        const tState = useTokenStore.getState();
+        const zState = useZoneStore.getState();
+        const newSelected: string[] = [];
+
+        tState.tokens.forEach((t) => {
+          if (t.x !== null && t.y !== null) {
+            if (
+              t.x >= box.x &&
+              t.x <= box.x + box.width &&
+              t.y >= box.y &&
+              t.y <= box.y + box.height
+            ) {
+              newSelected.push(t.id);
             }
-         });
-         Object.values(zState.markers).forEach(m => {
-            if (m.x >= box.x && m.x <= box.x + box.width && m.y >= box.y && m.y <= box.y + box.height) {
-               newSelected.push(m.id);
-            }
-         });
-         
-         useZoneStore.getState().setSelectedNodeIds(newSelected);
+          }
+        });
+        Object.values(zState.markers).forEach((m) => {
+          if (
+            m.x >= box.x &&
+            m.x <= box.x + box.width &&
+            m.y >= box.y &&
+            m.y <= box.y + box.height
+          ) {
+            newSelected.push(m.id);
+          }
+        });
+
+        useZoneStore.getState().setSelectedNodeIds(newSelected);
       }
       setSelectionRect(null);
       return;
@@ -244,8 +302,14 @@ export default function StageMap() {
     const absH = Math.abs(newShape.height || 0);
 
     if (absW > 10 && absH > 10) {
-      const x = (newShape.width || 0) < 0 ? drawStartRef.current.x + (newShape.width || 0) : drawStartRef.current.x;
-      const y = (newShape.height || 0) < 0 ? drawStartRef.current.y + (newShape.height || 0) : drawStartRef.current.y;
+      const x =
+        (newShape.width || 0) < 0
+          ? drawStartRef.current.x + (newShape.width || 0)
+          : drawStartRef.current.x;
+      const y =
+        (newShape.height || 0) < 0
+          ? drawStartRef.current.y + (newShape.height || 0)
+          : drawStartRef.current.y;
       const id = generateId();
 
       addZone({
@@ -271,7 +335,15 @@ export default function StageMap() {
     }
 
     setNewShape(null);
-  }, [isDrawing, newShape, addZone, selectZone, setActiveTool, activeTool, selectionRect]);
+  }, [
+    isDrawing,
+    newShape,
+    addZone,
+    selectZone,
+    setActiveTool,
+    activeTool,
+    selectionRect,
+  ]);
 
   // --- Context menu prevention ---
   const handleContextMenu = useCallback((e: KonvaEventObject<PointerEvent>) => {
@@ -284,44 +356,47 @@ export default function StageMap() {
     e.dataTransfer.dropEffect = 'copy';
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const stage = stageRef.current;
-    if (!stage) return;
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      const stage = stageRef.current;
+      if (!stage) return;
 
-    // Get drop position in world coordinates
-    const stageBox = stage.container().getBoundingClientRect();
-    const stageX = e.clientX - stageBox.left;
-    const stageY = e.clientY - stageBox.top;
-    const worldX = (stageX - position.x) / scale;
-    const worldY = (stageY - position.y) / scale;
+      // Get drop position in world coordinates
+      const stageBox = stage.container().getBoundingClientRect();
+      const stageX = e.clientX - stageBox.left;
+      const stageY = e.clientY - stageBox.top;
+      const worldX = (stageX - position.x) / scale;
+      const worldY = (stageY - position.y) / scale;
 
-    // Check if it's a file drop (image)
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0];
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-          addBgImage({
-            id: generateId(),
-            src: evt.target?.result as string,
-            x: worldX,
-            y: worldY,
-            scale: 1,
-            rotation: 0,
-          });
-        };
-        reader.readAsDataURL(file);
-        return;
+      // Check if it's a file drop (image)
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const file = e.dataTransfer.files[0];
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            addBgImage({
+              id: generateId(),
+              src: evt.target?.result as string,
+              x: worldX,
+              y: worldY,
+              scale: 1,
+              rotation: 0,
+            });
+          };
+          reader.readAsDataURL(file);
+          return;
+        }
       }
-    }
 
-    // Check if it's a token drop from roster
-    const tokenId = e.dataTransfer.getData('text/plain');
-    if (tokenId) {
-      updateToken(tokenId, { x: worldX, y: worldY });
-    }
-  }, [position, scale, addBgImage, updateToken]);
+      // Check if it's a token drop from roster
+      const tokenId = e.dataTransfer.getData('text/plain');
+      if (tokenId) {
+        updateToken(tokenId, { x: worldX, y: worldY });
+      }
+    },
+    [position, scale, addBgImage, updateToken],
+  );
 
   // --- Keyboard (Shortcuts & Polygon) ---
   useEffect(() => {
@@ -342,22 +417,23 @@ export default function StageMap() {
         setNewShape(null);
         setPolyPoints([]);
       }
-      
+
       if (e.key === 'v' || e.key === 'V') {
-         setActiveTool('select');
+        setActiveTool('select');
       }
 
       if (e.key === 'Delete' || e.key === 'Backspace') {
-         const ids = useZoneStore.getState().selectedNodeIds;
-         if (ids.length > 0) {
-            const zState = useZoneStore.getState();
-            const tState = useTokenStore.getState();
-            ids.forEach(id => {
-               if (tState.tokens.some(t => t.id === id)) tState.updateToken(id, { x: null, y: null });
-               if (zState.markers[id]) zState.removeMarker(id);
-            });
-            useZoneStore.getState().setSelectedNodeIds([]);
-         }
+        const ids = useZoneStore.getState().selectedNodeIds;
+        if (ids.length > 0) {
+          const zState = useZoneStore.getState();
+          const tState = useTokenStore.getState();
+          ids.forEach((id) => {
+            if (tState.tokens.some((t) => t.id === id))
+              tState.updateToken(id, { x: null, y: null });
+            if (zState.markers[id]) zState.removeMarker(id);
+          });
+          useZoneStore.getState().setSelectedNodeIds([]);
+        }
       }
 
       if (e.key === 'Escape') {
@@ -366,7 +442,11 @@ export default function StageMap() {
         setPolyPoints([]);
         if (activeTool.startsWith('draw')) setActiveTool('pan');
       }
-      if (e.key === 'Enter' && activeTool === 'draw-poly' && polyPoints.length >= 6) {
+      if (
+        e.key === 'Enter' &&
+        activeTool === 'draw-poly' &&
+        polyPoints.length >= 6
+      ) {
         // polyPoints has [x, y] coordinates, so length >= 6 means at least 3 points
         const minX = Math.min(...polyPoints.filter((_, i) => i % 2 === 0));
         const minY = Math.min(...polyPoints.filter((_, i) => i % 2 !== 0));
@@ -380,7 +460,13 @@ export default function StageMap() {
           w: 0,
           h: 0,
           points: polyPoints,
-          data: { title: 'Nova Zona Poligonal', desc: '', visits: 0, customPois: [], customEvents: [] },
+          data: {
+            title: 'Nova Zona Poligonal',
+            desc: '',
+            visits: 0,
+            customPois: [],
+            customEvents: [],
+          },
         });
 
         selectZone(id);
@@ -395,9 +481,11 @@ export default function StageMap() {
   }, [activeTool, polyPoints, setActiveTool, addZone, selectZone]);
 
   const cursorStyle =
-    activeTool === 'pan' ? 'grab' :
-    activeTool === 'edit-bg' ? 'default' :
-    'crosshair';
+    activeTool === 'pan'
+      ? 'grab'
+      : activeTool === 'edit-bg'
+        ? 'default'
+        : 'crosshair';
 
   return (
     <div
@@ -437,8 +525,14 @@ export default function StageMap() {
           <MarkerLayer scale={scale} />
           {selectionRect && (
             <Rect
-              x={Math.min(selectionRect.x, selectionRect.x + selectionRect.width)}
-              y={Math.min(selectionRect.y, selectionRect.y + selectionRect.height)}
+              x={Math.min(
+                selectionRect.x,
+                selectionRect.x + selectionRect.width,
+              )}
+              y={Math.min(
+                selectionRect.y,
+                selectionRect.y + selectionRect.height,
+              )}
               width={Math.abs(selectionRect.width)}
               height={Math.abs(selectionRect.height)}
               fill="rgba(0, 161, 255, 0.2)"

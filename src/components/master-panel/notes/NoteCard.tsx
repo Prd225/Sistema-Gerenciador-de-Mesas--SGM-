@@ -11,7 +11,7 @@ interface NoteCardProps {
 }
 
 export default function NoteCard({ note, pageId, onClick }: NoteCardProps) {
-  const removeNote = useNotesStore(state => state.removeNote);
+  const removeNote = useNotesStore((state) => state.removeNote);
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -31,7 +31,16 @@ export default function NoteCard({ note, pageId, onClick }: NoteCardProps) {
       }}
     >
       <div className="flex justify-between items-start w-full">
-        <h4 className="font-bold text-[#e1e1e6] text-base leading-tight break-words" style={{ wordBreak: 'break-word', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+        <h4
+          className="font-bold text-[#e1e1e6] text-base leading-tight break-words"
+          style={{
+            wordBreak: 'break-word',
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
+        >
           {note.title || 'Sem Título'}
         </h4>
         <button

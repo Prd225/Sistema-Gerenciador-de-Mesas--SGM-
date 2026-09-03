@@ -5,12 +5,12 @@ import { generateId } from '@/lib/uuid';
 
 interface NotesState {
   pages: NotePage[];
-  
+
   // Page actions
   addPage: (name: string) => void;
   removePage: (pageId: string) => void;
   renamePage: (pageId: string, newName: string) => void;
-  
+
   // Note actions
   addNote: (pageId: string) => string;
   updateNote: (pageId: string, noteId: string, updates: Partial<Note>) => void;
@@ -22,29 +22,29 @@ export const useNotesStore = create<NotesState>()((set) => ({
     {
       id: generateId(),
       name: 'Página Inicial',
-      notes: []
-    }
+      notes: [],
+    },
   ],
 
   addPage: (name) => {
     set((state) => ({
-      pages: [...state.pages, { id: generateId(), name, notes: [] }]
+      pages: [...state.pages, { id: generateId(), name, notes: [] }],
     }));
     triggerAutoSave();
   },
 
   removePage: (pageId) => {
     set((state) => ({
-      pages: state.pages.filter(p => p.id !== pageId)
+      pages: state.pages.filter((p) => p.id !== pageId),
     }));
     triggerAutoSave();
   },
 
   renamePage: (pageId, newName) => {
     set((state) => ({
-      pages: state.pages.map(p => 
-        p.id === pageId ? { ...p, name: newName } : p
-      )
+      pages: state.pages.map((p) =>
+        p.id === pageId ? { ...p, name: newName } : p,
+      ),
     }));
     triggerAutoSave();
   },
@@ -52,7 +52,7 @@ export const useNotesStore = create<NotesState>()((set) => ({
   addNote: (pageId) => {
     const newNoteId = generateId();
     set((state) => ({
-      pages: state.pages.map(p => {
+      pages: state.pages.map((p) => {
         if (p.id !== pageId) return p;
         const newNote: Note = {
           id: newNoteId,
@@ -62,7 +62,7 @@ export const useNotesStore = create<NotesState>()((set) => ({
           updatedAt: Date.now(),
         };
         return { ...p, notes: [...p.notes, newNote] };
-      })
+      }),
     }));
     triggerAutoSave();
     return newNoteId;
@@ -70,27 +70,29 @@ export const useNotesStore = create<NotesState>()((set) => ({
 
   updateNote: (pageId, noteId, updates) => {
     set((state) => ({
-      pages: state.pages.map(p => {
+      pages: state.pages.map((p) => {
         if (p.id !== pageId) return p;
         return {
           ...p,
-          notes: p.notes.map(n => n.id === noteId ? { ...n, ...updates, updatedAt: Date.now() } : n)
+          notes: p.notes.map((n) =>
+            n.id === noteId ? { ...n, ...updates, updatedAt: Date.now() } : n,
+          ),
         };
-      })
+      }),
     }));
     triggerAutoSave();
   },
 
   removeNote: (pageId, noteId) => {
     set((state) => ({
-      pages: state.pages.map(p => {
+      pages: state.pages.map((p) => {
         if (p.id !== pageId) return p;
         return {
           ...p,
-          notes: p.notes.filter(n => n.id !== noteId)
+          notes: p.notes.filter((n) => n.id !== noteId),
         };
-      })
+      }),
     }));
     triggerAutoSave();
-  }
+  },
 }));

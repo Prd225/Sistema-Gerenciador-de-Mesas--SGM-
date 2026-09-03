@@ -10,7 +10,15 @@ import { useZoneStore } from '@/store/useZoneStore';
  * Matches the .token-map styling from DM_tool_6v.html.
  */
 
-function TokenFace({ t, isActive, scale = 1 }: { t: any; isActive: boolean; scale?: number }) {
+function TokenFace({
+  t,
+  isActive,
+  scale = 1,
+}: {
+  t: any;
+  isActive: boolean;
+  scale?: number;
+}) {
   const [image, setImage] = React.useState<HTMLImageElement | null>(null);
 
   React.useEffect(() => {
@@ -27,8 +35,16 @@ function TokenFace({ t, isActive, scale = 1 }: { t: any; isActive: boolean; scal
         radius={27}
         fill={t.imageUrl && image ? undefined : t.colorFill}
         fillPatternImage={t.imageUrl && image ? image : undefined}
-        fillPatternScale={t.imageUrl && image ? { x: 54 / image.width, y: 54 / image.height } : undefined}
-        fillPatternOffset={t.imageUrl && image ? { x: image.width / 2, y: image.height / 2 } : undefined}
+        fillPatternScale={
+          t.imageUrl && image
+            ? { x: 54 / image.width, y: 54 / image.height }
+            : undefined
+        }
+        fillPatternOffset={
+          t.imageUrl && image
+            ? { x: image.width / 2, y: image.height / 2 }
+            : undefined
+        }
         stroke={isActive ? '#ffd700' : t.colorBorder}
         strokeWidth={3}
         shadowBlur={isActive ? 15 : 6}
@@ -54,7 +70,7 @@ function TokenFace({ t, isActive, scale = 1 }: { t: any; isActive: boolean; scal
           perfectDrawEnabled={false}
         />
       )}
-      
+
       {/* Token Full Name Label */}
       <Text
         text={t.fullName}
@@ -78,27 +94,28 @@ function TokenFace({ t, isActive, scale = 1 }: { t: any; isActive: boolean; scal
 }
 
 function TokenLayer({ scale = 1 }: { scale?: number }) {
-  const tokens = useTokenStore(state => state.tokens);
-  const initiativeQueue = useTokenStore(state => state.initiativeQueue);
-  const updateToken = useTokenStore(state => state.updateToken);
-  const setEditingTokenId = useTokenStore(state => state.setEditingTokenId);
-  const turn = useCampaignStore(state => state.turn);
-  const activeTool = useZoneStore(state => state.activeTool);
-  const selectedNodeIds = useZoneStore(state => state.selectedNodeIds);
-  const setSelectedNodeIds = useZoneStore(state => state.setSelectedNodeIds);
-  const dragStartPositions = React.useRef<Record<string, { x: number; y: number }>>({});
+  const tokens = useTokenStore((state) => state.tokens);
+  const initiativeQueue = useTokenStore((state) => state.initiativeQueue);
+  const updateToken = useTokenStore((state) => state.updateToken);
+  const setEditingTokenId = useTokenStore((state) => state.setEditingTokenId);
+  const turn = useCampaignStore((state) => state.turn);
+  const activeTool = useZoneStore((state) => state.activeTool);
+  const selectedNodeIds = useZoneStore((state) => state.selectedNodeIds);
+  const setSelectedNodeIds = useZoneStore((state) => state.setSelectedNodeIds);
+  const dragStartPositions = React.useRef<
+    Record<string, { x: number; y: number }>
+  >({});
 
   // Determine which token has the active turn
   const len = initiativeQueue.length;
-  const activeTokenId = len > 0
-    ? initiativeQueue[(((turn - 1) % len) + len) % len]?.tokenId
-    : null;
+  const activeTokenId =
+    len > 0 ? initiativeQueue[(((turn - 1) % len) + len) % len]?.tokenId : null;
 
   return (
     <Group>
       {tokens
-        .filter(t => t.x !== null && t.y !== null)
-        .map(t => {
+        .filter((t) => t.x !== null && t.y !== null)
+        .map((t) => {
           const isActive = t.id === activeTokenId;
           const isSelected = selectedNodeIds.includes(t.id);
           return (
@@ -113,7 +130,9 @@ function TokenLayer({ scale = 1 }: { scale?: number }) {
                 if (activeTool === 'select') {
                   e.cancelBubble = true;
                   if (e.evt.shiftKey) {
-                    const newSelected = isSelected ? selectedNodeIds.filter(id => id !== t.id) : [...selectedNodeIds, t.id];
+                    const newSelected = isSelected
+                      ? selectedNodeIds.filter((id) => id !== t.id)
+                      : [...selectedNodeIds, t.id];
                     setSelectedNodeIds(newSelected);
                   } else {
                     if (!isSelected) setSelectedNodeIds([t.id]);
@@ -123,38 +142,62 @@ function TokenLayer({ scale = 1 }: { scale?: number }) {
               onMouseEnter={(e) => {
                 if (activeTool !== 'select' && activeTool !== 'pan') return;
                 document.body.style.cursor = 'pointer';
-                e.currentTarget.to({ scaleX: 0.95, scaleY: 0.95, opacity: 0.85, duration: 0.15 });
+                e.currentTarget.to({
+                  scaleX: 0.95,
+                  scaleY: 0.95,
+                  opacity: 0.85,
+                  duration: 0.15,
+                });
               }}
               onMouseLeave={(e) => {
                 document.body.style.cursor = 'default';
-                e.currentTarget.to({ scaleX: 1, scaleY: 1, opacity: 1, duration: 0.15 });
+                e.currentTarget.to({
+                  scaleX: 1,
+                  scaleY: 1,
+                  opacity: 1,
+                  duration: 0.15,
+                });
               }}
               onDragStart={(e) => {
-                e.currentTarget.to({ scaleX: 0.85, scaleY: 0.85, opacity: 0.7, duration: 0.15 });
+                e.currentTarget.to({
+                  scaleX: 0.85,
+                  scaleY: 0.85,
+                  opacity: 0.7,
+                  duration: 0.15,
+                });
                 if (activeTool !== 'select') return;
                 let currentSelected = selectedNodeIds;
                 if (!isSelected) {
-                   setSelectedNodeIds([t.id]);
-                   currentSelected = [t.id];
+                  setSelectedNodeIds([t.id]);
+                  currentSelected = [t.id];
                 }
-                
+
                 const tState = useTokenStore.getState();
                 const zState = useZoneStore.getState();
-                
-                dragStartPositions.current = currentSelected.reduce((acc: any, id) => {
-                   const token = tState.tokens.find(tk => tk.id === id);
-                   if (token) acc[id] = { x: token.x!, y: token.y! };
-                   const marker = zState.markers[id];
-                   if (marker) acc[id] = { x: marker.x, y: marker.y };
-                   return acc;
-                }, {});
+
+                dragStartPositions.current = currentSelected.reduce(
+                  (acc: any, id) => {
+                    const token = tState.tokens.find((tk) => tk.id === id);
+                    if (token) acc[id] = { x: token.x!, y: token.y! };
+                    const marker = zState.markers[id];
+                    if (marker) acc[id] = { x: marker.x, y: marker.y };
+                    return acc;
+                  },
+                  {},
+                );
 
                 const stage = e.target.getStage();
                 if (stage) {
-                  currentSelected.forEach(id => {
+                  currentSelected.forEach((id) => {
                     if (id === t.id) return;
                     const node = stage.findOne('#' + id);
-                    if (node) node.to({ scaleX: 0.85, scaleY: 0.85, opacity: 0.7, duration: 0.15 });
+                    if (node)
+                      node.to({
+                        scaleX: 0.85,
+                        scaleY: 0.85,
+                        opacity: 0.7,
+                        duration: 0.15,
+                      });
                   });
                 }
               }}
@@ -165,26 +208,37 @@ function TokenLayer({ scale = 1 }: { scale?: number }) {
                   const startY = dragStartPositions.current[t.id]?.y || 0;
                   const dx = e.target.x() - startX;
                   const dy = e.target.y() - startY;
-                  
+
                   const tState = useTokenStore.getState();
                   const zState = useZoneStore.getState();
-                  
-                  selectedNodeIds.forEach(id => {
-                     if (id !== t.id) {
-                        const start = dragStartPositions.current[id];
-                        if (start) {
-                           if (tState.tokens.some(tk => tk.id === id)) {
-                              tState.updateToken(id, { x: start.x + dx, y: start.y + dy });
-                           } else if (zState.markers[id]) {
-                              zState.updateMarker(id, { x: start.x + dx, y: start.y + dy });
-                           }
+
+                  selectedNodeIds.forEach((id) => {
+                    if (id !== t.id) {
+                      const start = dragStartPositions.current[id];
+                      if (start) {
+                        if (tState.tokens.some((tk) => tk.id === id)) {
+                          tState.updateToken(id, {
+                            x: start.x + dx,
+                            y: start.y + dy,
+                          });
+                        } else if (zState.markers[id]) {
+                          zState.updateMarker(id, {
+                            x: start.x + dx,
+                            y: start.y + dy,
+                          });
                         }
-                     }
+                      }
+                    }
                   });
                 }
               }}
               onDragEnd={(e) => {
-                e.currentTarget.to({ scaleX: 0.95, scaleY: 0.95, opacity: 0.85, duration: 0.15 });
+                e.currentTarget.to({
+                  scaleX: 0.95,
+                  scaleY: 0.95,
+                  opacity: 0.85,
+                  duration: 0.15,
+                });
                 if (activeTool !== 'select') {
                   updateToken(t.id, { x: e.target.x(), y: e.target.y() });
                   return;
@@ -196,24 +250,36 @@ function TokenLayer({ scale = 1 }: { scale?: number }) {
 
                 const tState = useTokenStore.getState();
                 const zState = useZoneStore.getState();
-                
-                selectedNodeIds.forEach(id => {
-                   const start = dragStartPositions.current[id];
-                   if (start) {
-                      if (tState.tokens.some(tk => tk.id === id)) {
-                         tState.updateToken(id, { x: start.x + dx, y: start.y + dy });
-                      } else if (zState.markers[id]) {
-                         zState.updateMarker(id, { x: start.x + dx, y: start.y + dy });
-                      }
-                   }
+
+                selectedNodeIds.forEach((id) => {
+                  const start = dragStartPositions.current[id];
+                  if (start) {
+                    if (tState.tokens.some((tk) => tk.id === id)) {
+                      tState.updateToken(id, {
+                        x: start.x + dx,
+                        y: start.y + dy,
+                      });
+                    } else if (zState.markers[id]) {
+                      zState.updateMarker(id, {
+                        x: start.x + dx,
+                        y: start.y + dy,
+                      });
+                    }
+                  }
                 });
 
                 const stage = e.target.getStage();
                 if (stage) {
-                  selectedNodeIds.forEach(id => {
+                  selectedNodeIds.forEach((id) => {
                     if (id === t.id) return;
                     const node = stage.findOne('#' + id);
-                    if (node) node.to({ scaleX: 1, scaleY: 1, opacity: 1, duration: 0.15 });
+                    if (node)
+                      node.to({
+                        scaleX: 1,
+                        scaleY: 1,
+                        opacity: 1,
+                        duration: 0.15,
+                      });
                   });
                 }
               }}

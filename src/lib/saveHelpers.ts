@@ -12,7 +12,7 @@ export const collectGameState = () => {
   const tokenState = useTokenStore.getState();
   const zoneState = useZoneStore.getState();
   const campaignState = useCampaignStore.getState();
-  
+
   return {
     version: 1,
     tokens: {
@@ -45,7 +45,7 @@ export const collectGameState = () => {
     },
     roulettes: {
       pages: useRoulettesStore.getState().pages,
-    }
+    },
   };
 };
 
@@ -54,20 +54,20 @@ let fadeOutTimeout: ReturnType<typeof setTimeout> | null = null;
 
 export const triggerAutoSave = (forceImmediate = false) => {
   const campaignState = useCampaignStore.getState();
-  
+
   // Pause se modais meta estiverem abertos
   if (campaignState.showSaveModal || campaignState.showLoadModal) return;
-  
+
   // Se não tem autoSave configurado, aborta
   if (campaignState.autoSaveSlot === null) return;
-  
+
   const executeSave = async () => {
     try {
       const slot = campaignState.autoSaveSlot;
       if (slot === null) return;
-      
+
       campaignState.setAutoSaveStatus('saving');
-      
+
       const existingSlot = await db.campaignSlots.get(slot);
       if (!existingSlot) {
         // Se o slot for deletado no bd de alguma forma
@@ -75,24 +75,23 @@ export const triggerAutoSave = (forceImmediate = false) => {
         campaignState.setAutoSaveStatus('idle');
         return;
       }
-      
+
       const data = collectGameState();
-      
+
       await db.campaignSlots.put({
         slotNumber: slot,
         name: existingSlot.name,
         updatedAt: Date.now(),
-        data
+        data,
       });
-      
+
       campaignState.setAutoSaveStatus('success');
-      
+
       // Limpa o sucesso após 3 segundos para fadeout
       if (fadeOutTimeout) clearTimeout(fadeOutTimeout);
       fadeOutTimeout = setTimeout(() => {
         useCampaignStore.getState().setAutoSaveStatus('idle');
       }, 3000);
-      
     } catch (error) {
       console.error('Falha no Auto-Save assíncrono:', error);
       campaignState.setAutoSaveStatus('idle');

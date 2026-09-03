@@ -1,7 +1,16 @@
 import { useState, useRef } from 'react';
 import { useRulesStore } from '@/store/useRulesStore';
 import type { RuleWidget } from '@/types/rules';
-import { GripVertical, Trash2, Maximize2, Image as ImageIcon, Type, Columns, Upload, Edit3 } from 'lucide-react';
+import {
+  GripVertical,
+  Trash2,
+  Maximize2,
+  Image as ImageIcon,
+  Type,
+  Columns,
+  Upload,
+  Edit3,
+} from 'lucide-react';
 import RulesEditor from './RulesEditor';
 
 interface RulesCardProps {
@@ -10,21 +19,27 @@ interface RulesCardProps {
 }
 
 export default function RulesCard({ widget, pageId }: RulesCardProps) {
-  const updateWidgetSize = useRulesStore(state => state.updateWidgetSize);
-  const removeWidget = useRulesStore(state => state.removeWidget);
-  const updateWidgetTitle = useRulesStore(state => state.updateWidgetTitle);
-  const updateWidgetContentIndex = useRulesStore(state => state.updateWidgetContentIndex);
-  const updateWidgetContentType = useRulesStore(state => state.updateWidgetContentType);
-  const updateWidgetColumns = useRulesStore(state => state.updateWidgetColumns);
-  const updateWidgetImage = useRulesStore(state => state.updateWidgetImage);
-  
+  const updateWidgetSize = useRulesStore((state) => state.updateWidgetSize);
+  const removeWidget = useRulesStore((state) => state.removeWidget);
+  const updateWidgetTitle = useRulesStore((state) => state.updateWidgetTitle);
+  const updateWidgetContentIndex = useRulesStore(
+    (state) => state.updateWidgetContentIndex,
+  );
+  const updateWidgetContentType = useRulesStore(
+    (state) => state.updateWidgetContentType,
+  );
+  const updateWidgetColumns = useRulesStore(
+    (state) => state.updateWidgetColumns,
+  );
+  const updateWidgetImage = useRulesStore((state) => state.updateWidgetImage);
+
   const [isHovered, setIsHovered] = useState(false);
   const [showSizes, setShowSizes] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isEditingMode, setIsEditingMode] = useState(false);
   const [isDragEnabled, setIsDragEnabled] = useState(false);
   const [titleValue, setTitleValue] = useState(widget.title);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Map the widget size to grid classes
@@ -90,7 +105,7 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx?.drawImage(img, 0, 0, width, height);
-        
+
         const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
         updateWidgetImage(pageId, widget.id, dataUrl);
       };
@@ -119,13 +134,15 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
       className={`relative bg-[#202024]/50 border border-[#323238] rounded-md transition-all group hover:border-[#8257e5]/50 flex flex-col ${spanClasses}`}
     >
       {/* Title Bar / Drag Handle */}
-      <div 
+      <div
         className="flex items-center gap-2 px-3 py-1.5 bg-[#121214]/50 border-b border-[#323238]/50 cursor-grab active:cursor-grabbing rounded-t-md"
         onMouseEnter={() => setIsDragEnabled(true)}
         onMouseLeave={() => setIsDragEnabled(false)}
       >
-        <GripVertical className={`w-4 h-4 text-[#a8a8b3] ${isEditingMode ? 'opacity-20 cursor-not-allowed' : 'opacity-50 group-hover:opacity-100 transition-opacity'}`} />
-        
+        <GripVertical
+          className={`w-4 h-4 text-[#a8a8b3] ${isEditingMode ? 'opacity-20 cursor-not-allowed' : 'opacity-50 group-hover:opacity-100 transition-opacity'}`}
+        />
+
         <div className="flex-1 truncate">
           {isEditingTitle && isEditingMode ? (
             <input
@@ -138,7 +155,7 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
               className="bg-[#323238] text-white text-sm rounded px-1 outline-none w-full"
             />
           ) : (
-            <h3 
+            <h3
               className={`text-sm font-medium text-[#e1e1e6] select-none ${isEditingMode ? 'hover:text-white cursor-text' : 'opacity-80'}`}
               onDoubleClick={() => isEditingMode && setIsEditingTitle(true)}
             >
@@ -146,30 +163,48 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
             </h3>
           )}
         </div>
-        
+
         {/* Actions (visible on hover or when editing) */}
-        <div className={`flex items-center gap-1 transition-opacity duration-200 ${isHovered || isEditingMode ? 'opacity-100' : 'opacity-0'}`}>
+        <div
+          className={`flex items-center gap-1 transition-opacity duration-200 ${isHovered || isEditingMode ? 'opacity-100' : 'opacity-0'}`}
+        >
           <button
             onClick={() => setIsEditingMode(!isEditingMode)}
             className={`p-1 rounded transition-colors ${isEditingMode ? 'bg-[#8257e5] text-white' : 'text-[#a8a8b3] hover:bg-[#323238] hover:text-[#e1e1e6]'}`}
-            title={isEditingMode ? "Modo Visualização" : "Modo Edição"}
+            title={isEditingMode ? 'Modo Visualização' : 'Modo Edição'}
           >
             <Edit3 className="w-3.5 h-3.5" />
           </button>
 
           {canHaveImage && isEditingMode && (
             <button
-              onClick={() => updateWidgetContentType(pageId, widget.id, widget.contentType === 'image' ? 'text' : 'image')}
+              onClick={() =>
+                updateWidgetContentType(
+                  pageId,
+                  widget.id,
+                  widget.contentType === 'image' ? 'text' : 'image',
+                )
+              }
               className={`p-1 rounded transition-colors ${widget.contentType === 'image' ? 'bg-[#8257e5] text-white' : 'text-[#a8a8b3] hover:bg-[#323238] hover:text-[#e1e1e6]'}`}
               title="Modo Imagem"
             >
-              {widget.contentType === 'image' ? <Type className="w-3.5 h-3.5" /> : <ImageIcon className="w-3.5 h-3.5" />}
+              {widget.contentType === 'image' ? (
+                <Type className="w-3.5 h-3.5" />
+              ) : (
+                <ImageIcon className="w-3.5 h-3.5" />
+              )}
             </button>
           )}
 
           {canHaveColumns && isEditingMode && (
             <button
-              onClick={() => updateWidgetColumns(pageId, widget.id, columnsCount === 3 ? 1 : columnsCount + 1 as 1 | 2 | 3)}
+              onClick={() =>
+                updateWidgetColumns(
+                  pageId,
+                  widget.id,
+                  columnsCount === 3 ? 1 : ((columnsCount + 1) as 1 | 2 | 3),
+                )
+              }
               className="flex items-center gap-0.5 p-1 text-[#a8a8b3] hover:text-[#e1e1e6] hover:bg-[#323238] rounded transition-colors"
               title={`${columnsCount} Coluna(s)`}
             >
@@ -190,15 +225,47 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
 
               {showSizes && (
                 <div className="absolute top-full right-0 mt-1 bg-[#121214] border border-[#323238] rounded shadow-xl z-50 flex flex-col min-w-[100px] overflow-hidden">
-                  <button onClick={() => { updateWidgetSize(pageId, widget.id, '1x1'); setShowSizes(false); }} className={`px-3 py-1.5 text-xs text-left hover:bg-[#8257e5] transition-colors ${widget.size === '1x1' ? 'bg-[#323238] text-white' : 'text-[#a8a8b3]'}`}>Pequeno (1x1)</button>
-                  <button onClick={() => { updateWidgetSize(pageId, widget.id, '2x1'); setShowSizes(false); }} className={`px-3 py-1.5 text-xs text-left hover:bg-[#8257e5] transition-colors ${widget.size === '2x1' ? 'bg-[#323238] text-white' : 'text-[#a8a8b3]'}`}>Largo (2x1)</button>
-                  <button onClick={() => { updateWidgetSize(pageId, widget.id, '1x2'); setShowSizes(false); }} className={`px-3 py-1.5 text-xs text-left hover:bg-[#8257e5] transition-colors ${widget.size === '1x2' ? 'bg-[#323238] text-white' : 'text-[#a8a8b3]'}`}>Alto (1x2)</button>
-                  <button onClick={() => { updateWidgetSize(pageId, widget.id, '2x2'); setShowSizes(false); }} className={`px-3 py-1.5 text-xs text-left hover:bg-[#8257e5] transition-colors ${widget.size === '2x2' ? 'bg-[#323238] text-white' : 'text-[#a8a8b3]'}`}>Grande (2x2)</button>
+                  <button
+                    onClick={() => {
+                      updateWidgetSize(pageId, widget.id, '1x1');
+                      setShowSizes(false);
+                    }}
+                    className={`px-3 py-1.5 text-xs text-left hover:bg-[#8257e5] transition-colors ${widget.size === '1x1' ? 'bg-[#323238] text-white' : 'text-[#a8a8b3]'}`}
+                  >
+                    Pequeno (1x1)
+                  </button>
+                  <button
+                    onClick={() => {
+                      updateWidgetSize(pageId, widget.id, '2x1');
+                      setShowSizes(false);
+                    }}
+                    className={`px-3 py-1.5 text-xs text-left hover:bg-[#8257e5] transition-colors ${widget.size === '2x1' ? 'bg-[#323238] text-white' : 'text-[#a8a8b3]'}`}
+                  >
+                    Largo (2x1)
+                  </button>
+                  <button
+                    onClick={() => {
+                      updateWidgetSize(pageId, widget.id, '1x2');
+                      setShowSizes(false);
+                    }}
+                    className={`px-3 py-1.5 text-xs text-left hover:bg-[#8257e5] transition-colors ${widget.size === '1x2' ? 'bg-[#323238] text-white' : 'text-[#a8a8b3]'}`}
+                  >
+                    Alto (1x2)
+                  </button>
+                  <button
+                    onClick={() => {
+                      updateWidgetSize(pageId, widget.id, '2x2');
+                      setShowSizes(false);
+                    }}
+                    className={`px-3 py-1.5 text-xs text-left hover:bg-[#8257e5] transition-colors ${widget.size === '2x2' ? 'bg-[#323238] text-white' : 'text-[#a8a8b3]'}`}
+                  >
+                    Grande (2x2)
+                  </button>
                 </div>
               )}
             </div>
           )}
-          
+
           {isEditingMode && (
             <button
               onClick={() => removeWidget(pageId, widget.id)}
@@ -216,18 +283,22 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
         {widget.contentType === 'image' && canHaveImage ? (
           <div className="w-full h-full flex flex-col items-center justify-center bg-[#121214]">
             {widget.imageUrl ? (
-              <img 
-                src={widget.imageUrl} 
-                alt={widget.title} 
-                className="w-full h-full object-cover" 
+              <img
+                src={widget.imageUrl}
+                alt={widget.title}
+                className="w-full h-full object-cover"
               />
             ) : (
               <div className="flex flex-col items-center justify-center text-center p-4">
                 <ImageIcon className="w-8 h-8 text-[#8257e5] mb-2 opacity-50" />
-                <p className="text-xs text-[#a8a8b3] mb-1">Modo Imagem Ativado</p>
-                <p className="text-[10px] text-[#a8a8b3]/60 mb-4">Proporção Recomendada: 1:2 (ex: 300x600px)</p>
+                <p className="text-xs text-[#a8a8b3] mb-1">
+                  Modo Imagem Ativado
+                </p>
+                <p className="text-[10px] text-[#a8a8b3]/60 mb-4">
+                  Proporção Recomendada: 1:2 (ex: 300x600px)
+                </p>
                 {isEditingMode && (
-                  <button 
+                  <button
                     onClick={() => fileInputRef.current?.click()}
                     className="flex items-center gap-2 bg-[#202024] hover:bg-[#323238] border border-[#323238] px-3 py-1.5 rounded text-xs text-[#e1e1e6] transition-colors"
                   >
@@ -236,21 +307,25 @@ export default function RulesCard({ widget, pageId }: RulesCardProps) {
                 )}
               </div>
             )}
-            <input 
-              type="file" 
-              accept="image/*" 
-              ref={fileInputRef} 
-              className="hidden" 
-              onChange={handleImageUpload} 
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              className="hidden"
+              onChange={handleImageUpload}
             />
           </div>
         ) : (
-          <div className={`w-full h-full flex ${canHaveColumns && columnsCount > 1 ? 'divide-x divide-[#323238]' : ''}`}>
+          <div
+            className={`w-full h-full flex ${canHaveColumns && columnsCount > 1 ? 'divide-x divide-[#323238]' : ''}`}
+          >
             {Array.from({ length: columnsCount }).map((_, i) => (
               <div key={i} className="flex-1 min-w-0 h-full p-2">
-                <RulesEditor 
+                <RulesEditor
                   initialValue={contents[i] || ''}
-                  onChange={(html) => updateWidgetContentIndex(pageId, widget.id, i, html)}
+                  onChange={(html) =>
+                    updateWidgetContentIndex(pageId, widget.id, i, html)
+                  }
                   isEditing={isEditingMode}
                 />
               </div>
