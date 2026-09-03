@@ -213,73 +213,99 @@ export default function Header() {
       <div className="flex gap-2">
         <Dialog>
           <DialogTrigger
-            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-transparent text-[#a8a8b3] hover:text-white hover:bg-white/5 h-10 px-4 py-2 border-none"
-            title="Ajuda"
+            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-transparent text-muted-custom hover:text-main hover:bg-surface h-9 px-3 cursor-pointer"
+            title="Ajuda e Guia do Sistema"
           >
             <HelpCircle className="w-5 h-5" />
           </DialogTrigger>
-          <DialogContent className="bg-[#202024] border-[#323238] text-[#e1e1e6] sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle className="text-[#ffd700] text-xl font-bold flex items-center gap-2">
-                <Swords className="w-6 h-6" /> GM Tool v6.6
+          <DialogContent className="bg-surface border border-subtle text-main sm:max-w-[560px] max-h-[85vh] overflow-y-auto shadow-2xl rounded-xl">
+            <DialogHeader className="border-b border-subtle pb-3">
+              <DialogTitle className="text-brand-gold text-xl font-bold flex items-center gap-2.5">
+                <Swords className="w-6 h-6 text-brand-gold" />
+                <span>SGM v7.0 — Guia do Sistema</span>
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 text-sm mt-2">
-              <p>
-                O GM Tool é uma plataforma de gerenciamento de mesas de RPG
-                projetada para fluidez e imersão.
+            <div className="space-y-4 text-sm mt-2 text-main">
+              <p className="text-muted-custom leading-relaxed">
+                O{' '}
+                <strong className="text-main">
+                  Sistema Gerenciador de Mesas (SGM)
+                </strong>{' '}
+                é uma plataforma moderna de Virtual Tabletop (VTT) focada em
+                combate dinâmico, gerenciamento ágil e imersão total.
               </p>
 
-              <div className="space-y-2">
-                <h4 className="font-bold text-[#8257e5] uppercase text-xs">
-                  Como Começar
+              <div className="bg-app border border-subtle rounded-lg p-3.5 space-y-2.5">
+                <h4 className="font-bold text-brand-purple uppercase text-xs tracking-wider flex items-center gap-1.5">
+                  ⚡ Como Começar
                 </h4>
-                <ul className="list-disc pl-5 text-[#a8a8b3] space-y-1">
+                <ul className="space-y-1.5 text-muted-custom text-xs leading-relaxed pl-1">
                   <li>
-                    Use o menu <strong>Arquivo</strong> para importar um mapa ou
-                    salvar o estado atual.
+                    • <strong className="text-main">Novo Token:</strong> Crie
+                    personagens ou ameaças no botão do topo. Arraste a inicial
+                    do roster superior diretamente para o tabuleiro.
                   </li>
                   <li>
-                    Clique em <strong>Novo Token</strong> para criar um
-                    personagem ou ameaça. Em seguida, arraste a inicial dele no
-                    topo da tela para dentro do mapa.
+                    • <strong className="text-main">Mapa de Batalha:</strong>{' '}
+                    Use a barra inferior de ferramentas para subir imagens de
+                    fundo, definir zonas táticas ou desenhar no grid.
                   </li>
                   <li>
-                    Utilize as ferramentas na base da tela para criar{' '}
-                    <strong>Zonas</strong> visuais, inserir a{' '}
-                    <strong>Imagem de Fundo</strong> e movimentar-se pelo mapa
-                    (Scroll/Zoom).
+                    •{' '}
+                    <strong className="text-main">Iniciativa & Rodadas:</strong>{' '}
+                    Defina a ordem de combate na barra superior e avance turnos
+                    e rodadas na barra inferior.
                   </li>
                   <li>
-                    Gerencie o combate usando o temporizador de urgência,
-                    sistema de turnos e rodadas fixados na barra inferior.
+                    • <strong className="text-main">Mesa Online:</strong> Clique
+                    em{' '}
+                    <span className="text-brand-purple font-semibold">
+                      Multiplayer
+                    </span>{' '}
+                    para criar uma sala e compartilhar o link com os jogadores.
                   </li>
                 </ul>
               </div>
 
-              <div className="space-y-2">
-                <h4 className="font-bold text-[#8257e5] uppercase text-xs">
-                  Dicas Úteis
+              <div className="bg-app border border-subtle rounded-lg p-3.5 space-y-2.5">
+                <h4 className="font-bold text-brand-gold uppercase text-xs tracking-wider flex items-center gap-1.5">
+                  🎯 Dicas e Atalhos Rápidos
                 </h4>
-                <ul className="list-disc pl-5 text-[#a8a8b3] space-y-1">
+                <ul className="space-y-1.5 text-muted-custom text-xs leading-relaxed pl-1">
                   <li>
-                    <strong>Botão Direito no Token (Mapa):</strong> Remove o
-                    token do tabuleiro (sem deletar a ficha).
+                    •{' '}
+                    <kbd className="px-1.5 py-0.5 rounded bg-surface-elevated border border-subtle text-[11px] font-mono text-main">
+                      Alt + Clique
+                    </kbd>{' '}
+                    (ou clique do meio): Dispara um <strong>Ping Tático</strong>{' '}
+                    animado visível para toda a mesa.
                   </li>
                   <li>
-                    <strong>Zonas Poligonais:</strong> Clique para definir
-                    vértices e aperte <strong>Enter</strong> para criar a zona.
+                    •{' '}
+                    <kbd className="px-1.5 py-0.5 rounded bg-surface-elevated border border-subtle text-[11px] font-mono text-main">
+                      Ctrl + S
+                    </kbd>
+                    : Salva instantaneamente o mapa no slot configurado.
                   </li>
                   <li>
-                    <strong>Rodinha do Mouse (Scroll):</strong> Utilize para dar
-                    zoom no mapa ou redimensionar a imagem de fundo quando a
-                    ferramenta "Imagem" estiver selecionada.
+                    •{' '}
+                    <strong className="text-main">
+                      Botão Direito no Token:
+                    </strong>{' '}
+                    Abre o menu de contexto para localizar, abrir ficha,
+                    duplicar ou remover do mapa.
+                  </li>
+                  <li>
+                    • <strong className="text-main">Scroll do Mouse:</strong>{' '}
+                    Aplica zoom no mapa ou redimensiona imagens quando a
+                    ferramenta "Imagem" estiver ativa.
                   </li>
                 </ul>
               </div>
             </div>
           </DialogContent>
         </Dialog>
+
         <Button
           onClick={() => setIsMultiplayerModalOpen(true)}
           variant="outline"
