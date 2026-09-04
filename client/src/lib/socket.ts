@@ -8,18 +8,11 @@ const getSocketUrl = (): string => {
     // @ts-ignore
     return import.meta.env.VITE_SERVER_URL;
   }
-  // Em desenvolvimento local
-  if (
-    typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1')
-  ) {
-    return 'http://localhost:3001';
+  // Se estiver acessando via browser (seja localhost, IP local ou rede externa)
+  if (typeof window !== 'undefined') {
+    return `http://${window.location.hostname}:3001`;
   }
-  // Em produção no mesmo domínio
-  return typeof window !== 'undefined'
-    ? window.location.origin
-    : 'http://localhost:3001';
+  return 'http://localhost:3001';
 };
 
 export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
