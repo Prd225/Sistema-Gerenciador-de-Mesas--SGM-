@@ -250,6 +250,7 @@ export function ImageCropper({
           <Button
             variant="outline"
             size="icon"
+            className="bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5"
             onClick={() => setRotation((r) => (r - 90) % 360)}
             title="Girar Esquerda"
           >
@@ -258,6 +259,7 @@ export function ImageCropper({
           <Button
             variant="outline"
             size="icon"
+            className="bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5"
             onClick={() => setRotation((r) => (r + 90) % 360)}
             title="Girar Direita"
           >
@@ -266,6 +268,7 @@ export function ImageCropper({
           <Button
             variant="outline"
             size="icon"
+            className="bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5"
             onClick={() => setFlipH((f) => !f)}
             title="Espelhar Horizontalmente"
           >
@@ -274,6 +277,7 @@ export function ImageCropper({
           <Button
             variant="outline"
             size="icon"
+            className="bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5"
             onClick={() => setFlipV((f) => !f)}
             title="Espelhar Verticalmente"
           >

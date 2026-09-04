@@ -67,7 +67,7 @@ export default function SaveCampaignModal() {
     // Pequeno atraso para garantir que a UI de carregamento seja desenhada
     await new Promise((resolve) => setTimeout(resolve, 150));
 
-    const data = collectGameState();
+    const data = await collectGameState();
 
     try {
       await db.campaignSlots.put({
@@ -187,7 +187,7 @@ export default function SaveCampaignModal() {
 
         <div className="flex-1 overflow-y-auto pr-2 space-y-2 mt-2 relative">
           {loadingSlot !== null && (
-            <div className="absolute inset-0 bg-[#202024]/60 flex items-center justify-center z-10 rounded-md backdrop-blur-sm">
+            <div className="absolute inset-0 bg-[#202024]/80 flex items-center justify-center z-10 rounded-md">
               <div className="flex flex-col items-center bg-[#121214] p-5 rounded-lg border border-[#323238] shadow-lg">
                 <div className="w-8 h-8 border-4 border-[#8257e5] border-t-transparent rounded-full animate-spin mb-3"></div>
                 <span className="font-bold text-[#e1e1e6]">

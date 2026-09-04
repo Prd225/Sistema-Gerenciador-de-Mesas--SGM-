@@ -6,12 +6,18 @@ import { useRulesStore } from '@/store/useRulesStore';
 import { useNotesStore } from '@/store/useNotesStore';
 import { useTablesStore } from '@/store/useTablesStore';
 import { useRoulettesStore } from '@/store/useRoulettesStore';
+import { useSoundpadStore } from '@/store/useSoundpadStore';
+import { useScenesStore } from '@/store/useScenesStore';
 import { db } from '@/lib/db';
 
-export const collectGameState = () => {
+export const collectGameState = async () => {
   const tokenState = useTokenStore.getState();
   const zoneState = useZoneStore.getState();
   const campaignState = useCampaignStore.getState();
+
+  const scenesStore = useScenesStore.getState();
+  await scenesStore.saveCurrentSceneState();
+  const activeScenesData = await db.activeScenes.toArray();
 
   return {
     version: 1,
@@ -46,7 +52,20 @@ export const collectGameState = () => {
     roulettes: {
       pages: useRoulettesStore.getState().pages,
     },
+    soundpad: {
+      pages: useSoundpadStore.getState().pages,
+    },
+    scenes: {
+      scenes: useScenesStore.getState().scenes,
+      activeSceneId: useScenesStore.getState().activeSceneId,
+      sceneData: activeScenesData,
+    },
   };
+};
+
+export const resetGameState = async () => {
+  await db.activeScenes.clear();
+  window.location.reload();
 };
 
 let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -76,7 +95,7 @@ export const triggerAutoSave = (forceImmediate = false) => {
         return;
       }
 
-      const data = collectGameState();
+      const data = await collectGameState();
 
       await db.campaignSlots.put({
         slotNumber: slot,
@@ -102,10 +121,10 @@ export const triggerAutoSave = (forceImmediate = false) => {
     if (debounceTimeout) clearTimeout(debounceTimeout);
     executeSave();
   } else {
-    // Debounce de 25 segundos para acúmulo de eventos
+    // Debounce de 3 segundos para acúmulo de eventos
     if (debounceTimeout) clearTimeout(debounceTimeout);
     debounceTimeout = setTimeout(() => {
       executeSave();
-    }, 25000);
+    }, 3000);
   }
 };

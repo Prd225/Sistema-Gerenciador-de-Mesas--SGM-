@@ -11,6 +11,7 @@ import {
   Image as ImageIcon,
   Plus,
   Pencil,
+  Edit3,
 } from 'lucide-react';
 import type { ActiveTool } from '@/types/game';
 
@@ -56,13 +57,18 @@ export default function MapToolbar() {
     {
       id: 'select',
       icon: <MousePointer2 className="w-5 h-5" />,
-      title: 'Selecionar / Arrastar Itens (V)',
+      title: 'Selecionar (V)',
     },
     {
       id: 'draw-group',
       icon: <Pencil className="w-5 h-5" />,
-      title: 'Ferramentas de Desenho',
+      title: 'Ferramentas de Zona',
       subTools: [
+        {
+          id: 'edit-zone',
+          icon: <Edit3 className="w-4 h-4" />,
+          title: 'Editar Zonas (Mover/Redimensionar)',
+        },
         {
           id: 'draw-rect',
           icon: <Square className="w-4 h-4" />,
@@ -93,7 +99,7 @@ export default function MapToolbar() {
   ];
 
   return (
-    <div className="absolute right-5 bottom-5 flex flex-col gap-2 z-[100] pointer-events-none">
+    <div className="absolute right-5 bottom-5 flex flex-col gap-2 z-30 pointer-events-none">
       {/* Hidden file input for image upload */}
       <input
         ref={fileInputRef}
@@ -103,7 +109,7 @@ export default function MapToolbar() {
         onChange={handleFileChange}
       />
 
-      <div className="flex flex-col gap-2 bg-[#202024]/90 p-2 rounded-lg border border-[#323238] shadow-[0_4px_15px_rgba(0,0,0,0.5)] backdrop-blur-sm pointer-events-auto">
+      <div className="flex flex-col gap-2 bg-[#202024]/95 p-2 rounded-lg border border-[#323238] shadow-[0_4px_15px_rgba(0,0,0,0.5)] pointer-events-auto">
         {tools.map((tool) => (
           <div key={tool.id} className="relative group">
             <Button

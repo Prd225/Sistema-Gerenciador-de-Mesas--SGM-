@@ -7,8 +7,18 @@ export interface SaveSlot {
   data: any; // O objeto JSON completo (tokens, zones, campaign)
 }
 
+export interface ActiveScene {
+  id: string;
+  tokens: any[];
+  initiativeQueue: any[];
+  zones: Record<string, any>;
+  markers: Record<string, any>;
+  bgImages: any[];
+}
+
 export class SGMDatabase extends Dexie {
   campaignSlots!: EntityTable<SaveSlot, 'slotNumber'>;
+  activeScenes!: EntityTable<ActiveScene, 'id'>;
 
   constructor() {
     super('SGMDatabase');
@@ -24,6 +34,10 @@ export class SGMDatabase extends Dexie {
     });
     this.version(5).stores({
       campaignSlots: 'slotNumber',
+    });
+    this.version(6).stores({
+      campaignSlots: 'slotNumber',
+      activeScenes: 'id',
     });
   }
 }

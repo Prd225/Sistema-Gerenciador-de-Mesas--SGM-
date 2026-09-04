@@ -13,12 +13,15 @@ import SaveCampaignModal from '../modals/SaveCampaignModal';
 import MapToolbar from '../toolbar/MapToolbar';
 import MasterPanelTrigger from '../master-panel/MasterPanelTrigger';
 import MasterPanelOverlay from '../master-panel/MasterPanelOverlay';
+import SoundpadEngine from '../master-panel/soundpad/SoundpadEngine';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useEffect } from 'react';
 import { triggerAutoSave } from '@/lib/saveHelpers';
 import { useZoneStore } from '@/store/useZoneStore';
 import { useTokenStore } from '@/store/useTokenStore';
+import { useScenesStore } from '@/store/useScenesStore';
 import { Search, Edit, Copy, IdCard, Trash2, Map } from 'lucide-react';
+import { db } from '@/lib/db';
 
 export default function AppLayout({
   children,
@@ -65,11 +68,34 @@ export default function AppLayout({
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Limpar sessões fantasmas do banco de dados ao inicializar
+    // Só limpar se NÃO tivermos recebido um slot de auto-save recente?
+    // Como SGM é totalmente em RAM, o refresh zera a RAM de qualquer forma,
+    // então a tabela activeScenes pode e DEVE ser zerada ao recarregar a janela.
+    const clearGhostSessions = async () => {
+      // Pequena checagem pra evitar limpar no exato momento que o React StrictMode remonta,
+      // embora db.clear seja idotempontente.
+      try {
+        await db.activeScenes.clear();
+      } catch (e) {
+        console.error('Failed to clear ghost sessions', e);
+      }
+    };
+
+    // We only clear if this is a fresh mount and the RAM is empty.
+    // If the RAM has scenes but the db doesn't, it means we are in the middle of a hot-reload in dev mode.
+    const isFreshBoot =
+      useTokenStore.getState().tokens.length === 0 &&
+      useScenesStore.getState().scenes.length <= 1;
+    if (isFreshBoot) {
+      clearGhostSessions();
+    }
 
     return () => {
       if (interval) clearInterval(interval);
-      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, [autoSaveSlot]);
 
@@ -77,10 +103,15 @@ export default function AppLayout({
     <div className="h-screen w-screen bg-[#121214] text-[#e1e1e6] overflow-hidden flex flex-col font-sans">
       <Header />
 
-      <div className="flex-1 flex overflow-hidden">
-        <SidebarLeft isOpen={leftOpen} toggle={toggleLeft} />
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Left Sidebar: absolute overlay so it never pushes the map */}
+        <div className="absolute inset-y-0 left-0 z-40 pointer-events-none">
+          <div className="pointer-events-auto h-full">
+            <SidebarLeft isOpen={leftOpen} toggle={toggleLeft} />
+          </div>
+        </div>
 
-        {/* Main Viewport */}
+        {/* Main Viewport — always full width, sidebars float on top */}
         <main className="flex-1 relative overflow-hidden bg-[#0d0d0f] select-none">
           <StageMap />
           <MapToolbar />
@@ -102,7 +133,7 @@ export default function AppLayout({
       {tokenCtx && (
         <>
           <div
-            className="fixed inset-0 z-[100]"
+            className="fixed inset-0 z-[60]"
             onClick={() => setTokenCtx(null)}
             onContextMenu={(e) => {
               e.preventDefault();
@@ -110,7 +141,7 @@ export default function AppLayout({
             }}
           />
           <div
-            className="fixed z-[101] bg-[#202024] border border-[#323238] rounded shadow-lg min-w-[160px] overflow-hidden"
+            className="fixed z-[61] bg-[#202024] border border-[#323238] rounded shadow-lg min-w-[160px] overflow-hidden"
             style={{ left: tokenCtx.x, top: tokenCtx.y }}
           >
             <div
@@ -185,6 +216,9 @@ export default function AppLayout({
       {/* Painel do Mestre */}
       <MasterPanelTrigger />
       <MasterPanelOverlay />
+
+      {/* Motor de Áudio em Background */}
+      <SoundpadEngine />
     </div>
   );
 }

@@ -61,6 +61,7 @@ export default function NoteEditorFullscreen({
       editorRef.current.innerHTML = note.content || '';
       setCharCount(editorRef.current.innerText.length);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [noteId]);
 
   if (!note) return null;

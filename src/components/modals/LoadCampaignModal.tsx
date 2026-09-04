@@ -15,6 +15,8 @@ import { useRulesStore } from '@/store/useRulesStore';
 import { useNotesStore } from '@/store/useNotesStore';
 import { useTablesStore } from '@/store/useTablesStore';
 import { useRoulettesStore } from '@/store/useRoulettesStore';
+import { useSoundpadStore } from '@/store/useSoundpadStore';
+import { useScenesStore } from '@/store/useScenesStore';
 import { db } from '@/lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
@@ -52,7 +54,7 @@ export default function LoadCampaignModal() {
   const filledSlotsCount =
     useLiveQuery(() => db.campaignSlots.count(), []) || 0;
 
-  const handleLoad = (data: any) => {
+  const handleLoad = async (data: any) => {
     try {
       if (data.tokens) {
         useTokenStore.setState({
@@ -120,6 +122,25 @@ export default function LoadCampaignModal() {
         useRoulettesStore.setState({
           pages: data.roulettes.pages || [],
         });
+      }
+      if (data.soundpad) {
+        useSoundpadStore.setState({
+          pages: data.soundpad.pages || [],
+        });
+      }
+      if (data.scenes) {
+        await db.activeScenes.clear();
+        if (data.scenes.sceneData && data.scenes.sceneData.length > 0) {
+          await db.activeScenes.bulkAdd(data.scenes.sceneData);
+        }
+
+        useScenesStore.setState({
+          scenes: data.scenes.scenes || [],
+          activeSceneId: data.scenes.activeSceneId || null,
+        });
+      } else {
+        // Fallback para saves antigos que não tinham cenas
+        await useScenesStore.getState().loadLegacyData(data.tokens, data.zones);
       }
       onOpenChange(false);
       alert('Campanha carregada com sucesso!');

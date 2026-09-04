@@ -209,23 +209,16 @@ function TokenLayer({ scale = 1 }: { scale?: number }) {
                   const dx = e.target.x() - startX;
                   const dy = e.target.y() - startY;
 
-                  const tState = useTokenStore.getState();
-                  const zState = useZoneStore.getState();
+                  const stage = e.target.getStage();
+                  if (!stage) return;
 
                   selectedNodeIds.forEach((id) => {
                     if (id !== t.id) {
                       const start = dragStartPositions.current[id];
                       if (start) {
-                        if (tState.tokens.some((tk) => tk.id === id)) {
-                          tState.updateToken(id, {
-                            x: start.x + dx,
-                            y: start.y + dy,
-                          });
-                        } else if (zState.markers[id]) {
-                          zState.updateMarker(id, {
-                            x: start.x + dx,
-                            y: start.y + dy,
-                          });
+                        const node = stage.findOne('#' + id);
+                        if (node) {
+                          node.position({ x: start.x + dx, y: start.y + dy });
                         }
                       }
                     }

@@ -109,7 +109,7 @@ export default function Footer() {
     <footer className="h-[60px] bg-[#202024] border-t border-[#323238] flex items-center justify-center gap-5 px-5 z-50 transition-colors duration-300">
       {/* Timer */}
       <div
-        className={`flex items-center gap-4 border rounded-lg px-3 py-1 shadow-[0_4px_15px_rgba(0,0,0,0.7)] backdrop-blur-sm transition-all ${
+        className={`flex items-center gap-4 border rounded-lg px-3 py-1 shadow-[0_4px_15px_rgba(0,0,0,0.7)] transition-all ${
           timerFlashing
             ? 'bg-red-950/50 border-red-500 shadow-[0_0_15px_red] animate-pulse'
             : 'bg-[#202024]/95 border-[#323238]'

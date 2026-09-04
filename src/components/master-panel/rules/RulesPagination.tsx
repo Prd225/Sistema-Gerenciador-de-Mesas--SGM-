@@ -21,7 +21,7 @@ export default function RulesPagination({
 
   return (
     <div className="absolute bottom-2 left-0 right-0 flex items-center justify-center gap-3">
-      <div className="flex items-center gap-2 bg-[#121214]/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-[#323238] shadow-xl">
+      <div className="flex items-center gap-2 bg-[#121214]/95 px-3 py-1.5 rounded-full border border-[#323238] shadow-xl">
         <button
           onClick={() => onPageChange(Math.max(0, currentPageIndex - 1))}
           disabled={currentPageIndex === 0}

@@ -60,7 +60,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
     try {
       const saved = localStorage.getItem('sgm_event_presets');
       if (saved) setEventPresets(JSON.parse(saved));
-    } catch (e) {}
+    } catch {}
   }, []);
 
   const saveEventAsPreset = (evt: any) => {
@@ -123,7 +123,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
     <>
       <aside
         style={{ width: `${width}px` }}
-        className="bg-[#202024] border-r border-[#323238] flex flex-col h-full z-40 overflow-hidden shrink-0 relative"
+        className="bg-[#202024] border-r border-[#323238] flex flex-col h-full z-40 overflow-hidden relative shadow-xl"
       >
         <div className="p-5 overflow-y-auto flex-1 h-full flex flex-col relative">
           {/* Header */}
@@ -261,9 +261,16 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                 <div className="space-y-6 flex-1 min-w-0">
                   {activeTab === 'geral' && (
                     <>
-                      <h2 className="text-[#e1e1e6] text-xl font-bold mb-2">
-                        {zoneData.title || 'Nova Zona'}
-                      </h2>
+                      <div className="flex items-baseline gap-3 mb-2 flex-wrap">
+                        <h2 className="text-[#e1e1e6] text-xl font-bold break-words min-w-0">
+                          {zoneData.title || 'Nova Zona'}
+                        </h2>
+                        {(zoneData.visits || 0) > 0 && (
+                          <span className="text-[#a8a8b3] text-xs font-medium">
+                            {zoneData.visits}x visitada
+                          </span>
+                        )}
+                      </div>
                       {zoneData.imageUrl && (
                         <div className="mb-4 rounded overflow-hidden border border-[#323238] shrink-0">
                           <img
@@ -273,18 +280,15 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                           />
                         </div>
                       )}
-                      <div className="flex justify-between items-start border-b border-[#323238] pb-4 gap-4">
-                        <RichTextView
-                          content={zoneData.desc || ''}
-                          defaultText="Sem descrição..."
-                        />
-                        <div className="bg-black/20 px-3 py-1 rounded text-center shrink-0 border border-[#323238]">
-                          <span className="text-[0.6rem] text-[#a8a8b3] uppercase block">
-                            Visitas
-                          </span>
-                          <span className="text-xl font-bold text-[#ffd700] leading-none">
-                            {zoneData.visits || 0}
-                          </span>
+                      <div className="flex flex-col gap-4 mb-4 border-b border-[#323238] pb-6">
+                        {/* Simple quote-style notes block */}
+                        <div className="border-l-[3px] border-[#8257e5] pl-4 py-1">
+                          <div className="text-[#d4d4d8] leading-relaxed text-[14.5px]">
+                            <RichTextView
+                              content={zoneData.desc || ''}
+                              defaultText="Sem anotações registradas."
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -336,7 +340,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                           <Square className="w-4 h-4" />
                                         )}
                                       </button>
-                                      <div className="font-bold text-[#e1e1e6]">
+                                      <div className="font-bold text-[#e1e1e6] break-words min-w-0">
                                         {opt.name}:
                                       </div>
                                     </div>
@@ -377,7 +381,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                   className={`bg-black/20 p-3 rounded mb-3 border-l-[3px] min-w-0 ${borderColors[evt.color] || borderColors.red}`}
                                 >
                                   <span
-                                    className={`font-bold block mb-2 text-lg ${textColors[evt.color] || textColors.red}`}
+                                    className={`font-bold block mb-2 text-lg break-words min-w-0 ${textColors[evt.color] || textColors.red}`}
                                   >
                                     {evt.name}
                                   </span>
@@ -454,7 +458,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                         )}
                                       </button>
                                       <span
-                                        className={`font-bold text-lg ${textColors[hl.color] || textColors.gray}`}
+                                        className={`font-bold text-lg break-words min-w-0 ${textColors[hl.color] || textColors.gray}`}
                                       >
                                         {hl.name}
                                       </span>
@@ -522,7 +526,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                     <Square className="w-5 h-5" />
                                   )}
                                 </button>
-                                <span className="font-bold text-[#e1e1e6] text-lg">
+                                <span className="font-bold text-[#e1e1e6] text-lg break-words min-w-0">
                                   {threat.name}
                                 </span>
                               </div>
@@ -588,7 +592,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                               className={`bg-black/20 p-3 rounded mb-3 border border-[#323238] min-w-0 transition-opacity ${item.isFound ? 'opacity-50 grayscale' : ''}`}
                             >
                               <div className="flex justify-between items-center mb-1">
-                                <div className="flex items-center gap-2 truncate mr-2">
+                                <div className="flex items-start gap-2 min-w-0 mr-2 flex-wrap">
                                   <button
                                     onClick={() => {
                                       const newInv = JSON.parse(
@@ -602,7 +606,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                         customInventory: newInv,
                                       });
                                     }}
-                                    className="text-[#a8a8b3] hover:text-[#8257e5] transition-colors shrink-0"
+                                    className="text-[#a8a8b3] hover:text-[#8257e5] transition-colors shrink-0 mt-0.5"
                                     title="Marcar como encontrado"
                                   >
                                     {item.isFound ? (
@@ -612,7 +616,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                     )}
                                   </button>
                                   <span
-                                    className={`font-bold text-lg truncate ${item.isFound ? 'text-[#a8a8b3] line-through' : 'text-[#e1e1e6]'}`}
+                                    className={`font-bold text-lg break-words min-w-0 ${item.isFound ? 'text-[#a8a8b3] line-through' : 'text-[#e1e1e6]'}`}
                                   >
                                     {item.name}
                                   </span>

@@ -1,10 +1,11 @@
 import { create } from 'zustand';
-import type { Token, InitiativeItem } from '@/types/game';
+import type { Token, InitiativeItem, InitiativeSortMode } from '@/types/game';
 import { triggerAutoSave } from '@/lib/saveHelpers';
 
 interface TokenState {
   tokens: Token[];
   initiativeQueue: InitiativeItem[];
+  initiativeSortMode: InitiativeSortMode;
   activeCtxTokenId: string | null; // token being right-clicked or context-menued
   editingTokenId: string | null; // token whose sheet is open
   showTokenCreateModal: boolean;
@@ -15,6 +16,7 @@ interface TokenState {
   removeToken: (id: string) => void;
 
   setInitiativeQueue: (queue: InitiativeItem[]) => void;
+  setInitiativeSortMode: (mode: InitiativeSortMode) => void;
   clearInitiative: () => void;
 
   setActiveCtxTokenId: (id: string | null) => void;
@@ -30,6 +32,7 @@ interface TokenState {
 export const useTokenStore = create<TokenState>((set, get) => ({
   tokens: [],
   initiativeQueue: [],
+  initiativeSortMode: 'descending',
   activeCtxTokenId: null,
   editingTokenId: null,
   showTokenCreateModal: false,
@@ -61,6 +64,11 @@ export const useTokenStore = create<TokenState>((set, get) => ({
 
   setInitiativeQueue: (initiativeQueue) => {
     set({ initiativeQueue });
+    triggerAutoSave();
+  },
+
+  setInitiativeSortMode: (mode) => {
+    set({ initiativeSortMode: mode });
     triggerAutoSave();
   },
 

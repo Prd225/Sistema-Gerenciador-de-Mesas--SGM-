@@ -74,9 +74,12 @@ export interface TokenStats {
 }
 
 export interface Condition {
+  id?: string;
   name: string;
   desc: string;
   color: string;
+  type?: 'skip_turn' | 'stat_modifier' | 'out_of_combat' | 'custom';
+  durationTurns?: number; // undefined = infinite
 }
 
 export interface Token {
@@ -153,6 +156,9 @@ export interface Zone {
   y: number;
   w: number;
   h: number;
+  rotation?: number;
+  scaleX?: number;
+  scaleY?: number;
   clipPath?: string; // for polygon CSS clip-path
   points?: number[]; // [x1, y1, x2, y2, ...]
   data: {
@@ -188,6 +194,8 @@ export interface Marker {
 
 // --- Initiative ---
 
+export type InitiativeSortMode = 'descending' | 'ascending' | 'custom';
+
 export interface InitiativeItem {
   tokenId: string;
   value: number;
@@ -209,6 +217,7 @@ export interface BgImage {
 export type ActiveTool =
   | 'pan'
   | 'select'
+  | 'edit-zone'
   | 'draw-rect'
   | 'draw-ellipse'
   | 'draw-poly'

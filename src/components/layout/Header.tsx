@@ -7,12 +7,10 @@ import {
   Plus,
   Swords,
   ChevronDown,
-  RefreshCw,
-  CheckCircle2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { resetGameState } from '@/lib/saveHelpers';
 import { useTokenStore } from '@/store/useTokenStore';
-import { useZoneStore } from '@/store/useZoneStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import {
   DropdownMenu,
@@ -41,27 +39,13 @@ export default function Header() {
   const autoSaveSlot = useCampaignStore((state) => state.autoSaveSlot);
   const autoSaveStatus = useCampaignStore((state) => state.autoSaveStatus);
 
-  const handleNew = () => {
+  const handleNew = async () => {
     if (
       window.confirm(
         'Deseja criar um novo mapa? Todo progresso não salvo será perdido.',
       )
     ) {
-      useTokenStore.setState({
-        tokens: [],
-        initiativeQueue: [],
-        editingTokenId: null,
-        tokenContextMenu: null,
-      });
-      useZoneStore.setState({
-        zones: {},
-        markers: {},
-        bgImages: [],
-        selectedZoneId: null,
-        editingMarkers: false,
-        activeTool: 'pan',
-      });
-      useCampaignStore.setState({ turn: 1 });
+      await resetGameState();
     }
   };
 
@@ -77,32 +61,46 @@ export default function Header() {
     <header className="h-[70px] bg-[#202024]/95 border-b border-[#323238] flex items-center justify-between px-5 z-50 shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
       {/* Logo & File Menu */}
       <div className="flex items-center gap-4">
-        <div className="font-bold text-[#ffd700] flex items-center gap-2">
-          <Swords className="w-6 h-6" />
+        <div
+          className={`font-bold flex items-center gap-2 transition-colors duration-500 ${
+            autoSaveStatus === 'success'
+              ? 'text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.5)]'
+              : 'text-[#ffd700]'
+          }`}
+          title={
+            autoSaveStatus === 'saving'
+              ? 'Salvando...'
+              : autoSaveStatus === 'success'
+                ? 'Salvo!'
+                : ''
+          }
+        >
+          <Swords
+            className={`w-6 h-6 ${autoSaveStatus === 'saving' ? 'animate-spin' : autoSaveStatus === 'success' ? 'animate-spin-once' : ''}`}
+          />
           <div className="flex flex-col">
             <div className="flex items-baseline gap-1.5">
               <span className="text-xl">SGM</span>
-              <span className="text-xs text-[#a8a8b3] font-medium tracking-wider">
+              <span
+                className={`text-xs font-medium tracking-wider transition-colors duration-500 ${
+                  autoSaveStatus === 'success'
+                    ? 'text-green-500'
+                    : 'text-[#a8a8b3]'
+                }`}
+              >
                 v7.0
               </span>
             </div>
-            <span className="text-[0.60rem] text-[#7a7a80] font-semibold uppercase tracking-wider leading-none mt-0.5">
+            <span
+              className={`text-[0.60rem] font-semibold uppercase tracking-wider leading-none mt-0.5 transition-colors duration-500 ${
+                autoSaveStatus === 'success'
+                  ? 'text-green-600'
+                  : 'text-[#7a7a80]'
+              }`}
+            >
               Sistema Gerenciador de Mesas
             </span>
           </div>
-
-          {autoSaveStatus === 'saving' && (
-            <div className="flex items-center gap-1.5 ml-2 text-xs text-[#8257e5] font-semibold animate-pulse">
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-              <span className="opacity-80">Salvando...</span>
-            </div>
-          )}
-          {autoSaveStatus === 'success' && (
-            <div className="flex items-center gap-1.5 ml-2 text-xs text-green-400 font-semibold animate-in fade-in slide-in-from-left-2 duration-300">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span className="opacity-80">Salvo!</span>
-            </div>
-          )}
         </div>
 
         <DropdownMenu>
