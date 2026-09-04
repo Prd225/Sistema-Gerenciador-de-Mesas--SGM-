@@ -141,28 +141,6 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
           listening: activeTool === 'pan' || activeTool === 'select' || activeTool === 'edit-zone',
           perfectDrawEnabled: false,
           shadowForStrokeEnabled: false,
-          onMouseEnter: (e: any) => { 
-            const container = e.target.getStage()?.container();
-            if (container) container.style.cursor = 'pointer'; 
-            e.currentTarget.to({ opacity: 0.8, duration: 0.1 });
-          },
-          onMouseLeave: (e: any) => { 
-            const container = e.target.getStage()?.container();
-            if (container) container.style.cursor = activeTool === 'pan' ? 'grab' : activeTool === 'edit-bg' ? 'default' : 'crosshair'; 
-            e.currentTarget.to({ scaleX: 1, scaleY: 1, opacity: 1, duration: 0.15 });
-          },
-          onMouseDown: (e: any) => {
-            const S = 0.97;
-            // Animate from center by adjusting the offset to compensate for scale shift
-            e.currentTarget.to({ 
-              scaleX: S, scaleY: S, 
-              offsetX: cx * (1 - S), offsetY: cy * (1 - S),
-              opacity: 0.7, duration: 0.06,
-            });
-          },
-          onMouseUp: (e: any) => {
-            e.currentTarget.to({ scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0, opacity: 1, duration: 0.2 });
-          },
         };
 
         return (
@@ -181,6 +159,31 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
             draggable={isActive && isEditTool}
             onDragEnd={(e) => handleDragEnd(e, z.id)}
             onTransformEnd={() => handleTransformEnd(z.id)}
+            onMouseEnter={(e) => {
+              const container = e.target.getStage()?.container();
+              if (container) container.style.cursor = 'pointer';
+              e.currentTarget.to({ opacity: 0.82, duration: 0.1 });
+            }}
+            onMouseLeave={(e) => {
+              const container = e.target.getStage()?.container();
+              if (container) container.style.cursor = activeTool === 'pan' ? 'grab' : activeTool === 'edit-bg' ? 'default' : 'crosshair';
+              // Reset all animated properties including offset/position compensation
+              e.currentTarget.to({ scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0, x: z.x, y: z.y, opacity: 1, duration: 0.15 });
+            }}
+            onMouseDown={(e) => {
+              const S = 0.97;
+              // Scale from bounding-box center:
+              // offsetX/Y moves the pivot to (cx,cy); x/y compensates so the group stays in place
+              e.currentTarget.to({
+                scaleX: S, scaleY: S,
+                offsetX: cx, offsetY: cy,
+                x: z.x + cx, y: z.y + cy,
+                opacity: 0.72, duration: 0.06,
+              });
+            }}
+            onMouseUp={(e) => {
+              e.currentTarget.to({ scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0, x: z.x, y: z.y, opacity: 0.82, duration: 0.18 });
+            }}
           >
             {z.type === 'rect' && (
               <Rect width={z.w} height={z.h} cornerRadius={2} {...commonProps} />
