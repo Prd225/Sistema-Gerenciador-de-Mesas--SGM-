@@ -109,20 +109,7 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
         const strokeWidth = (isActive && isEditTool) ? 2.5 : 1.5;
         const title = z.data?.title || '';
 
-        const commonProps = {
-          fill,
-          stroke,
-          strokeWidth,
-          onClick: (e: any) => handleSelect(e, z.id),
-          onTap: (e: any) => handleSelect(e, z.id),
-          onDblClick: () => handleDoubleClick(z.id),
-          onDblTap: () => handleDoubleClick(z.id),
-          listening: activeTool === 'pan' || activeTool === 'select' || activeTool === 'edit-zone',
-          perfectDrawEnabled: false,
-          shadowForStrokeEnabled: false,
-        };
-
-        // Bounding calculations for text centering
+        // Bounding calculations for text centering (must be before commonProps)
         let textX = 0;
         let textY = 0;
         let textW = z.w;
@@ -138,6 +125,45 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
           textW = maxX - minX;
           textH = maxY - minY;
         }
+
+        // Center of the bounding box, used as the scale origin for the click animation
+        const cx = textX + textW / 2;
+        const cy = textY + textH / 2;
+
+        const commonProps = {
+          fill,
+          stroke,
+          strokeWidth,
+          onClick: (e: any) => handleSelect(e, z.id),
+          onTap: (e: any) => handleSelect(e, z.id),
+          onDblClick: () => handleDoubleClick(z.id),
+          onDblTap: () => handleDoubleClick(z.id),
+          listening: activeTool === 'pan' || activeTool === 'select' || activeTool === 'edit-zone',
+          perfectDrawEnabled: false,
+          shadowForStrokeEnabled: false,
+          onMouseEnter: (e: any) => { 
+            const container = e.target.getStage()?.container();
+            if (container) container.style.cursor = 'pointer'; 
+            e.currentTarget.to({ opacity: 0.8, duration: 0.1 });
+          },
+          onMouseLeave: (e: any) => { 
+            const container = e.target.getStage()?.container();
+            if (container) container.style.cursor = activeTool === 'pan' ? 'grab' : activeTool === 'edit-bg' ? 'default' : 'crosshair'; 
+            e.currentTarget.to({ scaleX: 1, scaleY: 1, opacity: 1, duration: 0.15 });
+          },
+          onMouseDown: (e: any) => {
+            const S = 0.97;
+            // Animate from center by adjusting the offset to compensate for scale shift
+            e.currentTarget.to({ 
+              scaleX: S, scaleY: S, 
+              offsetX: cx * (1 - S), offsetY: cy * (1 - S),
+              opacity: 0.7, duration: 0.06,
+            });
+          },
+          onMouseUp: (e: any) => {
+            e.currentTarget.to({ scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0, opacity: 1, duration: 0.2 });
+          },
+        };
 
         return (
           <Group 

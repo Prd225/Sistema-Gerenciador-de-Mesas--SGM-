@@ -40,18 +40,28 @@ function MarkerLayer({ scale = 1 }: { scale?: number }) {
           x={marker.x}
           y={marker.y}
           draggable={activeTool === 'add-marker'}
-          listening={activeTool === 'add-marker'}
+          listening={activeTool === 'add-marker' || activeTool === 'pan' || activeTool === 'select'}
           onClick={(e) => {
             e.cancelBubble = true;
+            if (activeTool === 'pan' || activeTool === 'select') {
+               useZoneStore.getState().setRightSidebarOpen(true);
+            }
           }}
           onMouseEnter={(e) => {
-            if (activeTool !== 'add-marker') return;
-            document.body.style.cursor = 'pointer';
-            e.currentTarget.to({ scaleX: 0.95, scaleY: 0.95, opacity: 0.85, duration: 0.15 });
+            const container = e.target.getStage().container();
+            container.style.cursor = 'pointer';
+            e.currentTarget.to({ scaleX: 1.05, scaleY: 1.05, duration: 0.15 });
           }}
           onMouseLeave={(e) => {
-            document.body.style.cursor = 'default';
-            e.currentTarget.to({ scaleX: 1, scaleY: 1, opacity: 1, duration: 0.15 });
+            const container = e.target.getStage().container();
+            container.style.cursor = activeTool === 'pan' ? 'grab' : activeTool === 'edit-bg' ? 'default' : 'crosshair';
+            e.currentTarget.to({ scaleX: 1, scaleY: 1, duration: 0.15 });
+          }}
+          onMouseDown={(e) => {
+            e.currentTarget.to({ scaleX: 0.9, scaleY: 0.9, duration: 0.05 });
+          }}
+          onMouseUp={(e) => {
+            e.currentTarget.to({ scaleX: 1.05, scaleY: 1.05, duration: 0.2 });
           }}
           onDragStart={(e) => {
             e.currentTarget.to({ scaleX: 0.85, scaleY: 0.85, opacity: 0.7, duration: 0.15 });
