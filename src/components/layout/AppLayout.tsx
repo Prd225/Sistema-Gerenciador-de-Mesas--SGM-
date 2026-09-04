@@ -94,10 +94,15 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
     <div className="h-screen w-screen bg-[#121214] text-[#e1e1e6] overflow-hidden flex flex-col font-sans">
       <Header />
 
-      <div className="flex-1 flex overflow-hidden">
-        <SidebarLeft isOpen={leftOpen} toggle={toggleLeft} />
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Left Sidebar: absolute overlay so it never pushes the map */}
+        <div className="absolute inset-y-0 left-0 z-40 pointer-events-none">
+          <div className="pointer-events-auto h-full">
+            <SidebarLeft isOpen={leftOpen} toggle={toggleLeft} />
+          </div>
+        </div>
 
-        {/* Main Viewport */}
+        {/* Main Viewport — always full width, sidebars float on top */}
         <main className="flex-1 relative overflow-hidden bg-[#0d0d0f] select-none">
           <StageMap />
           <MapToolbar />

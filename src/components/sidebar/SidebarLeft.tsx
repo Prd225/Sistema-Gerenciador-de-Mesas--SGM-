@@ -94,7 +94,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
     <>
       <aside 
         style={{ width: `${width}px` }}
-        className="bg-[#202024] border-r border-[#323238] flex flex-col h-full z-40 overflow-hidden shrink-0 relative"
+        className="bg-[#202024] border-r border-[#323238] flex flex-col h-full z-40 overflow-hidden relative shadow-xl"
       >
       <div className="p-5 overflow-y-auto flex-1 h-full flex flex-col relative">
 
@@ -175,8 +175,8 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
               <div className="space-y-6 flex-1 min-w-0">
                 {activeTab === 'geral' && (
                   <>
-                    <div className="flex items-baseline gap-3 mb-2">
-                      <h2 className="text-[#e1e1e6] text-xl font-bold">{zoneData.title || 'Nova Zona'}</h2>
+                    <div className="flex items-baseline gap-3 mb-2 flex-wrap">
+                      <h2 className="text-[#e1e1e6] text-xl font-bold break-words min-w-0">{zoneData.title || 'Nova Zona'}</h2>
                       {(zoneData.visits || 0) > 0 && (
                         <span className="text-[#a8a8b3] text-xs font-medium">{zoneData.visits}x visitada</span>
                       )}
@@ -217,7 +217,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                   }} className="text-[#a8a8b3] hover:text-[#8257e5] transition-colors" title="Marcar como revelado">
                                     {opt.isRevealed ? <CheckSquare className="w-4 h-4 text-[#04d361]" /> : <Square className="w-4 h-4" />}
                                   </button>
-                                  <div className="font-bold text-[#e1e1e6]">{opt.name}:</div>
+                                  <div className="font-bold text-[#e1e1e6] break-words min-w-0">{opt.name}:</div>
                                 </div>
                                 <RichTextView content={opt.desc} defaultText="" />
                               </div>
@@ -242,7 +242,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                           };
                           return (
                             <div key={idx} className={`bg-black/20 p-3 rounded mb-3 border-l-[3px] min-w-0 ${borderColors[evt.color] || borderColors.red}`}>
-                              <span className={`font-bold block mb-2 text-lg ${textColors[evt.color] || textColors.red}`}>{evt.name}</span>
+                              <span className={`font-bold block mb-2 text-lg break-words min-w-0 ${textColors[evt.color] || textColors.red}`}>{evt.name}</span>
                               <RichTextView content={evt.desc} defaultText="" />
                             </div>
                           );
@@ -284,7 +284,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                     }} className="text-[#a8a8b3] hover:text-[#8257e5] transition-colors mt-0.5" title="Marcar como revelado">
                                       {hl.isRevealed ? <CheckSquare className="w-4 h-4 text-[#04d361]" /> : <Square className="w-4 h-4" />}
                                     </button>
-                                    <span className={`font-bold text-lg ${textColors[hl.color] || textColors.gray}`}>{hl.name}</span>
+                                    <span className={`font-bold text-lg break-words min-w-0 ${textColors[hl.color] || textColors.gray}`}>{hl.name}</span>
                                   </div>
                                   <div className="flex gap-1 flex-wrap justify-end">
                                     {hl.tags && hl.tags.split(',').map((tag, tIdx) => (
@@ -320,7 +320,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                                }} className="text-[#a8a8b3] hover:text-[#8257e5] transition-colors" title="Marcar como revelada">
                                  {threat.isRevealed ? <CheckSquare className="w-5 h-5 text-red-500" /> : <Square className="w-5 h-5" />}
                                </button>
-                               <span className="font-bold text-[#e1e1e6] text-lg">{threat.name}</span>
+                               <span className="font-bold text-[#e1e1e6] text-lg break-words min-w-0">{threat.name}</span>
                              </div>
                              <span className="bg-red-500/20 text-red-500 text-xs px-2 py-0.5 rounded border border-red-500/30 uppercase shrink-0 ml-2">{threat.type}</span>
                            </div>
@@ -356,15 +356,15 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                         return (
                           <div key={idx} className={`bg-black/20 p-3 rounded mb-3 border border-[#323238] min-w-0 transition-opacity ${item.isFound ? 'opacity-50 grayscale' : ''}`}>
                             <div className="flex justify-between items-center mb-1">
-                              <div className="flex items-center gap-2 truncate mr-2">
+                              <div className="flex items-start gap-2 min-w-0 mr-2 flex-wrap">
                                 <button onClick={() => {
                                   const newInv = JSON.parse(JSON.stringify(zoneData.customInventory));
                                   newInv[idx].isFound = !newInv[idx].isFound;
                                   updateZoneData(zone.id, { customInventory: newInv });
-                                }} className="text-[#a8a8b3] hover:text-[#8257e5] transition-colors shrink-0" title="Marcar como encontrado">
+                                }} className="text-[#a8a8b3] hover:text-[#8257e5] transition-colors shrink-0 mt-0.5" title="Marcar como encontrado">
                                   {item.isFound ? <CheckSquare className="w-5 h-5 text-[#ffd700]" /> : <Square className="w-5 h-5" />}
                                 </button>
-                                <span className={`font-bold text-lg truncate ${item.isFound ? 'text-[#a8a8b3] line-through' : 'text-[#e1e1e6]'}`}>{item.name}</span>
+                                <span className={`font-bold text-lg break-words min-w-0 ${item.isFound ? 'text-[#a8a8b3] line-through' : 'text-[#e1e1e6]'}`}>{item.name}</span>
                               </div>
                               <div className="flex gap-2 shrink-0">
                                 <span className="bg-[#121214] text-[#a8a8b3] text-xs px-2 py-0.5 rounded border border-[#323238] uppercase">{item.type}</span>
