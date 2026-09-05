@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Zone, Marker, BgImage, ActiveTool } from '@/types/game';
 import { triggerAutoSave } from '@/lib/saveHelpers';
+import { socket } from '@/lib/socket';
 
 interface ZoneState {
   zones: Record<string, Zone>;
@@ -24,6 +25,7 @@ interface ZoneState {
   toggleLeftSidebar: () => void;
   toggleRightSidebar: () => void;
 
+  // Local actions (emitem pro Socket se conectado)
   addZone: (zone: Zone) => void;
   updateZone: (id: string, updates: Partial<Zone>) => void;
   updateZoneData: (id: string, updates: Partial<Zone['data']>) => void;
@@ -36,6 +38,19 @@ interface ZoneState {
   addBgImage: (bg: BgImage) => void;
   updateBgImage: (id: string, updates: Partial<BgImage>) => void;
   removeBgImage: (id: string) => void;
+
+  // Remote actions (recebidas via WebSocket sem re-emitir)
+  addZoneFromRemote: (zone: Zone) => void;
+  updateZoneFromRemote: (id: string, updates: Partial<Zone>) => void;
+  removeZoneFromRemote: (id: string) => void;
+
+  addMarkerFromRemote: (marker: Marker) => void;
+  updateMarkerFromRemote: (id: string, updates: Partial<Marker>) => void;
+  removeMarkerFromRemote: (id: string) => void;
+
+  addBgImageFromRemote: (bg: BgImage) => void;
+  updateBgImageFromRemote: (id: string, updates: Partial<BgImage>) => void;
+  removeBgImageFromRemote: (id: string) => void;
 
   setSelectedZoneId: (id: string | null) => void;
   setEditingZone: (isEditing: boolean) => void;
@@ -71,9 +86,13 @@ export const useZoneStore = create<ZoneState>((set) => ({
   toggleRightSidebar: () =>
     set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen })),
 
+  // --- Local Zone Actions ---
   addZone: (zone) => {
     set((state) => ({ zones: { ...state.zones, [zone.id]: zone } }));
     triggerAutoSave();
+    if (socket.connected) {
+      socket.emit('zone:add', { zone });
+    }
   },
 
   updateZone: (id, updates) => {
@@ -84,16 +103,26 @@ export const useZoneStore = create<ZoneState>((set) => ({
       },
     }));
     triggerAutoSave();
+    if (socket.connected) {
+      socket.emit('zone:update', { zoneId: id, updates });
+    }
   },
 
   updateZoneData: (id, dataUpdates) => {
     set((state) => {
       const zone = state.zones[id];
       if (!zone) return state;
+      const updatedZone = { ...zone, data: { ...zone.data, ...dataUpdates } };
+      if (socket.connected) {
+        socket.emit('zone:update', {
+          zoneId: id,
+          updates: { data: updatedZone.data },
+        });
+      }
       return {
         zones: {
           ...state.zones,
-          [id]: { ...zone, data: { ...zone.data, ...dataUpdates } },
+          [id]: updatedZone,
         },
       };
     });
@@ -111,13 +140,20 @@ export const useZoneStore = create<ZoneState>((set) => ({
       };
     });
     triggerAutoSave();
+    if (socket.connected) {
+      socket.emit('zone:remove', { zoneId: id });
+    }
   },
 
+  // --- Local Marker Actions ---
   addMarker: (marker) => {
     set((state) => ({
       markers: { ...state.markers, [marker.id]: marker },
     }));
     triggerAutoSave();
+    if (socket.connected) {
+      socket.emit('marker:add', { marker });
+    }
   },
 
   updateMarker: (id, updates) => {
@@ -128,6 +164,9 @@ export const useZoneStore = create<ZoneState>((set) => ({
       },
     }));
     triggerAutoSave();
+    if (socket.connected) {
+      socket.emit('marker:update', { markerId: id, updates });
+    }
   },
 
   removeMarker: (id) => {
@@ -137,13 +176,20 @@ export const useZoneStore = create<ZoneState>((set) => ({
       return { markers: newMarkers };
     });
     triggerAutoSave();
+    if (socket.connected) {
+      socket.emit('marker:remove', { markerId: id });
+    }
   },
 
+  // --- Local Background Image Actions ---
   addBgImage: (bg) => {
     set((state) => ({
       bgImages: [...state.bgImages, bg],
     }));
     triggerAutoSave();
+    if (socket.connected) {
+      socket.emit('bg:add', { bg });
+    }
   },
 
   updateBgImage: (id, updates) => {
@@ -153,6 +199,9 @@ export const useZoneStore = create<ZoneState>((set) => ({
       ),
     }));
     triggerAutoSave();
+    if (socket.connected) {
+      socket.emit('bg:update', { bgId: id, updates });
+    }
   },
 
   removeBgImage: (id) => {
@@ -160,6 +209,81 @@ export const useZoneStore = create<ZoneState>((set) => ({
       bgImages: state.bgImages.filter((bg) => bg.id !== id),
     }));
     triggerAutoSave();
+    if (socket.connected) {
+      socket.emit('bg:remove', { bgId: id });
+    }
+  },
+
+  // --- Remote Actions (from WebSocket) ---
+  addZoneFromRemote: (zone) => {
+    set((state) => ({
+      zones: { ...state.zones, [zone.id]: zone },
+    }));
+  },
+
+  updateZoneFromRemote: (id, updates) => {
+    set((state) => ({
+      zones: {
+        ...state.zones,
+        [id]: { ...state.zones[id], ...updates },
+      },
+    }));
+  },
+
+  removeZoneFromRemote: (id) => {
+    set((state) => {
+      const newZones = { ...state.zones };
+      delete newZones[id];
+      return {
+        zones: newZones,
+        selectedZoneId:
+          state.selectedZoneId === id ? null : state.selectedZoneId,
+      };
+    });
+  },
+
+  addMarkerFromRemote: (marker) => {
+    set((state) => ({
+      markers: { ...state.markers, [marker.id]: marker },
+    }));
+  },
+
+  updateMarkerFromRemote: (id, updates) => {
+    set((state) => ({
+      markers: {
+        ...state.markers,
+        [id]: { ...state.markers[id], ...updates },
+      },
+    }));
+  },
+
+  removeMarkerFromRemote: (id) => {
+    set((state) => {
+      const newMarkers = { ...state.markers };
+      delete newMarkers[id];
+      return { markers: newMarkers };
+    });
+  },
+
+  addBgImageFromRemote: (bg) => {
+    set((state) => {
+      if (state.bgImages.some((b) => b.id === bg.id)) return state;
+      return { bgImages: [...state.bgImages, bg] };
+    });
+  },
+
+  updateBgImageFromRemote: (id, updates) => {
+    set((state) => ({
+      bgImages: state.bgImages.map((bg) =>
+        bg.id === id ? { ...bg, ...updates } : bg,
+      ),
+    }));
+  },
+
+  removeBgImageFromRemote: (id) => {
+    set((state) => ({
+      bgImages: state.bgImages.filter((bg) => bg.id !== id),
+    }));
   },
 
   setSelectedZoneId: (selectedZoneId) => set({ selectedZoneId }),
@@ -176,7 +300,7 @@ export const useZoneStore = create<ZoneState>((set) => ({
       leftSidebarOpen: true,
     }),
 
-  updateZoneTransform: (id, updates) =>
+  updateZoneTransform: (id, updates) => {
     set((state) => {
       const zone = state.zones[id];
       if (!zone) return state;
@@ -186,5 +310,10 @@ export const useZoneStore = create<ZoneState>((set) => ({
           [id]: { ...zone, ...updates },
         },
       };
-    }),
+    });
+    triggerAutoSave();
+    if (socket.connected) {
+      socket.emit('zone:update', { zoneId: id, updates });
+    }
+  },
 }));

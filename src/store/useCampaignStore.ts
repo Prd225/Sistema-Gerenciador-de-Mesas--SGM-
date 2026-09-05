@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { useTokenStore } from './useTokenStore';
 import { triggerAutoSave } from '@/lib/saveHelpers';
+import { socket } from '@/lib/socket';
 
 interface CampaignState {
   scene: number;
@@ -20,6 +21,8 @@ interface CampaignState {
   nextRound: () => void;
   setTurn: (turn: number) => void;
   addTurn: () => void;
+  setRoundTurnFromRemote: (round: number, turn: number) => void;
+
   setUrgency: (urgency: number | null) => void;
   changeUrgency: (amount: number) => void;
   setTurnsPerRound: (amount: number) => void;
@@ -51,29 +54,44 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
   nextScene: () => {
     set((state) => ({ scene: state.scene + 1, round: 1, turn: 1 }));
     triggerAutoSave();
+    if (socket.connected) {
+      socket.emit('campaign:update-round-turn', { round: 1, turn: 1 });
+    }
   },
 
   setRound: (round) => {
     set({ round });
     triggerAutoSave();
+    if (socket.connected) {
+      socket.emit('campaign:update-round-turn', { round, turn: get().turn });
+    }
   },
   nextRound: () => {
-    set((state) => ({ round: state.round + 1 }));
+    const nextR = get().round + 1;
+    set({ round: nextR });
     triggerAutoSave();
+    if (socket.connected) {
+      socket.emit('campaign:update-round-turn', {
+        round: nextR,
+        turn: get().turn,
+      });
+    }
   },
 
   setTurn: (turn) => {
     set({ turn });
     triggerAutoSave();
+    if (socket.connected) {
+      socket.emit('campaign:update-round-turn', { round: get().round, turn });
+    }
   },
+
   addTurn: () => {
     const { turn, turnsPerRound, round, urgency } = get();
-    // Pre-requisite: we need access to tokens and queue
     const tokenStore = useTokenStore.getState();
     const { initiativeQueue, tokens, updateToken } = tokenStore;
 
     if (initiativeQueue.length === 0) {
-      // fallback to basic behavior if no queue
       let nextTurn = turn + 1;
       let nextRound = round;
       let nextUrgency = urgency;
@@ -84,6 +102,12 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
       }
       set({ turn: nextTurn, round: nextRound, urgency: nextUrgency });
       triggerAutoSave();
+      if (socket.connected) {
+        socket.emit('campaign:update-round-turn', {
+          round: nextRound,
+          turn: nextTurn,
+        });
+      }
       return;
     }
 
@@ -91,7 +115,6 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
     let currentRound = round;
     let currentUrgency = urgency;
 
-    // Loop to find the next valid turn, skipping 'skip_turn' and 'out_of_combat'
     let sanityLimit = initiativeQueue.length + 1;
     while (sanityLimit > 0) {
       sanityLimit--;
@@ -105,19 +128,18 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
       }
 
       const queueItem = initiativeQueue[currentTurn - 1];
-      if (!queueItem) break; // Should not happen if turnsPerRound matches queue length
+      if (!queueItem) break;
 
       const token = tokens.find((t) => t.id === queueItem.tokenId);
       if (!token) break;
 
-      // Process conditions for this token as its turn is coming up
       let shouldSkip = false;
       let conditionsChanged = false;
       const newConditions = token.conditions
         .map((c) => {
           if (c.type === 'out_of_combat') {
             shouldSkip = true;
-            return c; // Out of combat usually doesn't decrement, it's persistent until removed
+            return c;
           }
 
           let cpy = { ...c };
@@ -145,14 +167,21 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
       }
 
       if (!shouldSkip) {
-        // We found a valid turn
         break;
       }
     }
 
     set({ turn: currentTurn, round: currentRound, urgency: currentUrgency });
     triggerAutoSave();
+    if (socket.connected) {
+      socket.emit('campaign:update-round-turn', {
+        round: currentRound,
+        turn: currentTurn,
+      });
+    }
   },
+
+  setRoundTurnFromRemote: (round, turn) => set({ round, turn }),
 
   setUrgency: (urgency) => {
     set({ urgency });

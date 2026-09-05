@@ -22,4 +22,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-test_desempenho/  
+test_desempenho/
+*.tsbuildinfo
