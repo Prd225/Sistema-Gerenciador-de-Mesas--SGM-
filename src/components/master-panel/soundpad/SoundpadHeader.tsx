@@ -31,6 +31,20 @@ export default function SoundpadHeader() {
     };
 
     initializeAuth();
+
+    // Listener para quando o login for concluído na janela pop-up
+    const handleAuthMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'SPOTIFY_AUTH_SUCCESS') {
+        const activeToken = event.data.token || getSpotifyToken();
+        setToken(activeToken);
+        if (activeToken) {
+          initSpotifyPlayer();
+        }
+      }
+    };
+
+    window.addEventListener('message', handleAuthMessage);
+    return () => window.removeEventListener('message', handleAuthMessage);
   }, []);
 
   return (

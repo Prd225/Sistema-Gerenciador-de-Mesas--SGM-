@@ -74,10 +74,42 @@ export const handleSpotifyAuthCallback = async (): Promise<boolean> => {
     localStorage.setItem('spotify_token', data.access_token);
     localStorage.setItem('spotify_token_expires', expiresAt.toString());
 
+    // Se estiver em um popup de autenticação, avisa a janela principal e fecha
+    if (window.opener) {
+      try {
+        window.opener.postMessage(
+          { type: 'SPOTIFY_AUTH_SUCCESS', token: data.access_token },
+          '*',
+        );
+      } catch (postErr) {
+        console.error(
+          'Erro ao enviar postMessage para janela principal:',
+          postErr,
+        );
+      }
+      setTimeout(() => {
+        window.close();
+      }, 250);
+      return true;
+    }
+
     window.history.replaceState(null, '', window.location.pathname);
     return true;
   } catch (err) {
-    console.error(err);
+    console.error('Falha no callback do Spotify:', err);
+    if (window.opener) {
+      try {
+        window.opener.postMessage(
+          { type: 'SPOTIFY_AUTH_ERROR', error: String(err) },
+          '*',
+        );
+      } catch {
+        // ignore
+      }
+      setTimeout(() => {
+        window.close();
+      }, 250);
+    }
     return false;
   }
 };
@@ -101,7 +133,22 @@ export const loginToSpotify = async () => {
   authUrl.searchParams.append('code_challenge', challenge);
   authUrl.searchParams.append('show_dialog', 'true');
 
-  window.location.href = authUrl.toString();
+  // Abre janela pop-up centralizada estilo Google Sign-In
+  const width = 500;
+  const height = 650;
+  const left = window.screenX + (window.outerWidth - width) / 2;
+  const top = window.screenY + (window.outerHeight - height) / 2;
+
+  const popup = window.open(
+    authUrl.toString(),
+    'spotify_auth_popup',
+    `width=${width},height=${height},left=${left},top=${top},status=no,resizable=yes,scrollbars=yes`,
+  );
+
+  // Fallback se o navegador bloquear o popup
+  if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+    window.open(authUrl.toString(), '_blank');
+  }
 };
 
 export const logoutFromSpotify = () => {
