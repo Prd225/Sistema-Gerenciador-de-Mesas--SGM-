@@ -123,14 +123,19 @@ export default function Header() {
             <DropdownMenuItem
               onClick={handleNew}
               disabled={autoSaveSlot !== null}
-              className="cursor-pointer hover:bg-[#8257e5] hover:text-white focus:bg-[#8257e5] focus:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              className="cursor-pointer hover:bg-[#8257e5] hover:text-white focus:bg-[#8257e5] focus:text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
               title={
                 autoSaveSlot !== null
                   ? 'Desative o Auto-Save para criar um mapa novo'
-                  : ''
+                  : 'Cria uma nova mesa em branco (ou use Ctrl+Shift+R para Hard Reset)'
               }
             >
-              <FilePlus2 className="w-4 h-4 mr-2" /> Novo
+              <div className="flex items-center">
+                <FilePlus2 className="w-4 h-4 mr-2" /> Novo
+              </div>
+              <span className="text-[10px] text-[#7c7c8a] ml-4 font-mono">
+                Ctrl+Shift+R
+              </span>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={handleLoad}

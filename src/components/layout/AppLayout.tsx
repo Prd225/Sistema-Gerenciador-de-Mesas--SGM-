@@ -17,12 +17,14 @@ import MasterPanelOverlay from '../master-panel/MasterPanelOverlay';
 import SoundpadEngine from '../master-panel/soundpad/SoundpadEngine';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useEffect } from 'react';
-import { triggerAutoSave } from '@/lib/saveHelpers';
+import {
+  triggerAutoSave,
+  loadWorkingSession,
+  resetGameState,
+} from '@/lib/saveHelpers';
 import { useZoneStore } from '@/store/useZoneStore';
 import { useTokenStore } from '@/store/useTokenStore';
-import { useScenesStore } from '@/store/useScenesStore';
 import { Search, Edit, Copy, IdCard, Trash2, Map } from 'lucide-react';
-import { db } from '@/lib/db';
 
 export default function AppLayout({
   children,
@@ -43,11 +45,21 @@ export default function AppLayout({
   const getTokenById = useTokenStore((state) => state.getTokenById);
   const autoSaveSlot = useCampaignStore((state) => state.autoSaveSlot);
 
-  // Auto-Save Lifecycle & Shortcuts
+  // Working Session Initialization & Shortcuts Lifecycle
   useEffect(() => {
+    // 1. Carregar estado da mesa salvo no cache de sessão (preservado ao dar F5)
+    const initSession = async () => {
+      try {
+        await loadWorkingSession();
+      } catch (err) {
+        console.error('[SGM] Falha ao inicializar sessão persistida:', err);
+      }
+    };
+    initSession();
+
     let interval: ReturnType<typeof setInterval> | null = null;
 
-    // Intervalo de 10 minutos (apenas se tiver slot)
+    // Intervalo de 10 minutos (apenas se tiver slot associado)
     if (autoSaveSlot !== null) {
       interval = setInterval(
         () => {
@@ -57,42 +69,44 @@ export default function AppLayout({
       );
     }
 
-    // Atalho Ctrl+S (Funciona globalmente)
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+    // Atalhos globais de teclado
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      // Ctrl+S / Cmd+S: Salvar
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        !e.shiftKey &&
+        (e.key === 's' || e.key === 'S')
+      ) {
         e.preventDefault();
         if (useCampaignStore.getState().autoSaveSlot !== null) {
           triggerAutoSave(true); // forceImmediate = true
         } else {
           useCampaignStore.getState().setShowSaveModal(true);
         }
+        return;
+      }
+
+      // Hard Reset: Ctrl+Shift+R / Cmd+Shift+R / Ctrl+F5 / Shift+F5
+      const isHardReset =
+        ((e.ctrlKey || e.metaKey) &&
+          e.shiftKey &&
+          (e.key === 'R' || e.key === 'r')) ||
+        (e.ctrlKey && e.key === 'F5') ||
+        (e.shiftKey && e.key === 'F5');
+
+      if (isHardReset) {
+        e.preventDefault();
+        if (
+          window.confirm(
+            'Deseja realizar um Hard Reset completo? Isso limpará o estado atual da mesa e recarregará a página em branco.',
+          )
+        ) {
+          await resetGameState();
+        }
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
-
-    // Limpar sessões fantasmas do banco de dados ao inicializar
-    // Só limpar se NÃO tivermos recebido um slot de auto-save recente?
-    // Como SGM é totalmente em RAM, o refresh zera a RAM de qualquer forma,
-    // então a tabela activeScenes pode e DEVE ser zerada ao recarregar a janela.
-    const clearGhostSessions = async () => {
-      // Pequena checagem pra evitar limpar no exato momento que o React StrictMode remonta,
-      // embora db.clear seja idotempontente.
-      try {
-        await db.activeScenes.clear();
-      } catch (e) {
-        console.error('Failed to clear ghost sessions', e);
-      }
-    };
-
-    // We only clear if this is a fresh mount and the RAM is empty.
-    // If the RAM has scenes but the db doesn't, it means we are in the middle of a hot-reload in dev mode.
-    const isFreshBoot =
-      useTokenStore.getState().tokens.length === 0 &&
-      useScenesStore.getState().scenes.length <= 1;
-    if (isFreshBoot) {
-      clearGhostSessions();
-    }
 
     return () => {
       if (interval) clearInterval(interval);

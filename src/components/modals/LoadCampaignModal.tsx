@@ -8,15 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useCampaignStore } from '@/store/useCampaignStore';
-import { useTokenStore } from '@/store/useTokenStore';
-import { useZoneStore } from '@/store/useZoneStore';
-import { useDiaryStore } from '@/store/useDiaryStore';
-import { useRulesStore } from '@/store/useRulesStore';
-import { useNotesStore } from '@/store/useNotesStore';
-import { useTablesStore } from '@/store/useTablesStore';
-import { useRoulettesStore } from '@/store/useRoulettesStore';
-import { useSoundpadStore } from '@/store/useSoundpadStore';
-import { useScenesStore } from '@/store/useScenesStore';
+import { applyGameState, saveWorkingSession } from '@/lib/saveHelpers';
 import { db } from '@/lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
@@ -56,92 +48,8 @@ export default function LoadCampaignModal() {
 
   const handleLoad = async (data: any) => {
     try {
-      if (data.tokens) {
-        useTokenStore.setState({
-          tokens: data.tokens.tokens || [],
-          initiativeQueue: data.tokens.initiativeQueue || [],
-        });
-      }
-      if (data.zones) {
-        const migratedZones = data.zones.zones || {};
-        // Migration for legacy customHighlights format
-        Object.values(migratedZones).forEach((zone: any) => {
-          if (
-            zone.data?.customHighlights &&
-            zone.data.customHighlights.length > 0
-          ) {
-            if (!('options' in zone.data.customHighlights[0])) {
-              const oldHighlights = zone.data.customHighlights;
-              zone.data.customHighlights = [
-                {
-                  title: 'Migrados',
-                  options: oldHighlights,
-                },
-              ];
-            }
-          }
-        });
-
-        useZoneStore.setState({
-          zones: migratedZones,
-          markers: data.zones.markers || {},
-          bgImages: data.zones.bgImages || [],
-        });
-      }
-      if (data.campaign) {
-        useCampaignStore.setState({
-          scene: data.campaign.scene || 1,
-          round: data.campaign.round || 1,
-          turn: data.campaign.turn || 1,
-          urgency:
-            data.campaign.urgency !== undefined ? data.campaign.urgency : null,
-          turnsPerRound: data.campaign.turnsPerRound || 10,
-        });
-      }
-      if (data.diary) {
-        useDiaryStore.setState({
-          entries: data.diary.entries || [],
-        });
-      }
-      if (data.rules) {
-        useRulesStore.setState({
-          pages: data.rules.pages || [],
-        });
-      }
-      if (data.notes) {
-        useNotesStore.setState({
-          pages: data.notes.pages || [],
-        });
-      }
-      if (data.tables) {
-        useTablesStore.setState({
-          pages: data.tables.pages || [],
-        });
-      }
-      if (data.roulettes) {
-        useRoulettesStore.setState({
-          pages: data.roulettes.pages || [],
-        });
-      }
-      if (data.soundpad) {
-        useSoundpadStore.setState({
-          pages: data.soundpad.pages || [],
-        });
-      }
-      if (data.scenes) {
-        await db.activeScenes.clear();
-        if (data.scenes.sceneData && data.scenes.sceneData.length > 0) {
-          await db.activeScenes.bulkAdd(data.scenes.sceneData);
-        }
-
-        useScenesStore.setState({
-          scenes: data.scenes.scenes || [],
-          activeSceneId: data.scenes.activeSceneId || null,
-        });
-      } else {
-        // Fallback para saves antigos que não tinham cenas
-        await useScenesStore.getState().loadLegacyData(data.tokens, data.zones);
-      }
+      await applyGameState(data);
+      await saveWorkingSession(data);
       onOpenChange(false);
       alert('Campanha carregada com sucesso!');
     } catch (err) {

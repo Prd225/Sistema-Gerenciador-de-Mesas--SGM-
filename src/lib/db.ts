@@ -16,9 +16,16 @@ export interface ActiveScene {
   bgImages: any[];
 }
 
+export interface SessionState {
+  key: string; // 'currentSession'
+  updatedAt: number;
+  data: any;
+}
+
 export class SGMDatabase extends Dexie {
   campaignSlots!: EntityTable<SaveSlot, 'slotNumber'>;
   activeScenes!: EntityTable<ActiveScene, 'id'>;
+  sessionState!: EntityTable<SessionState, 'key'>;
 
   constructor() {
     super('SGMDatabase');
@@ -38,6 +45,11 @@ export class SGMDatabase extends Dexie {
     this.version(6).stores({
       campaignSlots: 'slotNumber',
       activeScenes: 'id',
+    });
+    this.version(7).stores({
+      campaignSlots: 'slotNumber',
+      activeScenes: 'id',
+      sessionState: 'key',
     });
   }
 }

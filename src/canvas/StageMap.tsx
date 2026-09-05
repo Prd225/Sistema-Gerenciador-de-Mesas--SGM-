@@ -21,8 +21,47 @@ export default function StageMap() {
   const stageRef = useRef<any>(null);
 
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
-  const [scale, setScale] = useState(1);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [scale, setScale] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('sgm_viewport');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed.scale === 'number') return parsed.scale;
+      }
+    } catch {
+      // ignore
+    }
+    return 1;
+  });
+  const [position, setPosition] = useState<{ x: number; y: number }>(() => {
+    try {
+      const saved = sessionStorage.getItem('sgm_viewport');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (
+          parsed.position &&
+          typeof parsed.position.x === 'number' &&
+          typeof parsed.position.y === 'number'
+        ) {
+          return parsed.position;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return { x: 0, y: 0 };
+  });
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        'sgm_viewport',
+        JSON.stringify({ scale, position }),
+      );
+    } catch {
+      // ignore
+    }
+  }, [scale, position]);
 
   const activeTool = useZoneStore((state) => state.activeTool);
   const setActiveTool = useZoneStore((state) => state.setActiveTool);
