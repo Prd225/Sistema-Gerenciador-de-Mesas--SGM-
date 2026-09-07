@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -140,7 +140,7 @@ const PRESET_LIST: PresetMeta[] = [
   },
   {
     id: 'missoes',
-    name: 'Objetivos & Missões',
+    name: 'Missões',
     description: 'Metas principais e tarefas com recompensas da área.',
     color: '#10b981',
     icon: Compass,
@@ -308,20 +308,47 @@ export default function ZoneMarkerModal({
   const [customColor, setCustomColor] = useState('#8257e5');
   const [customNodeChecked, setCustomNodeChecked] = useState(false);
 
-  // Estado do Balãozinho / Tooltip ao passar o cursor no Card
+  // Estado do Balãozinho / Tooltip inteligente ao passar o cursor no Card
   const [hoveredPreset, setHoveredPreset] = useState<PresetMeta | null>(null);
-  const [hoveredPos, setHoveredPos] = useState<{ left: number; top: number } | null>(null);
+  const [tooltipState, setTooltipState] = useState<{
+    left: number;
+    top: number;
+    arrowOffset: number;
+    placement: 'above' | 'below';
+  } | null>(null);
+
+  // Controle de rolagem do carrossel para habilitar/desabilitar botões
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
 
   const carouselRef = useRef<HTMLDivElement>(null);
   const carouselContainerRef = useRef<HTMLDivElement>(null);
 
   const zoneTitle = zone?.data?.title || 'Zona Atual';
 
+  const updateScrollState = () => {
+    if (carouselRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
+      setCanScrollLeft(scrollLeft > 4);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 4);
+    }
+  };
+
+  useEffect(() => {
+    if (open && activeTab === 'presets') {
+      const timer = setTimeout(updateScrollState, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [open, activeTab]);
+
   const scrollCarousel = (direction: 'left' | 'right') => {
     handleCardMouseLeave();
     if (carouselRef.current) {
-      const scrollAmount = direction === 'left' ? -200 : 200;
+      // Passo de rolagem exato de 1 card (130px largura + 8px gap = 138px)
+      const cardStride = 138;
+      const scrollAmount = direction === 'left' ? -cardStride : cardStride;
       carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      setTimeout(updateScrollState, 320);
     }
   };
 
@@ -333,16 +360,43 @@ export default function ZoneMarkerModal({
     if (carouselContainerRef.current) {
       const containerRect = carouselContainerRef.current.getBoundingClientRect();
       const cardRect = e.currentTarget.getBoundingClientRect();
-      setHoveredPos({
-        left: cardRect.left - containerRect.left + cardRect.width / 2,
-        top: cardRect.top - containerRect.top,
+      const cardCenterX = cardRect.left - containerRect.left + cardRect.width / 2;
+      const containerWidth = containerRect.width;
+
+      const tooltipWidth = 210;
+      const halfTooltip = tooltipWidth / 2;
+      const padding = 12;
+
+      const minX = halfTooltip + padding;
+      const maxX = Math.max(minX, containerWidth - halfTooltip - padding);
+      const clampedCenterX = Math.max(minX, Math.min(cardCenterX, maxX));
+
+      // Deslocamento da seta em relação ao centro do balãozinho
+      const rawOffset = cardCenterX - clampedCenterX;
+      const maxOffset = halfTooltip - 16;
+      const safeArrowOffset = Math.max(-maxOffset, Math.min(rawOffset, maxOffset));
+
+      // Determina dinamicamente a posição vertical conforme o espaço disponível
+      const spaceAbove = cardRect.top - containerRect.top;
+      const placement: 'above' | 'below' = spaceAbove >= 55 ? 'above' : 'below';
+
+      const top =
+        placement === 'above'
+          ? cardRect.top - containerRect.top - 8
+          : cardRect.bottom - containerRect.top + 8;
+
+      setTooltipState({
+        left: clampedCenterX,
+        top,
+        arrowOffset: safeArrowOffset,
+        placement,
       });
     }
   };
 
   const handleCardMouseLeave = () => {
     setHoveredPreset(null);
-    setHoveredPos(null);
+    setTooltipState(null);
   };
 
   const toggleNode = (id: string) => {
@@ -422,7 +476,12 @@ export default function ZoneMarkerModal({
                     <button
                       type="button"
                       onClick={() => scrollCarousel('left')}
-                      className="p-1 rounded bg-[#18181b] border border-[#323238] text-[#a8a8b3] hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                      disabled={!canScrollLeft}
+                      className={`p-1 rounded bg-[#18181b] border border-[#323238] transition-colors cursor-pointer ${
+                        canScrollLeft
+                          ? 'text-[#e1e1e6] hover:text-white hover:bg-white/10'
+                          : 'opacity-30 text-[#71717a] cursor-not-allowed'
+                      }`}
                       title="Anterior"
                     >
                       <ChevronLeft className="w-3.5 h-3.5" />
@@ -430,7 +489,12 @@ export default function ZoneMarkerModal({
                     <button
                       type="button"
                       onClick={() => scrollCarousel('right')}
-                      className="p-1 rounded bg-[#18181b] border border-[#323238] text-[#a8a8b3] hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                      disabled={!canScrollRight}
+                      className={`p-1 rounded bg-[#18181b] border border-[#323238] transition-colors cursor-pointer ${
+                        canScrollRight
+                          ? 'text-[#e1e1e6] hover:text-white hover:bg-white/10'
+                          : 'opacity-30 text-[#71717a] cursor-not-allowed'
+                      }`}
                       title="Próximo"
                     >
                       <ChevronRight className="w-3.5 h-3.5" />
@@ -441,8 +505,11 @@ export default function ZoneMarkerModal({
                 {/* Container do Carrossel */}
                 <div
                   ref={carouselRef}
-                  onScroll={handleCardMouseLeave}
-                  className="flex gap-2 overflow-x-auto pb-1 pt-0.5 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                  onScroll={() => {
+                    handleCardMouseLeave();
+                    updateScrollState();
+                  }}
+                  className="flex gap-2 overflow-x-auto px-2.5 py-1.5 scroll-smooth snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
                 >
                   {PRESET_LIST.map((preset) => {
                     const Icon = preset.icon;
@@ -453,19 +520,19 @@ export default function ZoneMarkerModal({
                         onClick={() => setSelectedPresetId(preset.id)}
                         onMouseEnter={(e) => handleCardMouseEnter(preset, e)}
                         onMouseLeave={handleCardMouseLeave}
-                        className={`group cursor-pointer py-3 px-3 rounded-lg border transition-all shrink-0 w-[140px] select-none flex flex-col items-center justify-center gap-2.5 ${
+                        className={`group cursor-pointer py-2.5 px-2 rounded-lg border transition-all shrink-0 w-[130px] snap-start select-none flex flex-col items-center justify-center gap-2 ${
                           isSelected
-                            ? 'bg-[#ffd700]/10 border-[#ffd700] shadow-md shadow-[#ffd700]/10'
-                            : 'bg-[#18181b] border-[#323238] hover:border-[#52525b]'
+                            ? 'bg-[#ffd700]/10 border-[#ffd700] shadow-md shadow-[#ffd700]/10 ring-1 ring-[#ffd700]/30'
+                            : 'bg-[#18181b] border-[#323238] hover:border-[#52525b] hover:bg-[#202024]'
                         }`}
                       >
                         <span className="text-xs font-bold text-center block truncate w-full text-[#e1e1e6] group-hover:text-white transition-colors">
                           {preset.name}
                         </span>
 
-                        <div className="flex items-center justify-center gap-2 w-full">
+                        <div className="flex items-center justify-center gap-1.5 w-full">
                           <div
-                            className="h-[1px] w-5 transition-colors"
+                            className="h-[1px] w-4 transition-colors"
                             style={{
                               backgroundColor: isSelected
                                 ? `${preset.color}80`
@@ -477,7 +544,7 @@ export default function ZoneMarkerModal({
                             style={{ color: preset.color }}
                           />
                           <div
-                            className="h-[1px] w-5 transition-colors"
+                            className="h-[1px] w-4 transition-colors"
                             style={{
                               backgroundColor: isSelected
                                 ? `${preset.color}80`
@@ -490,26 +557,33 @@ export default function ZoneMarkerModal({
                   })}
                 </div>
 
-                {/* Caixinha de Diálogo / Balãozinho com Pontinha ao passar o cursor no Card */}
-                {hoveredPreset && hoveredPos && (
+                {/* Balãozinho de Fala / Hint inteligente adaptado ao espaço */}
+                {hoveredPreset && tooltipState && (
                   <div
                     className="absolute pointer-events-none z-50 transition-all duration-150 ease-out"
                     style={{
-                      left: `${Math.max(105, Math.min(hoveredPos.left, (carouselContainerRef.current?.offsetWidth || 580) - 105))}px`,
-                      top: `${hoveredPos.top - 7}px`,
-                      transform: 'translate(-50%, -100%)',
+                      left: `${tooltipState.left}px`,
+                      top: `${tooltipState.top}px`,
+                      transform:
+                        tooltipState.placement === 'above'
+                          ? 'translate(-50%, -100%)'
+                          : 'translate(-50%, 0)',
                     }}
                   >
-                    <div className="relative bg-[#18181b] border border-[#ffd700] text-[#e1e1e6] px-2.5 py-1 rounded-md shadow-2xl text-[10px] leading-snug max-w-[210px] text-center backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
-                      <p className="text-[#e1e1e6] font-medium">
+                    <div className="relative bg-[#18181b] border border-[#ffd700] text-[#e1e1e6] px-3 py-1.5 rounded-lg shadow-2xl text-[11px] leading-snug w-[210px] text-center backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
+                      <p className="text-[#e1e1e6] font-medium leading-tight">
                         {hoveredPreset.description}
                       </p>
 
-                      {/* Pontinha da caixinha de diálogo apontando diretamente para o card */}
+                      {/* Pontinha do balãozinho ajustada dinamicamente apontando para o card */}
                       <div
-                        className="w-2 h-2 bg-[#18181b] border-r border-b border-[#ffd700] absolute -bottom-1"
+                        className={`w-2.5 h-2.5 bg-[#18181b] border-[#ffd700] absolute ${
+                          tooltipState.placement === 'above'
+                            ? '-bottom-1.5 border-r border-b'
+                            : '-top-1.5 border-l border-t'
+                        }`}
                         style={{
-                          left: `calc(50% + ${hoveredPos.left - Math.max(105, Math.min(hoveredPos.left, (carouselContainerRef.current?.offsetWidth || 580) - 105))}px)`,
+                          left: `calc(50% + ${tooltipState.arrowOffset}px)`,
                           transform: 'translateX(-50%) rotate(45deg)',
                         }}
                       />
