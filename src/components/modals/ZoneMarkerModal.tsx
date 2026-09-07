@@ -323,7 +323,7 @@ export default function ZoneMarkerModal({
 
   const carouselRef = useRef<HTMLDivElement>(null);
   const carouselContainerRef = useRef<HTMLDivElement>(null);
-  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const zoneTitle = zone?.data?.title || 'Zona Atual';
 
