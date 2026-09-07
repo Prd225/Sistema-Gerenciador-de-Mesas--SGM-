@@ -38,7 +38,6 @@ export default function Header() {
   );
   const setShowLoadModal = useCampaignStore((state) => state.setShowLoadModal);
   const setShowSaveModal = useCampaignStore((state) => state.setShowSaveModal);
-  const autoSaveSlot = useCampaignStore((state) => state.autoSaveSlot);
   const autoSaveStatus = useCampaignStore((state) => state.autoSaveStatus);
 
   const handleNew = async () => {
@@ -122,13 +121,8 @@ export default function Header() {
           <DropdownMenuContent className="bg-[#202024] border-[#323238] text-[#e1e1e6]">
             <DropdownMenuItem
               onClick={handleNew}
-              disabled={autoSaveSlot !== null}
-              className="cursor-pointer hover:bg-[#8257e5] hover:text-white focus:bg-[#8257e5] focus:text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
-              title={
-                autoSaveSlot !== null
-                  ? 'Desative o Auto-Save para criar um mapa novo'
-                  : 'Cria uma nova mesa em branco (ou use Ctrl+Shift+R para Hard Reset)'
-              }
+              className="cursor-pointer hover:bg-[#8257e5] hover:text-white focus:bg-[#8257e5] focus:text-white flex items-center justify-between"
+              title="Cria uma nova mesa em branco (ou use Ctrl+Shift+R para Hard Reset)"
             >
               <div className="flex items-center">
                 <FilePlus2 className="w-4 h-4 mr-2" /> Novo

@@ -176,6 +176,8 @@ export interface Zone {
     customHighlights?: ZoneHighlightCategory[];
     customThreats?: ZoneThreat[];
     customInventory?: ZoneInventoryItem[];
+    markerColors?: Record<string, string>;
+    markerTextColors?: Record<string, string>;
   };
 }
 

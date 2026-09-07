@@ -21,6 +21,8 @@ import {
   triggerAutoSave,
   loadWorkingSession,
   resetGameState,
+  clearWorkingSession,
+  getIsResetting,
 } from '@/lib/saveHelpers';
 import { useZoneStore } from '@/store/useZoneStore';
 import { useTokenStore } from '@/store/useTokenStore';
@@ -49,6 +51,12 @@ export default function AppLayout({
   useEffect(() => {
     // 1. Carregar estado da mesa salvo no cache de sessão (preservado ao dar F5)
     const initSession = async () => {
+      if (sessionStorage.getItem('sgm_is_resetting') === 'true') {
+        sessionStorage.removeItem('sgm_is_resetting');
+        await clearWorkingSession();
+        return;
+      }
+
       try {
         await loadWorkingSession();
       } catch (err) {
@@ -71,6 +79,21 @@ export default function AppLayout({
 
     // Atalhos globais de teclado
     const handleKeyDown = async (e: KeyboardEvent) => {
+      // Hard Reset: Ctrl+Shift+R / Cmd+Shift+R / Ctrl+F5 / Shift+F5
+      const isHardReset =
+        ((e.ctrlKey || e.metaKey) &&
+          e.shiftKey &&
+          (e.key === 'R' || e.key === 'r')) ||
+        (e.ctrlKey && e.key === 'F5') ||
+        (e.shiftKey && e.key === 'F5');
+
+      if (isHardReset) {
+        e.preventDefault();
+        e.stopPropagation();
+        await resetGameState();
+        return;
+      }
+
       // Ctrl+S / Cmd+S: Salvar
       if (
         (e.ctrlKey || e.metaKey) &&
@@ -85,38 +108,25 @@ export default function AppLayout({
         }
         return;
       }
-
-      // Hard Reset: Ctrl+Shift+R / Cmd+Shift+R / Ctrl+F5 / Shift+F5
-      const isHardReset =
-        ((e.ctrlKey || e.metaKey) &&
-          e.shiftKey &&
-          (e.key === 'R' || e.key === 'r')) ||
-        (e.ctrlKey && e.key === 'F5') ||
-        (e.shiftKey && e.key === 'F5');
-
-      if (isHardReset) {
-        e.preventDefault();
-        if (
-          window.confirm(
-            'Deseja realizar um Hard Reset completo? Isso limpará o estado atual da mesa e recarregará a página em branco.',
-          )
-        ) {
-          await resetGameState();
-        }
-      }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
 
-    // Garante que qualquer alteração pendente seja salva imediatamente antes do fechamento/reload
+    // Garante que qualquer alteração pendente seja salva imediatamente antes do fechamento/reload normal
     const handleBeforeUnload = () => {
+      if (
+        getIsResetting() ||
+        sessionStorage.getItem('sgm_is_resetting') === 'true'
+      ) {
+        return;
+      }
       triggerAutoSave(true);
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => {
       if (interval) clearInterval(interval);
-      document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDown, { capture: true });
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [autoSaveSlot]);

@@ -91,7 +91,15 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
   const [showPalette, setShowPalette] = useState(false);
   const [showSubmenuDropdown, setShowSubmenuDropdown] = useState(false);
   const [rawImage, setRawImage] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const headerDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Garante que cada zona inicie no marcador 'geral' de forma totalmente isolada
+  useEffect(() => {
+    setActiveTab('geral');
+    setShowPalette(false);
+    setShowSubmenuDropdown(false);
+  }, [selectedZoneId]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -140,6 +148,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
 
   const handleDragStart = (e: React.MouseEvent) => {
     e.preventDefault();
+    setIsDragging(true);
     const startX = e.clientX;
     const startWidth = width;
 
@@ -152,6 +161,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
     };
 
     const handleMouseUp = () => {
+      setIsDragging(false);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
@@ -160,29 +170,68 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
     document.addEventListener('mouseup', handleMouseUp);
   };
 
-  const zoneColor = zoneData?.style?.borderColor || '#8257e5';
+  const getMarkerColor = (tabKey: ZoneTab): string => {
+    if (tabKey === 'geral') {
+      return zoneData?.style?.fillColor || '#8257e5';
+    }
+    return zoneData?.markerColors?.[tabKey] || TAB_CONFIGS[tabKey].defaultColor;
+  };
+
+  const getMarkerTextColor = (tabKey: ZoneTab): string => {
+    if (tabKey === 'geral') {
+      return zoneData?.style?.borderColor || '#ffffff';
+    }
+    return zoneData?.markerTextColors?.[tabKey] || '#ffffff';
+  };
+
+  const activeMarkerColor = getMarkerColor(activeTab);
+  const activeMarkerTextColor = getMarkerTextColor(activeTab);
   const currentTabConfig = TAB_CONFIGS[activeTab];
   const ActiveTabIcon = currentTabConfig.icon;
 
-  if (!isOpen) {
-    return (
-      <div className="bg-[#202024] border-r border-[#323238] h-full flex flex-col items-center py-4 z-40 w-12 transition-all relative overflow-visible select-none">
-        <button
-          onClick={toggle}
-          className="text-[#a8a8b3] hover:text-[#e1e1e6] p-2 hover:bg-white/5 rounded transition-colors"
-          title="Expandir Barra Lateral"
+  return (
+    <>
+      <aside
+        style={{ width: isOpen ? `${width}px` : '48px' }}
+        className={`bg-[#202024] border-r border-[#323238] flex flex-col h-full z-40 overflow-visible relative shadow-2xl ${
+          isDragging
+            ? ''
+            : 'transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]'
+        }`}
+      >
+        {/* Camada Recolhida (Visível apenas quando !isOpen) */}
+        <div
+          className={`absolute inset-y-0 left-0 w-12 flex flex-col items-start py-4 overflow-visible select-none transition-all duration-200 ${
+            isOpen
+              ? 'opacity-0 pointer-events-none invisible -z-10'
+              : 'opacity-100 pointer-events-auto visible z-30 delay-100'
+          }`}
         >
-          <ChevronLeft className="rotate-180 w-5 h-5" />
-        </button>
+          <div className="w-full flex justify-center mb-6 shrink-0">
+            <button
+              onClick={toggle}
+              className="text-[#a8a8b3] hover:text-[#e1e1e6] p-2 hover:bg-white/5 rounded transition-colors"
+              title="Expandir Barra Lateral"
+            >
+              <ChevronLeft className="rotate-180 w-5 h-5 transition-transform duration-300" />
+            </button>
+          </div>
 
-        {/* Pequenas marcações coloridas quando recolhido (sem ícones e sem nomes) */}
-        {zone && (
-          <div className="absolute left-full top-16 flex flex-col gap-2 z-50 pointer-events-auto select-none items-start">
-            {(['geral', 'destaques', 'ameacas', 'inventario'] as ZoneTab[]).map(
-              (tabKey) => {
+          {/* Marcadores estendidos pela aba reduzida (Ponta triangular, expandem suavemente no hover) */}
+          {zone && (
+            <div className="w-full flex flex-col items-start gap-2.5 select-none overflow-visible">
+              {(
+                [
+                  'geral',
+                  'destaques',
+                  'ameacas',
+                  'inventario',
+                ] as ZoneTab[]
+              ).map((tabKey) => {
                 const cfg = TAB_CONFIGS[tabKey];
-                const tabColor =
-                  tabKey === 'geral' ? zoneColor : cfg.defaultColor;
+                const TabIcon = cfg.icon;
+                const tabColor = getMarkerColor(tabKey);
+                const textColor = getMarkerTextColor(tabKey) || '#ffffff';
                 const isSelected = activeTab === tabKey;
 
                 return (
@@ -192,50 +241,80 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                       setActiveTab(tabKey);
                       toggle();
                     }}
-                    title={`Abrir ${cfg.label}`}
-                    className={`rounded-r-sm border border-l-0 -ml-[1px] shadow-md cursor-pointer transition-all duration-200 ease-out origin-left ${
-                      isSelected
-                        ? 'w-2 h-5 opacity-40 hover:opacity-75'
-                        : 'w-3.5 h-6 opacity-100 hover:w-4 hover:brightness-110 hover:shadow-lg'
-                    }`}
+                    title={cfg.label}
+                    className="relative group h-7 w-[64px] hover:w-[175px] transition-all duration-300 ease-out cursor-pointer select-none shrink-0 p-0 border-none bg-transparent outline-none overflow-visible flex items-center"
                     style={{
-                      backgroundColor: tabColor,
-                      borderColor: isSelected
-                        ? 'rgba(255,255,255,0.15)'
-                        : 'rgba(0,0,0,0.3)',
+                      filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))',
                     }}
-                  />
-                );
-              },
-            )}
-          </div>
-        )}
-      </div>
-    );
-  }
+                  >
+                    {/* Camada externa (Borda contornando todo o formato incluindo a ponta triangular) */}
+                    <div
+                      className="absolute inset-0 transition-all duration-300 ease-out"
+                      style={{
+                        backgroundColor: isSelected
+                          ? 'rgba(255, 255, 255, 0.6)'
+                          : 'rgba(0, 0, 0, 0.8)',
+                        clipPath:
+                          'polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%)',
+                        WebkitClipPath:
+                          'polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%)',
+                      }}
+                    />
 
-  return (
-    <>
-      <aside
-        style={{ width: `${width}px` }}
-        className="bg-[#202024] border-r border-[#323238] flex flex-col h-full z-40 overflow-visible relative shadow-xl"
-      >
-        <div className="p-5 overflow-y-auto flex-1 h-full flex flex-col relative">
-          {/* Header - Marcador de Página na cor da zona */}
+                    {/* Camada interna (Cor do marcador com a ponta triangular e conteúdo) */}
+                    <div
+                      className={`absolute inset-y-[1.5px] left-0 right-[1.5px] flex items-center transition-all duration-200 overflow-hidden ${
+                        isSelected
+                          ? 'opacity-40 hover:opacity-85'
+                          : 'opacity-100 hover:brightness-110'
+                      }`}
+                      style={{
+                        backgroundColor: tabColor,
+                        clipPath:
+                          'polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%)',
+                        WebkitClipPath:
+                          'polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%)',
+                      }}
+                    >
+                      <div className="flex items-center gap-2 pl-3.5 pr-5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                        <TabIcon
+                          className="w-3.5 h-3.5 shrink-0 drop-shadow-sm"
+                          style={{ color: textColor }}
+                        />
+                        <span
+                          className="text-xs font-bold uppercase tracking-wider drop-shadow-sm"
+                          style={{ color: textColor }}
+                        >
+                          {cfg.label}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Camada Expandida (Conteúdo completo deslizando suavemente) */}
+        <div
+          className={`h-full flex flex-col overflow-hidden transition-opacity duration-200 relative z-20 ${
+            isOpen
+              ? 'opacity-100 pointer-events-auto delay-75'
+              : 'opacity-0 pointer-events-none invisible'
+          }`}
+          style={{ minWidth: `${width}px` }}
+        >
+          <div className="p-5 overflow-y-auto flex-1 h-full flex flex-col relative">
+          {/* Header - Marcador de Página na cor do marcador ativo */}
           {zone && zoneData ? (
             <div
               className="relative mb-5 -mx-5 -mt-5 p-4 border-b shrink-0 transition-colors shadow-md overflow-visible"
               style={{
-                borderColor: zoneColor,
-                background: `linear-gradient(135deg, ${zoneColor}22 0%, #202024 100%)`,
+                borderColor: activeMarkerColor,
+                background: `linear-gradient(135deg, ${activeMarkerColor}22 0%, #202024 100%)`,
               }}
             >
-              {/* Detalhe visual de fita/marcador no topo */}
-              <div
-                className="absolute top-0 left-6 w-10 h-1.5 rounded-b-md shadow-sm"
-                style={{ backgroundColor: zoneColor }}
-              />
-
               <div className="flex justify-between items-center pt-1">
                 <div
                   ref={headerDropdownRef}
@@ -244,45 +323,38 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                   <div
                     className="p-2 rounded-md flex items-center justify-center shrink-0 shadow-inner"
                     style={{
-                      backgroundColor: `${zoneColor}25`,
-                      color: zoneColor,
+                      backgroundColor: `${activeMarkerColor}25`,
+                      color: activeMarkerTextColor,
                     }}
                   >
                     <ActiveTabIcon className="w-5 h-5" />
                   </div>
-                  <div className="flex flex-col min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() =>
-                          setShowSubmenuDropdown(!showSubmenuDropdown)
-                        }
-                        className="flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer group text-left"
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <button
+                      onClick={() =>
+                        setShowSubmenuDropdown(!showSubmenuDropdown)
+                      }
+                      className="flex items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer group text-left"
+                    >
+                      <span
+                        className="text-base font-extrabold tracking-wide uppercase truncate"
+                        style={{ color: activeMarkerTextColor }}
                       >
-                        <span
-                          className="text-base font-extrabold tracking-wide uppercase truncate"
-                          style={{ color: zoneColor }}
-                        >
-                          {currentTabConfig.label}
-                        </span>
-                        <ChevronDown
-                          className={`w-3.5 h-3.5 text-[#a8a8b3] transition-transform ${
-                            showSubmenuDropdown ? 'rotate-180' : ''
-                          }`}
-                        />
-                      </button>
-                    </div>
-                    <span className="text-[11px] text-[#a8a8b3] font-medium truncate">
-                      {zoneData.title
-                        ? `Zona: ${zoneData.title}`
-                        : 'Dados da Zona'}
-                    </span>
+                        {currentTabConfig.label}
+                      </span>
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 text-[#a8a8b3] transition-transform ${
+                          showSubmenuDropdown ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
                   </div>
 
-                  {/* Dropdown de Submenus */}
+                  {/* Dropdown de Marcadores */}
                   {showSubmenuDropdown && (
                     <div className="absolute top-full left-0 mt-2 bg-[#18181b] border border-[#323238] rounded-lg p-1.5 z-50 w-48 shadow-2xl backdrop-blur-md">
                       <div className="text-[10px] font-bold text-[#71717a] uppercase px-2 py-1">
-                        Submenus da Zona
+                        Marcadores
                       </div>
                       {(
                         [
@@ -294,8 +366,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                       ).map((tabKey) => {
                         const cfg = TAB_CONFIGS[tabKey];
                         const TabIcon = cfg.icon;
-                        const itemColor =
-                          tabKey === 'geral' ? zoneColor : cfg.defaultColor;
+                        const itemColor = getMarkerColor(tabKey);
                         const isCur = activeTab === tabKey;
                         return (
                           <button
@@ -334,78 +405,130 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                   <button
                     onClick={() => setShowPalette(!showPalette)}
                     className={`p-1 rounded hover:bg-white/5 ${showPalette ? 'text-[#ffd700]' : 'text-[#a8a8b3] hover:text-[#e1e1e6]'}`}
-                    title="Cores da Zona"
+                    title={activeTab === 'geral' ? 'Cores da Zona' : 'Cor do Marcador'}
                   >
                     <Palette className="w-4 h-4" />
                   </button>
                   {showPalette && (
-                    <div className="absolute top-full right-0 mt-2 bg-[#121214] border border-[#323238] rounded p-3 z-50 w-64 shadow-xl">
-                      <div className="text-xs font-bold text-[#e1e1e6] mb-3 uppercase">
-                        Cores do Mapa
-                      </div>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-[#a8a8b3]">Borda</span>
-                          <input
-                            type="color"
-                            value={zoneData?.style?.borderColor || '#8257e5'}
-                            onChange={(e) => {
-                              if (zone)
-                                updateZoneData(zone.id, {
-                                  style: {
-                                    ...zoneData?.style,
-                                    borderColor: e.target.value,
-                                    fillColor: zoneData?.style?.fillColor || '',
-                                    textColor: zoneData?.style?.textColor || '',
-                                  },
-                                });
-                            }}
-                            className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer"
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-[#a8a8b3]">
-                            Preenchimento
-                          </span>
-                          <input
-                            type="color"
-                            value={zoneData?.style?.fillColor || '#8257e5'}
-                            onChange={(e) => {
-                              if (zone)
-                                updateZoneData(zone.id, {
-                                  style: {
-                                    ...zoneData?.style,
-                                    fillColor: e.target.value,
-                                    borderColor:
-                                      zoneData?.style?.borderColor || '',
-                                    textColor: zoneData?.style?.textColor || '',
-                                  },
-                                });
-                            }}
-                            className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer"
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-[#a8a8b3]">Texto</span>
-                          <input
-                            type="color"
-                            value={zoneData?.style?.textColor || '#ffffff'}
-                            onChange={(e) => {
-                              if (zone)
-                                updateZoneData(zone.id, {
-                                  style: {
-                                    ...zoneData?.style,
-                                    textColor: e.target.value,
-                                    borderColor:
-                                      zoneData?.style?.borderColor || '',
-                                    fillColor: zoneData?.style?.fillColor || '',
-                                  },
-                                });
-                            }}
-                            className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer"
-                          />
-                        </div>
-                      </div>
+                    <div className="absolute top-full right-0 mt-2 bg-[#121214] border border-[#323238] rounded p-3 z-50 w-56 shadow-xl">
+                      {activeTab === 'geral' ? (
+                        <>
+                          <div className="text-xs font-bold text-[#e1e1e6] mb-3 uppercase tracking-wider">
+                            Zona
+                          </div>
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-[#a8a8b3]">Borda</span>
+                              <input
+                                type="color"
+                                value={zoneData?.style?.borderColor || '#8257e5'}
+                                onChange={(e) => {
+                                  if (zone)
+                                    updateZoneData(zone.id, {
+                                      style: {
+                                        ...zoneData?.style,
+                                        borderColor: e.target.value,
+                                        fillColor:
+                                          zoneData?.style?.fillColor || '#8257e5',
+                                        textColor:
+                                          zoneData?.style?.textColor || '#ffffff',
+                                      },
+                                    });
+                                }}
+                                className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer"
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-[#a8a8b3]">
+                                Preenchimento
+                              </span>
+                              <input
+                                type="color"
+                                value={zoneData?.style?.fillColor || '#8257e5'}
+                                onChange={(e) => {
+                                  if (zone)
+                                    updateZoneData(zone.id, {
+                                      style: {
+                                        ...zoneData?.style,
+                                        fillColor: e.target.value,
+                                        borderColor:
+                                          zoneData?.style?.borderColor || '#8257e5',
+                                        textColor:
+                                          zoneData?.style?.textColor || '#ffffff',
+                                      },
+                                    });
+                                }}
+                                className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer"
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-[#a8a8b3]">Texto</span>
+                              <input
+                                type="color"
+                                value={zoneData?.style?.textColor || '#ffffff'}
+                                onChange={(e) => {
+                                  if (zone)
+                                    updateZoneData(zone.id, {
+                                      style: {
+                                        ...zoneData?.style,
+                                        textColor: e.target.value,
+                                        borderColor:
+                                          zoneData?.style?.borderColor || '#8257e5',
+                                        fillColor:
+                                          zoneData?.style?.fillColor || '#8257e5',
+                                      },
+                                    });
+                                }}
+                                className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer"
+                              />
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-xs font-bold text-[#e1e1e6] mb-3 uppercase tracking-wider">
+                            Marcador
+                          </div>
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-[#a8a8b3]">Cor</span>
+                              <input
+                                type="color"
+                                value={getMarkerColor(activeTab)}
+                                onChange={(e) => {
+                                  if (zone)
+                                    updateZoneData(zone.id, {
+                                      markerColors: {
+                                        ...(zoneData?.markerColors || {}),
+                                        [activeTab]: e.target.value,
+                                      },
+                                    });
+                                }}
+                                className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer"
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-[#a8a8b3]">
+                                Cor da fonte
+                              </span>
+                              <input
+                                type="color"
+                                value={getMarkerTextColor(activeTab)}
+                                onChange={(e) => {
+                                  if (zone)
+                                    updateZoneData(zone.id, {
+                                      markerTextColors: {
+                                        ...(zoneData?.markerTextColors || {}),
+                                        [activeTab]: e.target.value,
+                                      },
+                                    });
+                                }}
+                                className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer"
+                              />
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
                   <button
@@ -1747,22 +1870,25 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
             </div>
           )}
         </div>
+        </div>
 
         {/* Resize Handle */}
-        <div
-          className="absolute top-0 right-0 w-1.5 h-full cursor-col-resize hover:bg-[#8257e5]/50 active:bg-[#8257e5] z-50 transition-colors"
-          onMouseDown={handleDragStart}
-        />
+        {isOpen && (
+          <div
+            className="absolute top-0 right-0 w-1.5 h-full cursor-col-resize hover:bg-[#8257e5]/50 active:bg-[#8257e5] z-50 transition-colors"
+            onMouseDown={handleDragStart}
+          />
+        )}
 
-        {/* Marcadores de Página Verticais Salientes no bordo direito */}
-        {zone && (
-          <div className="absolute left-full top-16 flex flex-col gap-2 z-50 pointer-events-auto select-none items-start">
+        {/* Marcadores Verticais no bordo direito (Ponta triangular, expandem suavemente no hover) */}
+        {zone && isOpen && (
+          <div className="absolute left-full top-16 flex flex-col gap-2.5 z-50 pointer-events-auto select-none items-start overflow-visible transition-opacity duration-200">
             {(['geral', 'destaques', 'ameacas', 'inventario'] as ZoneTab[]).map(
               (tabKey) => {
                 const cfg = TAB_CONFIGS[tabKey];
                 const TabIcon = cfg.icon;
-                const tabColor =
-                  tabKey === 'geral' ? zoneColor : cfg.defaultColor;
+                const tabColor = getMarkerColor(tabKey);
+                const textColor = getMarkerTextColor(tabKey) || '#ffffff';
                 const isSelected = activeTab === tabKey;
 
                 return (
@@ -1770,24 +1896,53 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                     key={tabKey}
                     onClick={() => setActiveTab(tabKey)}
                     title={cfg.label}
-                    className={`group relative flex items-center justify-center rounded-r-md border border-l-0 -ml-[1px] shadow-lg cursor-pointer transition-all duration-200 ease-out origin-left ${
-                      isSelected
-                        ? 'p-2 opacity-40 hover:opacity-75'
-                        : 'gap-2 px-3 py-1.5 opacity-100 hover:brightness-110 hover:shadow-xl'
-                    }`}
+                    className="relative group h-7 w-[16px] hover:w-[165px] transition-all duration-300 ease-out cursor-pointer select-none shrink-0 p-0 border-none bg-transparent outline-none overflow-visible flex items-center -ml-[1px]"
                     style={{
-                      backgroundColor: tabColor,
-                      borderColor: isSelected
-                        ? 'rgba(255,255,255,0.15)'
-                        : 'rgba(0,0,0,0.25)',
+                      filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))',
                     }}
                   >
-                    <TabIcon className="w-4 h-4 text-white shrink-0 drop-shadow-sm" />
-                    {!isSelected && (
-                      <span className="text-xs font-bold uppercase tracking-wider text-white whitespace-nowrap drop-shadow-sm">
-                        {cfg.label}
-                      </span>
-                    )}
+                    {/* Camada externa (Borda contornando todo o formato incluindo a ponta triangular) */}
+                    <div
+                      className="absolute inset-0 transition-all duration-300 ease-out"
+                      style={{
+                        backgroundColor: isSelected
+                          ? 'rgba(255, 255, 255, 0.6)'
+                          : 'rgba(0, 0, 0, 0.8)',
+                        clipPath:
+                          'polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%)',
+                        WebkitClipPath:
+                          'polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%)',
+                      }}
+                    />
+
+                    {/* Camada interna (Cor do marcador com a ponta triangular e conteúdo) */}
+                    <div
+                      className={`absolute inset-y-[1.5px] left-0 right-[1.5px] flex items-center transition-all duration-200 overflow-hidden ${
+                        isSelected
+                          ? 'opacity-40 hover:opacity-85'
+                          : 'opacity-100 hover:brightness-110'
+                      }`}
+                      style={{
+                        backgroundColor: tabColor,
+                        clipPath:
+                          'polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%)',
+                        WebkitClipPath:
+                          'polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%)',
+                      }}
+                    >
+                      <div className="flex items-center gap-2 pl-2.5 pr-5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                        <TabIcon
+                          className="w-3.5 h-3.5 shrink-0 drop-shadow-sm"
+                          style={{ color: textColor }}
+                        />
+                        <span
+                          className="text-xs font-bold uppercase tracking-wider drop-shadow-sm"
+                          style={{ color: textColor }}
+                        >
+                          {cfg.label}
+                        </span>
+                      </div>
+                    </div>
                   </button>
                 );
               },

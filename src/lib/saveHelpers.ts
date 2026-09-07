@@ -9,6 +9,13 @@ import { useRoulettesStore } from '@/store/useRoulettesStore';
 import { useSoundpadStore } from '@/store/useSoundpadStore';
 import { useScenesStore } from '@/store/useScenesStore';
 import { db } from '@/lib/db';
+import { generateId } from '@/lib/uuid';
+
+let isResetting = false;
+export const getIsResetting = () => isResetting;
+export const setIsResetting = (val: boolean) => {
+  isResetting = val;
+};
 
 export const collectGameState = async () => {
   const tokenState = useTokenStore.getState();
@@ -172,6 +179,13 @@ export const applyGameState = async (data: any) => {
 };
 
 export const saveWorkingSession = async (customData?: any) => {
+  if (isResetting) return;
+  try {
+    if (sessionStorage.getItem('sgm_is_resetting') === 'true') return;
+  } catch {
+    // ignore
+  }
+
   try {
     const data = customData || (await collectGameState());
     await db.sessionState.put({
@@ -185,6 +199,17 @@ export const saveWorkingSession = async (customData?: any) => {
 };
 
 export const loadWorkingSession = async (): Promise<boolean> => {
+  if (isResetting) return false;
+  try {
+    if (sessionStorage.getItem('sgm_is_resetting') === 'true') {
+      sessionStorage.removeItem('sgm_is_resetting');
+      await clearWorkingSession();
+      return false;
+    }
+  } catch {
+    // ignore
+  }
+
   try {
     const session = await db.sessionState.get('currentSession');
     if (session?.data) {
@@ -199,7 +224,7 @@ export const loadWorkingSession = async (): Promise<boolean> => {
 
 export const clearWorkingSession = async () => {
   try {
-    await db.sessionState.delete('currentSession');
+    await db.sessionState.clear();
   } catch (e) {
     console.error('[SGM] Erro ao limpar sessionState:', e);
   }
@@ -213,7 +238,149 @@ export const clearWorkingSession = async () => {
 };
 
 export const resetGameState = async () => {
+  // 1. Marca imediatamente a flag de reset para que nenhum autosave execute antes ou durante o reload
+  isResetting = true;
+  try {
+    sessionStorage.setItem('sgm_is_resetting', 'true');
+  } catch {
+    // ignore
+  }
+
+  // 2. Cancela qualquer salvamento pendente em debounce ou animação
+  if (debounceTimeout) {
+    clearTimeout(debounceTimeout);
+    debounceTimeout = null;
+  }
+  if (fadeOutTimeout) {
+    clearTimeout(fadeOutTimeout);
+    fadeOutTimeout = null;
+  }
+
+  // 3. Limpa completamente o IndexedDB de sessão e cenas temporárias
   await clearWorkingSession();
+
+  // 4. Reseta as stores Zustand em memória para os valores iniciais vazios
+  const defaultSceneId = generateId();
+  const defaultScene = { id: defaultSceneId, name: 'Cena 1' };
+
+  useTokenStore.setState({
+    tokens: [],
+    initiativeQueue: [],
+    initiativeSortMode: 'descending',
+    activeCtxTokenId: null,
+    editingTokenId: null,
+    showTokenCreateModal: false,
+    tokenContextMenu: null,
+  });
+
+  useZoneStore.setState({
+    zones: {},
+    markers: {},
+    bgImages: [],
+    selectedZoneId: null,
+    editingZone: false,
+    editingMarkers: false,
+    activeTool: 'select',
+    selectedNodeIds: [],
+  });
+
+  useCampaignStore.setState({
+    scene: 1,
+    round: 1,
+    turn: 1,
+    urgency: null,
+    turnsPerRound: 10,
+    showInitModal: false,
+    showLoadModal: false,
+    showSaveModal: false,
+    autoSaveSlot: null,
+    autoSaveStatus: 'idle',
+  });
+
+  useDiaryStore.setState({
+    entries: [],
+  });
+
+  useRulesStore.setState({
+    pages: [
+      {
+        id: generateId(),
+        name: 'Página Inicial',
+        widgets: [],
+      },
+    ],
+  });
+
+  useNotesStore.setState({
+    pages: [
+      {
+        id: generateId(),
+        name: 'Página Inicial',
+        notes: [],
+      },
+    ],
+  });
+
+  useTablesStore.setState({
+    pages: [
+      {
+        id: generateId(),
+        name: 'Tabelas',
+        tables: [],
+      },
+    ],
+  });
+
+  useRoulettesStore.setState({
+    pages: [
+      {
+        id: generateId(),
+        name: 'Roletas',
+        roulettes: [],
+      },
+    ],
+  });
+
+  useSoundpadStore.setState({
+    pages: [
+      {
+        id: generateId(),
+        name: 'Músicas',
+        playlists: [],
+      },
+    ],
+    activePlaylistId: null,
+    activeSongId: null,
+    isPlaying: false,
+    progress: 0,
+    isLooping: false,
+    spotifyDeviceId: null,
+    playbackTrigger: 0,
+  });
+
+  useScenesStore.setState({
+    scenes: [defaultScene],
+    activeSceneId: defaultSceneId,
+    isSwitching: false,
+  });
+
+  try {
+    await db.activeScenes.put({
+      id: defaultSceneId,
+      tokens: [],
+      initiativeQueue: [],
+      zones: {},
+      markers: {},
+      bgImages: [],
+    });
+  } catch (e) {
+    console.error('[SGM] Erro ao gravar cena inicial no reset:', e);
+  }
+
+  // 5. Dispara evento de troca de cena para os canvas limparem
+  window.dispatchEvent(new Event('scene-switched'));
+
+  // 6. Recarrega a página de forma limpa
   window.location.reload();
 };
 
@@ -221,14 +388,35 @@ let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
 let fadeOutTimeout: ReturnType<typeof setTimeout> | null = null;
 
 export const triggerAutoSave = (forceImmediate = false) => {
+  if (isResetting) return;
+  try {
+    if (sessionStorage.getItem('sgm_is_resetting') === 'true') return;
+  } catch {
+    // ignore
+  }
+
   const campaignState = useCampaignStore.getState();
 
   // Pause se modais meta de salvar/carregar estiverem abertos
   if (campaignState.showSaveModal || campaignState.showLoadModal) return;
 
   const executeSave = async () => {
+    if (isResetting) return;
+    try {
+      if (sessionStorage.getItem('sgm_is_resetting') === 'true') return;
+    } catch {
+      // ignore
+    }
+
     try {
       const data = await collectGameState();
+
+      if (isResetting) return;
+      try {
+        if (sessionStorage.getItem('sgm_is_resetting') === 'true') return;
+      } catch {
+        // ignore
+      }
 
       // 1. SEMPRE persiste o estado de trabalho da mesa (para F5 não zerar nada!)
       await db.sessionState.put({

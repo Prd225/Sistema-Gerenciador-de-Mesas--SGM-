@@ -370,8 +370,18 @@ export default function StageMap() {
           title: 'Nova Zona',
           desc: '',
           visits: 0,
+          style: {
+            borderColor: '#8257e5',
+            fillColor: '#8257e5',
+            textColor: '#ffffff',
+          },
           customPois: [],
           customEvents: [],
+          customHighlights: [],
+          customThreats: [],
+          customInventory: [],
+          markerColors: {},
+          markerTextColors: {},
         },
       });
 
@@ -511,8 +521,18 @@ export default function StageMap() {
             title: 'Nova Zona Poligonal',
             desc: '',
             visits: 0,
+            style: {
+              borderColor: '#8257e5',
+              fillColor: '#8257e5',
+              textColor: '#ffffff',
+            },
             customPois: [],
             customEvents: [],
+            customHighlights: [],
+            customThreats: [],
+            customInventory: [],
+            markerColors: {},
+            markerTextColors: {},
           },
         });
 
