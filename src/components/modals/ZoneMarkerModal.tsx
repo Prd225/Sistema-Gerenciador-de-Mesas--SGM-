@@ -97,6 +97,7 @@ interface QuestNode {
 interface PresetMeta {
   id: string;
   name: string;
+  description: string;
   color: string;
   icon: any;
 }
@@ -105,36 +106,42 @@ const PRESET_LIST: PresetMeta[] = [
   {
     id: 'destaques',
     name: 'Destaques',
+    description: 'Eventos, marcos e pontos de investigação da cena.',
     color: '#f59e0b',
     icon: Sparkles,
   },
   {
     id: 'ameacas',
     name: 'Ameaças',
+    description: 'Inimigos, perigos ambientais e armadilhas ativas.',
     color: '#ef4444',
     icon: Skull,
   },
   {
     id: 'inventario',
     name: 'Inventário',
+    description: 'Itens coletáveis, suprimentos e recompensas locais.',
     color: '#06b6d4',
     icon: Package,
   },
   {
     id: 'diario',
     name: 'Diário de Bordo',
+    description: 'Crônicas, anotações de sessão e pistas desvendadas.',
     color: '#3b82f6',
     icon: BookOpen,
   },
   {
     id: 'npcs',
     name: 'NPCs & Facções',
+    description: 'Personagens encontrados, alianças e contatos locais.',
     color: '#a855f7',
     icon: Users,
   },
   {
     id: 'missoes',
     name: 'Objetivos & Missões',
+    description: 'Metas principais e tarefas com recompensas da área.',
     color: '#10b981',
     icon: Compass,
   },
@@ -301,15 +308,41 @@ export default function ZoneMarkerModal({
   const [customColor, setCustomColor] = useState('#8257e5');
   const [customNodeChecked, setCustomNodeChecked] = useState(false);
 
+  // Estado do Balãozinho / Tooltip ao passar o cursor no Card
+  const [hoveredPreset, setHoveredPreset] = useState<PresetMeta | null>(null);
+  const [hoveredPos, setHoveredPos] = useState<{ left: number; top: number } | null>(null);
+
   const carouselRef = useRef<HTMLDivElement>(null);
+  const carouselContainerRef = useRef<HTMLDivElement>(null);
 
   const zoneTitle = zone?.data?.title || 'Zona Atual';
 
   const scrollCarousel = (direction: 'left' | 'right') => {
+    handleCardMouseLeave();
     if (carouselRef.current) {
       const scrollAmount = direction === 'left' ? -200 : 200;
       carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
+  };
+
+  const handleCardMouseEnter = (
+    preset: PresetMeta,
+    e: React.MouseEvent<HTMLDivElement>,
+  ) => {
+    setHoveredPreset(preset);
+    if (carouselContainerRef.current) {
+      const containerRect = carouselContainerRef.current.getBoundingClientRect();
+      const cardRect = e.currentTarget.getBoundingClientRect();
+      setHoveredPos({
+        left: cardRect.left - containerRect.left + cardRect.width / 2,
+        top: cardRect.top - containerRect.top,
+      });
+    }
+  };
+
+  const handleCardMouseLeave = () => {
+    setHoveredPreset(null);
+    setHoveredPos(null);
   };
 
   const toggleNode = (id: string) => {
@@ -380,7 +413,7 @@ export default function ZoneMarkerModal({
           {activeTab === 'presets' ? (
             <>
               {/* Carrossel de Marcadores Pré-configurados */}
-              <div className="space-y-1.5">
+              <div ref={carouselContainerRef} className="relative space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-[#a8a8b3] uppercase tracking-wider">
                     Visualize um marcador
@@ -408,6 +441,7 @@ export default function ZoneMarkerModal({
                 {/* Container do Carrossel */}
                 <div
                   ref={carouselRef}
+                  onScroll={handleCardMouseLeave}
                   className="flex gap-2 overflow-x-auto pb-1 pt-0.5 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
                 >
                   {PRESET_LIST.map((preset) => {
@@ -417,6 +451,8 @@ export default function ZoneMarkerModal({
                       <div
                         key={preset.id}
                         onClick={() => setSelectedPresetId(preset.id)}
+                        onMouseEnter={(e) => handleCardMouseEnter(preset, e)}
+                        onMouseLeave={handleCardMouseLeave}
                         className={`group cursor-pointer py-3 px-3 rounded-lg border transition-all shrink-0 w-[140px] select-none flex flex-col items-center justify-center gap-2.5 ${
                           isSelected
                             ? 'bg-[#ffd700]/10 border-[#ffd700] shadow-md shadow-[#ffd700]/10'
@@ -453,6 +489,33 @@ export default function ZoneMarkerModal({
                     );
                   })}
                 </div>
+
+                {/* Caixinha de Diálogo / Balãozinho com Pontinha ao passar o cursor no Card */}
+                {hoveredPreset && hoveredPos && (
+                  <div
+                    className="absolute pointer-events-none z-50 transition-all duration-150 ease-out"
+                    style={{
+                      left: `${Math.max(105, Math.min(hoveredPos.left, (carouselContainerRef.current?.offsetWidth || 580) - 105))}px`,
+                      top: `${hoveredPos.top - 7}px`,
+                      transform: 'translate(-50%, -100%)',
+                    }}
+                  >
+                    <div className="relative bg-[#18181b] border border-[#ffd700] text-[#e1e1e6] px-2.5 py-1 rounded-md shadow-2xl text-[10px] leading-snug max-w-[210px] text-center backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
+                      <p className="text-[#e1e1e6] font-medium">
+                        {hoveredPreset.description}
+                      </p>
+
+                      {/* Pontinha da caixinha de diálogo apontando diretamente para o card */}
+                      <div
+                        className="w-2 h-2 bg-[#18181b] border-r border-b border-[#ffd700] absolute -bottom-1"
+                        style={{
+                          left: `calc(50% + ${hoveredPos.left - Math.max(105, Math.min(hoveredPos.left, (carouselContainerRef.current?.offsetWidth || 580) - 105))}px)`,
+                          transform: 'translateX(-50%) rotate(45deg)',
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Área de Preview Fiel da Barra Lateral */}
