@@ -175,15 +175,15 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
           <ChevronLeft className="rotate-180 w-5 h-5" />
         </button>
 
-        {/* Marcadores de Página Verticais Salientes quando recolhido (Anexo 3) */}
+        {/* Pequenas marcações coloridas quando recolhido (sem ícones e sem nomes) */}
         {zone && (
-          <div className="absolute left-full top-16 flex flex-col gap-2.5 z-50 pointer-events-auto select-none">
+          <div className="absolute left-full top-16 flex flex-col gap-2 z-50 pointer-events-auto select-none items-start">
             {(['geral', 'destaques', 'ameacas', 'inventario'] as ZoneTab[]).map(
               (tabKey) => {
                 const cfg = TAB_CONFIGS[tabKey];
-                const TabIcon = cfg.icon;
                 const tabColor =
                   tabKey === 'geral' ? zoneColor : cfg.defaultColor;
+                const isSelected = activeTab === tabKey;
 
                 return (
                   <button
@@ -193,24 +193,18 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                       toggle();
                     }}
                     title={`Abrir ${cfg.label}`}
-                    className="group relative flex items-center gap-2 pl-2.5 pr-3 py-2 rounded-r-lg border-y border-r shadow-2xl transition-all duration-200 cursor-pointer bg-[#18181b]/95 backdrop-blur-md hover:translate-x-1.5 -ml-[1px]"
+                    className={`rounded-r-sm border border-l-0 -ml-[1px] shadow-md cursor-pointer transition-all duration-200 ease-out origin-left ${
+                      isSelected
+                        ? 'w-2 h-5 opacity-40 hover:opacity-75'
+                        : 'w-3.5 h-6 opacity-100 hover:w-4 hover:brightness-110 hover:shadow-lg'
+                    }`}
                     style={{
-                      borderColor: tabColor,
-                      boxShadow: `2px 4px 12px rgba(0,0,0,0.5)`,
+                      backgroundColor: tabColor,
+                      borderColor: isSelected
+                        ? 'rgba(255,255,255,0.15)'
+                        : 'rgba(0,0,0,0.3)',
                     }}
-                  >
-                    <div
-                      className="w-1.5 h-4 rounded-full shrink-0 transition-transform group-hover:scale-y-125"
-                      style={{ backgroundColor: tabColor }}
-                    />
-                    <TabIcon
-                      className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110"
-                      style={{ color: tabColor }}
-                    />
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#e1e1e6] group-hover:text-white transition-colors whitespace-nowrap">
-                      {cfg.label}
-                    </span>
-                  </button>
+                  />
                 );
               },
             )}
@@ -1760,43 +1754,44 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
           onMouseDown={handleDragStart}
         />
 
-        {/* Marcadores de Página Verticais Salientes no bordo direito (Anexo 3) */}
+        {/* Marcadores de Página Verticais Salientes no bordo direito */}
         {zone && (
-          <div className="absolute left-full top-16 flex flex-col gap-2.5 z-50 pointer-events-auto select-none">
-            {(['geral', 'destaques', 'ameacas', 'inventario'] as ZoneTab[])
-              .filter((tabKey) => tabKey !== activeTab)
-              .map((tabKey) => {
+          <div className="absolute left-full top-16 flex flex-col gap-2 z-50 pointer-events-auto select-none items-start">
+            {(['geral', 'destaques', 'ameacas', 'inventario'] as ZoneTab[]).map(
+              (tabKey) => {
                 const cfg = TAB_CONFIGS[tabKey];
                 const TabIcon = cfg.icon;
                 const tabColor =
                   tabKey === 'geral' ? zoneColor : cfg.defaultColor;
+                const isSelected = activeTab === tabKey;
 
                 return (
                   <button
                     key={tabKey}
                     onClick={() => setActiveTab(tabKey)}
-                    title={`Abrir ${cfg.label}`}
-                    className="group relative flex items-center gap-2 pl-2.5 pr-3.5 py-2 rounded-r-lg border-y border-r shadow-2xl transition-all duration-200 cursor-pointer bg-[#18181b]/95 backdrop-blur-md hover:translate-x-1.5 -ml-[1px]"
+                    title={cfg.label}
+                    className={`group relative flex items-center justify-center rounded-r-md border border-l-0 -ml-[1px] shadow-lg cursor-pointer transition-all duration-200 ease-out origin-left ${
+                      isSelected
+                        ? 'p-2 opacity-40 hover:opacity-75'
+                        : 'gap-2 px-3 py-1.5 opacity-100 hover:brightness-110 hover:shadow-xl'
+                    }`}
                     style={{
-                      borderColor: tabColor,
-                      boxShadow: `2px 4px 12px rgba(0,0,0,0.5)`,
+                      backgroundColor: tabColor,
+                      borderColor: isSelected
+                        ? 'rgba(255,255,255,0.15)'
+                        : 'rgba(0,0,0,0.25)',
                     }}
                   >
-                    {/* Indicador de cor luminoso na lateral */}
-                    <div
-                      className="w-1.5 h-4 rounded-full shrink-0 transition-transform group-hover:scale-y-125"
-                      style={{ backgroundColor: tabColor }}
-                    />
-                    <TabIcon
-                      className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110"
-                      style={{ color: tabColor }}
-                    />
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#e1e1e6] group-hover:text-white transition-colors whitespace-nowrap">
-                      {cfg.label}
-                    </span>
+                    <TabIcon className="w-4 h-4 text-white shrink-0 drop-shadow-sm" />
+                    {!isSelected && (
+                      <span className="text-xs font-bold uppercase tracking-wider text-white whitespace-nowrap drop-shadow-sm">
+                        {cfg.label}
+                      </span>
+                    )}
                   </button>
                 );
-              })}
+              },
+            )}
           </div>
         )}
       </aside>
