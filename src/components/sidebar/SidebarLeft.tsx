@@ -32,6 +32,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ImageCropper } from '@/components/ui/ImageCropper';
+import ZoneMarkerModal from '@/components/modals/ZoneMarkerModal';
 
 type ZoneTab = 'geral' | 'destaques' | 'ameacas' | 'inventario';
 
@@ -90,6 +91,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
   const [activeTab, setActiveTab] = useState<ZoneTab>('geral');
   const [showPalette, setShowPalette] = useState(false);
   const [showSubmenuDropdown, setShowSubmenuDropdown] = useState(false);
+  const [showMarkerModal, setShowMarkerModal] = useState(false);
   const [rawImage, setRawImage] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const headerDropdownRef = useRef<HTMLDivElement>(null);
@@ -217,17 +219,10 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
             </button>
           </div>
 
-          {/* Marcadores estendidos pela aba reduzida (Ponta triangular, expandem suavemente no hover) */}
+          {/* Marcadores estendidos pela aba reduzida (Apenas Geral na aba reduzida) */}
           {zone && (
             <div className="w-full flex flex-col items-start gap-2.5 select-none overflow-visible">
-              {(
-                [
-                  'geral',
-                  'destaques',
-                  'ameacas',
-                  'inventario',
-                ] as ZoneTab[]
-              ).map((tabKey) => {
+              {(['geral'] as ZoneTab[]).map((tabKey) => {
                 const cfg = TAB_CONFIGS[tabKey];
                 const TabIcon = cfg.icon;
                 const tabColor = getMarkerColor(tabKey);
@@ -357,18 +352,11 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
 
                   {/* Dropdown de Marcadores */}
                   {showSubmenuDropdown && (
-                    <div className="absolute top-full left-0 mt-2 bg-[#18181b] border border-[#323238] rounded-lg p-1.5 z-50 w-48 shadow-2xl backdrop-blur-md">
+                    <div className="absolute top-full left-0 mt-2 bg-[#18181b] border border-[#323238] rounded-lg p-1.5 z-50 w-52 shadow-2xl backdrop-blur-md">
                       <div className="text-[10px] font-bold text-[#71717a] uppercase px-2 py-1">
                         Marcadores
                       </div>
-                      {(
-                        [
-                          'geral',
-                          'destaques',
-                          'ameacas',
-                          'inventario',
-                        ] as ZoneTab[]
-                      ).map((tabKey) => {
+                      {(['geral'] as ZoneTab[]).map((tabKey) => {
                         const cfg = TAB_CONFIGS[tabKey];
                         const TabIcon = cfg.icon;
                         const itemColor = getMarkerColor(tabKey);
@@ -402,6 +390,20 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                           </button>
                         );
                       })}
+
+                      <div className="my-1 border-t border-[#323238]" />
+
+                      {/* Ação Adicionar Marcador */}
+                      <button
+                        onClick={() => {
+                          setShowSubmenuDropdown(false);
+                          setShowMarkerModal(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-xs font-semibold text-[#a8a8b3] hover:bg-white/5 hover:text-white transition-all cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4 text-[#ffd700]" />
+                        <span className="flex-1 text-left">Adicionar Marcador...</span>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -1885,78 +1887,102 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
           />
         )}
 
-        {/* Marcadores Verticais no bordo direito (Ponta triangular, expandem suavemente no hover) */}
+        {/* Marcadores Verticais no bordo direito (Geral com ponta triangular + Adicionar com ponta quadrada) */}
         {zone && isOpen && (
           <div className="absolute left-full top-16 flex flex-col gap-2.5 z-50 pointer-events-auto select-none items-start overflow-visible transition-opacity duration-200">
-            {(['geral', 'destaques', 'ameacas', 'inventario'] as ZoneTab[]).map(
-              (tabKey) => {
-                const cfg = TAB_CONFIGS[tabKey];
-                const TabIcon = cfg.icon;
-                const tabColor = getMarkerColor(tabKey);
-                const rawTextColor = getMarkerTextColor(tabKey);
-                const textColor =
-                  rawTextColor &&
-                  rawTextColor.toLowerCase() !== tabColor.toLowerCase()
-                    ? rawTextColor
-                    : '#ffffff';
-                const isSelected = activeTab === tabKey;
+            {/* Marcador Geral */}
+            {(['geral'] as ZoneTab[]).map((tabKey) => {
+              const cfg = TAB_CONFIGS[tabKey];
+              const TabIcon = cfg.icon;
+              const tabColor = getMarkerColor(tabKey);
+              const rawTextColor = getMarkerTextColor(tabKey);
+              const textColor =
+                rawTextColor &&
+                rawTextColor.toLowerCase() !== tabColor.toLowerCase()
+                  ? rawTextColor
+                  : '#ffffff';
+              const isSelected = activeTab === tabKey;
 
-                return (
-                  <button
-                    key={tabKey}
-                    onClick={() => setActiveTab(tabKey)}
-                    title={cfg.label}
-                    className="relative group h-7 w-[16px] hover:w-[165px] transition-all duration-300 ease-out cursor-pointer select-none shrink-0 p-0 border-none bg-transparent outline-none overflow-visible flex items-center -ml-[1px]"
+              return (
+                <button
+                  key={tabKey}
+                  onClick={() => setActiveTab(tabKey)}
+                  title={cfg.label}
+                  className="relative group h-7 w-[16px] hover:w-[165px] transition-all duration-300 ease-out cursor-pointer select-none shrink-0 p-0 border-none bg-transparent outline-none overflow-visible flex items-center -ml-[1px]"
+                  style={{
+                    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))',
+                  }}
+                >
+                  {/* Camada externa (Borda contornando todo o formato incluindo a ponta triangular) */}
+                  <div
+                    className="absolute inset-0 transition-all duration-300 ease-out"
                     style={{
-                      filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))',
+                      backgroundColor: isSelected
+                        ? 'rgba(255, 255, 255, 0.6)'
+                        : 'rgba(0, 0, 0, 0.8)',
+                      clipPath:
+                        'polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%)',
+                      WebkitClipPath:
+                        'polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%)',
+                    }}
+                  />
+
+                  {/* Camada interna (Cor do marcador com a ponta triangular e conteúdo) */}
+                  <div
+                    className={`absolute inset-y-[1.5px] left-0 right-[1.5px] flex items-center transition-all duration-200 overflow-hidden ${
+                      isSelected
+                        ? 'opacity-40 hover:opacity-85'
+                        : 'opacity-100 hover:brightness-110'
+                    }`}
+                    style={{
+                      backgroundColor: tabColor,
+                      clipPath:
+                        'polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%)',
+                      WebkitClipPath:
+                        'polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%)',
                     }}
                   >
-                    {/* Camada externa (Borda contornando todo o formato incluindo a ponta triangular) */}
-                    <div
-                      className="absolute inset-0 transition-all duration-300 ease-out"
-                      style={{
-                        backgroundColor: isSelected
-                          ? 'rgba(255, 255, 255, 0.6)'
-                          : 'rgba(0, 0, 0, 0.8)',
-                        clipPath:
-                          'polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%)',
-                        WebkitClipPath:
-                          'polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%)',
-                      }}
-                    />
-
-                    {/* Camada interna (Cor do marcador com a ponta triangular e conteúdo) */}
-                    <div
-                      className={`absolute inset-y-[1.5px] left-0 right-[1.5px] flex items-center transition-all duration-200 overflow-hidden ${
-                        isSelected
-                          ? 'opacity-40 hover:opacity-85'
-                          : 'opacity-100 hover:brightness-110'
-                      }`}
-                      style={{
-                        backgroundColor: tabColor,
-                        clipPath:
-                          'polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%)',
-                        WebkitClipPath:
-                          'polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%)',
-                      }}
-                    >
-                      <div className="flex items-center gap-2 pl-2.5 pr-5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-                        <TabIcon
-                          className="w-3.5 h-3.5 shrink-0 drop-shadow-sm"
-                          style={{ color: textColor }}
-                        />
-                        <span
-                          className="text-xs font-bold uppercase tracking-wider drop-shadow-sm"
-                          style={{ color: textColor }}
-                        >
-                          {cfg.label}
-                        </span>
-                      </div>
+                    <div className="flex items-center gap-2 pl-2.5 pr-5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                      <TabIcon
+                        className="w-3.5 h-3.5 shrink-0 drop-shadow-sm"
+                        style={{ color: textColor }}
+                      />
+                      <span
+                        className="text-xs font-bold uppercase tracking-wider drop-shadow-sm"
+                        style={{ color: textColor }}
+                      >
+                        {cfg.label}
+                      </span>
                     </div>
-                  </button>
-                );
-              },
-            )}
+                  </div>
+                </button>
+              );
+            })}
+
+            {/* Marcador Modular: Adicionar Novo Marcador (Ponta quadrada, coloração cinza apagada, expande no hover) */}
+            <button
+              onClick={() => setShowMarkerModal(true)}
+              title="Adicionar Marcador"
+              className="relative group h-7 w-[18px] hover:w-[165px] transition-all duration-300 ease-out cursor-pointer select-none shrink-0 p-0 border-none bg-transparent outline-none overflow-visible flex items-center -ml-[1px]"
+              style={{
+                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))',
+              }}
+            >
+              {/* Camada externa (Borda quadrada escura) */}
+              <div className="absolute inset-0 bg-black/80 rounded-r-[2px] transition-all duration-300 ease-out" />
+
+              {/* Camada interna (Cinza apagado com formato quadrado) */}
+              <div className="absolute inset-y-[1.5px] left-0 right-[1.5px] bg-[#27272a] hover:bg-[#323238] rounded-r-[1px] border-r border-t border-b border-[#3f3f46] flex items-center transition-all duration-200 overflow-hidden">
+                <div className="w-[15px] flex items-center justify-center shrink-0">
+                  <Plus className="w-3.5 h-3.5 text-[#a8a8b3] group-hover:text-white shrink-0 transition-colors" />
+                </div>
+                <div className="flex items-center pl-1 pr-3 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#a8a8b3] group-hover:text-white drop-shadow-sm">
+                    Adicionar
+                  </span>
+                </div>
+              </div>
+            </button>
           </div>
         )}
       </aside>
@@ -1986,6 +2012,13 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Modal de Gerenciamento Modular de Marcadores */}
+      <ZoneMarkerModal
+        open={showMarkerModal}
+        onOpenChange={setShowMarkerModal}
+        zone={zone}
+      />
     </>
   );
 }
