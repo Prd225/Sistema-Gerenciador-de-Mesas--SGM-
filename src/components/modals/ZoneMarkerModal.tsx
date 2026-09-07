@@ -97,60 +97,46 @@ interface QuestNode {
 interface PresetMeta {
   id: string;
   name: string;
-  description: string;
   color: string;
   icon: any;
-  tipShape: 'triangular' | 'square';
 }
 
 const PRESET_LIST: PresetMeta[] = [
   {
     id: 'destaques',
     name: 'Destaques',
-    description: 'Categorias com pontos de interesse, tags e revelação.',
     color: '#f59e0b',
     icon: Sparkles,
-    tipShape: 'triangular',
   },
   {
     id: 'ameacas',
     name: 'Ameaças',
-    description: 'Inimigos e perigos com dano, tipo e efeito detalhado.',
     color: '#ef4444',
     icon: Skull,
-    tipShape: 'triangular',
   },
   {
     id: 'inventario',
     name: 'Inventário',
-    description: 'Itens com peso, elemento, efeito e estado de busca.',
     color: '#06b6d4',
     icon: Package,
-    tipShape: 'triangular',
   },
   {
     id: 'diario',
     name: 'Diário de Bordo',
-    description: 'Crônicas, anotações de sessão e pistas desvendadas.',
     color: '#3b82f6',
     icon: BookOpen,
-    tipShape: 'triangular',
   },
   {
     id: 'npcs',
     name: 'NPCs & Facções',
-    description: 'Personagens encontrados, alianças e posturas.',
     color: '#a855f7',
     icon: Users,
-    tipShape: 'triangular',
   },
   {
     id: 'missoes',
     name: 'Objetivos & Missões',
-    description: 'Metas principais e tarefas com recompensas locais.',
     color: '#10b981',
     icon: Compass,
-    tipShape: 'square',
   },
 ];
 
@@ -313,7 +299,6 @@ export default function ZoneMarkerModal({
   const [customName, setCustomName] = useState('Grimório Arcano');
   const [customCategory, setCustomCategory] = useState('Feitiços Ativos');
   const [customColor, setCustomColor] = useState('#8257e5');
-  const [customTip, setCustomTip] = useState<'triangular' | 'square'>('square');
   const [customNodeChecked, setCustomNodeChecked] = useState(false);
 
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -398,7 +383,7 @@ export default function ZoneMarkerModal({
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-[#a8a8b3] uppercase tracking-wider">
-                    Escolha um Marcador
+                    Visualize um marcador
                   </span>
                   <div className="flex items-center gap-1">
                     <button
@@ -432,50 +417,37 @@ export default function ZoneMarkerModal({
                       <div
                         key={preset.id}
                         onClick={() => setSelectedPresetId(preset.id)}
-                        className={`cursor-pointer p-2 rounded-lg border transition-all shrink-0 w-[155px] select-none flex flex-col justify-between gap-1.5 ${
+                        className={`group cursor-pointer py-3 px-3 rounded-lg border transition-all shrink-0 w-[140px] select-none flex flex-col items-center justify-center gap-2.5 ${
                           isSelected
-                            ? 'bg-[#ffd700]/10 border-[#ffd700] shadow-md shadow-[#ffd700]/5'
+                            ? 'bg-[#ffd700]/10 border-[#ffd700] shadow-md shadow-[#ffd700]/10'
                             : 'bg-[#18181b] border-[#323238] hover:border-[#52525b]'
                         }`}
                       >
-                        <div className="flex items-start justify-between">
+                        <span className="text-xs font-bold text-center block truncate w-full text-[#e1e1e6] group-hover:text-white transition-colors">
+                          {preset.name}
+                        </span>
+
+                        <div className="flex items-center justify-center gap-2 w-full">
                           <div
-                            className="p-1 rounded-md flex items-center justify-center shrink-0"
+                            className="h-[1px] w-5 transition-colors"
                             style={{
-                              backgroundColor: `${preset.color}20`,
-                              color: preset.color,
+                              backgroundColor: isSelected
+                                ? `${preset.color}80`
+                                : '#323238',
                             }}
-                          >
-                            <Icon className="w-3.5 h-3.5" />
-                          </div>
-                          <span className="text-[8px] font-mono px-1 py-0.5 rounded bg-black/40 text-[#a8a8b3] uppercase">
-                            {preset.tipShape === 'square' ? 'Quadrada' : 'Triangular'}
-                          </span>
-                        </div>
-
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-[#e1e1e6] truncate">
-                              {preset.name}
-                            </span>
-                            <div
-                              className="w-1.5 h-1.5 rounded-full shrink-0"
-                              style={{ backgroundColor: preset.color }}
-                            />
-                          </div>
-                          <p className="text-[9.5px] text-[#a8a8b3] line-clamp-1 mt-0.5 leading-snug">
-                            {preset.description}
-                          </p>
-                        </div>
-
-                        <div className="pt-1 border-t border-[#27272a] flex items-center justify-between">
-                          <span
-                            className={`text-[8.5px] font-bold uppercase tracking-wider ${
-                              isSelected ? 'text-[#ffd700]' : 'text-[#71717a]'
-                            }`}
-                          >
-                            {isSelected ? 'Visualizando' : 'Ver prévia'}
-                          </span>
+                          />
+                          <Icon
+                            className="w-4 h-4 transition-transform group-hover:scale-110 shrink-0"
+                            style={{ color: preset.color }}
+                          />
+                          <div
+                            className="h-[1px] w-5 transition-colors"
+                            style={{
+                              backgroundColor: isSelected
+                                ? `${preset.color}80`
+                                : '#323238',
+                            }}
+                          />
                         </div>
                       </div>
                     );
@@ -488,9 +460,6 @@ export default function ZoneMarkerModal({
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-[#a8a8b3] uppercase tracking-wider">
                     Prévia na Barra Lateral
-                  </span>
-                  <span className="text-[10px] text-[#71717a]">
-                    Estrutura real dos nós internos
                   </span>
                 </div>
 
@@ -893,66 +862,34 @@ export default function ZoneMarkerModal({
                   />
                 </div>
 
-                {/* Cor e Formato */}
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  {/* Cor */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#c4c4cc]">
-                      Cor do Marcador
-                    </label>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {[
-                        '#8257e5',
-                        '#f59e0b',
-                        '#ef4444',
-                        '#06b6d4',
-                        '#10b981',
-                        '#ec4899',
-                      ].map((c) => (
-                        <button
-                          key={c}
-                          type="button"
-                          onClick={() => setCustomColor(c)}
-                          className="w-5 h-5 rounded-full border border-black/40 flex items-center justify-center cursor-pointer transition-transform hover:scale-110"
-                          style={{ backgroundColor: c }}
-                        >
-                          {customColor === c && (
-                            <Check className="w-3 h-3 text-white" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Formato da Ponta */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#c4c4cc]">
-                      Formato da Ponta
-                    </label>
-                    <div className="flex gap-2">
+                {/* Cor do Marcador */}
+                <div className="space-y-1 pt-1">
+                  <label className="text-xs font-semibold text-[#c4c4cc]">
+                    Cor do Marcador
+                  </label>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {[
+                      '#8257e5',
+                      '#f59e0b',
+                      '#ef4444',
+                      '#06b6d4',
+                      '#10b981',
+                      '#ec4899',
+                      '#3b82f6',
+                      '#a855f7',
+                    ].map((c) => (
                       <button
+                        key={c}
                         type="button"
-                        onClick={() => setCustomTip('square')}
-                        className={`flex-1 py-1 px-2 rounded border text-xs font-bold transition-all cursor-pointer ${
-                          customTip === 'square'
-                            ? 'border-[#8257e5] bg-[#8257e5]/20 text-white'
-                            : 'border-[#323238] bg-[#121214] text-[#a8a8b3]'
-                        }`}
+                        onClick={() => setCustomColor(c)}
+                        className="w-5 h-5 rounded-full border border-black/40 flex items-center justify-center cursor-pointer transition-transform hover:scale-110"
+                        style={{ backgroundColor: c }}
                       >
-                        Ponta Quadrada
+                        {customColor === c && (
+                          <Check className="w-3 h-3 text-white" />
+                        )}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setCustomTip('triangular')}
-                        className={`flex-1 py-1 px-2 rounded border text-xs font-bold transition-all cursor-pointer ${
-                          customTip === 'triangular'
-                            ? 'border-[#8257e5] bg-[#8257e5]/20 text-white'
-                            : 'border-[#323238] bg-[#121214] text-[#a8a8b3]'
-                        }`}
-                      >
-                        Ponta Triangular
-                      </button>
-                    </div>
+                    ))}
                   </div>
                 </div>
               </div>
