@@ -179,7 +179,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
 
   const getMarkerTextColor = (tabKey: ZoneTab): string => {
     if (tabKey === 'geral') {
-      return zoneData?.style?.borderColor || '#ffffff';
+      return zoneData?.style?.textColor || '#ffffff';
     }
     return zoneData?.markerTextColors?.[tabKey] || '#ffffff';
   };
@@ -231,7 +231,12 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                 const cfg = TAB_CONFIGS[tabKey];
                 const TabIcon = cfg.icon;
                 const tabColor = getMarkerColor(tabKey);
-                const textColor = getMarkerTextColor(tabKey) || '#ffffff';
+                const rawTextColor = getMarkerTextColor(tabKey);
+                const textColor =
+                  rawTextColor &&
+                  rawTextColor.toLowerCase() !== tabColor.toLowerCase()
+                    ? rawTextColor
+                    : '#ffffff';
                 const isSelected = activeTab === tabKey;
 
                 return (
@@ -1888,7 +1893,12 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                 const cfg = TAB_CONFIGS[tabKey];
                 const TabIcon = cfg.icon;
                 const tabColor = getMarkerColor(tabKey);
-                const textColor = getMarkerTextColor(tabKey) || '#ffffff';
+                const rawTextColor = getMarkerTextColor(tabKey);
+                const textColor =
+                  rawTextColor &&
+                  rawTextColor.toLowerCase() !== tabColor.toLowerCase()
+                    ? rawTextColor
+                    : '#ffffff';
                 const isSelected = activeTab === tabKey;
 
                 return (
