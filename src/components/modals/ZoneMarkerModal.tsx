@@ -33,173 +33,255 @@ interface ZoneMarkerModalProps {
   zone: Zone | null;
 }
 
-interface PreviewNode {
+// Interfaces fiéis ao funcionamento real dos marcadores no SGM
+interface ThreatNode {
   id: string;
   name: string;
-  description: string;
-  checked: boolean;
-  tag?: string;
+  type: string;
+  damage: string;
+  damageType: string;
+  effect: string;
+  isRevealed: boolean;
 }
 
-interface PresetItem {
+interface HighlightCategory {
+  title: string;
+  options: {
+    id: string;
+    name: string;
+    desc: string;
+    color: 'yellow' | 'blue' | 'purple' | 'green' | 'red';
+    tags: string;
+    isRevealed: boolean;
+  }[];
+}
+
+interface InventoryNode {
   id: string;
   name: string;
-  category: string;
+  type: string;
+  element: string;
+  weight: string;
+  effect: string;
+  desc: string;
+  isFound: boolean;
+}
+
+interface JournalNode {
+  id: string;
+  title: string;
+  session: string;
+  author: string;
+  text: string;
+  isRevealed: boolean;
+}
+
+interface NpcNode {
+  id: string;
+  name: string;
+  role: string;
+  disposition: string;
+  notes: string;
+  isRevealed: boolean;
+}
+
+interface QuestNode {
+  id: string;
+  title: string;
+  priority: string;
+  reward: string;
+  objective: string;
+  isCompleted: boolean;
+}
+
+interface PresetMeta {
+  id: string;
+  name: string;
   description: string;
   color: string;
   icon: any;
   tipShape: 'triangular' | 'square';
-  nodes: PreviewNode[];
 }
 
-const PRESETS: PresetItem[] = [
+const PRESET_LIST: PresetMeta[] = [
   {
     id: 'destaques',
     name: 'Destaques',
-    category: 'Pontos de Interesse',
-    description: 'Eventos, marcos e revelações chave da zona.',
+    description: 'Categorias com pontos de interesse, tags e revelação.',
     color: '#f59e0b',
     icon: Sparkles,
     tipShape: 'triangular',
-    nodes: [
-      {
-        id: 'd1',
-        name: 'Altar de Sangue',
-        description: 'Monólito antigo de pedra entalhado com inscrições arcanas.',
-        checked: false,
-        tag: 'Investigação',
-      },
-      {
-        id: 'd2',
-        name: 'Passagem Secreta',
-        description: 'Fenda oculta atrás de raízes que leva às galerias inferiores.',
-        checked: true,
-        tag: 'Exploração',
-      },
-    ],
   },
   {
     id: 'ameacas',
     name: 'Ameaças',
-    category: 'Perigos e Monstros',
-    description: 'Inimigos, armadilhas e riscos ambientais iminentes.',
+    description: 'Inimigos e perigos com dano, tipo e efeito detalhado.',
     color: '#ef4444',
     icon: Skull,
     tipShape: 'triangular',
-    nodes: [
-      {
-        id: 'a1',
-        name: 'Sentinela de Pedra',
-        description: 'Autômato guardião com armadura pesada e ataque de raio.',
-        checked: false,
-        tag: 'Inimigo',
-      },
-      {
-        id: 'a2',
-        name: 'Gás Corrosivo',
-        description: 'Névoa tóxica expelida por fissuras no solo a cada 3 rodadas.',
-        checked: false,
-        tag: 'Ambiente',
-      },
-    ],
   },
   {
     id: 'inventario',
     name: 'Inventário',
-    category: 'Recursos e Tesouros',
-    description: 'Itens coletáveis, suprimentos e recompensas locais.',
+    description: 'Itens com peso, elemento, efeito e estado de busca.',
     color: '#06b6d4',
     icon: Package,
     tipShape: 'triangular',
-    nodes: [
-      {
-        id: 'i1',
-        name: 'Chave de Ferro Fundido',
-        description: 'Encontrada sob escombros, abre a câmara dos sacerdotes.',
-        checked: false,
-        tag: 'Chave',
-      },
-      {
-        id: 'i2',
-        name: 'Elixir Restaurador',
-        description: 'Frasco contendo líquido luminescente que recupera vigor.',
-        checked: true,
-        tag: 'Consumível',
-      },
-    ],
   },
   {
     id: 'diario',
     name: 'Diário de Bordo',
-    category: 'Crônicas Narrativas',
-    description: 'Anotações da expedição, pistas e mistérios desvendados.',
+    description: 'Crônicas, anotações de sessão e pistas desvendadas.',
     color: '#3b82f6',
     icon: BookOpen,
     tipShape: 'triangular',
-    nodes: [
-      {
-        id: 'db1',
-        name: 'Registro da Expedição Anterior',
-        description: 'Páginas rasgadas alertando sobre o guardião nas profundezas.',
-        checked: false,
-      },
-      {
-        id: 'db2',
-        name: 'Inscrição na Parede Leste',
-        description: 'Frase entalhada em élfico antigo alertando sobre traição.',
-        checked: true,
-      },
-    ],
   },
   {
     id: 'npcs',
     name: 'NPCs & Facções',
-    category: 'Contatos Locais',
-    description: 'Personagens, sobreviventes e grupos encontrados na área.',
+    description: 'Personagens encontrados, alianças e posturas.',
     color: '#a855f7',
     icon: Users,
     tipShape: 'triangular',
-    nodes: [
-      {
-        id: 'n1',
-        name: 'Eldrin, o Cartógrafo',
-        description: 'Erudito acolhido pelo grupo, conhece detalhes da arquitetura.',
-        checked: false,
-        tag: 'Aliado',
-      },
-      {
-        id: 'n2',
-        name: 'Batedores das Sombras',
-        description: 'Patrulha hostil rondando as imediações da entrada.',
-        checked: false,
-        tag: 'Hostil',
-      },
-    ],
   },
   {
     id: 'missoes',
     name: 'Objetivos & Missões',
-    category: 'Metas da Área',
-    description: 'Tarefas principais e secundárias a cumprir na cena.',
+    description: 'Metas principais e tarefas com recompensas locais.',
     color: '#10b981',
     icon: Compass,
     tipShape: 'square',
-    nodes: [
+  },
+];
+
+// Dados realistas de demonstração para o preview
+const SAMPLE_HIGHLIGHTS: HighlightCategory[] = [
+  {
+    title: 'Pontos de Investigação',
+    options: [
       {
-        id: 'm1',
-        name: 'Desativar o Cristal Corruptor',
-        description: 'Interromper o feixe de energia que sustenta a barreira.',
-        checked: false,
-        tag: 'Principal',
+        id: 'h1',
+        name: 'Altar de Sangue',
+        desc: 'Monólito entalhado com rituais arcanos. A vala central ressoa com energia espectral.',
+        color: 'yellow',
+        tags: 'INVESTIGAÇÃO, MISTÉRIO',
+        isRevealed: false,
       },
       {
-        id: 'm2',
-        name: 'Resgatar o Prisioneiro',
-        description: 'Abrir a cela trancada antes da chegada de reforços.',
-        checked: true,
-        tag: 'Secundária',
+        id: 'h2',
+        name: 'Passagem Secreta',
+        desc: 'Fenda oculta atrás de raízes que leva diretamente às catacumbas inferiores.',
+        color: 'blue',
+        tags: 'EXPLORAÇÃO',
+        isRevealed: true,
       },
     ],
+  },
+];
+
+const SAMPLE_THREATS: ThreatNode[] = [
+  {
+    id: 't1',
+    name: 'Sentinela Encouraçado',
+    type: 'Monstro',
+    damage: '2d8+4',
+    damageType: 'Impacto / Balístico',
+    effect:
+      'Autômato guardião blindado. Desfere contra-ataque imediato em área a cada acerto crítico sofrido.',
+    isRevealed: false,
+  },
+  {
+    id: 't2',
+    name: 'Armadilha de Lâminas Ocultas',
+    type: 'Armadilha',
+    damage: '3d6',
+    damageType: 'Corte / Perfurante',
+    effect:
+      'Placa de pressão oculta entre ladrilhos. Exige teste de Percepção DT 18 para notar antes do disparo.',
+    isRevealed: true,
+  },
+];
+
+const SAMPLE_INVENTORY: InventoryNode[] = [
+  {
+    id: 'inv1',
+    name: 'Chave do Sacrário',
+    type: 'Chave',
+    element: 'Conhecimento',
+    weight: '1 Espaço',
+    effect: 'Abre fechaduras seladas da nave central',
+    desc: 'Chave de metal escurecido esculpida em formato de crânio estilizado.',
+    isFound: false,
+  },
+  {
+    id: 'inv2',
+    name: 'Elixir da Vitalidade',
+    type: 'Consumível',
+    element: 'Sangue',
+    weight: '1 Espaço',
+    effect: 'Recupera 3d8+3 Pontos de Vida',
+    desc: 'Frasco reforçado contendo líquido carmesim espesso e energizante.',
+    isFound: true,
+  },
+];
+
+const SAMPLE_JOURNALS: JournalNode[] = [
+  {
+    id: 'j1',
+    title: 'Relato do Primeiro Batedor',
+    session: 'Sessão 11',
+    author: 'Mestre',
+    text: 'Encontramos marcas de garras nas paredes reforçadas de ferro. Os cultistas abandonaram o posto às pressas.',
+    isRevealed: false,
+  },
+  {
+    id: 'j2',
+    title: 'Inscrição na Lápide Oculta',
+    session: 'Sessão 09',
+    author: 'Eldrin',
+    text: '"Aquele que quebrar o selo das três chaves herdará o peso da maldição ancestral."',
+    isRevealed: true,
+  },
+];
+
+const SAMPLE_NPCS: NpcNode[] = [
+  {
+    id: 'npc1',
+    name: 'Eldrin, o Arquivista',
+    role: 'Erudito Resgatado',
+    disposition: 'Aliado',
+    notes:
+      'Conhece o dialeto das catacumbas e oferece decifrar textos antigos em troca de proteção.',
+    isRevealed: false,
+  },
+  {
+    id: 'npc2',
+    name: 'Vigia das Sombras',
+    role: 'Mercenário Renegado',
+    disposition: 'Hostil',
+    notes: 'Patrulha o corredor norte armado com arco longo e dardos envenenados.',
+    isRevealed: true,
+  },
+];
+
+const SAMPLE_QUESTS: QuestNode[] = [
+  {
+    id: 'q1',
+    title: 'Desativar o Núcleo Corruptor',
+    priority: 'Missão Principal',
+    reward: '350 XP / Acesso ao Cofre',
+    objective:
+      'Interromper a fonte de energia antes que o ritual de invocação atinja o ápice.',
+    isCompleted: false,
+  },
+  {
+    id: 'q2',
+    title: 'Resgatar as Anotações do Explorador',
+    priority: 'Secundária',
+    reward: 'Diário Mágico + 100 PO',
+    objective:
+      'Recuperar o livro de anotações no laboratório de alquimia submerso.',
+    isCompleted: true,
   },
 ];
 
@@ -211,20 +293,20 @@ export default function ZoneMarkerModal({
   const [activeTab, setActiveTab] = useState<'presets' | 'custom'>('presets');
   const [selectedPresetId, setSelectedPresetId] = useState<string>('destaques');
 
-  // Estado interativo das checkboxes do preview
+  // Estado interativo dos nós no preview
   const [nodeState, setNodeState] = useState<Record<string, boolean>>({
-    d1: false,
-    d2: true,
-    a1: false,
-    a2: false,
-    i1: false,
-    i2: true,
-    db1: false,
-    db2: true,
-    n1: false,
-    n2: false,
-    m1: false,
-    m2: true,
+    h1: false,
+    h2: true,
+    t1: false,
+    t2: true,
+    inv1: false,
+    inv2: true,
+    j1: false,
+    j2: true,
+    npc1: false,
+    npc2: true,
+    q1: false,
+    q2: true,
   });
 
   // Campos do marcador personalizado
@@ -237,17 +319,15 @@ export default function ZoneMarkerModal({
   const carouselRef = useRef<HTMLDivElement>(null);
 
   const zoneTitle = zone?.data?.title || 'Zona Atual';
-  const selectedPreset =
-    PRESETS.find((p) => p.id === selectedPresetId) || PRESETS[0];
 
   const scrollCarousel = (direction: 'left' | 'right') => {
     if (carouselRef.current) {
-      const scrollAmount = direction === 'left' ? -220 : 220;
+      const scrollAmount = direction === 'left' ? -200 : 200;
       carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
 
-  const toggleNodeCheck = (id: string) => {
+  const toggleNode = (id: string) => {
     setNodeState((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
@@ -255,7 +335,7 @@ export default function ZoneMarkerModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-[#202024] border-[#323238] text-[#e1e1e6] sm:max-w-[620px] max-h-[90vh] flex flex-col shadow-2xl p-0 overflow-hidden">
         {/* Header */}
-        <div className="p-4 pb-3 border-b border-[#323238]">
+        <div className="p-4 pb-2.5 border-b border-[#323238]">
           <DialogHeader>
             <DialogTitle className="text-[#ffd700] flex items-center gap-2.5 text-base font-bold">
               <BookmarkPlus className="w-5 h-5 text-[#ffd700]" />
@@ -267,7 +347,7 @@ export default function ZoneMarkerModal({
             </DialogDescription>
           </DialogHeader>
 
-          {/* Abas solicitadas: sem ícones e com os nomes solicitados */}
+          {/* Abas solicitadas: apenas texto, sem ícones */}
           <div className="flex gap-2 mt-3 bg-[#121214] p-1 rounded-lg border border-[#323238]">
             <button
               onClick={() => setActiveTab('presets')}
@@ -311,7 +391,7 @@ export default function ZoneMarkerModal({
         </div>
 
         {/* Conteúdo Principal */}
-        <div className="p-4 space-y-3.5 overflow-y-auto flex-1">
+        <div className="p-4 space-y-3 overflow-y-auto flex-1">
           {activeTab === 'presets' ? (
             <>
               {/* Carrossel de Marcadores Pré-configurados */}
@@ -345,14 +425,14 @@ export default function ZoneMarkerModal({
                   ref={carouselRef}
                   className="flex gap-2 overflow-x-auto pb-1 pt-0.5 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
                 >
-                  {PRESETS.map((preset) => {
+                  {PRESET_LIST.map((preset) => {
                     const Icon = preset.icon;
                     const isSelected = selectedPresetId === preset.id;
                     return (
                       <div
                         key={preset.id}
                         onClick={() => setSelectedPresetId(preset.id)}
-                        className={`cursor-pointer p-2.5 rounded-lg border transition-all shrink-0 w-[160px] select-none flex flex-col justify-between gap-1.5 ${
+                        className={`cursor-pointer p-2 rounded-lg border transition-all shrink-0 w-[155px] select-none flex flex-col justify-between gap-1.5 ${
                           isSelected
                             ? 'bg-[#ffd700]/10 border-[#ffd700] shadow-md shadow-[#ffd700]/5'
                             : 'bg-[#18181b] border-[#323238] hover:border-[#52525b]'
@@ -403,94 +483,390 @@ export default function ZoneMarkerModal({
                 </div>
               </div>
 
-              {/* Área de Preview da Barra Lateral */}
+              {/* Área de Preview Fiel da Barra Lateral */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-[#a8a8b3] uppercase tracking-wider">
                     Prévia na Barra Lateral
                   </span>
                   <span className="text-[10px] text-[#71717a]">
-                    Demonstração dos nós internos
+                    Estrutura real dos nós internos
                   </span>
                 </div>
 
-                <div className="bg-[#18181b] border border-[#323238] rounded-lg p-3 space-y-2.5">
-                  {/* Cabeçalho da Categoria da Zona */}
-                  <div className="border-b border-[#323238] pb-1 flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#e1e1e6]">
-                      {selectedPreset.category}
-                    </span>
-                    <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: selectedPreset.color }}
-                    />
-                  </div>
-
-                  {/* Lista de Nós / Cards estilo Checkbox */}
-                  <div className="space-y-2.5">
-                    {selectedPreset.nodes.map((node) => {
-                      const isChecked =
-                        nodeState[node.id] !== undefined
-                          ? nodeState[node.id]
-                          : node.checked;
-
-                      return (
-                        <div
-                          key={node.id}
-                          className={`bg-black/30 border border-[#323238] rounded-md p-3 transition-opacity ${
-                            isChecked ? 'opacity-50' : 'opacity-100'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                              <button
-                                type="button"
-                                onClick={() => toggleNodeCheck(node.id)}
-                                className="text-[#a8a8b3] hover:text-[#ffd700] transition-colors mt-0.5 shrink-0 cursor-pointer"
-                                title={
-                                  isChecked
-                                    ? 'Marcar como não concluído'
-                                    : 'Marcar como concluído'
-                                }
-                              >
-                                {isChecked ? (
-                                  <CheckSquare className="w-4 h-4 text-[#04d361]" />
-                                ) : (
-                                  <Square className="w-4 h-4" />
-                                )}
-                              </button>
-
-                              <div className="min-w-0 flex-1">
-                                <span
-                                  className={`text-xs font-bold text-[#e1e1e6] block break-words ${
-                                    isChecked ? 'line-through text-[#a8a8b3]' : ''
-                                  }`}
+                <div className="bg-[#18181b] border border-[#323238] rounded-lg p-3 space-y-3">
+                  {/* CASO 1: AMEAÇAS (Sem título geral de categoria; cards complexos com Dano, Tipo, Efeito e Tag vermelha) */}
+                  {selectedPresetId === 'ameacas' && (
+                    <div className="space-y-2.5">
+                      {SAMPLE_THREATS.map((threat) => {
+                        const isRev = nodeState[threat.id] ?? threat.isRevealed;
+                        return (
+                          <div
+                            key={threat.id}
+                            className={`bg-black/20 p-3 rounded border border-[#323238] min-w-0 transition-opacity ${
+                              isRev ? 'opacity-50' : 'opacity-100'
+                            }`}
+                          >
+                            <div className="flex justify-between items-center mb-1">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleNode(threat.id)}
+                                  className="text-[#a8a8b3] hover:text-[#8257e5] transition-colors cursor-pointer shrink-0"
+                                  title="Marcar como revelada"
                                 >
-                                  {node.name}
+                                  {isRev ? (
+                                    <CheckSquare className="w-5 h-5 text-red-500" />
+                                  ) : (
+                                    <Square className="w-5 h-5" />
+                                  )}
+                                </button>
+                                <span className="font-bold text-[#e1e1e6] text-sm break-words min-w-0">
+                                  {threat.name}
                                 </span>
-                                <p className="text-[11px] text-[#a8a8b3] mt-1 leading-relaxed">
-                                  {node.description}
-                                </p>
+                              </div>
+                              <span className="bg-red-500/20 text-red-500 text-[10px] font-bold px-2 py-0.5 rounded border border-red-500/30 uppercase shrink-0 ml-2">
+                                {threat.type}
+                              </span>
+                            </div>
+
+                            {/* Sub-row de Dano e Tipo */}
+                            <div className="flex gap-4 mb-1.5 text-xs text-[#a8a8b3] pl-7">
+                              <div>
+                                <span className="font-bold text-[#e1e1e6]">
+                                  Dano:
+                                </span>{' '}
+                                {threat.damage}
+                              </div>
+                              <div>
+                                <span className="font-bold text-[#e1e1e6]">
+                                  Tipo:
+                                </span>{' '}
+                                {threat.damageType}
                               </div>
                             </div>
 
-                            {node.tag && (
-                              <span className="bg-[#121214] text-[#a8a8b3] px-2 py-0.5 rounded text-[9px] border border-[#323238] uppercase shrink-0 font-medium">
-                                {node.tag}
-                              </span>
-                            )}
+                            {/* Linha de Efeito */}
+                            <div className="pl-7 text-xs text-[#c4c4cc] leading-relaxed">
+                              {threat.effect}
+                            </div>
                           </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* CASO 2: DESTAQUES (Com título de categoria, borda lateral colorida e tags) */}
+                  {selectedPresetId === 'destaques' && (
+                    <div className="space-y-3">
+                      {SAMPLE_HIGHLIGHTS.map((cat, catIdx) => (
+                        <div key={catIdx} className="space-y-2">
+                          <div className="font-bold text-xs uppercase tracking-wider text-[#e1e1e6] border-b border-[#323238] pb-1">
+                            {cat.title}
+                          </div>
+                          {cat.options.map((hl) => {
+                            const isRev = nodeState[hl.id] ?? hl.isRevealed;
+                            const borderMap: Record<string, string> = {
+                              yellow: 'border-l-yellow-400',
+                              blue: 'border-l-blue-500',
+                              purple: 'border-l-purple-500',
+                              red: 'border-l-red-500',
+                              green: 'border-l-green-500',
+                            };
+                            const textMap: Record<string, string> = {
+                              yellow: 'text-yellow-400',
+                              blue: 'text-blue-400',
+                              purple: 'text-purple-400',
+                              red: 'text-red-400',
+                              green: 'text-green-400',
+                            };
+
+                            return (
+                              <div
+                                key={hl.id}
+                                className={`bg-black/20 p-3 rounded border-l-[3px] ml-1.5 min-w-0 transition-opacity ${
+                                  borderMap[hl.color] || 'border-l-gray-500'
+                                } ${isRev ? 'opacity-50' : 'opacity-100'}`}
+                              >
+                                <div className="flex justify-between items-start mb-1 gap-2">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleNode(hl.id)}
+                                      className="text-[#a8a8b3] hover:text-[#8257e5] transition-colors cursor-pointer shrink-0"
+                                      title="Marcar como revelado"
+                                    >
+                                      {isRev ? (
+                                        <CheckSquare className="w-4 h-4 text-[#04d361]" />
+                                      ) : (
+                                        <Square className="w-4 h-4" />
+                                      )}
+                                    </button>
+                                    <span
+                                      className={`font-bold text-sm break-words min-w-0 ${
+                                        textMap[hl.color] || 'text-white'
+                                      }`}
+                                    >
+                                      {hl.name}
+                                    </span>
+                                  </div>
+                                  <div className="flex gap-1 shrink-0">
+                                    {hl.tags.split(',').map((t, idx) => (
+                                      <span
+                                        key={idx}
+                                        className="bg-[#121214] text-[#a8a8b3] px-1.5 py-0.5 rounded text-[9px] border border-[#323238] uppercase"
+                                      >
+                                        {t.trim()}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                                <p className="text-xs text-[#c4c4cc] pl-6 leading-relaxed">
+                                  {hl.desc}
+                                </p>
+                              </div>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
-                  </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* CASO 3: INVENTÁRIO (Sem categoria, com tags de tipo, elemento, peso e efeito) */}
+                  {selectedPresetId === 'inventario' && (
+                    <div className="space-y-2.5">
+                      {SAMPLE_INVENTORY.map((item) => {
+                        const isF = nodeState[item.id] ?? item.isFound;
+                        const elColorMap: Record<string, string> = {
+                          Conhecimento:
+                            'text-yellow-500 border-yellow-500/30 bg-yellow-500/10',
+                          Sangue: 'text-red-500 border-red-500/30 bg-red-500/10',
+                          Morte: 'text-gray-400 border-gray-400/30 bg-gray-400/10',
+                          Energia:
+                            'text-purple-500 border-purple-500/30 bg-purple-500/10',
+                        };
+
+                        return (
+                          <div
+                            key={item.id}
+                            className={`bg-black/20 p-3 rounded border border-[#323238] min-w-0 transition-opacity ${
+                              isF ? 'opacity-50 grayscale' : 'opacity-100'
+                            }`}
+                          >
+                            <div className="flex justify-between items-center mb-1">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleNode(item.id)}
+                                  className="text-[#a8a8b3] hover:text-[#8257e5] transition-colors cursor-pointer shrink-0"
+                                  title="Marcar como encontrado"
+                                >
+                                  {isF ? (
+                                    <CheckSquare className="w-5 h-5 text-[#ffd700]" />
+                                  ) : (
+                                    <Square className="w-5 h-5" />
+                                  )}
+                                </button>
+                                <span
+                                  className={`font-bold text-sm break-words min-w-0 ${
+                                    isF ? 'text-[#a8a8b3] line-through' : 'text-[#e1e1e6]'
+                                  }`}
+                                >
+                                  {item.name}
+                                </span>
+                              </div>
+                              <div className="flex gap-1.5 shrink-0">
+                                <span className="bg-[#121214] text-[#a8a8b3] text-[10px] px-2 py-0.5 rounded border border-[#323238] uppercase">
+                                  {item.type}
+                                </span>
+                                <span
+                                  className={`text-[10px] px-2 py-0.5 rounded border uppercase ${
+                                    elColorMap[item.element] ||
+                                    'text-[#a8a8b3] border-[#323238]'
+                                  }`}
+                                >
+                                  {item.element}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex gap-4 mb-1.5 text-xs text-[#a8a8b3] pl-7">
+                              <div>
+                                <span className="font-bold text-[#e1e1e6]">
+                                  Peso:
+                                </span>{' '}
+                                {item.weight}
+                              </div>
+                              <div>
+                                <span className="font-bold text-[#e1e1e6]">
+                                  Efeito:
+                                </span>{' '}
+                                {item.effect}
+                              </div>
+                            </div>
+
+                            <div className="pl-7 text-xs text-[#c4c4cc] leading-relaxed">
+                              {item.desc}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* CASO 4: DIÁRIO DE BORDO */}
+                  {selectedPresetId === 'diario' && (
+                    <div className="space-y-2.5">
+                      {SAMPLE_JOURNALS.map((j) => {
+                        const isRev = nodeState[j.id] ?? j.isRevealed;
+                        return (
+                          <div
+                            key={j.id}
+                            className={`bg-black/20 p-3 rounded border border-[#323238] min-w-0 transition-opacity ${
+                              isRev ? 'opacity-50' : 'opacity-100'
+                            }`}
+                          >
+                            <div className="flex justify-between items-center mb-1">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleNode(j.id)}
+                                  className="text-[#a8a8b3] hover:text-[#3b82f6] transition-colors cursor-pointer shrink-0"
+                                >
+                                  {isRev ? (
+                                    <CheckSquare className="w-5 h-5 text-[#3b82f6]" />
+                                  ) : (
+                                    <Square className="w-5 h-5" />
+                                  )}
+                                </button>
+                                <span className="font-bold text-sm text-[#e1e1e6]">
+                                  {j.title}
+                                </span>
+                              </div>
+                              <span className="bg-[#121214] text-[#3b82f6] text-[10px] px-2 py-0.5 rounded border border-[#3b82f6]/30 uppercase shrink-0">
+                                {j.session}
+                              </span>
+                            </div>
+                            <p className="pl-7 text-xs text-[#c4c4cc] leading-relaxed italic">
+                              "{j.text}"
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* CASO 5: NPCS & FACÇÕES */}
+                  {selectedPresetId === 'npcs' && (
+                    <div className="space-y-2.5">
+                      {SAMPLE_NPCS.map((npc) => {
+                        const isRev = nodeState[npc.id] ?? npc.isRevealed;
+                        return (
+                          <div
+                            key={npc.id}
+                            className={`bg-black/20 p-3 rounded border border-[#323238] min-w-0 transition-opacity ${
+                              isRev ? 'opacity-50' : 'opacity-100'
+                            }`}
+                          >
+                            <div className="flex justify-between items-center mb-1">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleNode(npc.id)}
+                                  className="text-[#a8a8b3] hover:text-[#a855f7] transition-colors cursor-pointer shrink-0"
+                                >
+                                  {isRev ? (
+                                    <CheckSquare className="w-5 h-5 text-[#a855f7]" />
+                                  ) : (
+                                    <Square className="w-5 h-5" />
+                                  )}
+                                </button>
+                                <span className="font-bold text-sm text-[#e1e1e6]">
+                                  {npc.name}
+                                </span>
+                              </div>
+                              <div className="flex gap-1.5 shrink-0">
+                                <span className="bg-[#121214] text-[#a8a8b3] text-[10px] px-2 py-0.5 rounded border border-[#323238] uppercase">
+                                  {npc.role}
+                                </span>
+                                <span
+                                  className={`text-[10px] px-2 py-0.5 rounded border uppercase ${
+                                    npc.disposition === 'Aliado'
+                                      ? 'text-green-400 border-green-500/30 bg-green-500/10'
+                                      : 'text-red-400 border-red-500/30 bg-red-500/10'
+                                  }`}
+                                >
+                                  {npc.disposition}
+                                </span>
+                              </div>
+                            </div>
+                            <p className="pl-7 text-xs text-[#c4c4cc] leading-relaxed">
+                              {npc.notes}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* CASO 6: OBJETIVOS & MISSÕES */}
+                  {selectedPresetId === 'missoes' && (
+                    <div className="space-y-2.5">
+                      {SAMPLE_QUESTS.map((q) => {
+                        const isComp = nodeState[q.id] ?? q.isCompleted;
+                        return (
+                          <div
+                            key={q.id}
+                            className={`bg-black/20 p-3 rounded border border-[#323238] min-w-0 transition-opacity ${
+                              isComp ? 'opacity-50' : 'opacity-100'
+                            }`}
+                          >
+                            <div className="flex justify-between items-center mb-1">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleNode(q.id)}
+                                  className="text-[#a8a8b3] hover:text-[#10b981] transition-colors cursor-pointer shrink-0"
+                                >
+                                  {isComp ? (
+                                    <CheckSquare className="w-5 h-5 text-[#10b981]" />
+                                  ) : (
+                                    <Square className="w-5 h-5" />
+                                  )}
+                                </button>
+                                <span
+                                  className={`font-bold text-sm text-[#e1e1e6] ${
+                                    isComp ? 'line-through text-[#a8a8b3]' : ''
+                                  }`}
+                                >
+                                  {q.title}
+                                </span>
+                              </div>
+                              <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-500/30 uppercase shrink-0">
+                                {q.priority}
+                              </span>
+                            </div>
+                            <div className="pl-7 text-xs text-[#a8a8b3] mb-1">
+                              <span className="font-bold text-[#e1e1e6]">
+                                Recompensa:
+                              </span>{' '}
+                              {q.reward}
+                            </div>
+                            <p className="pl-7 text-xs text-[#c4c4cc] leading-relaxed">
+                              {q.objective}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             </>
           ) : (
             /* Aba: Marcadores Personalizados */
-            <div className="space-y-4">
-              <div className="bg-[#18181b] border border-[#323238] rounded-lg p-3.5 space-y-3">
+            <div className="space-y-3">
+              <div className="bg-[#18181b] border border-[#323238] rounded-lg p-3 space-y-2.5">
                 {/* Nome do Marcador */}
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-[#c4c4cc]">
@@ -510,7 +886,7 @@ export default function ZoneMarkerModal({
                     Categoria Inicial
                   </label>
                   <Input
-                    placeholder="Ex: Feitiços de Ataque, Notas Gerais..."
+                    placeholder="Ex: Feitiços Ativos, Notas de Exploração..."
                     value={customCategory}
                     onChange={(e) => setCustomCategory(e.target.value)}
                     className="bg-[#121214] border-[#323238] text-xs h-8 text-white focus:border-[#8257e5]"
@@ -520,7 +896,7 @@ export default function ZoneMarkerModal({
                 {/* Cor e Formato */}
                 <div className="grid grid-cols-2 gap-3 pt-1">
                   {/* Cor */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <label className="text-xs font-semibold text-[#c4c4cc]">
                       Cor do Marcador
                     </label>
@@ -549,7 +925,7 @@ export default function ZoneMarkerModal({
                   </div>
 
                   {/* Formato da Ponta */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <label className="text-xs font-semibold text-[#c4c4cc]">
                       Formato da Ponta
                     </label>
@@ -582,15 +958,15 @@ export default function ZoneMarkerModal({
               </div>
 
               {/* Prévia do Marcador Personalizado */}
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-[#a8a8b3] uppercase tracking-wider">
                     Prévia do Marcador Personalizado
                   </span>
                 </div>
 
-                <div className="bg-[#18181b] border border-[#323238] rounded-lg p-3.5 space-y-3">
-                  <div className="border-b border-[#323238] pb-1.5 flex items-center justify-between">
+                <div className="bg-[#18181b] border border-[#323238] rounded-lg p-3 space-y-2.5">
+                  <div className="border-b border-[#323238] pb-1 flex items-center justify-between">
                     <span className="text-xs font-bold uppercase tracking-wider text-[#e1e1e6]">
                       {customCategory || 'Categoria'}
                     </span>
@@ -629,8 +1005,7 @@ export default function ZoneMarkerModal({
                           {customName || 'Novo Nó'}
                         </span>
                         <p className="text-[11px] text-[#a8a8b3] mt-1 leading-relaxed">
-                          Exemplo de item associado a este marcador na barra
-                          lateral.
+                          Exemplo de nó personalizado vinculado à barra lateral desta zona.
                         </p>
                       </div>
                     </div>
@@ -652,7 +1027,7 @@ export default function ZoneMarkerModal({
         </div>
 
         {/* Footer */}
-        <DialogFooter className="p-3.5 border-t border-[#323238] bg-[#1a1a1e] flex justify-end">
+        <DialogFooter className="p-3 border-t border-[#323238] bg-[#1a1a1e] flex justify-end">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
