@@ -89,12 +89,20 @@ export class RoomManager {
     const room = this.rooms.get(normalizedCode);
     if (!room) return null;
 
+    const hasGm = Array.from(room.members.values()).some(
+      (m) => m.role === 'gm',
+    );
+    const role = !hasGm ? 'gm' : 'player';
+    if (role === 'gm') {
+      room.hostSocketId = socketId;
+    }
+
     const colorIndex = room.members.size % MEMBER_COLORS.length;
     const member: RoomMember = {
       id: socketId,
-      name: name || `Jogador ${room.members.size}`,
-      role: 'player',
-      color: MEMBER_COLORS[colorIndex],
+      name: name || (role === 'gm' ? 'Mestre' : `Jogador ${room.members.size}`),
+      role,
+      color: role === 'gm' ? '#8257e5' : MEMBER_COLORS[colorIndex],
       isOnline: true,
     };
 

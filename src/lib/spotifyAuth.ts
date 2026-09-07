@@ -78,7 +78,11 @@ export const handleSpotifyAuthCallback = async (): Promise<boolean> => {
     if (window.opener) {
       try {
         window.opener.postMessage(
-          { type: 'SPOTIFY_AUTH_SUCCESS', token: data.access_token },
+          {
+            type: 'SPOTIFY_AUTH_SUCCESS',
+            token: data.access_token,
+            expiresAt,
+          },
           '*',
         );
       } catch (postErr) {

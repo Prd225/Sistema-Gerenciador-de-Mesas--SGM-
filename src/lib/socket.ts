@@ -6,10 +6,10 @@ import type {
 
 // Determina dinamicamente a URL do servidor
 const getSocketUrl = (): string => {
-  // @ts-ignore
-  if (import.meta.env.VITE_SERVER_URL) {
-    // @ts-ignore
-    return import.meta.env.VITE_SERVER_URL;
+  const envServerUrl = (import.meta.env as Record<string, string | undefined>)
+    .VITE_SERVER_URL;
+  if (envServerUrl) {
+    return envServerUrl;
   }
   // Se estiver acessando via browser (seja localhost, IP local ou rede externa)
   if (typeof window !== 'undefined') {

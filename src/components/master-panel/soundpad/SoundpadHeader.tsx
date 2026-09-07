@@ -35,7 +35,17 @@ export default function SoundpadHeader() {
     // Listener para quando o login for concluído na janela pop-up
     const handleAuthMessage = (event: MessageEvent) => {
       if (event.data?.type === 'SPOTIFY_AUTH_SUCCESS') {
-        const activeToken = event.data.token || getSpotifyToken();
+        const receivedToken = event.data?.token;
+        if (receivedToken) {
+          localStorage.setItem('spotify_token', receivedToken);
+          if (event.data?.expiresAt) {
+            localStorage.setItem(
+              'spotify_token_expires',
+              String(event.data.expiresAt),
+            );
+          }
+        }
+        const activeToken = receivedToken || getSpotifyToken();
         setToken(activeToken);
         if (activeToken) {
           initSpotifyPlayer();

@@ -96,6 +96,17 @@ export default function MultiplayerModal() {
     syncStateToRoom();
   };
 
+  const handleLeave = () => {
+    leaveRoom();
+    try {
+      if (window.location.search.includes('room=')) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
   return (
     <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
       <DialogContent className="bg-[#1a1a1e] border border-[#323238] text-[#e1e1e6] sm:max-w-[460px] p-6 shadow-2xl rounded-xl">
@@ -212,7 +223,7 @@ export default function MultiplayerModal() {
             {/* Botão Desconectar */}
             <div className="pt-2 border-t border-[#323238]">
               <button
-                onClick={leaveRoom}
+                onClick={handleLeave}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-md font-medium text-xs transition-colors cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />

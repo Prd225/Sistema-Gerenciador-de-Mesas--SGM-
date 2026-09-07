@@ -63,8 +63,18 @@ export const useTokenStore = create<TokenState>((set, get) => ({
     }));
     triggerAutoSave();
     if (socket.connected) {
-      if (updates.x !== undefined && updates.y !== undefined) {
-        socket.emit('token:move', { tokenId: id, x: updates.x, y: updates.y });
+      const keys = Object.keys(updates);
+      const isPureMove =
+        keys.length > 0 &&
+        keys.every((k) => k === 'x' || k === 'y') &&
+        (updates.x !== undefined || updates.y !== undefined);
+
+      if (isPureMove) {
+        socket.emit('token:move', {
+          tokenId: id,
+          x: updates.x ?? null,
+          y: updates.y ?? null,
+        });
       } else {
         socket.emit('token:update', { tokenId: id, updates });
       }

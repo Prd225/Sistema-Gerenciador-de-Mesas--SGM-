@@ -108,9 +108,16 @@ export default function AppLayout({
 
     document.addEventListener('keydown', handleKeyDown);
 
+    // Garante que qualquer alteração pendente seja salva imediatamente antes do fechamento/reload
+    const handleBeforeUnload = () => {
+      triggerAutoSave(true);
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
       if (interval) clearInterval(interval);
       document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [autoSaveSlot]);
 

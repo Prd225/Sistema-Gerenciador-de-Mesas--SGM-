@@ -194,10 +194,18 @@ export const useMultiplayerStore = create<MultiplayerState>((set, get) => {
           socket.connect();
         }
 
+        const timeout = setTimeout(() => {
+          const err =
+            'Tempo limite excedido ao conectar ao servidor. Verifique se o backend está rodando.';
+          set({ error: err });
+          reject(new Error(err));
+        }, 10000);
+
         socket.emit(
           'room:create',
           { hostName: hostName.trim() || 'Mestre' },
           (res) => {
+            clearTimeout(timeout);
             if (res.success && res.code) {
               set({
                 roomId: res.code,
@@ -230,15 +238,27 @@ export const useMultiplayerStore = create<MultiplayerState>((set, get) => {
         const cleanCode = code.trim().toUpperCase();
         const cleanName = name.trim() || 'Jogador';
 
+        const timeout = setTimeout(() => {
+          const err =
+            'Tempo limite excedido ao conectar ao servidor. Verifique se o backend está rodando.';
+          set({ error: err });
+          reject(new Error(err));
+        }, 10000);
+
         socket.emit(
           'room:join',
           { code: cleanCode, name: cleanName },
           (res) => {
+            clearTimeout(timeout);
             if (res.success && res.state) {
               const { state } = res;
+              const assignedRole =
+                state.members?.find((m: RoomMember) => m.id === socket.id)
+                  ?.role || 'player';
+
               set({
                 roomId: cleanCode,
-                role: 'player',
+                role: assignedRole,
                 userName: cleanName,
                 members: state.members || [],
                 isConnected: true,

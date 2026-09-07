@@ -156,19 +156,19 @@ export default function StageMap() {
   // --- Mouse Down ---
   const handleMouseDown = useCallback(
     (e: KonvaEventObject<MouseEvent>) => {
-      // Don't interfere when clicking on existing shapes/tokens
-      if (e.target !== e.target.getStage()) return;
-
       const stage = stageRef.current;
       if (!stage) return;
       const pos = getRelativePointerPosition(stage);
 
-      // Alt + Click ou Botão do Meio (roda) -> Emite Ping tático multiplayer
+      // Alt + Click ou Botão do Meio (roda) -> Emite Ping tático multiplayer em qualquer ponto do mapa
       if (e.evt.altKey || e.evt.button === 1) {
         e.evt.preventDefault();
         useMultiplayerStore.getState().sendPing(pos.x, pos.y);
         return;
       }
+
+      // Don't interfere when clicking on existing shapes/tokens
+      if (e.target !== e.target.getStage()) return;
 
       if (activeTool === 'pan' || activeTool === 'edit-bg') return;
 
