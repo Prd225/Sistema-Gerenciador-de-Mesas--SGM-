@@ -3,6 +3,7 @@ import {
   Lock,
   Unlock,
   ChevronLeft,
+  ChevronDown,
   SquareDashed,
   Trash,
   Plus,
@@ -14,11 +15,15 @@ import {
   X,
   CheckSquare,
   Square,
+  BookOpen,
+  Sparkles,
+  Skull,
+  Package,
 } from 'lucide-react';
 import { useZoneStore } from '@/store/useZoneStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { RichTextEditor, RichTextView } from '@/components/ui/RichTextEditor';
 import {
   Dialog,
@@ -27,6 +32,38 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ImageCropper } from '@/components/ui/ImageCropper';
+
+type ZoneTab = 'geral' | 'destaques' | 'ameacas' | 'inventario';
+
+const TAB_CONFIGS: Record<
+  ZoneTab,
+  {
+    label: string;
+    icon: any;
+    defaultColor: string;
+  }
+> = {
+  geral: {
+    label: 'Geral',
+    icon: BookOpen,
+    defaultColor: '#8257e5',
+  },
+  destaques: {
+    label: 'Destaques',
+    icon: Sparkles,
+    defaultColor: '#f59e0b',
+  },
+  ameacas: {
+    label: 'Ameaças',
+    icon: Skull,
+    defaultColor: '#ef4444',
+  },
+  inventario: {
+    label: 'Inventário',
+    icon: Package,
+    defaultColor: '#06b6d4',
+  },
+};
 
 interface SidebarLeftProps {
   isOpen: boolean;
@@ -50,11 +87,28 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
 
   // Event Presets
   const [eventPresets, setEventPresets] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<
-    'geral' | 'destaques' | 'ameacas' | 'inventario'
-  >('geral');
+  const [activeTab, setActiveTab] = useState<ZoneTab>('geral');
   const [showPalette, setShowPalette] = useState(false);
+  const [showSubmenuDropdown, setShowSubmenuDropdown] = useState(false);
   const [rawImage, setRawImage] = useState<string | null>(null);
+  const headerDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        headerDropdownRef.current &&
+        !headerDropdownRef.current.contains(e.target as Node)
+      ) {
+        setShowSubmenuDropdown(false);
+      }
+    };
+    if (showSubmenuDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSubmenuDropdown]);
 
   useEffect(() => {
     try {
@@ -106,15 +160,62 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
     document.addEventListener('mouseup', handleMouseUp);
   };
 
+  const zoneColor = zoneData?.style?.borderColor || '#8257e5';
+  const currentTabConfig = TAB_CONFIGS[activeTab];
+  const ActiveTabIcon = currentTabConfig.icon;
+
   if (!isOpen) {
     return (
-      <div className="bg-[#202024] border-r border-[#323238] h-full flex flex-col items-center py-4 z-40 w-12 transition-all">
+      <div className="bg-[#202024] border-r border-[#323238] h-full flex flex-col items-center py-4 z-40 w-12 transition-all relative overflow-visible select-none">
         <button
           onClick={toggle}
-          className="text-[#a8a8b3] hover:text-[#e1e1e6] p-2 hover:bg-white/5 rounded"
+          className="text-[#a8a8b3] hover:text-[#e1e1e6] p-2 hover:bg-white/5 rounded transition-colors"
+          title="Expandir Barra Lateral"
         >
-          <ChevronLeft className="rotate-180" />
+          <ChevronLeft className="rotate-180 w-5 h-5" />
         </button>
+
+        {/* Marcadores de Página Verticais Salientes quando recolhido (Anexo 3) */}
+        {zone && (
+          <div className="absolute left-full top-16 flex flex-col gap-2.5 z-50 pointer-events-auto select-none">
+            {(['geral', 'destaques', 'ameacas', 'inventario'] as ZoneTab[]).map(
+              (tabKey) => {
+                const cfg = TAB_CONFIGS[tabKey];
+                const TabIcon = cfg.icon;
+                const tabColor =
+                  tabKey === 'geral' ? zoneColor : cfg.defaultColor;
+
+                return (
+                  <button
+                    key={tabKey}
+                    onClick={() => {
+                      setActiveTab(tabKey);
+                      toggle();
+                    }}
+                    title={`Abrir ${cfg.label}`}
+                    className="group relative flex items-center gap-2 pl-2.5 pr-3 py-2 rounded-r-lg border-y border-r shadow-2xl transition-all duration-200 cursor-pointer bg-[#18181b]/95 backdrop-blur-md hover:translate-x-1.5 -ml-[1px]"
+                    style={{
+                      borderColor: tabColor,
+                      boxShadow: `2px 4px 12px rgba(0,0,0,0.5)`,
+                    }}
+                  >
+                    <div
+                      className="w-1.5 h-4 rounded-full shrink-0 transition-transform group-hover:scale-y-125"
+                      style={{ backgroundColor: tabColor }}
+                    />
+                    <TabIcon
+                      className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110"
+                      style={{ color: tabColor }}
+                    />
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#e1e1e6] group-hover:text-white transition-colors whitespace-nowrap">
+                      {cfg.label}
+                    </span>
+                  </button>
+                );
+              },
+            )}
+          </div>
+        )}
       </div>
     );
   }
@@ -123,109 +224,231 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
     <>
       <aside
         style={{ width: `${width}px` }}
-        className="bg-[#202024] border-r border-[#323238] flex flex-col h-full z-40 overflow-hidden relative shadow-xl"
+        className="bg-[#202024] border-r border-[#323238] flex flex-col h-full z-40 overflow-visible relative shadow-xl"
       >
         <div className="p-5 overflow-y-auto flex-1 h-full flex flex-col relative">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-5 text-[#8257e5] font-bold uppercase tracking-wide border-b-2 border-[#323238] pb-2 shrink-0">
-            <span className="flex items-center gap-2">
-              <Map className="w-5 h-5" /> Dados da Zona
-            </span>
-            <div className="flex items-center gap-1 relative">
-              <button
-                onClick={() => setShowPalette(!showPalette)}
-                className={`p-1 rounded hover:bg-white/5 ${showPalette ? 'text-[#ffd700]' : 'text-[#a8a8b3] hover:text-[#e1e1e6]'}`}
-                title="Cores da Zona"
-              >
-                <Palette className="w-4 h-4" />
-              </button>
-              {showPalette && (
-                <div className="absolute top-full right-0 mt-2 bg-[#121214] border border-[#323238] rounded p-3 z-50 w-64 shadow-xl">
-                  <div className="text-xs font-bold text-[#e1e1e6] mb-3 uppercase">
-                    Cores do Mapa
+          {/* Header - Marcador de Página na cor da zona */}
+          {zone && zoneData ? (
+            <div
+              className="relative mb-5 -mx-5 -mt-5 p-4 border-b shrink-0 transition-colors shadow-md overflow-visible"
+              style={{
+                borderColor: zoneColor,
+                background: `linear-gradient(135deg, ${zoneColor}22 0%, #202024 100%)`,
+              }}
+            >
+              {/* Detalhe visual de fita/marcador no topo */}
+              <div
+                className="absolute top-0 left-6 w-10 h-1.5 rounded-b-md shadow-sm"
+                style={{ backgroundColor: zoneColor }}
+              />
+
+              <div className="flex justify-between items-center pt-1">
+                <div
+                  ref={headerDropdownRef}
+                  className="flex items-center gap-2.5 min-w-0 relative"
+                >
+                  <div
+                    className="p-2 rounded-md flex items-center justify-center shrink-0 shadow-inner"
+                    style={{
+                      backgroundColor: `${zoneColor}25`,
+                      color: zoneColor,
+                    }}
+                  >
+                    <ActiveTabIcon className="w-5 h-5" />
                   </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-[#a8a8b3]">Borda</span>
-                      <input
-                        type="color"
-                        value={zoneData?.style?.borderColor || '#8257e5'}
-                        onChange={(e) => {
-                          if (zone)
-                            updateZoneData(zone.id, {
-                              style: {
-                                ...zoneData?.style,
-                                borderColor: e.target.value,
-                                fillColor: zoneData?.style?.fillColor || '',
-                                textColor: zoneData?.style?.textColor || '',
-                              },
-                            });
-                        }}
-                        className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer"
-                      />
+                  <div className="flex flex-col min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() =>
+                          setShowSubmenuDropdown(!showSubmenuDropdown)
+                        }
+                        className="flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer group text-left"
+                      >
+                        <span
+                          className="text-base font-extrabold tracking-wide uppercase truncate"
+                          style={{ color: zoneColor }}
+                        >
+                          {currentTabConfig.label}
+                        </span>
+                        <ChevronDown
+                          className={`w-3.5 h-3.5 text-[#a8a8b3] transition-transform ${
+                            showSubmenuDropdown ? 'rotate-180' : ''
+                          }`}
+                        />
+                      </button>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-[#a8a8b3]">
-                        Preenchimento
-                      </span>
-                      <input
-                        type="color"
-                        value={zoneData?.style?.fillColor || '#8257e5'}
-                        onChange={(e) => {
-                          if (zone)
-                            updateZoneData(zone.id, {
-                              style: {
-                                ...zoneData?.style,
-                                fillColor: e.target.value,
-                                borderColor: zoneData?.style?.borderColor || '',
-                                textColor: zoneData?.style?.textColor || '',
-                              },
-                            });
-                        }}
-                        className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-[#a8a8b3]">Texto</span>
-                      <input
-                        type="color"
-                        value={zoneData?.style?.textColor || '#ffffff'}
-                        onChange={(e) => {
-                          if (zone)
-                            updateZoneData(zone.id, {
-                              style: {
-                                ...zoneData?.style,
-                                textColor: e.target.value,
-                                borderColor: zoneData?.style?.borderColor || '',
-                                fillColor: zoneData?.style?.fillColor || '',
-                              },
-                            });
-                        }}
-                        className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer"
-                      />
-                    </div>
+                    <span className="text-[11px] text-[#a8a8b3] font-medium truncate">
+                      {zoneData.title
+                        ? `Zona: ${zoneData.title}`
+                        : 'Dados da Zona'}
+                    </span>
                   </div>
+
+                  {/* Dropdown de Submenus */}
+                  {showSubmenuDropdown && (
+                    <div className="absolute top-full left-0 mt-2 bg-[#18181b] border border-[#323238] rounded-lg p-1.5 z-50 w-48 shadow-2xl backdrop-blur-md">
+                      <div className="text-[10px] font-bold text-[#71717a] uppercase px-2 py-1">
+                        Submenus da Zona
+                      </div>
+                      {(
+                        [
+                          'geral',
+                          'destaques',
+                          'ameacas',
+                          'inventario',
+                        ] as ZoneTab[]
+                      ).map((tabKey) => {
+                        const cfg = TAB_CONFIGS[tabKey];
+                        const TabIcon = cfg.icon;
+                        const itemColor =
+                          tabKey === 'geral' ? zoneColor : cfg.defaultColor;
+                        const isCur = activeTab === tabKey;
+                        return (
+                          <button
+                            key={tabKey}
+                            onClick={() => {
+                              setActiveTab(tabKey);
+                              setShowSubmenuDropdown(false);
+                            }}
+                            className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                              isCur
+                                ? 'bg-white/10 text-white shadow-sm'
+                                : 'text-[#a8a8b3] hover:bg-white/5 hover:text-white'
+                            }`}
+                          >
+                            <TabIcon
+                              className="w-4 h-4"
+                              style={{ color: itemColor }}
+                            />
+                            <span className="flex-1 text-left">
+                              {cfg.label}
+                            </span>
+                            {isCur && (
+                              <div
+                                className="w-1.5 h-1.5 rounded-full"
+                                style={{ backgroundColor: itemColor }}
+                              />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              )}
-              <button
-                onClick={() => setEditingZone(!editingZone)}
-                className={`p-1 rounded hover:bg-white/5 ${editingZone ? 'text-[#ffd700]' : 'text-[#a8a8b3] hover:text-[#e1e1e6]'}`}
-                title="Alternar Leitura/Edição"
-              >
-                {editingZone ? (
-                  <Unlock className="w-4 h-4" />
-                ) : (
-                  <Lock className="w-4 h-4" />
-                )}
-              </button>
-              <button
-                onClick={toggle}
-                className="text-[#a8a8b3] hover:text-[#e1e1e6] p-1 rounded hover:bg-white/5"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
+
+                <div className="flex items-center gap-1 relative shrink-0">
+                  <button
+                    onClick={() => setShowPalette(!showPalette)}
+                    className={`p-1 rounded hover:bg-white/5 ${showPalette ? 'text-[#ffd700]' : 'text-[#a8a8b3] hover:text-[#e1e1e6]'}`}
+                    title="Cores da Zona"
+                  >
+                    <Palette className="w-4 h-4" />
+                  </button>
+                  {showPalette && (
+                    <div className="absolute top-full right-0 mt-2 bg-[#121214] border border-[#323238] rounded p-3 z-50 w-64 shadow-xl">
+                      <div className="text-xs font-bold text-[#e1e1e6] mb-3 uppercase">
+                        Cores do Mapa
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-[#a8a8b3]">Borda</span>
+                          <input
+                            type="color"
+                            value={zoneData?.style?.borderColor || '#8257e5'}
+                            onChange={(e) => {
+                              if (zone)
+                                updateZoneData(zone.id, {
+                                  style: {
+                                    ...zoneData?.style,
+                                    borderColor: e.target.value,
+                                    fillColor: zoneData?.style?.fillColor || '',
+                                    textColor: zoneData?.style?.textColor || '',
+                                  },
+                                });
+                            }}
+                            className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-[#a8a8b3]">
+                            Preenchimento
+                          </span>
+                          <input
+                            type="color"
+                            value={zoneData?.style?.fillColor || '#8257e5'}
+                            onChange={(e) => {
+                              if (zone)
+                                updateZoneData(zone.id, {
+                                  style: {
+                                    ...zoneData?.style,
+                                    fillColor: e.target.value,
+                                    borderColor:
+                                      zoneData?.style?.borderColor || '',
+                                    textColor: zoneData?.style?.textColor || '',
+                                  },
+                                });
+                            }}
+                            className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-[#a8a8b3]">Texto</span>
+                          <input
+                            type="color"
+                            value={zoneData?.style?.textColor || '#ffffff'}
+                            onChange={(e) => {
+                              if (zone)
+                                updateZoneData(zone.id, {
+                                  style: {
+                                    ...zoneData?.style,
+                                    textColor: e.target.value,
+                                    borderColor:
+                                      zoneData?.style?.borderColor || '',
+                                    fillColor: zoneData?.style?.fillColor || '',
+                                  },
+                                });
+                            }}
+                            className="bg-transparent border-none w-6 h-6 p-0 cursor-pointer"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setEditingZone(!editingZone)}
+                    className={`p-1 rounded hover:bg-white/5 ${editingZone ? 'text-[#ffd700]' : 'text-[#a8a8b3] hover:text-[#e1e1e6]'}`}
+                    title="Alternar Leitura/Edição"
+                  >
+                    {editingZone ? (
+                      <Unlock className="w-4 h-4" />
+                    ) : (
+                      <Lock className="w-4 h-4" />
+                    )}
+                  </button>
+                  <button
+                    onClick={toggle}
+                    className="text-[#a8a8b3] hover:text-[#e1e1e6] p-1 rounded hover:bg-white/5"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex justify-between items-center mb-5 text-[#8257e5] font-bold uppercase tracking-wide border-b-2 border-[#323238] pb-2 shrink-0">
+              <span className="flex items-center gap-2">
+                <Map className="w-5 h-5" /> Dados da Zona
+              </span>
+              <div className="flex items-center gap-1 relative">
+                <button
+                  onClick={toggle}
+                  className="text-[#a8a8b3] hover:text-[#e1e1e6] p-1 rounded hover:bg-white/5"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          )}
 
           {!zone || !zoneData ? (
             <div className="text-[#a8a8b3] text-center mt-[50px] flex flex-col items-center">
@@ -234,28 +457,6 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
             </div>
           ) : (
             <div className="flex flex-col flex-1">
-              {/* Tabs */}
-              <div className="flex border-b border-[#323238] mb-4 overflow-x-auto shrink-0 no-scrollbar">
-                {[
-                  { id: 'geral', label: 'Geral' },
-                  { id: 'destaques', label: 'Destaques' },
-                  { id: 'ameacas', label: 'Ameaças' },
-                  { id: 'inventario', label: 'Inventário' },
-                ].map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => setActiveTab(t.id as any)}
-                    className={`px-3 py-2 text-sm font-bold uppercase border-b-2 transition-colors whitespace-nowrap ${
-                      activeTab === t.id
-                        ? 'border-[#8257e5] text-[#e1e1e6]'
-                        : 'border-transparent text-[#a8a8b3] hover:text-[#e1e1e6]'
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-
               {!editingZone ? (
                 /* READ MODE */
                 <div className="space-y-6 flex-1 min-w-0">
@@ -1558,6 +1759,46 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
           className="absolute top-0 right-0 w-1.5 h-full cursor-col-resize hover:bg-[#8257e5]/50 active:bg-[#8257e5] z-50 transition-colors"
           onMouseDown={handleDragStart}
         />
+
+        {/* Marcadores de Página Verticais Salientes no bordo direito (Anexo 3) */}
+        {zone && (
+          <div className="absolute left-full top-16 flex flex-col gap-2.5 z-50 pointer-events-auto select-none">
+            {(['geral', 'destaques', 'ameacas', 'inventario'] as ZoneTab[])
+              .filter((tabKey) => tabKey !== activeTab)
+              .map((tabKey) => {
+                const cfg = TAB_CONFIGS[tabKey];
+                const TabIcon = cfg.icon;
+                const tabColor =
+                  tabKey === 'geral' ? zoneColor : cfg.defaultColor;
+
+                return (
+                  <button
+                    key={tabKey}
+                    onClick={() => setActiveTab(tabKey)}
+                    title={`Abrir ${cfg.label}`}
+                    className="group relative flex items-center gap-2 pl-2.5 pr-3.5 py-2 rounded-r-lg border-y border-r shadow-2xl transition-all duration-200 cursor-pointer bg-[#18181b]/95 backdrop-blur-md hover:translate-x-1.5 -ml-[1px]"
+                    style={{
+                      borderColor: tabColor,
+                      boxShadow: `2px 4px 12px rgba(0,0,0,0.5)`,
+                    }}
+                  >
+                    {/* Indicador de cor luminoso na lateral */}
+                    <div
+                      className="w-1.5 h-4 rounded-full shrink-0 transition-transform group-hover:scale-y-125"
+                      style={{ backgroundColor: tabColor }}
+                    />
+                    <TabIcon
+                      className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110"
+                      style={{ color: tabColor }}
+                    />
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#e1e1e6] group-hover:text-white transition-colors whitespace-nowrap">
+                      {cfg.label}
+                    </span>
+                  </button>
+                );
+              })}
+          </div>
+        )}
       </aside>
 
       {rawImage && (
