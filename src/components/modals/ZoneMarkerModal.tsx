@@ -323,6 +323,7 @@ export default function ZoneMarkerModal({
 
   const carouselRef = useRef<HTMLDivElement>(null);
   const carouselContainerRef = useRef<HTMLDivElement>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const zoneTitle = zone?.data?.title || 'Zona Atual';
 
@@ -341,6 +342,14 @@ export default function ZoneMarkerModal({
     }
   }, [open, activeTab]);
 
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const scrollCarousel = (direction: 'left' | 'right') => {
     handleCardMouseLeave();
     if (carouselRef.current) {
@@ -356,7 +365,11 @@ export default function ZoneMarkerModal({
     preset: PresetMeta,
     e: React.MouseEvent<HTMLDivElement>,
   ) => {
-    setHoveredPreset(preset);
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+
     if (carouselContainerRef.current) {
       const containerRect = carouselContainerRef.current.getBoundingClientRect();
       const cardRect = e.currentTarget.getBoundingClientRect();
@@ -385,16 +398,24 @@ export default function ZoneMarkerModal({
           ? cardRect.top - containerRect.top - 8
           : cardRect.bottom - containerRect.top + 8;
 
-      setTooltipState({
-        left: clampedCenterX,
-        top,
-        arrowOffset: safeArrowOffset,
-        placement,
-      });
+      // Aguarda 350ms para evitar que apareça rápido demais ao apenas mover o cursor
+      hoverTimeoutRef.current = setTimeout(() => {
+        setHoveredPreset(preset);
+        setTooltipState({
+          left: clampedCenterX,
+          top,
+          arrowOffset: safeArrowOffset,
+          placement,
+        });
+      }, 350);
     }
   };
 
   const handleCardMouseLeave = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
     setHoveredPreset(null);
     setTooltipState(null);
   };
