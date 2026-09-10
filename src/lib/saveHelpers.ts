@@ -83,8 +83,14 @@ export const applyGameState = async (data: any) => {
 
     if (data.zones) {
       const migratedZones = data.zones.zones || {};
-      // Migração para formato legado de customHighlights
+      // Migração e compatibilidade para formato legado de zonas
       Object.values(migratedZones).forEach((zone: any) => {
+        if (!zone.data) {
+          zone.data = {};
+        }
+        if (!zone.data.activeMarkers) {
+          zone.data.activeMarkers = ['destaques', 'ameacas', 'inventario'];
+        }
         if (
           zone.data?.customHighlights &&
           zone.data.customHighlights.length > 0
@@ -158,6 +164,22 @@ export const applyGameState = async (data: any) => {
     if (data.scenes) {
       await db.activeScenes.clear();
       if (data.scenes.sceneData && data.scenes.sceneData.length > 0) {
+        data.scenes.sceneData.forEach((scene: any) => {
+          if (scene.zones) {
+            Object.values(scene.zones).forEach((zone: any) => {
+              if (!zone.data) {
+                zone.data = {};
+              }
+              if (!zone.data.activeMarkers) {
+                zone.data.activeMarkers = [
+                  'destaques',
+                  'ameacas',
+                  'inventario',
+                ];
+              }
+            });
+          }
+        });
         await db.activeScenes.bulkAdd(data.scenes.sceneData);
       }
 

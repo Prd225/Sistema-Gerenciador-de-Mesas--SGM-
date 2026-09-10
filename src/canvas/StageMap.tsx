@@ -380,6 +380,7 @@ export default function StageMap() {
           customHighlights: [],
           customThreats: [],
           customInventory: [],
+          activeMarkers: ['destaques', 'ameacas', 'inventario'],
           markerColors: {},
           markerTextColors: {},
         },
