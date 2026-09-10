@@ -26,6 +26,7 @@ import {
   Plus,
 } from 'lucide-react';
 import type { Zone } from '@/types/game';
+import { useZoneStore } from '@/store/useZoneStore';
 
 interface ZoneMarkerModalProps {
   open: boolean;
@@ -283,8 +284,32 @@ export default function ZoneMarkerModal({
   onOpenChange,
   zone,
 }: ZoneMarkerModalProps) {
+  const updateZoneData = useZoneStore((state) => state.updateZoneData);
   const [activeTab, setActiveTab] = useState<'presets' | 'custom'>('presets');
   const [selectedPresetId, setSelectedPresetId] = useState<string>('destaques');
+
+  // Marcadores ativos na zona atual
+  const activeMarkers = zone?.data?.activeMarkers ?? [
+    'destaques',
+    'ameacas',
+    'inventario',
+  ];
+  const isCurrentPresetActive = activeMarkers.includes(selectedPresetId);
+
+  const handleToggleMarker = (presetId: string) => {
+    if (!zone) return;
+    const current = zone.data?.activeMarkers ?? [
+      'destaques',
+      'ameacas',
+      'inventario',
+    ];
+    const exists = current.includes(presetId);
+    const updated = exists
+      ? current.filter((id) => id !== presetId)
+      : [...current, presetId];
+
+    updateZoneData(zone.id, { activeMarkers: updated });
+  };
 
   // Estado interativo dos nós no preview
   const [nodeState, setNodeState] = useState<Record<string, boolean>>({
@@ -463,24 +488,6 @@ export default function ZoneMarkerModal({
               Marcadores personalizados
             </button>
           </div>
-
-          {/* Faixa preta e amarela: Em Construção */}
-          <div className="mt-2.5 px-3 py-1 rounded border border-yellow-500/40 bg-[#121214] flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Hammer className="w-3.5 h-3.5 text-yellow-400" />
-              <span className="text-[11px] font-bold tracking-wider uppercase text-yellow-400">
-                Em Construção
-              </span>
-            </div>
-            {/* Padrão listrado preto e amarelo */}
-            <div
-              className="w-20 h-2 rounded opacity-80"
-              style={{
-                background:
-                  'repeating-linear-gradient(45deg, #eab308, #eab308 5px, #000000 5px, #000000 10px)',
-              }}
-            />
-          </div>
         </div>
 
         {/* Conteúdo Principal */}
@@ -535,6 +542,7 @@ export default function ZoneMarkerModal({
                   {PRESET_LIST.map((preset) => {
                     const Icon = preset.icon;
                     const isSelected = selectedPresetId === preset.id;
+                    const isActive = activeMarkers.includes(preset.id);
                     return (
                       <div
                         key={preset.id}
@@ -544,12 +552,24 @@ export default function ZoneMarkerModal({
                         className={`group cursor-pointer py-2.5 px-2 rounded-lg border transition-all shrink-0 w-[130px] snap-start select-none flex flex-col items-center justify-center gap-2 ${
                           isSelected
                             ? 'bg-[#ffd700]/10 border-[#ffd700] shadow-md shadow-[#ffd700]/10 ring-1 ring-[#ffd700]/30'
-                            : 'bg-[#18181b] border-[#323238] hover:border-[#52525b] hover:bg-[#202024]'
+                            : isActive
+                              ? 'bg-[#18181b] border-[#323238] hover:border-[#10b981]/50 hover:bg-[#202024]'
+                              : 'bg-[#18181b] border-[#323238] hover:border-[#52525b] hover:bg-[#202024]'
                         }`}
                       >
-                        <span className="text-xs font-bold text-center block truncate w-full text-[#e1e1e6] group-hover:text-white transition-colors">
-                          {preset.name}
-                        </span>
+                        <div className="w-full flex items-center justify-center gap-1">
+                          <span className="text-xs font-bold text-center block truncate text-[#e1e1e6] group-hover:text-white transition-colors">
+                            {preset.name}
+                          </span>
+                          {isActive && (
+                            <span
+                              className="text-[#10b981] text-[10px] font-black shrink-0"
+                              title="Marcador Ativo nesta Zona"
+                            >
+                              ✓
+                            </span>
+                          )}
+                        </div>
 
                         <div className="flex items-center justify-center gap-1.5 w-full">
                           <div
@@ -619,6 +639,34 @@ export default function ZoneMarkerModal({
                   <span className="text-[11px] font-bold text-[#a8a8b3] uppercase tracking-wider">
                     Prévia na Barra Lateral
                   </span>
+
+                  {/* Controle funcional de Ativar / Desativar Marcador */}
+                  <div className="flex items-center gap-2">
+                    {isCurrentPresetActive ? (
+                      <>
+                        <span className="text-[10px] font-bold text-[#10b981] flex items-center gap-1 bg-[#10b981]/10 px-2 py-0.5 rounded border border-[#10b981]/30">
+                          <Check className="w-3 h-3" /> Ativo nesta Zona
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleMarker(selectedPresetId)}
+                          className="text-[11px] font-semibold px-2.5 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition-all flex items-center gap-1 cursor-pointer"
+                          title="Desativar este marcador na zona atual"
+                        >
+                          Desativar
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleMarker(selectedPresetId)}
+                        className="text-[11px] font-bold px-3 py-1 rounded bg-[#ffd700] hover:bg-[#ffd700]/90 text-black shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                        title="Ativar este marcador na zona atual"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Ativar Marcador
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="bg-[#18181b] border border-[#323238] rounded-lg p-3 space-y-3">
@@ -993,6 +1041,24 @@ export default function ZoneMarkerModal({
           ) : (
             /* Aba: Marcadores Personalizados */
             <div className="space-y-3">
+              {/* Faixa preta e amarela: Em Construção */}
+              <div className="px-3 py-1.5 rounded border border-yellow-500/40 bg-[#121214] flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Hammer className="w-3.5 h-3.5 text-yellow-400" />
+                  <span className="text-[11px] font-bold tracking-wider uppercase text-yellow-400">
+                    Marcadores Personalizados • Em Construção
+                  </span>
+                </div>
+                {/* Padrão listrado preto e amarelo */}
+                <div
+                  className="w-20 h-2 rounded opacity-80"
+                  style={{
+                    background:
+                      'repeating-linear-gradient(45deg, #eab308, #eab308 5px, #000000 5px, #000000 10px)',
+                  }}
+                />
+              </div>
+
               <div className="bg-[#18181b] border border-[#323238] rounded-lg p-3 space-y-2.5">
                 {/* Nome do Marcador */}
                 <div className="space-y-1">

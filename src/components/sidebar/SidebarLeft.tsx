@@ -19,11 +19,13 @@ import {
   Sparkles,
   Skull,
   Package,
+  Users,
+  Compass,
 } from 'lucide-react';
 import { useZoneStore } from '@/store/useZoneStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { RichTextEditor, RichTextView } from '@/components/ui/RichTextEditor';
 import {
   Dialog,
@@ -34,7 +36,14 @@ import {
 import { ImageCropper } from '@/components/ui/ImageCropper';
 import ZoneMarkerModal from '@/components/modals/ZoneMarkerModal';
 
-type ZoneTab = 'geral' | 'destaques' | 'ameacas' | 'inventario';
+type ZoneTab =
+  | 'geral'
+  | 'destaques'
+  | 'ameacas'
+  | 'inventario'
+  | 'diario'
+  | 'npcs'
+  | 'missoes';
 
 const TAB_CONFIGS: Record<
   ZoneTab,
@@ -64,6 +73,21 @@ const TAB_CONFIGS: Record<
     icon: Package,
     defaultColor: '#06b6d4',
   },
+  diario: {
+    label: 'Diário',
+    icon: BookOpen,
+    defaultColor: '#3b82f6',
+  },
+  npcs: {
+    label: 'NPCs',
+    icon: Users,
+    defaultColor: '#a855f7',
+  },
+  missoes: {
+    label: 'Missões',
+    icon: Compass,
+    defaultColor: '#10b981',
+  },
 };
 
 interface SidebarLeftProps {
@@ -86,6 +110,14 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
   const zone = selectedZoneId ? zones[selectedZoneId] : null;
   const zoneData = zone?.data;
 
+  // Marcadores ativos nesta zona específica
+  const activeMarkersKey =
+    zoneData?.activeMarkers?.join(',') ?? 'destaques,ameacas,inventario';
+  const currentTabs = useMemo<ZoneTab[]>(() => {
+    const list = zoneData?.activeMarkers ?? ['destaques', 'ameacas', 'inventario'];
+    return ['geral', ...(list.filter((m) => m in TAB_CONFIGS) as ZoneTab[])];
+  }, [zoneData?.activeMarkers, activeMarkersKey]);
+
   // Event Presets
   const [eventPresets, setEventPresets] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<ZoneTab>('geral');
@@ -102,6 +134,13 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
     setShowPalette(false);
     setShowSubmenuDropdown(false);
   }, [selectedZoneId]);
+
+  // Se o marcador ativo for desativado da zona, retorna suavemente para 'geral'
+  useEffect(() => {
+    if (activeTab !== 'geral' && !currentTabs.includes(activeTab)) {
+      setActiveTab('geral');
+    }
+  }, [currentTabs, activeTab]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -356,7 +395,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                       <div className="text-[10px] font-bold text-[#71717a] uppercase px-2 py-1">
                         Marcadores
                       </div>
-                      {(['geral'] as ZoneTab[]).map((tabKey) => {
+                      {currentTabs.map((tabKey) => {
                         const cfg = TAB_CONFIGS[tabKey];
                         const TabIcon = cfg.icon;
                         const itemColor = getMarkerColor(tabKey);
@@ -980,6 +1019,233 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                             </div>
                           );
                         })
+                      )}
+                    </div>
+                  )}
+
+                  {activeTab === 'diario' && (
+                    <div className="min-w-0">
+                      {!zoneData.customJournal ||
+                      zoneData.customJournal.length === 0 ? (
+                        <span className="text-[#a8a8b3] italic flex-1 whitespace-pre-wrap">
+                          Nenhum relato registrado neste diário de bordo.
+                        </span>
+                      ) : (
+                        zoneData.customJournal.map((j, idx) => (
+                          <div
+                            key={j.id || idx}
+                            className={`bg-black/20 p-3 rounded mb-3 border border-[#323238] min-w-0 transition-opacity ${
+                              j.isRevealed ? 'opacity-50' : ''
+                            }`}
+                          >
+                            <div className="flex justify-between items-center mb-1">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const list = [
+                                      ...(zoneData.customJournal || []),
+                                    ];
+                                    list[idx] = {
+                                      ...j,
+                                      isRevealed: !j.isRevealed,
+                                    };
+                                    updateZoneData(zone.id, {
+                                      customJournal: list,
+                                    });
+                                  }}
+                                  className="text-[#a8a8b3] hover:text-[#3b82f6] transition-colors shrink-0 cursor-pointer"
+                                  title="Marcar como revelado"
+                                >
+                                  {j.isRevealed ? (
+                                    <CheckSquare className="w-5 h-5 text-[#3b82f6]" />
+                                  ) : (
+                                    <Square className="w-5 h-5" />
+                                  )}
+                                </button>
+                                <span className="font-bold text-[#e1e1e6] text-sm break-words min-w-0">
+                                  {j.title}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                {j.author && (
+                                  <span className="text-[10px] text-[#a8a8b3] font-medium">
+                                    {j.author} •
+                                  </span>
+                                )}
+                                <span className="bg-[#121214] text-[#3b82f6] text-[10px] px-2 py-0.5 rounded border border-[#3b82f6]/30 uppercase font-bold">
+                                  {j.session || 'Sessão'}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="pl-7 italic text-[#c4c4cc] text-xs leading-relaxed">
+                              <RichTextView content={j.text} defaultText="" />
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+
+                  {activeTab === 'npcs' && (
+                    <div className="min-w-0">
+                      {!zoneData.customNpcs ||
+                      zoneData.customNpcs.length === 0 ? (
+                        <span className="text-[#a8a8b3] italic flex-1 whitespace-pre-wrap">
+                          Nenhum NPC ou facção registrada para esta zona.
+                        </span>
+                      ) : (
+                        zoneData.customNpcs.map((npc, idx) => {
+                          const dispColorMap: Record<string, string> = {
+                            Aliado:
+                              'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+                            Hostil:
+                              'bg-red-500/20 text-red-400 border-red-500/30',
+                            Neutro:
+                              'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+                          };
+                          const dispClass =
+                            dispColorMap[npc.disposition] ||
+                            'bg-[#121214] text-[#a8a8b3] border-[#323238]';
+
+                          return (
+                            <div
+                              key={npc.id || idx}
+                              className={`bg-black/20 p-3 rounded mb-3 border border-[#323238] min-w-0 transition-opacity ${
+                                npc.isRevealed ? 'opacity-50' : ''
+                              }`}
+                            >
+                              <div className="flex justify-between items-center mb-1">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const list = [
+                                        ...(zoneData.customNpcs || []),
+                                      ];
+                                      list[idx] = {
+                                        ...npc,
+                                        isRevealed: !npc.isRevealed,
+                                      };
+                                      updateZoneData(zone.id, {
+                                        customNpcs: list,
+                                      });
+                                    }}
+                                    className="text-[#a8a8b3] hover:text-[#a855f7] transition-colors shrink-0 cursor-pointer"
+                                    title="Marcar como revelado"
+                                  >
+                                    {npc.isRevealed ? (
+                                      <CheckSquare className="w-5 h-5 text-[#a855f7]" />
+                                    ) : (
+                                      <Square className="w-5 h-5" />
+                                    )}
+                                  </button>
+                                  <span className="font-bold text-[#e1e1e6] text-sm break-words min-w-0">
+                                    {npc.name}
+                                  </span>
+                                </div>
+                                <div className="flex gap-1.5 shrink-0 ml-2">
+                                  {npc.role && (
+                                    <span className="bg-[#121214] text-[#a8a8b3] text-[10px] px-2 py-0.5 rounded border border-[#323238] uppercase">
+                                      {npc.role}
+                                    </span>
+                                  )}
+                                  <span
+                                    className={`text-[10px] px-2 py-0.5 rounded border uppercase font-bold ${dispClass}`}
+                                  >
+                                    {npc.disposition || 'Neutro'}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="pl-7 text-xs text-[#c4c4cc] leading-relaxed">
+                                <RichTextView
+                                  content={npc.notes}
+                                  defaultText=""
+                                />
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
+
+                  {activeTab === 'missoes' && (
+                    <div className="min-w-0">
+                      {!zoneData.customQuests ||
+                      zoneData.customQuests.length === 0 ? (
+                        <span className="text-[#a8a8b3] italic flex-1 whitespace-pre-wrap">
+                          Nenhuma missão ou objetivo documentado para esta zona.
+                        </span>
+                      ) : (
+                        zoneData.customQuests.map((q, idx) => (
+                          <div
+                            key={q.id || idx}
+                            className={`bg-black/20 p-3 rounded mb-3 border border-[#323238] min-w-0 transition-opacity ${
+                              q.isCompleted ? 'opacity-50' : ''
+                            }`}
+                          >
+                            <div className="flex justify-between items-center mb-1">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const list = [
+                                      ...(zoneData.customQuests || []),
+                                    ];
+                                    list[idx] = {
+                                      ...q,
+                                      isCompleted: !q.isCompleted,
+                                    };
+                                    updateZoneData(zone.id, {
+                                      customQuests: list,
+                                    });
+                                  }}
+                                  className="text-[#a8a8b3] hover:text-[#10b981] transition-colors shrink-0 cursor-pointer"
+                                  title="Marcar como concluída"
+                                >
+                                  {q.isCompleted ? (
+                                    <CheckSquare className="w-5 h-5 text-[#10b981]" />
+                                  ) : (
+                                    <Square className="w-5 h-5" />
+                                  )}
+                                </button>
+                                <span
+                                  className={`font-bold text-sm break-words min-w-0 ${
+                                    q.isCompleted
+                                      ? 'line-through text-[#a8a8b3]'
+                                      : 'text-[#e1e1e6]'
+                                  }`}
+                                >
+                                  {q.title}
+                                </span>
+                              </div>
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase shrink-0 ml-2 ${
+                                  q.priority === 'Principal'
+                                    ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                                    : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                                }`}
+                              >
+                                {q.priority || 'Principal'}
+                              </span>
+                            </div>
+                            {q.reward && (
+                              <div className="pl-7 text-xs text-[#ffd700] mb-1 font-medium">
+                                <span className="text-[#a8a8b3]">
+                                  Recompensa:
+                                </span>{' '}
+                                {q.reward}
+                              </div>
+                            )}
+                            <div className="pl-7 text-xs text-[#c4c4cc] leading-relaxed">
+                              <RichTextView
+                                content={q.objective}
+                                defaultText=""
+                              />
+                            </div>
+                          </div>
+                        ))
                       )}
                     </div>
                   )}
@@ -1872,6 +2138,330 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
                       </Button>
                     </div>
                   )}
+
+                  {activeTab === 'diario' && (
+                    <div className="min-w-0 space-y-3">
+                      {zoneData.customJournal?.map((j, idx) => (
+                        <div
+                          key={j.id || idx}
+                          className="bg-black/20 border border-[#323238] rounded p-3 relative flex flex-col gap-2.5 min-w-0"
+                        >
+                          <button
+                            className="text-[#a8a8b3] hover:text-red-500 absolute top-3 right-3 cursor-pointer"
+                            title="Excluir Entrada"
+                            onClick={() => {
+                              const list = (
+                                zoneData.customJournal || []
+                              ).filter((_, i) => i !== idx);
+                              updateZoneData(zone.id, { customJournal: list });
+                            }}
+                          >
+                            <Trash className="w-4 h-4" />
+                          </button>
+
+                          <div className="flex gap-2 pr-8">
+                            <Input
+                              placeholder="Título do Relato"
+                              value={j.title}
+                              onChange={(e) => {
+                                const list = [
+                                  ...(zoneData.customJournal || []),
+                                ];
+                                list[idx] = { ...j, title: e.target.value };
+                                updateZoneData(zone.id, {
+                                  customJournal: list,
+                                });
+                              }}
+                              className="flex-1 bg-[#121214] border-[#323238] h-8 text-xs font-bold text-[#e1e1e6]"
+                            />
+                            <Input
+                              placeholder="Sessão (Ex: Sessão 04)"
+                              value={j.session}
+                              onChange={(e) => {
+                                const list = [
+                                  ...(zoneData.customJournal || []),
+                                ];
+                                list[idx] = { ...j, session: e.target.value };
+                                updateZoneData(zone.id, {
+                                  customJournal: list,
+                                });
+                              }}
+                              className="w-[120px] bg-[#121214] border-[#323238] h-8 text-xs text-[#3b82f6]"
+                            />
+                          </div>
+
+                          <div className="w-[160px]">
+                            <Input
+                              placeholder="Autor (Ex: Mestre, Eldrin)"
+                              value={j.author}
+                              onChange={(e) => {
+                                const list = [
+                                  ...(zoneData.customJournal || []),
+                                ];
+                                list[idx] = { ...j, author: e.target.value };
+                                updateZoneData(zone.id, {
+                                  customJournal: list,
+                                });
+                              }}
+                              className="bg-[#121214] border-[#323238] h-7 text-xs text-[#a8a8b3]"
+                            />
+                          </div>
+
+                          <RichTextEditor
+                            value={j.text}
+                            onChange={(val) => {
+                              const list = [
+                                ...(zoneData.customJournal || []),
+                              ];
+                              list[idx] = { ...j, text: val };
+                              updateZoneData(zone.id, {
+                                customJournal: list,
+                              });
+                            }}
+                            className="min-h-[80px]"
+                            placeholder="Texto do relato, anotação ou pista..."
+                          />
+                        </div>
+                      ))}
+
+                      <Button
+                        className="w-full h-8 text-xs font-bold bg-[#3b82f6] text-white hover:bg-[#2563eb] border-none"
+                        onClick={() => {
+                          const list = [
+                            ...(zoneData.customJournal || []),
+                            {
+                              id: crypto.randomUUID(),
+                              title: 'Novo Relato',
+                              session: 'Sessão 01',
+                              author: 'Mestre',
+                              text: '',
+                              isRevealed: false,
+                            },
+                          ];
+                          updateZoneData(zone.id, { customJournal: list });
+                        }}
+                      >
+                        + Novo Relato no Diário
+                      </Button>
+                    </div>
+                  )}
+
+                  {activeTab === 'npcs' && (
+                    <div className="min-w-0 space-y-3">
+                      {zoneData.customNpcs?.map((npc, idx) => (
+                        <div
+                          key={npc.id || idx}
+                          className="bg-black/20 border border-[#323238] rounded p-3 relative flex flex-col gap-2.5 min-w-0"
+                        >
+                          <button
+                            className="text-[#a8a8b3] hover:text-red-500 absolute top-3 right-3 cursor-pointer"
+                            title="Excluir Personagem"
+                            onClick={() => {
+                              const list = (zoneData.customNpcs || []).filter(
+                                (_, i) => i !== idx,
+                              );
+                              updateZoneData(zone.id, { customNpcs: list });
+                            }}
+                          >
+                            <Trash className="w-4 h-4" />
+                          </button>
+
+                          <div className="flex gap-2 pr-8">
+                            <Input
+                              placeholder="Nome do Personagem / Facção"
+                              value={npc.name}
+                              onChange={(e) => {
+                                const list = [
+                                  ...(zoneData.customNpcs || []),
+                                ];
+                                list[idx] = { ...npc, name: e.target.value };
+                                updateZoneData(zone.id, {
+                                  customNpcs: list,
+                                });
+                              }}
+                              className="flex-1 bg-[#121214] border-[#323238] h-8 text-xs font-bold text-[#e1e1e6]"
+                            />
+                            <Input
+                              placeholder="Papel / Ocupação"
+                              value={npc.role}
+                              onChange={(e) => {
+                                const list = [
+                                  ...(zoneData.customNpcs || []),
+                                ];
+                                list[idx] = { ...npc, role: e.target.value };
+                                updateZoneData(zone.id, {
+                                  customNpcs: list,
+                                });
+                              }}
+                              className="w-[120px] bg-[#121214] border-[#323238] h-8 text-xs text-[#a8a8b3]"
+                            />
+                            <select
+                              value={npc.disposition || 'Neutro'}
+                              onChange={(e) => {
+                                const list = [
+                                  ...(zoneData.customNpcs || []),
+                                ];
+                                list[idx] = {
+                                  ...npc,
+                                  disposition: e.target.value,
+                                };
+                                updateZoneData(zone.id, {
+                                  customNpcs: list,
+                                });
+                              }}
+                              className="w-[95px] bg-[#121214] border border-[#323238] text-xs h-8 rounded px-1 text-[#e1e1e6] outline-none focus:border-[#a855f7]"
+                            >
+                              <option value="Aliado">Aliado</option>
+                              <option value="Neutro">Neutro</option>
+                              <option value="Hostil">Hostil</option>
+                            </select>
+                          </div>
+
+                          <RichTextEditor
+                            value={npc.notes}
+                            onChange={(val) => {
+                              const list = [
+                                ...(zoneData.customNpcs || []),
+                              ];
+                              list[idx] = { ...npc, notes: val };
+                              updateZoneData(zone.id, {
+                                customNpcs: list,
+                              });
+                            }}
+                            className="min-h-[80px]"
+                            placeholder="História, intenções, diálogos ou pistas deste personagem..."
+                          />
+                        </div>
+                      ))}
+
+                      <Button
+                        className="w-full h-8 text-xs font-bold bg-[#a855f7] text-white hover:bg-[#9333ea] border-none"
+                        onClick={() => {
+                          const list = [
+                            ...(zoneData.customNpcs || []),
+                            {
+                              id: crypto.randomUUID(),
+                              name: 'Novo Personagem',
+                              role: 'Contato',
+                              disposition: 'Neutro',
+                              notes: '',
+                              isRevealed: false,
+                            },
+                          ];
+                          updateZoneData(zone.id, { customNpcs: list });
+                        }}
+                      >
+                        + Novo Personagem / Facção
+                      </Button>
+                    </div>
+                  )}
+
+                  {activeTab === 'missoes' && (
+                    <div className="min-w-0 space-y-3">
+                      {zoneData.customQuests?.map((q, idx) => (
+                        <div
+                          key={q.id || idx}
+                          className="bg-black/20 border border-[#323238] rounded p-3 relative flex flex-col gap-2.5 min-w-0"
+                        >
+                          <button
+                            className="text-[#a8a8b3] hover:text-red-500 absolute top-3 right-3 cursor-pointer"
+                            title="Excluir Missão"
+                            onClick={() => {
+                              const list = (
+                                zoneData.customQuests || []
+                              ).filter((_, i) => i !== idx);
+                              updateZoneData(zone.id, { customQuests: list });
+                            }}
+                          >
+                            <Trash className="w-4 h-4" />
+                          </button>
+
+                          <div className="flex gap-2 pr-8">
+                            <Input
+                              placeholder="Título da Missão"
+                              value={q.title}
+                              onChange={(e) => {
+                                const list = [
+                                  ...(zoneData.customQuests || []),
+                                ];
+                                list[idx] = { ...q, title: e.target.value };
+                                updateZoneData(zone.id, {
+                                  customQuests: list,
+                                });
+                              }}
+                              className="flex-1 bg-[#121214] border-[#323238] h-8 text-xs font-bold text-[#e1e1e6]"
+                            />
+                            <select
+                              value={q.priority || 'Principal'}
+                              onChange={(e) => {
+                                const list = [
+                                  ...(zoneData.customQuests || []),
+                                ];
+                                list[idx] = { ...q, priority: e.target.value };
+                                updateZoneData(zone.id, {
+                                  customQuests: list,
+                                });
+                              }}
+                              className="w-[110px] bg-[#121214] border border-[#323238] text-xs h-8 rounded px-1 text-[#e1e1e6] outline-none focus:border-[#10b981]"
+                            >
+                              <option value="Principal">Principal</option>
+                              <option value="Secundária">Secundária</option>
+                            </select>
+                          </div>
+
+                          <Input
+                            placeholder="Recompensa (Ex: 350 XP, Acesso ao Cofre, Relíquia)"
+                            value={q.reward}
+                            onChange={(e) => {
+                              const list = [
+                                ...(zoneData.customQuests || []),
+                              ];
+                              list[idx] = { ...q, reward: e.target.value };
+                              updateZoneData(zone.id, {
+                                customQuests: list,
+                              });
+                            }}
+                            className="bg-[#121214] border-[#323238] h-8 text-xs text-[#ffd700]"
+                          />
+
+                          <RichTextEditor
+                            value={q.objective}
+                            onChange={(val) => {
+                              const list = [
+                                ...(zoneData.customQuests || []),
+                              ];
+                              list[idx] = { ...q, objective: val };
+                              updateZoneData(zone.id, {
+                                customQuests: list,
+                              });
+                            }}
+                            className="min-h-[80px]"
+                            placeholder="Objetivo, passos necessários ou condições de falha..."
+                          />
+                        </div>
+                      ))}
+
+                      <Button
+                        className="w-full h-8 text-xs font-bold bg-[#10b981] text-white hover:bg-[#059669] border-none"
+                        onClick={() => {
+                          const list = [
+                            ...(zoneData.customQuests || []),
+                            {
+                              id: crypto.randomUUID(),
+                              title: 'Nova Missão',
+                              priority: 'Principal',
+                              reward: '',
+                              objective: '',
+                              isCompleted: false,
+                            },
+                          ];
+                          updateZoneData(zone.id, { customQuests: list });
+                        }}
+                      >
+                        + Nova Missão / Objetivo
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1890,8 +2480,8 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
         {/* Marcadores Verticais no bordo direito (Geral com ponta triangular + Adicionar com ponta quadrada) */}
         {zone && isOpen && (
           <div className="absolute left-full top-16 flex flex-col gap-2.5 z-50 pointer-events-auto select-none items-start overflow-visible transition-opacity duration-200">
-            {/* Marcador Geral */}
-            {(['geral'] as ZoneTab[]).map((tabKey) => {
+            {/* Marcadores Ativos na Zona */}
+            {currentTabs.map((tabKey) => {
               const cfg = TAB_CONFIGS[tabKey];
               const TabIcon = cfg.icon;
               const tabColor = getMarkerColor(tabKey);

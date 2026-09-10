@@ -149,6 +149,33 @@ export interface ZoneInventoryItem {
   isFound?: boolean;
 }
 
+export interface ZoneJournalEntry {
+  id: string;
+  title: string;
+  session: string;
+  author: string;
+  text: string;
+  isRevealed?: boolean;
+}
+
+export interface ZoneNpcNode {
+  id: string;
+  name: string;
+  role: string;
+  disposition: string;
+  notes: string;
+  isRevealed?: boolean;
+}
+
+export interface ZoneQuestNode {
+  id: string;
+  title: string;
+  priority: string;
+  reward: string;
+  objective: string;
+  isCompleted?: boolean;
+}
+
 export interface Zone {
   id: string;
   type: 'rect' | 'ellipse' | 'polygon';
@@ -176,6 +203,10 @@ export interface Zone {
     customHighlights?: ZoneHighlightCategory[];
     customThreats?: ZoneThreat[];
     customInventory?: ZoneInventoryItem[];
+    customJournal?: ZoneJournalEntry[];
+    customNpcs?: ZoneNpcNode[];
+    customQuests?: ZoneQuestNode[];
+    activeMarkers?: string[];
     markerColors?: Record<string, string>;
     markerTextColors?: Record<string, string>;
   };
