@@ -153,15 +153,30 @@ export default function StageMap() {
     });
   }, []);
 
-  // --- Mouse Down ---
+  // --- Touch & Mouse Down ---
+  const lastTouchDistRef = useRef<number | null>(null);
+
   const handleMouseDown = useCallback(
-    (e: KonvaEventObject<MouseEvent>) => {
+    (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
       const stage = stageRef.current;
       if (!stage) return;
       const pos = getRelativePointerPosition(stage);
 
+      // Suporte a multitoque (2 dedos no tablet/mobile para zoom)
+      if ('touches' in e.evt && e.evt.touches && e.evt.touches.length === 2) {
+        const p1 = e.evt.touches[0];
+        const p2 = e.evt.touches[1];
+        lastTouchDistRef.current = Math.hypot(
+          p1.clientX - p2.clientX,
+          p1.clientY - p2.clientY,
+        );
+        return;
+      }
+
       // Alt + Click ou Botão do Meio (roda) -> Emite Ping tático multiplayer em qualquer ponto do mapa
-      if (e.evt.altKey || e.evt.button === 1) {
+      const isAltClick = 'altKey' in e.evt && e.evt.altKey;
+      const isMiddleClick = 'button' in e.evt && e.evt.button === 1;
+      if (isAltClick || isMiddleClick) {
         e.evt.preventDefault();
         useMultiplayerStore.getState().sendPing(pos.x, pos.y);
         return;
@@ -181,7 +196,7 @@ export default function StageMap() {
       }
 
       // Right-click → create marker (matching original contextmenu behavior)
-      if (e.evt.button === 2) {
+      if ('button' in e.evt && e.evt.button === 2) {
         e.evt.preventDefault();
         addMarker({
           id: generateId(),
@@ -408,6 +423,53 @@ export default function StageMap() {
     e.evt.preventDefault();
   }, []);
 
+  // --- Touch Move & Pinch-to-zoom (Mobile / Tablet) ---
+  const handleTouchMove = useCallback(
+    (e: KonvaEventObject<TouchEvent>) => {
+      const touches = e.evt.touches;
+      if (touches && touches.length === 2) {
+        e.evt.preventDefault();
+        const p1 = { x: touches[0].clientX, y: touches[0].clientY };
+        const p2 = { x: touches[1].clientX, y: touches[1].clientY };
+        const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+
+        if (lastTouchDistRef.current !== null) {
+          const stage = stageRef.current;
+          if (!stage) return;
+          const oldScale = stage.scaleX();
+          const factor = dist / lastTouchDistRef.current;
+          let newScale = oldScale * factor;
+          newScale = Math.min(Math.max(0.1, newScale), 8);
+
+          const center = {
+            x: (p1.x + p2.x) / 2,
+            y: (p1.y + p2.y) / 2,
+          };
+
+          const mousePointTo = {
+            x: (center.x - stage.x()) / oldScale,
+            y: (center.y - stage.y()) / oldScale,
+          };
+
+          setScale(newScale);
+          setPosition({
+            x: center.x - mousePointTo.x * newScale,
+            y: center.y - mousePointTo.y * newScale,
+          });
+        }
+        lastTouchDistRef.current = dist;
+        return;
+      }
+      handleMouseMove();
+    },
+    [handleMouseMove],
+  );
+
+  const handleTouchEnd = useCallback(() => {
+    lastTouchDistRef.current = null;
+    handleMouseUp();
+  }, [handleMouseUp]);
+
   // --- HTML5 Drag & Drop (for tokens from roster + image files) ---
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -468,7 +530,7 @@ export default function StageMap() {
         return;
       }
 
-      if (e.code === 'Space') {
+      if (e.code === 'Space' || e.key === '1') {
         e.preventDefault();
         setActiveTool('pan');
         setIsDrawing(false);
@@ -476,8 +538,32 @@ export default function StageMap() {
         setPolyPoints([]);
       }
 
-      if (e.key === 'v' || e.key === 'V') {
+      if (e.key === 'v' || e.key === 'V' || e.key === '2') {
         setActiveTool('select');
+      }
+
+      if (e.key === '3') {
+        setActiveTool('edit-zone');
+      }
+
+      if (e.key === '4') {
+        setActiveTool('draw-rect');
+      }
+
+      if (e.key === '5') {
+        setActiveTool('draw-ellipse');
+      }
+
+      if (e.key === '6') {
+        setActiveTool('draw-poly');
+      }
+
+      if (e.key === '7') {
+        setActiveTool('add-marker');
+      }
+
+      if (e.key === '8') {
+        setActiveTool('edit-bg');
       }
 
       if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -558,7 +644,8 @@ export default function StageMap() {
   return (
     <div
       ref={containerRef}
-      className="absolute inset-0"
+      className="absolute inset-0 select-none"
+      style={{ touchAction: 'none' }}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
@@ -580,6 +667,9 @@ export default function StageMap() {
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onTouchStart={handleMouseDown}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         onContextMenu={handleContextMenu}
         style={{ cursor: cursorStyle }}
       >

@@ -52,49 +52,49 @@ export default function MapToolbar() {
     {
       id: 'pan',
       icon: <Move className="w-5 h-5" />,
-      title: 'Mover Fundo (Espaço)',
+      title: 'Mover Fundo [1 ou Espaço]',
     },
     {
       id: 'select',
       icon: <MousePointer2 className="w-5 h-5" />,
-      title: 'Selecionar (V)',
+      title: 'Selecionar [2 ou V]',
     },
     {
       id: 'draw-group',
       icon: <Pencil className="w-5 h-5" />,
-      title: 'Ferramentas de Zona',
+      title: 'Ferramentas de Zona [3-6]',
       subTools: [
         {
           id: 'edit-zone',
           icon: <Edit3 className="w-4 h-4" />,
-          title: 'Editar Zonas (Mover/Redimensionar)',
+          title: 'Editar Zonas [3]',
         },
         {
           id: 'draw-rect',
           icon: <Square className="w-4 h-4" />,
-          title: 'Desenhar Zona Retangular',
+          title: 'Zona Retangular [4]',
         },
         {
           id: 'draw-ellipse',
           icon: <Circle className="w-4 h-4" />,
-          title: 'Desenhar Zona Circular',
+          title: 'Zona Circular [5]',
         },
         {
           id: 'draw-poly',
           icon: <Hexagon className="w-4 h-4" />,
-          title: 'Desenhar Zona Poligonal',
+          title: 'Zona Poligonal [6]',
         },
       ],
     },
     {
       id: 'add-marker',
       icon: <MapPin className="w-5 h-5" />,
-      title: 'Adicionar Marcador',
+      title: 'Adicionar Marcador [7]',
     },
     {
       id: 'edit-bg',
       icon: <ImageIcon className="w-5 h-5" />,
-      title: 'Editar Imagens de Fundo',
+      title: 'Editar Imagens de Fundo [8]',
     },
   ];
 
