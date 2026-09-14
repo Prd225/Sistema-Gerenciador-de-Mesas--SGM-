@@ -180,7 +180,7 @@ export const applyGameState = async (data: any) => {
             });
           }
         });
-        await db.activeScenes.bulkAdd(data.scenes.sceneData);
+        await db.activeScenes.bulkPut(data.scenes.sceneData);
       }
 
       useScenesStore.setState({
