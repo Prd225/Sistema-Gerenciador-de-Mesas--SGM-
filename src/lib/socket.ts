@@ -25,5 +25,12 @@ export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
+    auth: (cb) => {
+      const token =
+        typeof window !== 'undefined'
+          ? localStorage.getItem('sgm_auth_token')
+          : null;
+      cb({ token });
+    },
   },
 );

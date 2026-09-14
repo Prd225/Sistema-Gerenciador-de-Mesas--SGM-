@@ -7,16 +7,22 @@ import type {
   ServerToClientEvents,
 } from '../../src/types/multiplayer';
 import { registerSocketHandlers } from './handlers/socketHandlers';
+import { initDatabase, getDatabaseStatus } from './db/db';
+import { authRouter } from './routes/authRoutes';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Rota de status do servidor
+// Rotas de Autenticação e Usuários
+app.use('/api/auth', authRouter);
+
+// Rota de status do servidor e banco de dados
 app.get('/health', (_req, res) => {
   res.json({
     status: 'online',
     version: '7.0.0',
+    database: getDatabaseStatus() ? 'connected' : 'offline',
     timestamp: new Date().toISOString(),
   });
 });
@@ -40,7 +46,8 @@ io.on('connection', (socket) => {
 
 const PORT = Number(process.env.PORT) || 3001;
 
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, async () => {
   console.log(`🎲 Servidor SGM Online rodando na porta ${PORT}`);
   console.log(`👉 WebSocket pronto para conexões em ws://localhost:${PORT}`);
+  await initDatabase();
 });

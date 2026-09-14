@@ -1,34 +1,29 @@
-Copyright (c) 2026 Sistema Gerenciador de Mesas (SGM). Todos os direitos reservados / All rights reserved.
+PolyForm Noncommercial License 1.0.0
+https://polyformproject.org/licenses/noncommercial/1.0.0/
 
-================================================================================
-AVISO DE DIREITOS AUTORAIS E PROPRIEDADE INTELECTUAL
-================================================================================
+Copyright (c) 2026 Sistema Gerenciador de Mesas (SGM) e Contribuidores.
+Todos os direitos reservados / All rights reserved.
 
-Este software, código-fonte, arquitetura, design visual e documentação associada
-são de propriedade exclusiva dos seus criadores e contribuidores.
+1. Permissão de Uso Não-Comercial (Noncommercial License Grant)
+O Licenciante concede a você uma licença de direitos autorais perpétua, mundial,
+não exclusiva e isenta de royalties para reproduzir, modificar, exibir publicamente
+e executar este software exclusivamente para fins não-comerciais.
 
-É TERMINANTEMENTE PROIBIDO:
-1. Copiar, reproduzir, republicar, distribuir, transmitir ou sublicenciar este
-   código-fonte ou partes dele em qualquer meio físico ou digital sem autorização
-   prévia formal e por escrito dos detentores dos direitos autorais.
-2. Utilizar este software, código-fonte ou seus algoritmos para fins comerciais,
-   monetização direta ou indireta, ou incorporação em produtos fechados ou abertos
-   sem licença expressa.
-3. Realizar engenharia reversa, descompilação ou criar obras derivadas com base
-   neste projeto sem consentimento prévio.
+2. Restrição Estrita de Uso Comercial (Commercial Use Prohibited)
+É expressamente PROIBIDO o uso, distribuição, sublicenciamento ou incorporação
+deste software, seu código-fonte, arquitetura ou algoritmos para qualquer propósito
+comercial, com fins lucrativos diretos ou indiretos, ou como parte de serviços pagos,
+sem a obtenção prévia de uma licença comercial formal por escrito emitida pelos
+autores do projeto.
 
-================================================================================
-COPYRIGHT & PROPRIETARY NOTICE (ENGLISH)
-================================================================================
+3. Atribuição e Avisos (Notices)
+Você deve manter todos os avisos de direitos autorais e de propriedade intelectual
+intactos em todas as cópias ou partes substanciais do software.
 
-Unauthorized copying, distribution, modification, public display, reverse
-engineering, or commercial exploitation of this software and associated
-documentation files, via any medium, is strictly prohibited.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+4. Isenção de Garantias (Disclaimer)
+O SOFTWARE É FORNECIDO "NO ESTADO EM QUE SE ENCONTRA" (AS IS), SEM NENHUM TIPO DE
+GARANTIA, EXPRESSA OU IMPLÍCITA, INCLUINDO, MAS NÃO SE LIMITANDO A, GARANTIAS DE
+COMERCIALIZAÇÃO, ADEQUAÇÃO A UM DETERMINADO FIM E NÃO VIOLAÇÃO. EM NENHUMA
+CIRCUNSTÂNCIA OS AUTORES OU DETENTORES DOS DIREITOS AUTORAIS SERÃO RESPONSÁVEIS
+POR QUAISQUER REIVINDICAÇÕES, DANOS OU OUTRAS RESPONSABILIDADES DECORRENTES DO USO
+DESTE SOFTWARE.

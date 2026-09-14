@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import {
   FolderOpen,
   Download,
@@ -8,12 +9,17 @@ import {
   Swords,
   ChevronDown,
   Radio,
+  User,
+  LogOut,
+  WifiOff,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { resetGameState } from '@/lib/saveHelpers';
 import { useTokenStore } from '@/store/useTokenStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useMultiplayerStore } from '@/store/useMultiplayerStore';
+import { useAuthStore } from '@/store/useAuthStore';
+import AuthModal from '@/components/modals/AuthModal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,6 +71,18 @@ export default function Header() {
   const setIsMultiplayerModalOpen = useMultiplayerStore(
     (state) => state.setIsModalOpen,
   );
+
+  const user = useAuthStore((state) => state.user);
+  const isServerOnline = useAuthStore((state) => state.isServerOnline);
+  const setIsAuthModalOpen = useAuthStore((state) => state.setIsAuthModalOpen);
+  const logout = useAuthStore((state) => state.logout);
+  const checkServerAndSession = useAuthStore(
+    (state) => state.checkServerAndSession,
+  );
+
+  useEffect(() => {
+    checkServerAndSession();
+  }, [checkServerAndSession]);
 
   return (
     <header className="h-[70px] bg-[#202024]/95 border-b border-[#323238] flex items-center justify-between px-5 z-50 shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
@@ -305,6 +323,62 @@ export default function Header() {
             'Multiplayer'
           )}
         </Button>
+
+        {/* Indicador de Modo Local quando backend offline */}
+        {!isServerOnline && (
+          <div
+            title="Servidor backend offline. Operando em Modo Local seguro."
+            className="flex items-center gap-1 text-[11px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-1 rounded-md"
+          >
+            <WifiOff className="w-3.5 h-3.5" />
+            <span>Modo Local</span>
+          </div>
+        )}
+
+        {/* Usuário Logado ou Botão de Entrar */}
+        {user ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-semibold border border-[#323238] bg-[#121214] hover:bg-white/5 text-white h-10 px-3 cursor-pointer outline-none transition-colors">
+              {user.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={user.username}
+                  className="w-5 h-5 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-5 h-5 rounded-full bg-[#8257e5] flex items-center justify-center text-[10px] font-bold text-white">
+                  {user.username.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <span className="text-xs max-w-[90px] truncate">{user.username}</span>
+              <ChevronDown className="w-3.5 h-3.5 text-[#7c7c8a]" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="bg-[#202024] border-[#323238] text-[#e1e1e6] min-w-[170px] shadow-xl">
+              <div className="px-3 py-2 border-b border-[#323238]">
+                <p className="text-xs font-bold text-white truncate">{user.username}</p>
+                <p className="text-[10px] text-[#7c7c8a] truncate">{user.email}</p>
+              </div>
+              <DropdownMenuItem
+                onClick={logout}
+                className="cursor-pointer hover:bg-red-500/20 hover:text-red-400 focus:bg-red-500/20 focus:text-red-400 text-xs flex items-center gap-2 text-red-400 p-2 mt-1"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Sair da Conta
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <Button
+            onClick={() => setIsAuthModalOpen(true)}
+            variant="outline"
+            className="bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5 font-bold text-xs h-10 px-3"
+            title="Entrar na conta ou cadastrar"
+          >
+            <User className="w-4 h-4 mr-1.5 text-[#8257e5]" /> Entrar
+          </Button>
+        )}
+
+        <AuthModal />
       </div>
     </header>
   );
