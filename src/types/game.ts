@@ -233,6 +233,8 @@ export interface Marker {
   color?: string;
   textColor?: string;
   iconType?: 'pin' | 'sword' | 'chest' | 'skull' | 'jewel';
+  completed?: boolean;
+  hidden?: boolean;
 }
 
 // --- Initiative ---

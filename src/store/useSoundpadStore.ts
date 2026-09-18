@@ -50,10 +50,22 @@ interface SoundpadState {
   // Player controls
   setActivePlaylist: (id: string | null) => void;
   setActiveSong: (id: string | null) => void;
+  playSong: (playlistId: string, songId: string) => void;
   setIsPlaying: (playing: boolean) => void;
   setProgress: (progress: number) => void;
   toggleLoop: () => void;
   setSpotifyDeviceId: (id: string | null) => void;
+
+  volume: number;
+  isMuted: boolean;
+  setVolume: (volume: number) => void;
+  toggleMute: () => void;
+
+  isSeeking: boolean;
+  setIsSeeking: (isSeeking: boolean) => void;
+
+  audioError: string | null;
+  setAudioError: (error: string | null) => void;
 
   playbackTrigger: number;
   isSpotifyConnected: boolean;
@@ -80,6 +92,16 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
   progress: 0,
   isLooping: false,
   spotifyDeviceId: null,
+  volume:
+    typeof window !== 'undefined'
+      ? Number(localStorage.getItem('sgm_soundpad_volume') ?? 50)
+      : 50,
+  isMuted:
+    typeof window !== 'undefined'
+      ? localStorage.getItem('sgm_soundpad_muted') === 'true'
+      : false,
+  isSeeking: false,
+  audioError: null,
   playbackTrigger: 0,
   isSpotifyConnected: false,
   spotifyError: null,
@@ -291,11 +313,39 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
 
   setActivePlaylist: (id) => set({ activePlaylistId: id }),
   setActiveSong: (id) =>
-    set({ activeSongId: id, isPlaying: false, progress: 0 }),
+    set({ activeSongId: id, isPlaying: false, progress: 0, audioError: null }),
+  playSong: (playlistId, songId) =>
+    set((state) => ({
+      activePlaylistId: playlistId,
+      activeSongId: songId,
+      isPlaying: true,
+      progress: 0,
+      audioError: null,
+      playbackTrigger: (state.playbackTrigger || 0) + 1,
+    })),
   setIsPlaying: (playing) => set({ isPlaying: playing }),
   setProgress: (progress) => set({ progress }),
   toggleLoop: () => set((state) => ({ isLooping: !state.isLooping })),
   setSpotifyDeviceId: (id) => set({ spotifyDeviceId: id }),
+
+  setVolume: (volume) => {
+    const clamped = Math.max(0, Math.min(100, volume));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sgm_soundpad_volume', String(clamped));
+    }
+    set({ volume: clamped, isMuted: false });
+  },
+  toggleMute: () =>
+    set((state) => {
+      const newMuted = !state.isMuted;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('sgm_soundpad_muted', String(newMuted));
+      }
+      return { isMuted: newMuted };
+    }),
+  setIsSeeking: (isSeeking) => set({ isSeeking }),
+  setAudioError: (error) => set({ audioError: error }),
+
   setIsSpotifyConnected: (connected) => set({ isSpotifyConnected: connected }),
   setSpotifyError: (error) => set({ spotifyError: error }),
 

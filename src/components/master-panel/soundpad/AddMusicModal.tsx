@@ -7,6 +7,8 @@ import {
   Search,
   Loader2,
   X,
+  Upload,
+  Link,
 } from 'lucide-react';
 import { useSoundpadStore } from '@/store/useSoundpadStore';
 import { fetchTrackMetadata } from '@/lib/spotifyPlayer';
@@ -29,6 +31,10 @@ export default function AddMusicModal({
   const [activeTab, setActiveTab] = useState<Tab>('spotify');
   const [spotifyLink, setSpotifyLink] = useState('');
   const [youtubeLink, setYoutubeLink] = useState('');
+  const [localTitle, setLocalTitle] = useState('');
+  const [localAuthor, setLocalAuthor] = useState('');
+  const [localUrl, setLocalUrl] = useState('');
+  const [localFile, setLocalFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,7 +92,7 @@ export default function AddMusicModal({
       // Extract YouTube Video ID
       let videoId = '';
       const ytMatch = youtubeLink.match(
-        /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i,
+        /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i,
       );
       if (ytMatch && ytMatch[1]) {
         videoId = ytMatch[1];
@@ -123,6 +129,115 @@ export default function AddMusicModal({
     }
   };
 
+  const handleAddLocal = async () => {
+    if (!localFile && !localUrl.trim()) {
+      setError('Selecione um arquivo de áudio ou insira um link direto (.mp3, .wav, .ogg)');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (localFile) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const result = e.target?.result as string;
+          if (!result) {
+            setError('Falha ao ler o arquivo de áudio');
+            setLoading(false);
+            return;
+          }
+
+          const tempAudio = new Audio();
+          tempAudio.src = result;
+          tempAudio.onloadedmetadata = () => {
+            const finalDuration = Math.floor(tempAudio.duration) || 0;
+            const newSong = {
+              name:
+                localTitle.trim() ||
+                localFile.name.replace(/\.[^/.]+$/, ''),
+              author: localAuthor.trim() || 'Arquivo Local',
+              duration: finalDuration,
+              sourceType: 'local' as const,
+              sourceUrl: result,
+            };
+            addSongToPlaylist(pageId, playlistId, newSong);
+            setLocalFile(null);
+            setLocalTitle('');
+            setLocalAuthor('');
+            setLoading(false);
+            onClose();
+          };
+          tempAudio.onerror = () => {
+            const newSong = {
+              name:
+                localTitle.trim() ||
+                localFile.name.replace(/\.[^/.]+$/, ''),
+              author: localAuthor.trim() || 'Arquivo Local',
+              duration: 0,
+              sourceType: 'local' as const,
+              sourceUrl: result,
+            };
+            addSongToPlaylist(pageId, playlistId, newSong);
+            setLocalFile(null);
+            setLocalTitle('');
+            setLocalAuthor('');
+            setLoading(false);
+            onClose();
+          };
+        };
+        reader.onerror = () => {
+          setError('Erro ao carregar o arquivo local');
+          setLoading(false);
+        };
+        reader.readAsDataURL(localFile);
+      } else if (localUrl.trim()) {
+        const url = localUrl.trim();
+        const tempAudio = new Audio();
+        tempAudio.src = url;
+        tempAudio.onloadedmetadata = () => {
+          const finalDuration = Math.floor(tempAudio.duration) || 0;
+          const newSong = {
+            name:
+              localTitle.trim() ||
+              url.substring(url.lastIndexOf('/') + 1) ||
+              'Áudio Direto',
+            author: localAuthor.trim() || 'Web Stream',
+            duration: finalDuration,
+            sourceType: 'local' as const,
+            sourceUrl: url,
+          };
+          addSongToPlaylist(pageId, playlistId, newSong);
+          setLocalUrl('');
+          setLocalTitle('');
+          setLocalAuthor('');
+          setLoading(false);
+          onClose();
+        };
+        tempAudio.onerror = () => {
+          const newSong = {
+            name: localTitle.trim() || 'Áudio Direto',
+            author: localAuthor.trim() || 'Web Stream',
+            duration: 0,
+            sourceType: 'local' as const,
+            sourceUrl: url,
+          };
+          addSongToPlaylist(pageId, playlistId, newSong);
+          setLocalUrl('');
+          setLocalTitle('');
+          setLocalAuthor('');
+          setLoading(false);
+          onClose();
+        };
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Falha ao adicionar áudio local');
+      setLoading(false);
+    }
+  };
+
   if (!open) return null;
 
   return (
@@ -140,19 +255,28 @@ export default function AddMusicModal({
 
         <div className="flex border-b border-[#323238]">
           <button
-            onClick={() => setActiveTab('spotify')}
+            onClick={() => {
+              setActiveTab('spotify');
+              setError(null);
+            }}
             className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'spotify' ? 'border-b-2 border-[#1DB954] text-[#1DB954] bg-[#1DB954]/5' : 'text-[#a8a8b3] hover:text-[#e1e1e6] hover:bg-[#202024]'}`}
           >
             <Music className="w-4 h-4" /> Spotify
           </button>
           <button
-            onClick={() => setActiveTab('youtube')}
+            onClick={() => {
+              setActiveTab('youtube');
+              setError(null);
+            }}
             className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'youtube' ? 'border-b-2 border-[#FF0000] text-[#FF0000] bg-[#FF0000]/5' : 'text-[#a8a8b3] hover:text-[#e1e1e6] hover:bg-[#202024]'}`}
           >
             <MonitorPlay className="w-4 h-4" /> YouTube
           </button>
           <button
-            onClick={() => setActiveTab('local')}
+            onClick={() => {
+              setActiveTab('local');
+              setError(null);
+            }}
             className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'local' ? 'border-b-2 border-[#8257e5] text-[#8257e5] bg-[#8257e5]/5' : 'text-[#a8a8b3] hover:text-[#e1e1e6] hover:bg-[#202024]'}`}
           >
             <HardDrive className="w-4 h-4" /> Local
@@ -227,9 +351,81 @@ export default function AddMusicModal({
           )}
 
           {activeTab === 'local' && (
-            <div className="flex flex-col items-center justify-center text-[#7a7a80] gap-3">
-              <HardDrive className="w-12 h-12 opacity-20" />
-              <p className="font-semibold text-lg opacity-50">Em construção</p>
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-[#a8a8b3] uppercase tracking-wider flex items-center gap-1.5">
+                  <Upload className="w-3.5 h-3.5 text-[#8257e5]" /> Arquivo de Áudio
+                </label>
+                <input
+                  type="file"
+                  accept="audio/*"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] || null;
+                    setLocalFile(f);
+                    if (f && !localTitle) {
+                      setLocalTitle(f.name.replace(/\.[^/.]+$/, ''));
+                    }
+                  }}
+                  className="w-full text-xs text-[#a8a8b3] file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-[#8257e5]/20 file:text-[#8257e5] hover:file:bg-[#8257e5]/30 cursor-pointer bg-[#202024] border border-[#323238] rounded-md p-1.5"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 text-[#7a7a80] text-[0.7rem] uppercase tracking-wider">
+                <div className="flex-1 h-px bg-[#323238]" />
+                <span>ou URL direta</span>
+                <div className="flex-1 h-px bg-[#323238]" />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <div className="relative">
+                  <input
+                    value={localUrl}
+                    onChange={(e) => setLocalUrl(e.target.value)}
+                    placeholder="https://exemplo.com/audio.mp3"
+                    className="w-full bg-[#202024] border border-[#323238] rounded-md pl-9 pr-3 py-1.5 text-xs text-[#e1e1e6] focus:outline-none focus:border-[#8257e5]"
+                  />
+                  <Link className="w-3.5 h-3.5 text-[#7a7a80] absolute left-3 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[0.65rem] text-[#7a7a80] uppercase">
+                    Nome da Faixa
+                  </label>
+                  <input
+                    value={localTitle}
+                    onChange={(e) => setLocalTitle(e.target.value)}
+                    placeholder="Opcional"
+                    className="bg-[#202024] border border-[#323238] rounded px-2 py-1 text-xs text-[#e1e1e6] focus:outline-none focus:border-[#8257e5]"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[0.65rem] text-[#7a7a80] uppercase">
+                    Artista / Descrição
+                  </label>
+                  <input
+                    value={localAuthor}
+                    onChange={(e) => setLocalAuthor(e.target.value)}
+                    placeholder="Opcional"
+                    className="bg-[#202024] border border-[#323238] rounded px-2 py-1 text-xs text-[#e1e1e6] focus:outline-none focus:border-[#8257e5]"
+                  />
+                </div>
+              </div>
+
+              {error && <p className="text-red-400 text-xs mt-1">{error}</p>}
+
+              <Button
+                onClick={handleAddLocal}
+                disabled={loading || (!localFile && !localUrl.trim())}
+                className="w-full bg-[#8257e5] hover:bg-[#9466ff] text-white font-bold mt-2"
+              >
+                {loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  'Adicionar Música'
+                )}
+              </Button>
             </div>
           )}
         </div>

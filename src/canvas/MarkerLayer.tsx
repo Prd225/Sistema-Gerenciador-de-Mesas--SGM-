@@ -12,12 +12,28 @@ const iconTypeSvgMap = {
   jewel: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 3 8 9l4 13 4-13-2.5-6"></path><path d="M17 3a2 2 0 0 1 1.6.8l3 4a2 2 0 0 1 .013 2.382l-7.99 10.986a2 2 0 0 1-3.247 0l-7.99-10.986A2 2 0 0 1 2.4 7.8l2.998-3.997A2 2 0 0 1 7 3z"></path><path d="M2 9h20"></path></svg>`,
 };
 
+const svgUriCache = new Map<string, string>();
+function getCachedSvgUri(type: string, color: string): string {
+  const key = `${type}_${color}`;
+  let uri = svgUriCache.get(key);
+  if (!uri) {
+    const raw =
+      iconTypeSvgMap[type as keyof typeof iconTypeSvgMap] || iconTypeSvgMap.pin;
+    const svg = raw.replace(/currentColor/g, color);
+    uri = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    svgUriCache.set(key, uri);
+  }
+  return uri;
+}
+
 function MarkerIcon({
   iconType,
   color,
+  opacity = 1,
 }: {
   iconType?: string;
   color?: string;
+  opacity?: number;
 }) {
   const type =
     iconType && iconTypeSvgMap[iconType as keyof typeof iconTypeSvgMap]
@@ -25,13 +41,8 @@ function MarkerIcon({
       : 'pin';
   const c = color || '#e55757';
 
-  const svg = iconTypeSvgMap[type as keyof typeof iconTypeSvgMap].replace(
-    /currentColor/g,
-    c,
-  );
-  const [image] = useImage(
-    'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg),
-  );
+  const uri = getCachedSvgUri(type, c);
+  const [image] = useImage(uri);
 
   return image ? (
     <KonvaImage
@@ -40,6 +51,7 @@ function MarkerIcon({
       y={-32}
       width={32}
       height={32}
+      opacity={opacity}
       listening={false}
     />
   ) : null;
@@ -50,6 +62,9 @@ function MarkerLayer({ scale = 1 }: { scale?: number }) {
   const markers = Object.values(markersMap);
   const updateMarker = useZoneStore((state) => state.updateMarker);
   const activeTool = useZoneStore((state) => state.activeTool);
+  const hideCompletedMarkers = useZoneStore(
+    (state) => state.hideCompletedMarkers,
+  );
   const pings = useMultiplayerStore((state) => state.pings);
 
   return (
@@ -94,9 +109,71 @@ function MarkerLayer({ scale = 1 }: { scale?: number }) {
         );
       })}
       {markers.map((marker) => {
+        const isCompleted = !!marker.completed;
+        const isHidden =
+          !!marker.hidden || (isCompleted && hideCompletedMarkers);
+        if (isHidden) return null;
+
         const dynamicFontSize = Math.max(12, 14 / scale);
         const dynamicY = -40 / scale;
 
+        // Marcador concluído: opacidade direta leve nos elementos e não tocável (listening=false)
+        if (isCompleted) {
+          return (
+            <Group
+              key={marker.id}
+              id={marker.id}
+              x={marker.x}
+              y={marker.y}
+              listening={false}
+            >
+              <MarkerIcon
+                iconType={marker.iconType}
+                color={marker.color}
+                opacity={0.25}
+              />
+              <Circle
+                x={10}
+                y={-28}
+                radius={6.5}
+                fill="#04d361"
+                stroke="#121214"
+                strokeWidth={1}
+                opacity={0.35}
+                listening={false}
+              />
+              <Text
+                text="✓"
+                x={4}
+                y={-33}
+                width={12}
+                height={12}
+                align="center"
+                verticalAlign="middle"
+                fontSize={9}
+                fontStyle="bold"
+                fill="#ffffff"
+                opacity={0.4}
+                listening={false}
+              />
+              <Text
+                text={`✓ ${marker.text}`}
+                x={-100}
+                y={dynamicY}
+                width={200}
+                align="center"
+                fontSize={dynamicFontSize}
+                fontStyle="bold"
+                fill="#04d361"
+                opacity={0.3}
+                listening={false}
+                perfectDrawEnabled={false}
+              />
+            </Group>
+          );
+        }
+
+        // Marcador ativo: animações de hover, clique e arrasto
         return (
           <Group
             key={marker.id}
@@ -112,6 +189,7 @@ function MarkerLayer({ scale = 1 }: { scale?: number }) {
             onClick={(e) => {
               e.cancelBubble = true;
               if (activeTool === 'pan' || activeTool === 'select') {
+                useZoneStore.getState().setSelectedMarkerId(marker.id);
                 useZoneStore.getState().setRightSidebarOpen(true);
               }
             }}
@@ -119,9 +197,9 @@ function MarkerLayer({ scale = 1 }: { scale?: number }) {
               const container = e.target.getStage()?.container();
               if (container) container.style.cursor = 'pointer';
               e.currentTarget.to({
-                scaleX: 1.05,
-                scaleY: 1.05,
-                duration: 0.15,
+                scaleX: 1.08,
+                scaleY: 1.08,
+                duration: 0.12,
               });
             }}
             onMouseLeave={(e) => {
@@ -134,27 +212,37 @@ function MarkerLayer({ scale = 1 }: { scale?: number }) {
                       ? 'default'
                       : 'crosshair';
               }
-              e.currentTarget.to({ scaleX: 1, scaleY: 1, duration: 0.15 });
+              e.currentTarget.to({
+                scaleX: 1,
+                scaleY: 1,
+                duration: 0.12,
+              });
             }}
             onMouseDown={(e) => {
-              e.currentTarget.to({ scaleX: 0.9, scaleY: 0.9, duration: 0.05 });
+              e.currentTarget.to({
+                scaleX: 0.92,
+                scaleY: 0.92,
+                duration: 0.05,
+              });
             }}
             onMouseUp={(e) => {
-              e.currentTarget.to({ scaleX: 1.05, scaleY: 1.05, duration: 0.2 });
+              e.currentTarget.to({
+                scaleX: 1.08,
+                scaleY: 1.08,
+                duration: 0.15,
+              });
             }}
             onDragStart={(e) => {
               e.currentTarget.to({
-                scaleX: 0.85,
-                scaleY: 0.85,
-                opacity: 0.7,
-                duration: 0.15,
+                scaleX: 0.88,
+                scaleY: 0.88,
+                duration: 0.12,
               });
             }}
             onDragEnd={(e) => {
               e.currentTarget.to({
-                scaleX: 0.95,
-                scaleY: 0.95,
-                opacity: 0.85,
+                scaleX: 1,
+                scaleY: 1,
                 duration: 0.15,
               });
               updateMarker(marker.id, { x: e.target.x(), y: e.target.y() });
@@ -176,9 +264,9 @@ function MarkerLayer({ scale = 1 }: { scale?: number }) {
               fontStyle="bold"
               fill={marker.textColor || 'white'}
               shadowColor="black"
-              shadowBlur={4}
+              shadowBlur={3}
               shadowOffset={{ x: 1, y: 1 }}
-              shadowOpacity={1}
+              shadowOpacity={0.8}
               listening={false}
               perfectDrawEnabled={false}
             />

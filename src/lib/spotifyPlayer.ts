@@ -161,6 +161,13 @@ export const seekSpotifyTrack = async (positionMs: number) => {
   }
 };
 
+export const setSpotifyVolume = async (volumeFraction: number) => {
+  const player = getPlayer();
+  if (player) {
+    await player.setVolume(Math.max(0, Math.min(1, volumeFraction)));
+  }
+};
+
 export const fetchTrackMetadata = async (trackId: string) => {
   const token = getSpotifyToken();
   if (!token) throw new Error('Not authenticated');

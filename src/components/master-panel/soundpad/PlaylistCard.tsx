@@ -23,17 +23,22 @@ export default function PlaylistCard({ playlist, onClick }: PlaylistCardProps) {
         <div
           onClick={(e) => {
             e.stopPropagation();
-            useSoundpadStore.getState().setActivePlaylist(playlist.id);
+            const store = useSoundpadStore.getState();
             if (playlist.songs.length > 0) {
-              const currentActive = useSoundpadStore.getState().activeSongId;
-              const hasCurrent = playlist.songs.some(
-                (s) => s.id === currentActive,
-              );
-              if (!hasCurrent) {
-                useSoundpadStore.getState().setActiveSong(playlist.songs[0].id);
+              if (store.activePlaylistId === playlist.id && store.isPlaying) {
+                store.setIsPlaying(false);
+              } else {
+                const currentActive = store.activeSongId;
+                const hasCurrent = playlist.songs.some(
+                  (s) => s.id === currentActive,
+                );
+                const targetSongId =
+                  hasCurrent && currentActive ? currentActive : playlist.songs[0].id;
+                store.playSong(playlist.id, targetSongId);
               }
             } else {
-              useSoundpadStore.getState().setActiveSong(null);
+              store.setActivePlaylist(playlist.id);
+              store.setActiveSong(null);
             }
           }}
           className={`flex items-center justify-center w-10 h-10 rounded-full bg-[#121214] border transition-colors cursor-pointer ${

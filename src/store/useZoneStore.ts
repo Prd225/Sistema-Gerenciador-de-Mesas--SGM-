@@ -8,6 +8,7 @@ interface ZoneState {
   markers: Record<string, Marker>;
   bgImages: BgImage[];
   selectedZoneId: string | null;
+  selectedMarkerId: string | null;
   editingZone: boolean;
   editingMarkers: boolean;
   activeTool: ActiveTool;
@@ -22,8 +23,13 @@ interface ZoneState {
   setRightSidebarOpen: (open: boolean) => void;
   setLeftSidebarWidth: (width: number) => void;
   setRightSidebarWidth: (width: number) => void;
+  setSelectedMarkerId: (id: string | null) => void;
   toggleLeftSidebar: () => void;
   toggleRightSidebar: () => void;
+
+  hideCompletedMarkers: boolean;
+  setHideCompletedMarkers: (hide: boolean) => void;
+  toggleHideCompletedMarkers: () => void;
 
   // Local actions (emitem pro Socket se conectado)
   addZone: (zone: Zone) => void;
@@ -68,6 +74,7 @@ export const useZoneStore = create<ZoneState>((set) => ({
   markers: {},
   bgImages: [],
   selectedZoneId: null,
+  selectedMarkerId: null,
   editingZone: false,
   editingMarkers: false,
   activeTool: 'pan',
@@ -81,10 +88,29 @@ export const useZoneStore = create<ZoneState>((set) => ({
   setRightSidebarOpen: (open) => set({ rightSidebarOpen: open }),
   setLeftSidebarWidth: (width) => set({ leftSidebarWidth: width }),
   setRightSidebarWidth: (width) => set({ rightSidebarWidth: width }),
+  setSelectedMarkerId: (id) => set({ selectedMarkerId: id }),
   toggleLeftSidebar: () =>
     set((state) => ({ leftSidebarOpen: !state.leftSidebarOpen })),
   toggleRightSidebar: () =>
     set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen })),
+  hideCompletedMarkers:
+    typeof window !== 'undefined'
+      ? localStorage.getItem('sgm_hide_completed_markers') === 'true'
+      : false,
+  setHideCompletedMarkers: (hide) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sgm_hide_completed_markers', String(hide));
+    }
+    set({ hideCompletedMarkers: hide });
+  },
+  toggleHideCompletedMarkers: () =>
+    set((state) => {
+      const next = !state.hideCompletedMarkers;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('sgm_hide_completed_markers', String(next));
+      }
+      return { hideCompletedMarkers: next };
+    }),
 
   // --- Local Zone Actions ---
   addZone: (zone) => {
