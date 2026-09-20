@@ -115,16 +115,16 @@ input[type='number'] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  vertical-align: -0.22em;
-  margin: 0 0.15em;
+  vertical-align: -0.36em;
+  margin: 0 0.18em;
   line-height: 1;
   user-select: none;
   cursor: default;
-  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.15s ease;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.18s ease;
 }
 
 .rpg-dice-badge:hover {
-  transform: scale(1.2);
-  filter: drop-shadow(0 0 5px rgba(168, 85, 247, 0.6));
+  transform: scale(1.22);
+  filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.7));
 }
 
