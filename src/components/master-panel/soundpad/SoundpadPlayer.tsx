@@ -217,8 +217,11 @@ export default function SoundpadPlayer() {
         </button>
 
         <button
-          onClick={() => {
+          onClick={async () => {
             touchSpotifyActivity();
+            if (activeSong?.sourceType === 'spotify') {
+              await pauseSpotifyTrack().catch(() => {});
+            }
             playPrev();
           }}
           className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#323238] text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors disabled:opacity-50"
@@ -245,8 +248,11 @@ export default function SoundpadPlayer() {
         </button>
 
         <button
-          onClick={() => {
+          onClick={async () => {
             touchSpotifyActivity();
+            if (activeSong?.sourceType === 'spotify') {
+              await pauseSpotifyTrack().catch(() => {});
+            }
             playNext(true);
           }}
           className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#323238] text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors disabled:opacity-50"

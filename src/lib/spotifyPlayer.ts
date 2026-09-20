@@ -261,12 +261,27 @@ const createAndConnectPlayer = () => {
     }
     useSoundpadStore.getState().setSpotifyDeviceId(device_id);
     useSoundpadStore.getState().setIsSpotifyConnected(true);
-    useSoundpadStore.getState().setSpotifyError(null);
-
     // Sync volume from store immediately upon ready
     const store = useSoundpadStore.getState();
     const vol = store.isMuted ? 0 : store.volume / 100;
     player.setVolume(Math.max(0, Math.min(1, vol))).catch(() => {});
+
+    // Registra este dispositivo como ativo no Spotify Connect sem disparar reprodução
+    getValidSpotifyToken().then((tok) => {
+      if (tok) {
+        fetch('https://api.spotify.com/v1/me/player', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${tok}`,
+          },
+          body: JSON.stringify({
+            device_ids: [device_id],
+            play: false,
+          }),
+        }).catch(() => {});
+      }
+    });
 
     touchSpotifyActivity();
   });
@@ -322,6 +337,26 @@ export const initSpotifyPlayer = async () => {
   document.body.appendChild(script);
 };
 
+/**
+ * Normaliza qualquer URL ou URI do Spotify para o formato canônico exigido pela Web API:
+ * 'spotify:track:<id>'
+ */
+export const formatSpotifyUri = (input: string): string => {
+  if (!input) return '';
+  const trimmed = input.trim();
+  const cleanMatch = trimmed.match(/^spotify:track:([a-zA-Z0-9]+)$/);
+  if (cleanMatch) return trimmed;
+
+  const uriMatch = trimmed.match(/spotify:track:([a-zA-Z0-9]+)/i);
+  if (uriMatch && uriMatch[1]) return `spotify:track:${uriMatch[1]}`;
+
+  const urlMatch = trimmed.match(/track\/([a-zA-Z0-9]+)/i);
+  if (urlMatch && urlMatch[1]) return `spotify:track:${urlMatch[1]}`;
+
+  if (/^[a-zA-Z0-9]{22}$/.test(trimmed)) return `spotify:track:${trimmed}`;
+  return trimmed;
+};
+
 export const playSpotifyTrack = async (trackUri: string) => {
   touchSpotifyActivity();
   lastProgress = 0;
@@ -333,38 +368,81 @@ export const playSpotifyTrack = async (trackUri: string) => {
   const token = await getValidSpotifyToken();
   if (!token) return;
 
-  let activeDeviceId = deviceId;
+  const cleanUri = formatSpotifyUri(trackUri);
+  if (!cleanUri) {
+    console.error('[SpotifyPlayer] URI de faixa inválida:', trackUri);
+    return;
+  }
+
+  // Pausa previamente a faixa atual no SDK local para liberar o decodificador e evitar
+  // a rejeição 'Restriction violated' (403) ao trocar de faixa enquanto o áudio está tocando
+  const player = getPlayer();
+  if (player) {
+    try {
+      await player.pause();
+    } catch {}
+  }
+
+  let activeDeviceId = deviceId || useSoundpadStore.getState().spotifyDeviceId;
   if (!activeDeviceId) {
     scheduleReconnect();
     for (let i = 0; i < 5; i++) {
       await new Promise((r) => setTimeout(r, 500));
-      activeDeviceId = deviceId;
+      activeDeviceId = deviceId || useSoundpadStore.getState().spotifyDeviceId;
       if (activeDeviceId) break;
     }
   }
 
-  if (!activeDeviceId) {
-    console.warn('[SpotifyPlayer] playSpotifyTrack: sem deviceId disponível.');
-    useSoundpadStore
-      .getState()
-      .setAudioError('Aguardando inicialização do dispositivo Spotify...');
-    return;
-  }
+  const executePlay = async (targetDeviceId?: string | null) => {
+    const url = targetDeviceId
+      ? `https://api.spotify.com/v1/me/player/play?device_id=${targetDeviceId}`
+      : `https://api.spotify.com/v1/me/player/play`;
+
+    return fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        uris: [cleanUri],
+      }),
+    });
+  };
 
   try {
-    const res = await fetch(
-      `https://api.spotify.com/v1/me/player/play?device_id=${activeDeviceId}`,
-      {
+    // 1. Tenta reproduzir direcionando para o device_id ativo
+    let res = await executePlay(activeDeviceId);
+
+    // 2. Se retornar 403 ("Restriction violated"), frequentemente ocorre quando o dispositivo
+    // já está vinculado à sessão ativa do Spotify Connect. Tentar sem device_id funciona instantaneamente.
+    if (res.status === 403) {
+      console.warn(
+        '[SpotifyPlayer] 403 ao direcionar device_id. Tentando via sessão ativa sem query param...',
+      );
+      res = await executePlay(null);
+    }
+
+    // 3. Se ainda retornar 403 ou 404, transfere playback explicitamente para este dispositivo e tenta de novo
+    if ((res.status === 403 || res.status === 404) && activeDeviceId) {
+      console.log(
+        '[SpotifyPlayer] Re-transferindo foco do playback para o dispositivo Web SDK...',
+      );
+      await fetch('https://api.spotify.com/v1/me/player', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          uris: [trackUri],
+          device_ids: [activeDeviceId],
+          play: false,
         }),
-      },
-    );
+      }).catch(() => {});
+
+      await new Promise((r) => setTimeout(r, 250));
+      res = await executePlay(activeDeviceId);
+    }
 
     if (res.ok || res.status === 204) {
       useSoundpadStore.getState().setIsPlaying(true);
@@ -375,29 +453,24 @@ export const playSpotifyTrack = async (trackUri: string) => {
       const { volume, isMuted } = useSoundpadStore.getState();
       const volFraction = isMuted ? 0 : volume / 100;
       setSpotifyVolume(volFraction).catch(() => {});
-    } else if (res.status === 403) {
+    } else {
       const errorData = await res.json().catch(() => ({}));
-      if (errorData?.error?.reason === 'PREMIUM_REQUIRED') {
-        useSoundpadStore
-          .getState()
-          .setSpotifyError(
-            'A sua conta Spotify precisa ser Premium para tocar músicas no SGM.',
-          );
-      } else {
-        useSoundpadStore
-          .getState()
-          .setAudioError(
-            'Spotify: Permissão negada ou restrição de dispositivo.',
-          );
+      console.error('[SpotifyPlayer] Falha ao tocar faixa:', res.status, errorData);
+
+      if (res.status === 403) {
+        if (errorData?.error?.reason === 'PREMIUM_REQUIRED') {
+          useSoundpadStore
+            .getState()
+            .setSpotifyError(
+              'A sua conta Spotify precisa ser Premium para tocar músicas no SGM.',
+            );
+        }
+      } else if (res.status === 404) {
+        scheduleReconnect();
       }
-    } else if (res.status === 404) {
-      useSoundpadStore
-        .getState()
-        .setAudioError('Dispositivo Spotify não encontrado. Reconectando...');
-      scheduleReconnect();
     }
   } catch (error) {
-    console.error('Error playing track:', error);
+    console.error('[SpotifyPlayer] Erro na requisição de reprodução:', error);
   }
 };
 

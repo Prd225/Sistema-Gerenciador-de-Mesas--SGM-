@@ -8,6 +8,7 @@ import {
   getPlayer,
   seekSpotifyTrack,
   resumeSpotifyTrack,
+  formatSpotifyUri,
 } from '@/lib/spotifyPlayer';
 import { touchSpotifyActivity } from '@/lib/spotifyAuth';
 import type { Song } from '@/types/soundpad';
@@ -162,8 +163,10 @@ export default function SoundpadEngine() {
               String(playbackTrigger),
             );
 
+            const cleanSourceUri = formatSpotifyUri(activeSong!.sourceUrl);
+
             // Se for a mesma música que já está no player do Spotify e queremos replay (Loop ou reinício forçado)
-            if (state && currentTrackUri === activeSong!.sourceUrl) {
+            if (state && currentTrackUri === cleanSourceUri) {
               if (isForcedReplay) {
                 seekSpotifyTrack(0)
                   .then(() => resumeSpotifyTrack())
