@@ -37,6 +37,16 @@ interface SoundpadState {
     playlistId: string,
     songData: Omit<Song, 'id'>,
   ) => void;
+  addSongsToPlaylist: (
+    pageId: string,
+    playlistId: string,
+    songs: Omit<Song, 'id'>[],
+  ) => void;
+  importPlaylist: (
+    pageId: string,
+    name: string,
+    songs: Omit<Song, 'id'>[],
+  ) => string;
   removeSongFromPlaylist: (
     pageId: string,
     playlistId: string,
@@ -244,6 +254,62 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
       setTimeout(() => triggerAutoSave(), 0);
       return newState;
     }),
+
+  addSongsToPlaylist: (pageId, playlistId, songs) =>
+    set((state) => {
+      touchSpotifyActivity();
+      const newSongs: Song[] = songs.map((s) => ({
+        id: generateId(),
+        ...s,
+      }));
+      const newState = {
+        pages: state.pages.map((p) => {
+          if (p.id === pageId) {
+            return {
+              ...p,
+              playlists: p.playlists.map((pl) =>
+                pl.id === playlistId
+                  ? {
+                      ...pl,
+                      songs: [...pl.songs, ...newSongs],
+                      updatedAt: Date.now(),
+                    }
+                  : pl,
+              ),
+            };
+          }
+          return p;
+        }),
+      };
+      setTimeout(() => triggerAutoSave(), 0);
+      return newState;
+    }),
+
+  importPlaylist: (pageId, name, songs) => {
+    touchSpotifyActivity();
+    const newPlaylistId = generateId();
+    const newPlaylist: Playlist = {
+      id: newPlaylistId,
+      name: name.trim() || 'Nova Playlist',
+      tags: [],
+      songs: songs.map((s) => ({
+        id: generateId(),
+        ...s,
+      })),
+      updatedAt: Date.now(),
+    };
+
+    set((state) => ({
+      pages: state.pages.map((p) => {
+        if (p.id === pageId) {
+          return { ...p, playlists: [...p.playlists, newPlaylist] };
+        }
+        return p;
+      }),
+    }));
+    setTimeout(() => triggerAutoSave(), 0);
+    return newPlaylistId;
+  },
 
   removeSongFromPlaylist: (pageId, playlistId, songId) =>
     set((state) => {

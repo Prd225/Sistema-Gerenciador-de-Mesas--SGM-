@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { useSoundpadStore } from '@/store/useSoundpadStore';
 import { fetchTrackMetadata } from '@/lib/spotifyPlayer';
+import { importPlaylistFromUrl } from '@/lib/playlistImporter';
+
 
 interface AddMusicModalProps {
   open: boolean;
@@ -41,6 +43,9 @@ export default function AddMusicModal({
   const addSongToPlaylist = useSoundpadStore(
     (state) => state.addSongToPlaylist,
   );
+  const addSongsToPlaylist = useSoundpadStore(
+    (state) => state.addSongsToPlaylist,
+  );
   const onClose = () => onOpenChange(false);
 
   const handleAddSpotify = async () => {
@@ -53,9 +58,21 @@ export default function AddMusicModal({
       setLoading(true);
       setError(null);
 
-      // Extrair ID: https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT?si=...
+      // Se for link de playlist, importa todas as músicas da playlist
+      if (
+        spotifyLink.includes('playlist/') ||
+        spotifyLink.includes('playlist:')
+      ) {
+        const playlistData = await importPlaylistFromUrl(spotifyLink);
+        addSongsToPlaylist(pageId, playlistId, playlistData.songs);
+        setSpotifyLink('');
+        onClose();
+        return;
+      }
+
+      // Extrair ID de faixa única: https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT?si=...
       const match = spotifyLink.match(/track\/([a-zA-Z0-9]+)/);
-      if (!match) throw new Error('Link de música inválido');
+      if (!match) throw new Error('Link de música ou playlist do Spotify inválido');
 
       const trackId = match[1];
       const data = await fetchTrackMetadata(trackId);
@@ -73,7 +90,7 @@ export default function AddMusicModal({
       onClose();
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Falha ao adicionar música');
+      setError(err.message || 'Falha ao adicionar música do Spotify');
     } finally {
       setLoading(false);
     }
@@ -88,6 +105,15 @@ export default function AddMusicModal({
     try {
       setLoading(true);
       setError(null);
+
+      // Se for link de playlist, importa todas as faixas da playlist
+      if (youtubeLink.includes('list=')) {
+        const playlistData = await importPlaylistFromUrl(youtubeLink);
+        addSongsToPlaylist(pageId, playlistId, playlistData.songs);
+        setYoutubeLink('');
+        onClose();
+        return;
+      }
 
       // Extract YouTube Video ID
       let videoId = '';
@@ -113,9 +139,9 @@ export default function AddMusicModal({
       const newSong = {
         name: data.title,
         author: data.author_name || 'YouTube',
-        duration: 0, // YouTube oEmbed doesn't return duration, we will set 0 and the player might update it later if needed, or UI can show "Live/Unknown"
+        duration: 0,
         sourceType: 'youtube' as const,
-        sourceUrl: videoId, // just the ID
+        sourceUrl: videoId,
       };
 
       addSongToPlaylist(pageId, playlistId, newSong);
@@ -128,6 +154,7 @@ export default function AddMusicModal({
       setLoading(false);
     }
   };
+
 
   const handleAddLocal = async () => {
     if (!localFile && !localUrl.trim()) {

@@ -13,9 +13,12 @@ import {
   Play,
   Pause,
   GripVertical,
+  Download,
 } from 'lucide-react';
 import type { SongSource } from '@/types/soundpad';
 import AddMusicModal from './AddMusicModal';
+import ImportPlaylistModal from './ImportPlaylistModal';
+
 
 interface PlaylistEditorProps {
   pageId: string;
@@ -65,6 +68,7 @@ export default function PlaylistEditor({
   const [tagInput, setTagInput] = useState('');
   const [isFooterMinimized, setIsFooterMinimized] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   if (!playlist) return null;
 
@@ -281,14 +285,23 @@ export default function PlaylistEditor({
           )}
         </div>
 
-        {/* Botão de Adicionar Música (Compacto) */}
-        <div className="px-2 pt-2 pb-4">
+        {/* Botões de Adicionar Música e Importar Playlist */}
+        <div className="px-2 pt-2 pb-4 flex gap-2">
           <button
             onClick={handleAddSongClick}
-            className="w-full flex items-center justify-center gap-2 p-2.5 bg-[#8257e5]/10 text-[#8257e5] hover:bg-[#8257e5]/20 border border-[#8257e5]/20 hover:border-[#8257e5]/40 rounded transition-all font-medium text-sm"
+            className="flex-1 flex items-center justify-center gap-2 p-2.5 bg-[#8257e5]/10 text-[#8257e5] hover:bg-[#8257e5]/20 border border-[#8257e5]/20 hover:border-[#8257e5]/40 rounded transition-all font-medium text-sm"
           >
             <Plus className="w-4 h-4" />
             <span>Adicionar Música</span>
+          </button>
+
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-[#202024] hover:bg-[#29292e] text-[#a8a8b3] hover:text-[#e1e1e6] border border-[#323238] hover:border-[#8257e5]/40 rounded transition-all font-medium text-sm"
+            title="Importar Playlist do Spotify ou YouTube"
+          >
+            <Download className="w-4 h-4 text-[#8257e5]" />
+            <span className="hidden sm:inline text-xs">Importar Playlist</span>
           </button>
         </div>
       </div>
@@ -373,6 +386,13 @@ export default function PlaylistEditor({
         onOpenChange={setIsAddModalOpen}
         pageId={pageId}
         playlistId={playlistId}
+      />
+
+      <ImportPlaylistModal
+        open={isImportModalOpen}
+        onOpenChange={setIsImportModalOpen}
+        pageId={pageId}
+        targetPlaylistId={playlistId}
       />
 
       {/* Menu de Contexto (Botão Direito) */}
