@@ -4,7 +4,9 @@ import {
   playSpotifyTrack,
   pauseSpotifyTrack,
   setSpotifyVolume,
+  initSpotifyPlayer,
 } from '@/lib/spotifyPlayer';
+import { touchSpotifyActivity } from '@/lib/spotifyAuth';
 import type { Song } from '@/types/soundpad';
 import YouTube from 'react-youtube';
 
@@ -26,6 +28,8 @@ export default function SoundpadEngine() {
   const ytPlayerRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isTransitioningRef = useRef(false);
+  const lastActivityTouchRef = useRef(0);
+
 
   const effectiveVolume = isMuted ? 0 : volume;
 
@@ -118,9 +122,21 @@ export default function SoundpadEngine() {
     setAudioError(null);
 
     if (activeSong.sourceType === 'spotify') {
+      touchSpotifyActivity();
       if (!spotifyDeviceId) {
-        setAudioError('Spotify não conectado. Conecte sua conta Premium no topo do Soundpad.');
-        setIsPlaying(false);
+        initSpotifyPlayer();
+        const hasAuth = Boolean(
+          localStorage.getItem('spotify_token') ||
+            localStorage.getItem('spotify_refresh_token'),
+        );
+        if (!hasAuth) {
+          setAudioError(
+            'Spotify não conectado. Conecte sua conta Premium no topo do Soundpad.',
+          );
+          setIsPlaying(false);
+        } else {
+          setAudioError('Reconectando ao Spotify Player...');
+        }
         return;
       }
 
@@ -186,6 +202,13 @@ export default function SoundpadEngine() {
       interval = setInterval(() => {
         // Do not overwrite progress if user is currently dragging the seekbar
         if (useSoundpadStore.getState().isSeeking) return;
+
+        // Mantém a atividade do Spotify ativa a cada 15s enquanto estiver tocando qualquer música
+        const now = Date.now();
+        if (now - lastActivityTouchRef.current > 15000) {
+          lastActivityTouchRef.current = now;
+          touchSpotifyActivity();
+        }
 
         if (
           activeSong.sourceType === 'spotify' &&

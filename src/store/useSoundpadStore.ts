@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import { generateId } from '@/lib/uuid';
 import { triggerAutoSave } from '@/lib/saveHelpers';
+import { touchSpotifyActivity } from '@/lib/spotifyAuth';
 import type { SoundpadPage, Playlist, Song } from '@/types/soundpad';
+
 
 interface SoundpadState {
   pages: SoundpadPage[];
@@ -314,15 +316,17 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
   setActivePlaylist: (id) => set({ activePlaylistId: id }),
   setActiveSong: (id) =>
     set({ activeSongId: id, isPlaying: false, progress: 0, audioError: null }),
-  playSong: (playlistId, songId) =>
-    set((state) => ({
+  playSong: (playlistId, songId) => {
+    touchSpotifyActivity();
+    return set((state) => ({
       activePlaylistId: playlistId,
       activeSongId: songId,
       isPlaying: true,
       progress: 0,
       audioError: null,
       playbackTrigger: (state.playbackTrigger || 0) + 1,
-    })),
+    }));
+  },
   setIsPlaying: (playing) => set({ isPlaying: playing }),
   setProgress: (progress) => set({ progress }),
   toggleLoop: () => set((state) => ({ isLooping: !state.isLooping })),
@@ -349,8 +353,9 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
   setIsSpotifyConnected: (connected) => set({ isSpotifyConnected: connected }),
   setSpotifyError: (error) => set({ spotifyError: error }),
 
-  playNext: () =>
-    set((state) => {
+  playNext: () => {
+    touchSpotifyActivity();
+    return set((state) => {
       if (!state.activePlaylistId) return state;
 
       let songs: Song[] = [];
@@ -385,10 +390,12 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
         // Loop entire playlist natively
         return { activeSongId: songs[0].id, isPlaying: true, progress: 0 };
       }
-    }),
+    });
+  },
 
-  playPrev: () =>
-    set((state) => {
+  playPrev: () => {
+    touchSpotifyActivity();
+    return set((state) => {
       if (!state.activePlaylistId) return state;
 
       let songs: Song[] = [];
@@ -414,5 +421,7 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
           progress: 0,
         };
       }
-    }),
+    });
+  },
+
 }));

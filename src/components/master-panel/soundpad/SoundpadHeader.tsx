@@ -2,9 +2,11 @@ import { Music } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import {
   getSpotifyToken,
+  getValidSpotifyToken,
   loginToSpotify,
   logoutFromSpotify,
   handleSpotifyAuthCallback,
+  touchSpotifyActivity,
 } from '@/lib/spotifyAuth';
 import { initSpotifyPlayer } from '@/lib/spotifyPlayer';
 
@@ -22,8 +24,8 @@ export default function SoundpadHeader() {
       // Process callback if in URL
       await handleSpotifyAuthCallback();
 
-      const activeToken = getSpotifyToken();
-      setToken(activeToken);
+      const activeToken = await getValidSpotifyToken();
+      setToken(activeToken || getSpotifyToken());
 
       if (activeToken) {
         initSpotifyPlayer();
@@ -33,9 +35,10 @@ export default function SoundpadHeader() {
     initializeAuth();
 
     // Listener para quando o login for concluído na janela pop-up
-    const handleAuthMessage = (event: MessageEvent) => {
+    const handleAuthMessage = async (event: MessageEvent) => {
       if (event.data?.type === 'SPOTIFY_AUTH_SUCCESS') {
         const receivedToken = event.data?.token;
+        const receivedRefreshToken = event.data?.refreshToken;
         if (receivedToken) {
           localStorage.setItem('spotify_token', receivedToken);
           if (event.data?.expiresAt) {
@@ -45,7 +48,11 @@ export default function SoundpadHeader() {
             );
           }
         }
-        const activeToken = receivedToken || getSpotifyToken();
+        if (receivedRefreshToken) {
+          localStorage.setItem('spotify_refresh_token', receivedRefreshToken);
+        }
+        touchSpotifyActivity();
+        const activeToken = receivedToken || (await getValidSpotifyToken());
         setToken(activeToken);
         if (activeToken) {
           initSpotifyPlayer();
@@ -56,6 +63,26 @@ export default function SoundpadHeader() {
     window.addEventListener('message', handleAuthMessage);
     return () => window.removeEventListener('message', handleAuthMessage);
   }, []);
+
+  const handleToggleSpotify = async () => {
+    touchSpotifyActivity();
+    if (isSpotifyConnected) {
+      logoutFromSpotify();
+    } else {
+      const refreshToken = localStorage.getItem('spotify_refresh_token');
+      if (refreshToken) {
+        const validToken = await getValidSpotifyToken();
+        if (validToken) {
+          setToken(validToken);
+          initSpotifyPlayer();
+          return;
+        }
+      }
+      loginToSpotify();
+    }
+  };
+
+  const hasAuth = Boolean(token || localStorage.getItem('spotify_refresh_token'));
 
   return (
     <div className="flex items-center justify-between p-3 bg-[#202024] border-b border-[#323238] shrink-0">
@@ -68,18 +95,18 @@ export default function SoundpadHeader() {
 
       <div className="flex flex-col items-end gap-1">
         <button
-          onClick={token ? logoutFromSpotify : loginToSpotify}
+          onClick={handleToggleSpotify}
           title={
-            !token
-              ? 'Não Conectado (Clique para logar)'
+            !hasAuth
+              ? 'Spotify Desconectado (Clique para logar)'
               : spotifyError
                 ? `${spotifyError} (Clique para tentar novamente)`
                 : isSpotifyConnected
-                  ? 'Spotify Conectado (Clique para sair)'
-                  : 'Conectando...'
+                  ? 'Spotify Conectado (Clique para desconectar)'
+                  : 'Reconectando ao Spotify...'
           }
           className={`w-6 h-2 rounded-full shadow-sm transition-colors cursor-pointer ${
-            !token
+            !hasAuth
               ? 'bg-red-500/80 hover:bg-red-500 shadow-red-500/50'
               : spotifyError
                 ? 'bg-red-800 hover:bg-red-700 shadow-red-900/50'
@@ -92,3 +119,4 @@ export default function SoundpadHeader() {
     </div>
   );
 }
+

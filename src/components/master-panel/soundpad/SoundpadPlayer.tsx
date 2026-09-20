@@ -17,7 +17,9 @@ import {
   resumeSpotifyTrack,
   seekSpotifyTrack,
 } from '@/lib/spotifyPlayer';
+import { touchSpotifyActivity } from '@/lib/spotifyAuth';
 import type { Song } from '@/types/soundpad';
+
 
 export default function SoundpadPlayer() {
   const isPlaying = useSoundpadStore((state) => state.isPlaying);
@@ -60,6 +62,7 @@ export default function SoundpadPlayer() {
     .find((s) => s.id === activeSongId);
 
   const handlePlayPause = async () => {
+    touchSpotifyActivity();
     if (!activeSong) {
       if (activePlaylistId) {
         let songs: Song[] = [];
@@ -103,6 +106,7 @@ export default function SoundpadPlayer() {
   };
 
   const handleStop = async () => {
+    touchSpotifyActivity();
     // Pause all potential audio sources
     await pauseSpotifyTrack().catch(() => {});
     window.dispatchEvent(new Event('soundpad-pause-yt'));
@@ -116,6 +120,7 @@ export default function SoundpadPlayer() {
   };
 
   const handleSeekCommit = async (newVal: number) => {
+    touchSpotifyActivity();
     setProgress(newVal);
 
     if (activeSong?.sourceType === 'spotify') {
@@ -133,6 +138,7 @@ export default function SoundpadPlayer() {
       );
     }
   };
+
 
   const formatTime = (percentage: number, totalSeconds: number) => {
     if (!totalSeconds) return '0:00';
@@ -183,7 +189,10 @@ export default function SoundpadPlayer() {
         </button>
 
         <button
-          onClick={playPrev}
+          onClick={() => {
+            touchSpotifyActivity();
+            playPrev();
+          }}
           className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#323238] text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors disabled:opacity-50"
           title="Música Anterior"
         >
@@ -208,7 +217,10 @@ export default function SoundpadPlayer() {
         </button>
 
         <button
-          onClick={playNext}
+          onClick={() => {
+            touchSpotifyActivity();
+            playNext();
+          }}
           className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#323238] text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors disabled:opacity-50"
           title="Próxima Música"
         >
@@ -216,7 +228,10 @@ export default function SoundpadPlayer() {
         </button>
 
         <button
-          onClick={toggleLoop}
+          onClick={() => {
+            touchSpotifyActivity();
+            toggleLoop();
+          }}
           className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${
             isLooping
               ? 'text-[#8257e5] bg-[#8257e5]/10'
@@ -279,7 +294,10 @@ export default function SoundpadPlayer() {
       {/* Volume Row - Abaixo da barra de duração sem pop-up */}
       <div className="flex items-center gap-2 px-2 pt-0.5">
         <button
-          onClick={toggleMute}
+          onClick={() => {
+            touchSpotifyActivity();
+            toggleMute();
+          }}
           className={`shrink-0 p-1 rounded hover:bg-[#323238] transition-colors ${
             isMuted || volume === 0 ? 'text-red-400' : 'text-[#a8a8b3] hover:text-[#e1e1e6]'
           }`}
@@ -300,7 +318,10 @@ export default function SoundpadPlayer() {
             min={0}
             max={100}
             value={isMuted ? 0 : volume}
-            onChange={(e) => setVolume(Number(e.target.value))}
+            onChange={(e) => {
+              touchSpotifyActivity();
+              setVolume(Number(e.target.value));
+            }}
             className="w-full h-1 rounded-full appearance-none accent-[#8257e5] bg-[#323238] hover:bg-[#3d3d45] cursor-pointer"
           />
         </div>
