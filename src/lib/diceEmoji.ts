@@ -203,6 +203,7 @@ export const DICE_CONFIG: Record<DiceType, DiceInfo> = {
 export const DICE_LIST: DiceInfo[] = Object.values(DICE_CONFIG);
 
 export const DICE_SHORTCODE_REGEX = /:d(4|6|8|10|12|20|100|%):/gi;
+export const DICE_FORMULA_BACKTICK_REGEX = /`([^`\r\n]+)`/g;
 
 /**
  * Creates the inline HTML badge for a given dice type.
@@ -215,19 +216,99 @@ export function getDiceBadgeHtml(diceType: DiceType | string): string {
       : (normalizedKey.startsWith('d') ? normalizedKey : `d${normalizedKey}`) as DiceType;
   const info = DICE_CONFIG[actualKey] || DICE_CONFIG.d20;
 
-  return `<span class="rpg-dice-badge" contenteditable="false" data-dice="${info.type}" style="display:inline-flex;align-items:center;justify-content:center;vertical-align:-0.36em;margin:0 0.18em;line-height:1;user-select:none;cursor:default;">${info.svgHtml}</span>`;
+  return `<span class="rpg-dice-badge" contenteditable="false" data-dice="${info.type}" style="display:inline-flex;align-items:center;justify-content:center;vertical-align:-0.32em;margin:0 0.16em;line-height:1;user-select:none;cursor:default;overflow:visible;">${info.svgHtml}</span>`;
 }
 
 /**
- * Replaces all occurrences of :d4:, :d6:, :d8:, :d10:, :d12:, :d20:, :d100:, :d%:
- * with an inline SVG badge.
+ * Replaces backticks with .rpg-dice-formula spans and all occurrences of
+ * :d4:, :d6:, :d8:, :d10:, :d12:, :d20:, :d100:, :d%: with an inline SVG badge.
  */
 export function replaceDiceShortcodesWithHtml(html: string): string {
   if (!html) return html;
-  return html.replace(DICE_SHORTCODE_REGEX, (match) => {
+  // First convert markdown backticks `1:d20:+5` to dice formula pills
+  let processed = html.replace(
+    DICE_FORMULA_BACKTICK_REGEX,
+    '<span class="rpg-dice-formula">$1</span>',
+  );
+  // Then replace dice shortcodes
+  return processed.replace(DICE_SHORTCODE_REGEX, (match) => {
     const rawType = match.slice(1, -1);
     return getDiceBadgeHtml(rawType);
   });
+}
+
+/**
+ * Wraps current selection in an .rpg-dice-formula span, or unwraps if already in one.
+ * If collapsed, inserts a template formula.
+ */
+export function toggleDiceFormulaSelection(editorEl: HTMLElement): boolean {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return false;
+
+  let currentRange = selection.getRangeAt(0);
+  if (!editorEl.contains(currentRange.commonAncestorContainer)) {
+    editorEl.focus();
+    const newRange = document.createRange();
+    newRange.selectNodeContents(editorEl);
+    newRange.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(newRange);
+    currentRange = newRange;
+  }
+
+  // Check if currently inside .rpg-dice-formula
+  let parentFormula: HTMLElement | null = null;
+  let node: Node | null = currentRange.commonAncestorContainer;
+  while (node && node !== editorEl) {
+    if (node instanceof HTMLElement && node.classList.contains('rpg-dice-formula')) {
+      parentFormula = node;
+      break;
+    }
+    node = node.parentNode;
+  }
+
+  if (parentFormula) {
+    // Toggle OFF: unwrap the span
+    const parent = parentFormula.parentNode;
+    if (parent) {
+      while (parentFormula.firstChild) {
+        parent.insertBefore(parentFormula.firstChild, parentFormula);
+      }
+      parent.removeChild(parentFormula);
+    }
+    return true;
+  }
+
+  // Toggle ON
+  if (currentRange.collapsed) {
+    // Insert a template formula
+    const formulaSpan = document.createElement('span');
+    formulaSpan.className = 'rpg-dice-formula';
+    formulaSpan.textContent = '1:d20:+5';
+    currentRange.insertNode(formulaSpan);
+
+    const selRange = document.createRange();
+    selRange.selectNodeContents(formulaSpan);
+    selection.removeAllRanges();
+    selection.addRange(selRange);
+  } else {
+    // Wrap selected range
+    const formulaSpan = document.createElement('span');
+    formulaSpan.className = 'rpg-dice-formula';
+    try {
+      const contents = currentRange.extractContents();
+      formulaSpan.appendChild(contents);
+      currentRange.insertNode(formulaSpan);
+
+      const selRange = document.createRange();
+      selRange.selectNodeContents(formulaSpan);
+      selection.removeAllRanges();
+      selection.addRange(selRange);
+    } catch {
+      document.execCommand('insertHTML', false, `<span class="rpg-dice-formula">${selection.toString()}</span>`);
+    }
+  }
+  return true;
 }
 
 /**
@@ -256,3 +337,4 @@ export function renderDiceText(text?: string | null): React.ReactNode {
 
   return React.createElement(React.Fragment, null, ...nodes);
 }
+

@@ -17,7 +17,9 @@ import {
   Palette,
   Highlighter,
   Minus,
+  Sigma,
 } from 'lucide-react';
+import { toggleDiceFormulaSelection } from '@/lib/diceEmoji';
 
 interface NoteEditorFullscreenProps {
   pageId: string;
@@ -51,6 +53,33 @@ export default function NoteEditorFullscreen({
   const [titleValue, setTitleValue] = useState(note?.title || '');
   const [charCount, setCharCount] = useState(0);
   const maxLength = 20000;
+  const [listState, setListState] = useState<'none' | 'ul' | 'ol'>('none');
+  const [alignState, setAlignState] = useState<'left' | 'center' | 'right' | 'justify'>('left');
+
+  const updateToolbarStates = () => {
+    if (!editorRef.current) return;
+    const sel = window.getSelection();
+    if (!sel || !sel.anchorNode || !editorRef.current.contains(sel.anchorNode)) return;
+
+    const isUl = document.queryCommandState('insertUnorderedList');
+    const isOl = document.queryCommandState('insertOrderedList');
+    setListState(isUl ? 'ul' : isOl ? 'ol' : 'none');
+
+    const isCenter = document.queryCommandState('justifyCenter');
+    const isRight = document.queryCommandState('justifyRight');
+    const isJustify = document.queryCommandState('justifyFull');
+    setAlignState(isCenter ? 'center' : isRight ? 'right' : isJustify ? 'justify' : 'left');
+  };
+
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      updateToolbarStates();
+    };
+    document.addEventListener('selectionchange', handleSelectionChange);
+    return () => {
+      document.removeEventListener('selectionchange', handleSelectionChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (
@@ -78,10 +107,51 @@ export default function NoteEditorFullscreen({
     handleInput();
   };
 
+  const handleCycleList = () => {
+    const isUl = document.queryCommandState('insertUnorderedList');
+    const isOl = document.queryCommandState('insertOrderedList');
+
+    if (!isUl && !isOl) {
+      exec('insertUnorderedList');
+      setListState('ul');
+    } else if (isUl) {
+      exec('insertOrderedList');
+      setListState('ol');
+    } else {
+      exec('insertOrderedList');
+      setListState('none');
+    }
+  };
+
+  const handleCycleAlign = () => {
+    if (alignState === 'left') {
+      exec('justifyCenter');
+      setAlignState('center');
+    } else if (alignState === 'center') {
+      exec('justifyRight');
+      setAlignState('right');
+    } else if (alignState === 'right') {
+      exec('justifyFull');
+      setAlignState('justify');
+    } else {
+      exec('justifyLeft');
+      setAlignState('left');
+    }
+  };
+
+  const handleToggleFormula = () => {
+    if (editorRef.current) {
+      toggleDiceFormulaSelection(editorRef.current);
+      editorRef.current.focus();
+      handleInput();
+    }
+  };
+
   const handleInput = () => {
     if (editorRef.current) {
       setCharCount(editorRef.current.innerText.length);
       updateNote(pageId, noteId, { content: editorRef.current.innerHTML });
+      updateToolbarStates();
     }
   };
 
@@ -240,70 +310,76 @@ export default function NoteEditorFullscreen({
 
         <div className="w-px h-4 bg-[#323238] mx-0.5 shrink-0" />
 
-        {/* Alignment */}
+        {/* Compact Align Cycle Button */}
         <button
           onMouseDown={(e) => {
             e.preventDefault();
-            exec('justifyLeft');
+            handleCycleAlign();
           }}
-          className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white"
-          title="Alinhar à Esquerda"
+          className={`p-1 rounded transition-colors ${
+            alignState !== 'left'
+              ? 'bg-[#8257e5]/20 text-[#a78bfa] border border-[#8257e5]/40'
+              : 'hover:bg-[#323238] text-[#a8a8b3] hover:text-white'
+          }`}
+          title={
+            alignState === 'left'
+              ? 'Alinhamento: À Esquerda (clique para alternar: Centro -> Direita -> Justificar -> Esquerda)'
+              : alignState === 'center'
+                ? 'Alinhamento: Centralizado (clique para alternar)'
+                : alignState === 'right'
+                  ? 'Alinhamento: À Direita (clique para alternar)'
+                  : 'Alinhamento: Justificado (clique para alternar)'
+          }
         >
-          <AlignLeft className="w-3.5 h-3.5" />
+          {alignState === 'center' ? (
+            <AlignCenter className="w-3.5 h-3.5" />
+          ) : alignState === 'right' ? (
+            <AlignRight className="w-3.5 h-3.5" />
+          ) : alignState === 'justify' ? (
+            <AlignJustify className="w-3.5 h-3.5" />
+          ) : (
+            <AlignLeft className="w-3.5 h-3.5" />
+          )}
         </button>
+
+        {/* Compact List Cycle Button */}
         <button
           onMouseDown={(e) => {
             e.preventDefault();
-            exec('justifyCenter');
+            handleCycleList();
           }}
-          className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white"
-          title="Centralizar"
+          className={`p-1 rounded transition-colors ${
+            listState !== 'none'
+              ? 'bg-[#8257e5]/20 text-[#a78bfa] border border-[#8257e5]/40'
+              : 'hover:bg-[#323238] text-[#a8a8b3] hover:text-white'
+          }`}
+          title={
+            listState === 'none'
+              ? 'Sem Lista (clique para alternar: Marcadores -> Números -> Nenhuma)'
+              : listState === 'ul'
+                ? 'Lista com Marcadores (clique para alternar para Numerada)'
+                : 'Lista Numerada (clique para remover lista)'
+          }
         >
-          <AlignCenter className="w-3.5 h-3.5" />
-        </button>
-        <button
-          onMouseDown={(e) => {
-            e.preventDefault();
-            exec('justifyRight');
-          }}
-          className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white"
-          title="Alinhar à Direita"
-        >
-          <AlignRight className="w-3.5 h-3.5" />
-        </button>
-        <button
-          onMouseDown={(e) => {
-            e.preventDefault();
-            exec('justifyFull');
-          }}
-          className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white"
-          title="Justificar"
-        >
-          <AlignJustify className="w-3.5 h-3.5" />
+          {listState === 'ol' ? (
+            <ListOrdered className="w-3.5 h-3.5" />
+          ) : (
+            <List className="w-3.5 h-3.5" />
+          )}
         </button>
 
         <div className="w-px h-4 bg-[#323238] mx-0.5 shrink-0" />
 
-        {/* Lists */}
+        {/* Dice Formula Button */}
         <button
           onMouseDown={(e) => {
             e.preventDefault();
-            exec('insertUnorderedList');
+            handleToggleFormula();
           }}
-          className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white"
-          title="Lista"
+          className="p-1 hover:bg-[#8257e5]/20 hover:text-[#a78bfa] rounded text-[#a8a8b3] hover:border hover:border-[#8257e5]/40 transition-colors shrink-0"
+          title="Fórmula de Dado (formata seleção como equação de dados unificada)"
         >
-          <List className="w-3.5 h-3.5" />
-        </button>
-        <button
-          onMouseDown={(e) => {
-            e.preventDefault();
-            exec('insertOrderedList');
-          }}
-          className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white"
-          title="Lista Numerada"
-        >
-          <ListOrdered className="w-3.5 h-3.5" />
+          <Sigma className="w-3.5 h-3.5" />
         </button>
 
         <div className="w-px h-4 bg-[#323238] mx-0.5 shrink-0" />
