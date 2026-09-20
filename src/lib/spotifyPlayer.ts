@@ -17,6 +17,7 @@ declare global {
 let playerInstance: any = null;
 let deviceId: string | null = null;
 let lastProgress = 0;
+let isSpotifyTransitioning = false;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 8;
@@ -138,6 +139,9 @@ const createAndConnectPlayer = () => {
 
   if (!window.Spotify || !window.Spotify.Player) return;
 
+  const currentStore = useSoundpadStore.getState();
+  const initialVol = currentStore.isMuted ? 0 : currentStore.volume / 100;
+
   const player = new window.Spotify.Player({
     name: 'SGM Soundpad',
     getOAuthToken: async (cb: (token: string) => void) => {
@@ -147,7 +151,7 @@ const createAndConnectPlayer = () => {
         cb(token);
       }
     },
-    volume: 0.5,
+    volume: Math.max(0, Math.min(1, initialVol)),
   });
 
   // Error handling
@@ -200,17 +204,50 @@ const createAndConnectPlayer = () => {
     const duration = state.duration;
     const progressPercent = duration > 0 ? (position / duration) * 100 : 0;
 
-    // Update store
+    // Update store playback status
     useSoundpadStore.getState().setIsPlaying(!isPaused);
-    useSoundpadStore.getState().setProgress(progressPercent);
 
-    // Track end detection: if we were past 95% and suddenly paused at 0
-    if (isPaused && position === 0 && lastProgress > 95) {
-      console.log('Track ended. Playing next...');
-      useSoundpadStore.getState().playNext();
+    // Only update progress if the user is not actively dragging the seekbar
+    if (!useSoundpadStore.getState().isSeeking) {
+      useSoundpadStore.getState().setProgress(progressPercent);
     }
 
-    lastProgress = progressPercent;
+    // Synchronize real track duration with the store if missing or mismatched
+    const durSec = Math.floor(duration / 1000);
+    const currentSongId = useSoundpadStore.getState().activeSongId;
+    if (currentSongId && durSec > 0) {
+      const currentSong = useSoundpadStore
+        .getState()
+        .pages?.flatMap((p) => p.playlists || [])
+        .flatMap((pl) => pl.songs || [])
+        .find((s) => s.id === currentSongId);
+      if (
+        currentSong &&
+        (!currentSong.duration || Math.abs(currentSong.duration - durSec) > 2)
+      ) {
+        useSoundpadStore.getState().updateSongDuration(currentSongId, durSec);
+      }
+    }
+
+    // Track end detection: if we reached the end (>90%) and track paused/reset, or position reached duration
+    const hasEnded =
+      (isPaused && position === 0 && lastProgress > 90) ||
+      (duration > 0 && position >= duration - 800 && lastProgress > 90);
+
+    if (hasEnded && !isSpotifyTransitioning) {
+      isSpotifyTransitioning = true;
+      lastProgress = 0;
+      console.log('[SpotifyPlayer] Faixa finalizada naturalmente. Avançando...');
+      useSoundpadStore.getState().playNext(); // Respects isLooping!
+      setTimeout(() => {
+        isSpotifyTransitioning = false;
+      }, 1200);
+      return;
+    }
+
+    if (!isPaused || position > 0) {
+      lastProgress = progressPercent;
+    }
   });
 
   // Ready
@@ -225,6 +262,12 @@ const createAndConnectPlayer = () => {
     useSoundpadStore.getState().setSpotifyDeviceId(device_id);
     useSoundpadStore.getState().setIsSpotifyConnected(true);
     useSoundpadStore.getState().setSpotifyError(null);
+
+    // Sync volume from store immediately upon ready
+    const store = useSoundpadStore.getState();
+    const vol = store.isMuted ? 0 : store.volume / 100;
+    player.setVolume(Math.max(0, Math.min(1, vol))).catch(() => {});
+
     touchSpotifyActivity();
   });
 
@@ -281,6 +324,12 @@ export const initSpotifyPlayer = async () => {
 
 export const playSpotifyTrack = async (trackUri: string) => {
   touchSpotifyActivity();
+  lastProgress = 0;
+  isSpotifyTransitioning = true;
+  setTimeout(() => {
+    isSpotifyTransitioning = false;
+  }, 1000);
+
   const token = await getValidSpotifyToken();
   if (!token) return;
 
@@ -296,11 +345,14 @@ export const playSpotifyTrack = async (trackUri: string) => {
 
   if (!activeDeviceId) {
     console.warn('[SpotifyPlayer] playSpotifyTrack: sem deviceId disponível.');
+    useSoundpadStore
+      .getState()
+      .setAudioError('Aguardando inicialização do dispositivo Spotify...');
     return;
   }
 
   try {
-    await fetch(
+    const res = await fetch(
       `https://api.spotify.com/v1/me/player/play?device_id=${activeDeviceId}`,
       {
         method: 'PUT',
@@ -313,6 +365,37 @@ export const playSpotifyTrack = async (trackUri: string) => {
         }),
       },
     );
+
+    if (res.ok || res.status === 204) {
+      useSoundpadStore.getState().setIsPlaying(true);
+      useSoundpadStore.getState().setProgress(0);
+      useSoundpadStore.getState().setAudioError(null);
+
+      // Re-garante volume correto assim que a reprodução inicia
+      const { volume, isMuted } = useSoundpadStore.getState();
+      const volFraction = isMuted ? 0 : volume / 100;
+      setSpotifyVolume(volFraction).catch(() => {});
+    } else if (res.status === 403) {
+      const errorData = await res.json().catch(() => ({}));
+      if (errorData?.error?.reason === 'PREMIUM_REQUIRED') {
+        useSoundpadStore
+          .getState()
+          .setSpotifyError(
+            'A sua conta Spotify precisa ser Premium para tocar músicas no SGM.',
+          );
+      } else {
+        useSoundpadStore
+          .getState()
+          .setAudioError(
+            'Spotify: Permissão negada ou restrição de dispositivo.',
+          );
+      }
+    } else if (res.status === 404) {
+      useSoundpadStore
+        .getState()
+        .setAudioError('Dispositivo Spotify não encontrado. Reconectando...');
+      scheduleReconnect();
+    }
   } catch (error) {
     console.error('Error playing track:', error);
   }
@@ -322,7 +405,9 @@ export const pauseSpotifyTrack = async () => {
   touchSpotifyActivity();
   const player = getPlayer();
   if (player) {
-    await player.pause();
+    try {
+      await player.pause();
+    } catch {}
   }
 };
 
@@ -330,7 +415,9 @@ export const resumeSpotifyTrack = async () => {
   touchSpotifyActivity();
   const player = getPlayer();
   if (player) {
-    await player.resume();
+    try {
+      await player.resume();
+    } catch {}
   }
 };
 
@@ -338,14 +425,23 @@ export const seekSpotifyTrack = async (positionMs: number) => {
   touchSpotifyActivity();
   const player = getPlayer();
   if (player) {
-    await player.seek(positionMs);
+    try {
+      const clampedMs = Math.max(0, Math.floor(positionMs));
+      await player.seek(clampedMs);
+      // Evita detecção falsa de término se o usuário voltar da reta final da música
+      lastProgress = 0;
+    } catch (err) {
+      console.error('[SpotifyPlayer] Erro ao buscar posição:', err);
+    }
   }
 };
 
 export const setSpotifyVolume = async (volumeFraction: number) => {
   const player = getPlayer();
   if (player) {
-    await player.setVolume(Math.max(0, Math.min(1, volumeFraction)));
+    try {
+      await player.setVolume(Math.max(0, Math.min(1, volumeFraction)));
+    } catch {}
   }
 };
 

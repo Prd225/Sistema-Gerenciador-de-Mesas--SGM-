@@ -86,7 +86,7 @@ interface SoundpadState {
   setIsSpotifyConnected: (connected: boolean) => void;
   setSpotifyError: (error: string | null) => void;
 
-  playNext: () => void;
+  playNext: (forceNext?: boolean) => void;
   playPrev: () => void;
 }
 
@@ -419,7 +419,7 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
   setIsSpotifyConnected: (connected) => set({ isSpotifyConnected: connected }),
   setSpotifyError: (error) => set({ spotifyError: error }),
 
-  playNext: () => {
+  playNext: (forceNext = false) => {
     touchSpotifyActivity();
     return set((state) => {
       if (!state.activePlaylistId) return state;
@@ -433,11 +433,12 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
       if (songs.length === 0) return state;
 
       const currentIndex = songs.findIndex((s) => s.id === state.activeSongId);
+      const nextTrigger = (state.playbackTrigger || 0) + 1;
 
-      // If loop is active, repeat the exact same song
-      if (state.isLooping && currentIndex !== -1) {
+      // If loop is active and not forced (i.e. natural song completion), repeat the exact same song
+      if (state.isLooping && !forceNext && currentIndex !== -1) {
         return {
-          playbackTrigger: state.playbackTrigger + 1,
+          playbackTrigger: nextTrigger,
           isPlaying: true,
           progress: 0,
         };
@@ -445,16 +446,27 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
 
       // Otherwise, go to next song. If at end, loop the playlist.
       if (currentIndex === -1) {
-        return { activeSongId: songs[0].id, isPlaying: true, progress: 0 };
+        return {
+          activeSongId: songs[0].id,
+          isPlaying: true,
+          progress: 0,
+          playbackTrigger: nextTrigger,
+        };
       } else if (currentIndex < songs.length - 1) {
         return {
           activeSongId: songs[currentIndex + 1].id,
           isPlaying: true,
           progress: 0,
+          playbackTrigger: nextTrigger,
         };
       } else {
         // Loop entire playlist natively
-        return { activeSongId: songs[0].id, isPlaying: true, progress: 0 };
+        return {
+          activeSongId: songs[0].id,
+          isPlaying: true,
+          progress: 0,
+          playbackTrigger: nextTrigger,
+        };
       }
     });
   },
@@ -473,11 +485,14 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
       if (songs.length === 0) return state;
 
       const currentIndex = songs.findIndex((s) => s.id === state.activeSongId);
+      const nextTrigger = (state.playbackTrigger || 0) + 1;
+
       if (currentIndex > 0) {
         return {
           activeSongId: songs[currentIndex - 1].id,
           isPlaying: true,
           progress: 0,
+          playbackTrigger: nextTrigger,
         };
       } else {
         // Loop around to last song natively
@@ -485,6 +500,7 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
           activeSongId: songs[songs.length - 1].id,
           isPlaying: true,
           progress: 0,
+          playbackTrigger: nextTrigger,
         };
       }
     });

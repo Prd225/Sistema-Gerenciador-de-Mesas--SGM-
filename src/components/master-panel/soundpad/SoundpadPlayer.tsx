@@ -16,6 +16,8 @@ import {
   pauseSpotifyTrack,
   resumeSpotifyTrack,
   seekSpotifyTrack,
+  playSpotifyTrack,
+  getPlayer,
 } from '@/lib/spotifyPlayer';
 import { touchSpotifyActivity } from '@/lib/spotifyAuth';
 import type { Song } from '@/types/soundpad';
@@ -51,7 +53,7 @@ export default function SoundpadPlayer() {
   const isDraggingRef = useRef(false);
 
   useEffect(() => {
-    if (!isDraggingRef.current) {
+    if (!isDraggingRef.current && !useSoundpadStore.getState().isSeeking) {
       setLocalProgress(progress);
     }
   }, [progress]);
@@ -82,7 +84,17 @@ export default function SoundpadPlayer() {
       if (isPlaying) {
         await pauseSpotifyTrack();
       } else {
-        await resumeSpotifyTrack();
+        const player = getPlayer();
+        if (player) {
+          const state = await player.getCurrentState().catch(() => null);
+          if (state && state.track_window?.current_track) {
+            await resumeSpotifyTrack();
+          } else {
+            await playSpotifyTrack(activeSong.sourceUrl);
+          }
+        } else {
+          await playSpotifyTrack(activeSong.sourceUrl);
+        }
       }
     } else if (activeSong.sourceType === 'youtube') {
       if (isPlaying) {
@@ -124,7 +136,23 @@ export default function SoundpadPlayer() {
     setProgress(newVal);
 
     if (activeSong?.sourceType === 'spotify') {
-      const positionMs = (newVal / 100) * (activeSong.duration * 1000);
+      let durationMs = (activeSong.duration || 0) * 1000;
+      if (durationMs <= 0) {
+        const player = getPlayer();
+        if (player) {
+          const state = await player.getCurrentState().catch(() => null);
+          if (state?.duration) {
+            durationMs = state.duration;
+            useSoundpadStore
+              .getState()
+              .updateSongDuration(
+                activeSong.id,
+                Math.floor(state.duration / 1000),
+              );
+          }
+        }
+      }
+      const positionMs = (newVal / 100) * (durationMs || 0);
       await seekSpotifyTrack(positionMs);
     } else if (activeSong?.sourceType === 'youtube') {
       const positionSec = (newVal / 100) * (activeSong.duration || 0);
@@ -219,7 +247,7 @@ export default function SoundpadPlayer() {
         <button
           onClick={() => {
             touchSpotifyActivity();
-            playNext();
+            playNext(true);
           }}
           className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#323238] text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors disabled:opacity-50"
           title="Próxima Música"
@@ -267,16 +295,20 @@ export default function SoundpadPlayer() {
               setLocalProgress(Number(e.target.value));
             }}
             onMouseUp={(e) => {
-              isDraggingRef.current = false;
               const val = Number((e.target as HTMLInputElement).value);
               handleSeekCommit(val);
-              setTimeout(() => setIsSeeking(false), 250);
+              setTimeout(() => {
+                isDraggingRef.current = false;
+                setIsSeeking(false);
+              }, 350);
             }}
             onTouchEnd={(e) => {
-              isDraggingRef.current = false;
               const val = Number((e.target as HTMLInputElement).value);
               handleSeekCommit(val);
-              setTimeout(() => setIsSeeking(false), 250);
+              setTimeout(() => {
+                isDraggingRef.current = false;
+                setIsSeeking(false);
+              }, 350);
             }}
             disabled={!activeSong}
             className={`w-full h-1.5 rounded-full appearance-none accent-[#8257e5] transition-all ${

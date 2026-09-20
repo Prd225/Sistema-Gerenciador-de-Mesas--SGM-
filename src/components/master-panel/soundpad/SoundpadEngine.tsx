@@ -5,6 +5,9 @@ import {
   pauseSpotifyTrack,
   setSpotifyVolume,
   initSpotifyPlayer,
+  getPlayer,
+  seekSpotifyTrack,
+  resumeSpotifyTrack,
 } from '@/lib/spotifyPlayer';
 import { touchSpotifyActivity } from '@/lib/spotifyAuth';
 import type { Song } from '@/types/soundpad';
@@ -64,7 +67,7 @@ export default function SoundpadEngine() {
     if (audioRef.current) {
       audioRef.current.volume = effectiveVolume / 100;
     }
-  }, [effectiveVolume]);
+  }, [effectiveVolume, spotifyDeviceId]);
 
   // Custom Events Listeners from UI (YouTube & Local)
   useEffect(() => {
@@ -143,29 +146,41 @@ export default function SoundpadEngine() {
       if (ytPlayerRef.current) ytPlayerRef.current.pauseVideo();
       if (audioRef.current) audioRef.current.pause();
 
-      const player = (window as any).SpotifyPlayerInstance;
+      const player = getPlayer();
       if (player) {
-        player.getCurrentState().then((state: any) => {
-          const currentTrackUri = state?.track_window?.current_track?.uri;
-          const prevTrigger = window.sessionStorage.getItem(
-            'lastPlaybackTrigger',
-          );
-          const isForcedReplay = prevTrigger !== String(playbackTrigger);
+        player
+          .getCurrentState()
+          .then((state: any) => {
+            const currentTrackUri = state?.track_window?.current_track?.uri;
+            const prevTrigger = window.sessionStorage.getItem(
+              'lastPlaybackTrigger',
+            );
+            const isForcedReplay = prevTrigger !== String(playbackTrigger);
 
-          if (
-            !isForcedReplay &&
-            state &&
-            currentTrackUri === activeSong!.sourceUrl
-          ) {
-            return;
-          }
+            window.sessionStorage.setItem(
+              'lastPlaybackTrigger',
+              String(playbackTrigger),
+            );
 
-          window.sessionStorage.setItem(
-            'lastPlaybackTrigger',
-            String(playbackTrigger),
-          );
-          playSpotifyTrack(activeSong!.sourceUrl).catch(() => {});
-        });
+            // Se for a mesma música que já está no player do Spotify e queremos replay (Loop ou reinício forçado)
+            if (state && currentTrackUri === activeSong!.sourceUrl) {
+              if (isForcedReplay) {
+                seekSpotifyTrack(0)
+                  .then(() => resumeSpotifyTrack())
+                  .catch(() => {
+                    playSpotifyTrack(activeSong!.sourceUrl).catch(() => {});
+                  });
+              }
+              return;
+            }
+
+            playSpotifyTrack(activeSong!.sourceUrl).catch(() => {});
+          })
+          .catch(() => {
+            playSpotifyTrack(activeSong!.sourceUrl).catch(() => {});
+          });
+      } else {
+        playSpotifyTrack(activeSong!.sourceUrl).catch(() => {});
       }
     } else if (activeSong.sourceType === 'youtube') {
       pauseSpotifyTrack().catch(() => {});
@@ -210,17 +225,32 @@ export default function SoundpadEngine() {
           touchSpotifyActivity();
         }
 
-        if (
-          activeSong.sourceType === 'spotify' &&
-          (window as any).SpotifyPlayerInstance
-        ) {
-          (window as any).SpotifyPlayerInstance.getCurrentState().then(
-            (state: any) => {
-              if (!state) return;
-              const newProgress = (state.position / state.duration) * 100;
-              setProgress(newProgress);
-            },
-          );
+        if (activeSong.sourceType === 'spotify') {
+          const player = getPlayer();
+          if (player) {
+            player
+              .getCurrentState()
+              .then((state: any) => {
+                if (!state) return;
+                if (!useSoundpadStore.getState().isSeeking && state.duration > 0) {
+                  const newProgress = (state.position / state.duration) * 100;
+                  setProgress(newProgress);
+                }
+
+                // Sincroniza a duração real da faixa se estiver ausente ou incorreta
+                const durSec = Math.floor(state.duration / 1000);
+                if (
+                  durSec > 0 &&
+                  (!activeSong.duration ||
+                    Math.abs(activeSong.duration - durSec) > 2)
+                ) {
+                  useSoundpadStore
+                    .getState()
+                    .updateSongDuration(activeSong.id, durSec);
+                }
+              })
+              .catch(() => {});
+          }
         } else if (
           activeSong.sourceType === 'youtube' &&
           ytPlayerRef.current
