@@ -1,7 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { Bold, Italic, Underline, List } from 'lucide-react';
 import { replaceDiceShortcodesWithHtml } from '@/lib/diceEmoji';
-import { DicePickerDropdown } from './DicePicker';
 
 interface RichTextEditorProps {
   value: string;
@@ -43,11 +42,6 @@ export function RichTextEditor({
     }
   };
 
-  const handleInsertDice = (shortcode: string) => {
-    editorRef.current?.focus();
-    document.execCommand('insertText', false, shortcode);
-    handleChange();
-  };
 
   return (
     <div
@@ -88,8 +82,6 @@ export function RichTextEditor({
         >
           <List className="w-4 h-4" />
         </button>
-        <div className="w-px bg-[#323238] mx-1 h-4" />
-        <DicePickerDropdown onSelectDice={handleInsertDice} />
       </div>
 
       {/* Editor area */}

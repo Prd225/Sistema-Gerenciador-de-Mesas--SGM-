@@ -16,7 +16,6 @@ import {
   AlignJustify,
 } from 'lucide-react';
 import { replaceDiceShortcodesWithHtml } from '@/lib/diceEmoji';
-import { DicePickerDropdown } from '@/components/ui/DicePicker';
 
 const TEXT_COLORS = [
   '#e1e1e6',
@@ -209,8 +208,6 @@ export default function TableEditorFullscreen({
         >
           <Underline className="w-4 h-4" />
         </button>
-        <div className="w-px h-4 bg-[#323238] mx-1 shrink-0" />
-        <DicePickerDropdown onSelectDice={(code: string) => execCommand('insertText', code)} />
         <div className="w-px h-4 bg-[#323238] mx-1 shrink-0" />
         <button
           onMouseDown={(e) => {

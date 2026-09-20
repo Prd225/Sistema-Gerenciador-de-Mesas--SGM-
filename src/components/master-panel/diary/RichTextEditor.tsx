@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Bold, Italic, Underline, Palette, Smile } from 'lucide-react';
 import { replaceDiceShortcodesWithHtml } from '@/lib/diceEmoji';
-import { DicePickerDropdown } from '@/components/ui/DicePicker';
 
 interface RichTextEditorProps {
   initialValue: string;
@@ -139,8 +138,6 @@ export default function RichTextEditor({
           <Underline className="w-4 h-4" />
         </button>
 
-        <div className="w-px h-4 bg-[#323238] mx-1" />
-        <DicePickerDropdown onSelectDice={insertText} />
         <div className="w-px h-4 bg-[#323238] mx-1" />
 
         <div className="relative group/color">

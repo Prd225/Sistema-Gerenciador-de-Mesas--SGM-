@@ -11,7 +11,6 @@ import {
   AlignRight,
 } from 'lucide-react';
 import { replaceDiceShortcodesWithHtml } from '@/lib/diceEmoji';
-import { DicePickerDropdown } from '@/components/ui/DicePicker';
 
 interface RulesEditorProps {
   initialValue: string;
@@ -61,11 +60,6 @@ export default function RulesEditor({
     handleInput();
   };
 
-  const handleInsertDice = (shortcode: string) => {
-    editorRef.current?.focus();
-    document.execCommand('insertText', false, shortcode);
-    handleInput();
-  };
 
   if (!isEditing) {
     const renderedHtml = internalHtml
@@ -116,10 +110,6 @@ export default function RulesEditor({
         >
           <Underline className="w-3.5 h-3.5" />
         </button>
-
-        <div className="w-px h-3 bg-[#323238] mx-0.5" />
-        <DicePickerDropdown onSelectDice={handleInsertDice} />
-
 
         <div className="w-px h-3 bg-[#323238] mx-0.5" />
 
