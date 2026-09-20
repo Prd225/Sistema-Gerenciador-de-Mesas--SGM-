@@ -5,6 +5,7 @@ import { useZoneStore } from '@/store/useZoneStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RichTextEditor, RichTextView } from '@/components/ui/RichTextEditor';
+import { renderDiceText } from '@/lib/diceEmoji';
 
 interface NpcsTabProps {
   zone: Zone;
@@ -65,13 +66,13 @@ export const NpcsTab: FC<NpcsTabProps> = ({ zone, isEditing }) => {
                       )}
                     </button>
                     <span className="font-bold text-[#e1e1e6] text-sm break-words min-w-0">
-                      {npc.name}
+                      {renderDiceText(npc.name)}
                     </span>
                   </div>
                   <div className="flex gap-1.5 shrink-0 ml-2">
                     {npc.role && (
                       <span className="bg-[#121214] text-[#a8a8b3] text-[10px] px-2 py-0.5 rounded border border-[#323238] uppercase">
-                        {npc.role}
+                        {renderDiceText(npc.role)}
                       </span>
                     )}
                     <span

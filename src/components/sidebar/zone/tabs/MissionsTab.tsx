@@ -5,6 +5,7 @@ import { useZoneStore } from '@/store/useZoneStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RichTextEditor, RichTextView } from '@/components/ui/RichTextEditor';
+import { renderDiceText } from '@/lib/diceEmoji';
 
 interface MissionsTabProps {
   zone: Zone;
@@ -21,34 +22,31 @@ export const MissionsTab: FC<MissionsTabProps> = ({
   // --- MODO DE LEITURA ---
   if (!isEditing) {
     return (
-      <div className="min-w-0">
+      <div className="flex flex-col gap-4">
         {!zoneData.customQuests || zoneData.customQuests.length === 0 ? (
-          <span className="text-[#a8a8b3] italic flex-1 whitespace-pre-wrap">
-            Nenhuma missão ou objetivo documentado para esta zona.
-          </span>
+          <p className="text-[#a8a8b3] text-sm italic">
+            Nenhuma missão cadastrada nesta zona.
+          </p>
         ) : (
           zoneData.customQuests.map((q, idx) => (
             <div
               key={q.id || idx}
-              className={`bg-black/20 p-3 rounded mb-3 border border-[#323238] min-w-0 ${
-                q.isCompleted ? 'opacity-50' : ''
+              className={`border border-[#323238] rounded p-3 transition-colors ${
+                q.isCompleted ? 'bg-[#202024]/40' : 'bg-black/40'
               }`}
             >
-              <div className="flex justify-between items-center mb-1">
-                <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
                   <button
-                    type="button"
                     onClick={() => {
                       const list = [...(zoneData.customQuests || [])];
                       list[idx] = {
                         ...q,
                         isCompleted: !q.isCompleted,
                       };
-                      updateZoneData(zone.id, {
-                        customQuests: list,
-                      });
+                      updateZoneData(zone.id, { customQuests: list });
                     }}
-                    className="text-[#a8a8b3] hover:text-[#10b981] transition-colors shrink-0 cursor-pointer"
+                    className="text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors"
                     title="Marcar como concluída"
                   >
                     {q.isCompleted ? (
@@ -64,7 +62,7 @@ export const MissionsTab: FC<MissionsTabProps> = ({
                         : 'text-[#e1e1e6]'
                     }`}
                   >
-                    {q.title}
+                    {renderDiceText(q.title)}
                   </span>
                 </div>
                 <span
@@ -79,7 +77,7 @@ export const MissionsTab: FC<MissionsTabProps> = ({
               </div>
               {q.reward && (
                 <div className="pl-7 text-xs text-[#ffd700] mb-1 font-medium">
-                  <span className="text-[#a8a8b3]">Recompensa:</span> {q.reward}
+                  <span className="text-[#a8a8b3]">Recompensa:</span> {renderDiceText(q.reward)}
                 </div>
               )}
               <div className="pl-7 text-xs text-[#c4c4cc] leading-relaxed">

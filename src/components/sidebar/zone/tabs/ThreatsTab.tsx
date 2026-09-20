@@ -5,6 +5,7 @@ import { useZoneStore } from '@/store/useZoneStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RichTextEditor, RichTextView } from '@/components/ui/RichTextEditor';
+import { renderDiceText } from '@/lib/diceEmoji';
 
 interface ThreatsTabProps {
   zone: Zone;
@@ -21,32 +22,31 @@ export const ThreatsTab: FC<ThreatsTabProps> = ({
   // --- MODO DE LEITURA ---
   if (!isEditing) {
     return (
-      <div className="min-w-0">
+      <div className="flex flex-col gap-4">
         {!zoneData.customThreats || zoneData.customThreats.length === 0 ? (
-          <span className="text-[#a8a8b3] italic flex-1 whitespace-pre-wrap">
-            Nenhuma ameaça documentada para esta zona.
-          </span>
+          <p className="text-[#a8a8b3] text-sm italic">
+            Nenhuma ameaça cadastrada nesta zona.
+          </p>
         ) : (
           zoneData.customThreats.map((threat, idx) => (
             <div
               key={idx}
-              className={`bg-black/20 p-3 rounded mb-3 border border-[#323238] min-w-0 ${
-                threat.isRevealed ? 'opacity-50' : ''
+              className={`border border-[#323238] rounded p-3 transition-colors ${
+                threat.isRevealed ? 'bg-[#202024]/40' : 'bg-black/40'
               }`}
             >
-              <div className="flex justify-between items-center mb-1">
+              <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => {
-                      const newTh = JSON.parse(
-                        JSON.stringify(zoneData.customThreats),
-                      );
-                      newTh[idx].isRevealed = !newTh[idx].isRevealed;
-                      updateZoneData(zone.id, {
-                        customThreats: newTh,
-                      });
+                      const list = [...(zoneData.customThreats || [])];
+                      list[idx] = {
+                        ...threat,
+                        isRevealed: !threat.isRevealed,
+                      };
+                      updateZoneData(zone.id, { customThreats: list });
                     }}
-                    className="text-[#a8a8b3] hover:text-[#8257e5] transition-colors cursor-pointer"
+                    className="text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors"
                     title="Marcar como revelada"
                   >
                     {threat.isRevealed ? (
@@ -56,7 +56,7 @@ export const ThreatsTab: FC<ThreatsTabProps> = ({
                     )}
                   </button>
                   <span className="font-bold text-[#e1e1e6] text-lg break-words min-w-0">
-                    {threat.name}
+                    {renderDiceText(threat.name)}
                   </span>
                 </div>
                 <span className="bg-red-500/20 text-red-500 text-xs px-2 py-0.5 rounded border border-red-500/30 uppercase shrink-0 ml-2">
@@ -66,11 +66,11 @@ export const ThreatsTab: FC<ThreatsTabProps> = ({
               <div className="flex gap-4 mb-2 text-sm text-[#a8a8b3] break-all pl-7">
                 <div>
                   <span className="font-bold text-[#e1e1e6]">Dano:</span>{' '}
-                  {threat.damage}
+                  {renderDiceText(threat.damage)}
                 </div>
                 <div>
                   <span className="font-bold text-[#e1e1e6]">Tipo:</span>{' '}
-                  {threat.damageType}
+                  {renderDiceText(threat.damageType)}
                 </div>
               </div>
               <div className="pl-7">

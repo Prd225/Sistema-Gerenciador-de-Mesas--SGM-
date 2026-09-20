@@ -1,5 +1,7 @@
 import { useRef, useEffect } from 'react';
 import { Bold, Italic, Underline, List } from 'lucide-react';
+import { replaceDiceShortcodesWithHtml } from '@/lib/diceEmoji';
+import { DicePickerDropdown } from './DicePicker';
 
 interface RichTextEditorProps {
   value: string;
@@ -41,12 +43,18 @@ export function RichTextEditor({
     }
   };
 
+  const handleInsertDice = (shortcode: string) => {
+    editorRef.current?.focus();
+    document.execCommand('insertText', false, shortcode);
+    handleChange();
+  };
+
   return (
     <div
       className={`flex flex-col bg-[#121214] border border-[#323238] rounded-md overflow-hidden ${className}`}
     >
       {/* Toolbar */}
-      <div className="flex gap-1 p-1 bg-[#202024] border-b border-[#323238]">
+      <div className="flex items-center gap-1 p-1 bg-[#202024] border-b border-[#323238]">
         <button
           type="button"
           onClick={() => exec('bold')}
@@ -71,7 +79,7 @@ export function RichTextEditor({
         >
           <Underline className="w-4 h-4" />
         </button>
-        <div className="w-px bg-[#323238] mx-1" />
+        <div className="w-px bg-[#323238] mx-1 h-4" />
         <button
           type="button"
           onClick={() => exec('insertUnorderedList')}
@@ -80,6 +88,8 @@ export function RichTextEditor({
         >
           <List className="w-4 h-4" />
         </button>
+        <div className="w-px bg-[#323238] mx-1 h-4" />
+        <DicePickerDropdown onSelectDice={handleInsertDice} />
       </div>
 
       {/* Editor area */}
@@ -111,10 +121,13 @@ export function RichTextView({
       </span>
     );
 
+  const formattedHtml = replaceDiceShortcodesWithHtml(content);
+
   return (
     <div
       className={`text-sm text-[#a8a8b3] leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_b]:text-[#e1e1e6] [&_strong]:text-[#e1e1e6] [&_i]:italic [&_u]:underline whitespace-pre-wrap flex-1 break-words [word-break:break-word] overflow-hidden ${className}`}
-      dangerouslySetInnerHTML={{ __html: content }}
+      dangerouslySetInnerHTML={{ __html: formattedHtml }}
     />
   );
 }
+

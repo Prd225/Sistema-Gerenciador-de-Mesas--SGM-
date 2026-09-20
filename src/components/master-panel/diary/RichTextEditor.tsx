@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Bold, Italic, Underline, Palette, Smile } from 'lucide-react';
+import { replaceDiceShortcodesWithHtml } from '@/lib/diceEmoji';
+import { DicePickerDropdown } from '@/components/ui/DicePicker';
 
 interface RichTextEditorProps {
   initialValue: string;
@@ -39,38 +41,37 @@ export default function RichTextEditor({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!editorRef.current) return;
+    const isControlKey =
+      e.ctrlKey ||
+      e.metaKey ||
+      [
+        'Backspace',
+        'Delete',
+        'ArrowLeft',
+        'ArrowRight',
+        'ArrowUp',
+        'ArrowDown',
+      ].includes(e.key);
 
-    const allowedKeys = [
-      'Backspace',
-      'Delete',
-      'ArrowLeft',
-      'ArrowRight',
-      'ArrowUp',
-      'ArrowDown',
-      'Tab',
-      'Home',
-      'End',
-    ];
-
-    if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey || e.altKey) {
-      return;
-    }
-
-    if (charCount >= maxLength) {
+    if (
+      !isControlKey &&
+      editorRef.current.innerText.length >= maxLength &&
+      window.getSelection()?.isCollapsed
+    ) {
       e.preventDefault();
     }
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
+    const text = e.clipboardData.getData('text/plain');
     if (!editorRef.current) return;
 
-    const text = e.clipboardData.getData('text/plain');
-    const remaining = maxLength - charCount;
-
-    if (remaining > 0) {
-      const textToInsert = text.slice(0, remaining);
-      document.execCommand('insertText', false, textToInsert);
+    const currentLen = editorRef.current.innerText.length;
+    const available = maxLength - currentLen;
+    if (available > 0) {
+      document.execCommand('insertText', false, text.slice(0, available));
+      handleInput();
     }
   };
 
@@ -92,13 +93,15 @@ export default function RichTextEditor({
   };
 
   if (!isEditing) {
+    const renderedHtml = initialValue
+      ? replaceDiceShortcodesWithHtml(initialValue)
+      : '<span class="italic text-gray-500">Sem descrição...</span>';
+
     return (
       <div
         className="prose prose-invert max-w-none text-sm text-gray-300 pointer-events-none break-words"
         dangerouslySetInnerHTML={{
-          __html:
-            initialValue ||
-            '<span class="italic text-gray-500">Sem descrição...</span>',
+          __html: renderedHtml,
         }}
       />
     );
@@ -136,6 +139,8 @@ export default function RichTextEditor({
           <Underline className="w-4 h-4" />
         </button>
 
+        <div className="w-px h-4 bg-[#323238] mx-1" />
+        <DicePickerDropdown onSelectDice={insertText} />
         <div className="w-px h-4 bg-[#323238] mx-1" />
 
         <div className="relative group/color">

@@ -5,6 +5,7 @@ import { useZoneStore } from '@/store/useZoneStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RichTextEditor, RichTextView } from '@/components/ui/RichTextEditor';
+import { renderDiceText } from '@/lib/diceEmoji';
 
 interface InventoryTabProps {
   zone: Zone;
@@ -76,7 +77,7 @@ export const InventoryTab: FC<InventoryTabProps> = ({
                           : 'text-[#e1e1e6]'
                       }`}
                     >
-                      {item.name}
+                      {renderDiceText(item.name)}
                     </span>
                   </div>
                   <div className="flex gap-2 shrink-0">
@@ -97,7 +98,7 @@ export const InventoryTab: FC<InventoryTabProps> = ({
                   </div>
                   <div>
                     <span className="font-bold text-[#e1e1e6]">Efeito:</span>{' '}
-                    {item.effect}
+                    {renderDiceText(item.effect)}
                   </div>
                 </div>
                 <div className="pl-7">

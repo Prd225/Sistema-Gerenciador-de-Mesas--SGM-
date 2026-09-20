@@ -20,6 +20,7 @@ import { useZoneStore } from '@/store/useZoneStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RichTextEditor, RichTextView } from '@/components/ui/RichTextEditor';
+import { renderDiceText } from '@/lib/diceEmoji';
 import { useZonePresets } from '../../hooks/useZonePresets';
 
 interface GeneralTabProps {
@@ -218,7 +219,7 @@ export const GeneralTab: FC<GeneralTabProps> = ({
                                       )}
                                     </button>
                                     <span className="font-bold text-sm text-[#e1e1e6] break-words min-w-0">
-                                      {opt.name}
+                                      {renderDiceText(opt.name)}
                                     </span>
                                   </div>
                                 </div>
@@ -317,7 +318,7 @@ export const GeneralTab: FC<GeneralTabProps> = ({
                   <span
                     className={`font-bold block mb-2 text-lg break-words min-w-0 ${textColors[evt.color] || textColors.red}`}
                   >
-                    {evt.name}
+                    {renderDiceText(evt.name)}
                   </span>
                   <RichTextView content={evt.desc} defaultText="" />
                 </div>

@@ -10,6 +10,8 @@ import {
   AlignCenter,
   AlignRight,
 } from 'lucide-react';
+import { replaceDiceShortcodesWithHtml } from '@/lib/diceEmoji';
+import { DicePickerDropdown } from '@/components/ui/DicePicker';
 
 interface RulesEditorProps {
   initialValue: string;
@@ -59,14 +61,22 @@ export default function RulesEditor({
     handleInput();
   };
 
+  const handleInsertDice = (shortcode: string) => {
+    editorRef.current?.focus();
+    document.execCommand('insertText', false, shortcode);
+    handleInput();
+  };
+
   if (!isEditing) {
+    const renderedHtml = internalHtml
+      ? replaceDiceShortcodesWithHtml(internalHtml)
+      : '<span class="italic text-gray-500">Sem conteúdo...</span>';
+
     return (
       <div
         className="prose prose-invert max-w-none text-sm text-gray-300 break-words h-full p-3 overflow-y-auto custom-scrollbar"
         dangerouslySetInnerHTML={{
-          __html:
-            internalHtml ||
-            '<span class="italic text-gray-500">Sem conteúdo...</span>',
+          __html: renderedHtml,
         }}
       />
     );
@@ -106,6 +116,10 @@ export default function RulesEditor({
         >
           <Underline className="w-3.5 h-3.5" />
         </button>
+
+        <div className="w-px h-3 bg-[#323238] mx-0.5" />
+        <DicePickerDropdown onSelectDice={handleInsertDice} />
+
 
         <div className="w-px h-3 bg-[#323238] mx-0.5" />
 
