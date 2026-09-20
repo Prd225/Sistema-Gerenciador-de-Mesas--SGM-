@@ -249,15 +249,7 @@ export default function TableEditorFullscreen({
               ? 'bg-[#8257e5]/20 text-[#a78bfa] border border-[#8257e5]/40'
               : 'hover:bg-[#323238] text-[#a8a8b3] hover:text-[#e1e1e6]'
           }`}
-          title={
-            alignState === 'left'
-              ? 'Alinhamento: À Esquerda (clique para alternar: Centro -> Direita -> Justificar -> Esquerda)'
-              : alignState === 'center'
-                ? 'Alinhamento: Centralizado (clique para alternar)'
-                : alignState === 'right'
-                  ? 'Alinhamento: À Direita (clique para alternar)'
-                  : 'Alinhamento: Justificado (clique para alternar)'
-          }
+          title="Alinhamento"
         >
           {alignState === 'center' ? (
             <AlignCenter className="w-4 h-4" />
@@ -277,7 +269,7 @@ export default function TableEditorFullscreen({
             handleToggleFormula();
           }}
           className="p-1.5 hover:bg-[#8257e5]/20 hover:text-[#a78bfa] rounded text-[#a8a8b3] hover:border hover:border-[#8257e5]/40 transition-colors shrink-0"
-          title="Fórmula de Dado (formata seleção como equação de dados unificada)"
+          title="Fórmula"
         >
           <Sigma className="w-4 h-4" />
         </button>

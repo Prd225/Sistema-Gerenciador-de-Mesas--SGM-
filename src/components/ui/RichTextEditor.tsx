@@ -172,13 +172,7 @@ export function RichTextEditor({
               ? 'bg-[#8257e5]/20 text-[#a78bfa] border border-[#8257e5]/40'
               : 'hover:bg-white/10 text-[#a8a8b3] hover:text-white'
           }`}
-          title={
-            listState === 'none'
-              ? 'Sem Lista (clique para alternar: Marcadores -> Números -> Nenhuma)'
-              : listState === 'ul'
-                ? 'Lista com Marcadores (clique para alternar para Numerada)'
-                : 'Lista Numerada (clique para remover lista)'
-          }
+          title="Lista"
         >
           {listState === 'ol' ? (
             <ListOrdered className="w-4 h-4" />
@@ -199,13 +193,7 @@ export function RichTextEditor({
               ? 'bg-[#8257e5]/20 text-[#a78bfa] border border-[#8257e5]/40'
               : 'hover:bg-white/10 text-[#a8a8b3] hover:text-white'
           }`}
-          title={
-            alignState === 'left'
-              ? 'Alinhamento: À Esquerda (clique para alternar: Centro -> Direita -> Esquerda)'
-              : alignState === 'center'
-                ? 'Alinhamento: Centralizado (clique para alternar: Direita -> Esquerda)'
-                : 'Alinhamento: À Direita (clique para alternar: Esquerda -> Centro)'
-          }
+          title="Alinhamento"
         >
           {alignState === 'center' ? (
             <AlignCenter className="w-4 h-4" />
@@ -226,7 +214,7 @@ export function RichTextEditor({
             handleToggleFormula();
           }}
           className="p-1.5 hover:bg-[#8257e5]/20 hover:text-[#a78bfa] rounded text-[#a8a8b3] hover:border hover:border-[#8257e5]/40 transition-colors"
-          title="Fórmula de Dado (formata seleção como equação de dados unificada)"
+          title="Fórmula"
         >
           <Sigma className="w-4 h-4" />
         </button>

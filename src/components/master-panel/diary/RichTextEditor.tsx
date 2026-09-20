@@ -158,7 +158,7 @@ export default function RichTextEditor({
             handleToggleFormula();
           }}
           className="p-1 hover:bg-[#8257e5]/20 hover:text-[#a78bfa] rounded text-[#a8a8b3] hover:border hover:border-[#8257e5]/40 transition-colors"
-          title="Fórmula de Dado (formata seleção como equação de dados unificada)"
+          title="Fórmula"
         >
           <Sigma className="w-4 h-4" />
         </button>
