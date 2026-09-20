@@ -161,7 +161,7 @@ export function getDiceBadgeHtml(diceType: DiceType | string): string {
   const actualKey: DiceType = normalizedKey === '%' ? 'd100' : (normalizedKey.startsWith('d') ? normalizedKey : `d${normalizedKey}`) as DiceType;
   const info = DICE_CONFIG[actualKey] || DICE_CONFIG.d20;
 
-  return `<span class="rpg-dice-badge" contenteditable="false" data-dice="${info.type}" title="${info.label} (${info.name})" style="display:inline-flex;align-items:center;justify-content:center;vertical-align:-0.22em;margin:0 0.15em;line-height:1;user-select:none;cursor:default;">${info.svgHtml}</span>`;
+  return `<span class="rpg-dice-badge" contenteditable="false" data-dice="${info.type}" style="display:inline-flex;align-items:center;justify-content:center;vertical-align:-0.22em;margin:0 0.15em;line-height:1;user-select:none;cursor:default;">${info.svgHtml}</span>`;
 }
 
 /**

@@ -35,7 +35,6 @@ export function DiceBadge({
   return (
     <span
       className={`rpg-dice-badge inline-flex items-center justify-center align-middle select-none mx-0.5 cursor-default transition-transform hover:scale-115 ${sizeClasses} ${className}`}
-      title={`${info.label} - ${info.name}`}
       dangerouslySetInnerHTML={{ __html: info.svgHtml }}
     />
   );
@@ -98,7 +97,7 @@ export function DicePickerDropdown({
           setIsOpen((prev) => !prev);
         }}
         className="p-1.5 hover:bg-white/10 rounded text-[#a8a8b3] hover:text-white transition-colors flex items-center gap-0.5"
-        title="Inserir Dado de RPG (:d4:, :d6:, :d8:, :d10:, :d12:, :d20:, :d100:)"
+        title="Dados de RPG"
       >
         <Dices className="w-4 h-4 text-[#a855f7]" />
       </button>
