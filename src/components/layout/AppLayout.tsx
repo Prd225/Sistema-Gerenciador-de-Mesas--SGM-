@@ -15,6 +15,7 @@ import MapToolbar from '../toolbar/MapToolbar';
 import MasterPanelTrigger from '../master-panel/MasterPanelTrigger';
 import MasterPanelOverlay from '../master-panel/MasterPanelOverlay';
 import SoundpadEngine from '../master-panel/soundpad/SoundpadEngine';
+import ErrorBoundary from '../common/ErrorBoundary';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useEffect } from 'react';
 import {
@@ -249,8 +250,10 @@ export default function AppLayout({
       <MasterPanelTrigger />
       <MasterPanelOverlay />
 
-      {/* Motor de Áudio em Background */}
-      <SoundpadEngine />
+      {/* Motor de Áudio em Background protegido por ErrorBoundary */}
+      <ErrorBoundary fallback={null} silent>
+        <SoundpadEngine />
+      </ErrorBoundary>
 
       {/* Modal Multiplayer */}
       <MultiplayerModal />

@@ -121,8 +121,12 @@ export default function SoundpadPlayer() {
     touchSpotifyActivity();
     // Pause all potential audio sources
     await pauseSpotifyTrack().catch(() => {});
-    window.dispatchEvent(new Event('soundpad-pause-yt'));
-    window.dispatchEvent(new Event('soundpad-pause-local'));
+    try {
+      window.dispatchEvent(new Event('soundpad-pause-yt'));
+    } catch {}
+    try {
+      window.dispatchEvent(new Event('soundpad-pause-local'));
+    } catch {}
 
     setIsPlaying(false);
     setProgress(0);
