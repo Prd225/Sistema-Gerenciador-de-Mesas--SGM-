@@ -122,7 +122,8 @@ export default function MapToolbar() {
               }
               className={`w-10 h-10 transition-all ${
                 activeTool === tool.id ||
-                (tool.id === 'draw-group' && activeTool.startsWith('draw-'))
+                (tool.id === 'draw-group' &&
+                  (activeTool.startsWith('draw-') || activeTool === 'edit-zone'))
                   ? 'bg-[#8257e5] text-white border-[#8257e5] hover:bg-[#9466ff]'
                   : 'bg-transparent text-[#a8a8b3] border-transparent hover:bg-white/10 hover:text-white'
               }`}

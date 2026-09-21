@@ -286,10 +286,16 @@ export default function StageMap() {
       if (activeTool === 'pan' || activeTool === 'edit-bg') return;
 
       if (activeTool === 'select') {
+        useZoneStore.getState().setSelectedZoneId(null);
         useZoneStore.getState().setSelectedNodeIds([]);
         setIsDrawing(true);
         drawStartRef.current = { x: pos.x, y: pos.y };
         setSelectionRect({ x: pos.x, y: pos.y, width: 0, height: 0 });
+        return;
+      }
+
+      if (activeTool === 'edit-zone') {
+        useZoneStore.getState().setSelectedZoneId(null);
         return;
       }
 
@@ -625,6 +631,7 @@ export default function StageMap() {
 
       if (e.key === 'Delete' || e.key === 'Backspace') {
         const ids = useZoneStore.getState().selectedNodeIds;
+        const selectedZoneId = useZoneStore.getState().selectedZoneId;
         if (ids.length > 0) {
           const zState = useZoneStore.getState();
           const tState = useTokenStore.getState();
@@ -634,6 +641,9 @@ export default function StageMap() {
             if (zState.markers[id]) zState.removeMarker(id);
           });
           useZoneStore.getState().setSelectedNodeIds([]);
+        } else if (selectedZoneId && activeTool === 'edit-zone') {
+          useZoneStore.getState().removeZone(selectedZoneId);
+          useZoneStore.getState().setSelectedZoneId(null);
         }
       }
 
@@ -641,6 +651,8 @@ export default function StageMap() {
         setIsDrawing(false);
         setNewShape(null);
         setPolyPoints([]);
+        useZoneStore.getState().setSelectedZoneId(null);
+        useZoneStore.getState().setSelectedNodeIds([]);
         if (activeTool.startsWith('draw')) setActiveTool('pan');
       }
       if (

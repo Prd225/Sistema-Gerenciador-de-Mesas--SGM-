@@ -35,10 +35,18 @@ function DrawingLayer({
     <Group listening={false}>
       {newShape.type === 'rect' && (
         <Rect
-          x={newShape.x}
-          y={newShape.y}
-          width={newShape.width}
-          height={newShape.height}
+          x={
+            (newShape.width || 0) < 0
+              ? newShape.x + (newShape.width || 0)
+              : newShape.x
+          }
+          y={
+            (newShape.height || 0) < 0
+              ? newShape.y + (newShape.height || 0)
+              : newShape.y
+          }
+          width={Math.abs(newShape.width || 0)}
+          height={Math.abs(newShape.height || 0)}
           fill="rgba(130, 87, 229, 0.2)"
           stroke="#8257e5"
           strokeWidth={2 / scale}

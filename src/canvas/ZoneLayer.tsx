@@ -82,8 +82,6 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
     node.scaleY(1);
 
     const updates: Partial<Zone> = {
-      x: Math.round(newX),
-      y: Math.round(newY),
       rotation: Math.round(newRotation),
     };
 
@@ -98,21 +96,43 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
           ? zone.points.map((p, i) => (i % 2 === 0 ? p - minX : p - minY))
           : zone.points;
 
-      const scaledPts = pts.map((p, i) =>
+      const rawScaled = pts.map((p, i) =>
         Math.round(i % 2 === 0 ? p * scaleX : p * scaleY),
       );
-      updates.points = scaledPts;
 
-      const sXs = scaledPts.filter((_, i) => i % 2 === 0);
-      const sYs = scaledPts.filter((_, i) => i % 2 !== 0);
-      updates.w = Math.max(10, Math.max(...sXs) - Math.min(...sXs));
-      updates.h = Math.max(10, Math.max(...sYs) - Math.min(...sYs));
+      // In case scaleX or scaleY was negative (flipped):
+      const sXs = rawScaled.filter((_, i) => i % 2 === 0);
+      const sYs = rawScaled.filter((_, i) => i % 2 !== 0);
+      const sMinX = Math.min(...sXs);
+      const sMinY = Math.min(...sYs);
+      const sMaxX = Math.max(...sXs);
+      const sMaxY = Math.max(...sYs);
+
+      const normalizedPts = rawScaled.map((p, i) =>
+        Math.round(i % 2 === 0 ? p - sMinX : p - sMinY),
+      );
+
+      updates.x = Math.round(newX + sMinX);
+      updates.y = Math.round(newY + sMinY);
+      updates.points = normalizedPts;
+      updates.w = Math.max(10, Math.round(sMaxX - sMinX));
+      updates.h = Math.max(10, Math.round(sMaxY - sMinY));
     } else {
-      updates.w = Math.max(10, Math.round(zone.w * scaleX));
-      updates.h = Math.max(10, Math.round(zone.h * scaleY));
+      const finalX = scaleX < 0 ? newX + zone.w * scaleX : newX;
+      const finalY = scaleY < 0 ? newY + zone.h * scaleY : newY;
+      updates.x = Math.round(finalX);
+      updates.y = Math.round(finalY);
+      updates.w = Math.max(10, Math.round(zone.w * Math.abs(scaleX)));
+      updates.h = Math.max(10, Math.round(zone.h * Math.abs(scaleY)));
     }
 
+    if (updates.x !== undefined) node.x(updates.x);
+    if (updates.y !== undefined) node.y(updates.y);
+
     updateZoneTransform(id, updates);
+    if (trRef.current) {
+      trRef.current.update();
+    }
   };
 
   return (
@@ -294,6 +314,12 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
         <Transformer
           ref={trRef}
           rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
+          borderStroke="#ffd700"
+          borderDash={[4, 4]}
+          anchorStroke="#ffd700"
+          anchorFill="#202024"
+          anchorSize={8}
+          anchorCornerRadius={2}
           boundBoxFunc={(oldBox, newBox) => {
             if (newBox.width < 10 || newBox.height < 10) {
               return oldBox;
