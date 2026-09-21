@@ -26,22 +26,26 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
   const trRef = useRef<any>(null);
   const nodeRefs = useRef<Record<string, any>>({});
 
+  const isEditTool = activeTool === 'edit-zone';
+  const canDrag = isEditTool || activeTool === 'select';
+
   useEffect(() => {
     if (trRef.current) {
       if (
         selectedZoneId &&
         nodeRefs.current[selectedZoneId] &&
-        activeTool === 'edit-zone'
+        isEditTool
       ) {
         trRef.current.nodes([nodeRefs.current[selectedZoneId]]);
       } else {
         trRef.current.nodes([]);
       }
-      trRef.current.getLayer().batchDraw();
+      trRef.current.getLayer()?.batchDraw();
     }
-  }, [selectedZoneId, activeTool, zones]); // re-run if zones change because a node ref might be re-created
+  }, [selectedZoneId, isEditTool, zones]);
 
-  const handleSelect = (_e: any, id: string) => {
+  const handleSelect = (e: any, id: string) => {
+    e.cancelBubble = true;
     if (activeTool === 'select' || activeTool === 'edit-zone') {
       selectZone(id);
     } else if (activeTool === 'pan') {
@@ -55,8 +59,8 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
 
   const handleDragEnd = (e: any, id: string) => {
     updateZoneTransform(id, {
-      x: e.target.x(),
-      y: e.target.y(),
+      x: Math.round(e.target.x()),
+      y: Math.round(e.target.y()),
     });
   };
 
@@ -78,29 +82,43 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
     node.scaleY(1);
 
     const updates: Partial<Zone> = {
-      x: newX,
-      y: newY,
-      rotation: newRotation,
+      x: Math.round(newX),
+      y: Math.round(newY),
+      rotation: Math.round(newRotation),
     };
 
     if (zone.type === 'polygon' && zone.points) {
-      updates.points = zone.points.map((p, i) =>
-        i % 2 === 0 ? p * scaleX : p * scaleY,
+      // Find current relative points
+      const xs = zone.points.filter((_, i) => i % 2 === 0);
+      const ys = zone.points.filter((_, i) => i % 2 !== 0);
+      const minX = Math.min(...xs);
+      const minY = Math.min(...ys);
+      const pts =
+        minX > 5 && Math.abs(minX - zone.x) < 2
+          ? zone.points.map((p, i) => (i % 2 === 0 ? p - minX : p - minY))
+          : zone.points;
+
+      const scaledPts = pts.map((p, i) =>
+        Math.round(i % 2 === 0 ? p * scaleX : p * scaleY),
       );
+      updates.points = scaledPts;
+
+      const sXs = scaledPts.filter((_, i) => i % 2 === 0);
+      const sYs = scaledPts.filter((_, i) => i % 2 !== 0);
+      updates.w = Math.max(10, Math.max(...sXs) - Math.min(...sXs));
+      updates.h = Math.max(10, Math.max(...sYs) - Math.min(...sYs));
     } else {
-      updates.w = Math.max(5, zone.w * scaleX);
-      updates.h = Math.max(5, zone.h * scaleY);
+      updates.w = Math.max(10, Math.round(zone.w * scaleX));
+      updates.h = Math.max(10, Math.round(zone.h * scaleY));
     }
 
     updateZoneTransform(id, updates);
   };
 
-  const isEditTool = activeTool === 'edit-zone';
-
   return (
     <Group>
       {zones.map((z) => {
-        if (z.type === ('group' as any)) return null; // Fallback in case old group data remains
+        if (z.type === ('group' as any)) return null;
 
         const isActive = selectedZoneId === z.id;
         const s = z.data?.style;
@@ -116,34 +134,42 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
         };
 
         const fill = applyOp(s?.fillColor, isActive);
-        const stroke =
-          isActive && isEditTool
-            ? '#ffd700'
-            : s?.borderColor || 'rgba(130, 87, 229, 0.5)';
+        const stroke = isActive
+          ? '#ffd700'
+          : s?.borderColor || 'rgba(130, 87, 229, 0.5)';
         const textColor = s?.textColor || 'white';
-        const strokeWidth = isActive && isEditTool ? 2.5 : 1.5;
+        const strokeWidth = isActive ? 2.5 : 1.5;
         const title = z.data?.title || '';
 
-        // Bounding calculations for text centering (must be before commonProps)
+        // Bounding calculations for text centering
         let textX = 0;
         let textY = 0;
         let textW = z.w;
         let textH = z.h;
 
-        if (z.type === 'polygon' && z.points) {
-          const minX = Math.min(...z.points.filter((_, i) => i % 2 === 0));
-          const minY = Math.min(...z.points.filter((_, i) => i % 2 !== 0));
-          const maxX = Math.max(...z.points.filter((_, i) => i % 2 === 0));
-          const maxY = Math.max(...z.points.filter((_, i) => i % 2 !== 0));
-          textX = minX;
-          textY = minY;
-          textW = maxX - minX;
-          textH = maxY - minY;
+        let polygonPoints: number[] | undefined = undefined;
+        if (z.type === 'polygon' && z.points && z.points.length >= 2) {
+          const xs = z.points.filter((_, i) => i % 2 === 0);
+          const ys = z.points.filter((_, i) => i % 2 !== 0);
+          const minX = Math.min(...xs);
+          const minY = Math.min(...ys);
+          // If legacy points were saved in absolute coordinates, shift to relative
+          const pts =
+            minX > 5 && Math.abs(minX - z.x) < 2
+              ? z.points.map((p, i) => (i % 2 === 0 ? p - minX : p - minY))
+              : z.points;
+          polygonPoints = pts;
+          const pXs = pts.filter((_, i) => i % 2 === 0);
+          const pYs = pts.filter((_, i) => i % 2 !== 0);
+          const pMinX = Math.min(...pXs);
+          const pMinY = Math.min(...pYs);
+          const pMaxX = Math.max(...pXs);
+          const pMaxY = Math.max(...pYs);
+          textX = pMinX;
+          textY = pMinY;
+          textW = Math.max(10, pMaxX - pMinX);
+          textH = Math.max(10, pMaxY - pMinY);
         }
-
-        // Center of the bounding box, used as the scale origin for the click animation
-        const cx = textX + textW / 2;
-        const cy = textY + textH / 2;
 
         const commonProps = {
           fill,
@@ -174,61 +200,48 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
             x={z.x}
             y={z.y}
             rotation={z.rotation || 0}
-            draggable={isActive && isEditTool}
-            onDragEnd={(e) => handleDragEnd(e, z.id)}
+            draggable={canDrag}
+            onDragStart={(e) => {
+              e.cancelBubble = true;
+              if (selectedZoneId !== z.id) {
+                selectZone(z.id);
+              }
+            }}
+            onDragMove={() => {
+              if (trRef.current && isEditTool) {
+                trRef.current.update();
+              }
+            }}
+            onDragEnd={(e) => {
+              e.cancelBubble = true;
+              handleDragEnd(e, z.id);
+              if (trRef.current && isEditTool) {
+                trRef.current.update();
+              }
+            }}
             onTransformEnd={() => handleTransformEnd(z.id)}
             onMouseEnter={(e) => {
               const container = e.target.getStage()?.container();
-              if (container) container.style.cursor = 'pointer';
-              e.currentTarget.to({ opacity: 0.82, duration: 0.1 });
+              if (container) {
+                if (canDrag) {
+                  container.style.cursor = 'move';
+                } else if (activeTool === 'pan') {
+                  container.style.cursor = 'pointer';
+                }
+              }
+              e.currentTarget.to({ opacity: 0.88, duration: 0.1 });
             }}
             onMouseLeave={(e) => {
               const container = e.target.getStage()?.container();
-              if (container)
+              if (container) {
                 container.style.cursor =
                   activeTool === 'pan'
                     ? 'grab'
                     : activeTool === 'edit-bg'
                       ? 'default'
                       : 'crosshair';
-              // Reset all animated properties including offset/position compensation
-              e.currentTarget.to({
-                scaleX: 1,
-                scaleY: 1,
-                offsetX: 0,
-                offsetY: 0,
-                x: z.x,
-                y: z.y,
-                opacity: 1,
-                duration: 0.15,
-              });
-            }}
-            onMouseDown={(e) => {
-              const S = 0.97;
-              // Scale from bounding-box center:
-              // offsetX/Y moves the pivot to (cx,cy); x/y compensates so the group stays in place
-              e.currentTarget.to({
-                scaleX: S,
-                scaleY: S,
-                offsetX: cx,
-                offsetY: cy,
-                x: z.x + cx,
-                y: z.y + cy,
-                opacity: 0.72,
-                duration: 0.06,
-              });
-            }}
-            onMouseUp={(e) => {
-              e.currentTarget.to({
-                scaleX: 1,
-                scaleY: 1,
-                offsetX: 0,
-                offsetY: 0,
-                x: z.x,
-                y: z.y,
-                opacity: 0.82,
-                duration: 0.18,
-              });
+              }
+              e.currentTarget.to({ opacity: 1, duration: 0.1 });
             }}
           >
             {z.type === 'rect' && (
@@ -250,8 +263,8 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
               />
             )}
 
-            {z.type === 'polygon' && z.points && (
-              <Line points={z.points} closed={true} {...commonProps} />
+            {z.type === 'polygon' && polygonPoints && (
+              <Line points={polygonPoints} closed={true} {...commonProps} />
             )}
 
             {title && (

@@ -153,6 +153,119 @@ export default function StageMap() {
     });
   }, []);
 
+  // Cancel drawing in progress if tool changes to non-drawing
+  useEffect(() => {
+    if (
+      activeTool !== 'draw-poly' &&
+      activeTool !== 'draw-rect' &&
+      activeTool !== 'draw-ellipse' &&
+      activeTool !== 'select'
+    ) {
+      setIsDrawing(false);
+      setNewShape(null);
+      setPolyPoints([]);
+    }
+  }, [activeTool]);
+
+  // --- Finish Polygon Creation ---
+  const finishPolygon = useCallback(
+    (pts: number[]) => {
+      // Need at least 3 vertices (6 coordinates)
+      const cleaned: number[] = [];
+      for (let i = 0; i < pts.length; i += 2) {
+        const x = pts[i];
+        const y = pts[i + 1];
+        if (cleaned.length >= 2) {
+          const lastX = cleaned[cleaned.length - 2];
+          const lastY = cleaned[cleaned.length - 1];
+          if (Math.hypot(x - lastX, y - lastY) < 3) {
+            continue;
+          }
+        }
+        cleaned.push(x, y);
+      }
+
+      // If last vertex is identical to the first, remove it since closed={true} connects them
+      if (
+        cleaned.length >= 6 &&
+        Math.hypot(
+          cleaned[cleaned.length - 2] - cleaned[0],
+          cleaned[cleaned.length - 1] - cleaned[1],
+        ) < 5
+      ) {
+        cleaned.splice(cleaned.length - 2, 2);
+      }
+
+      if (cleaned.length < 6) {
+        setIsDrawing(false);
+        setNewShape(null);
+        setPolyPoints([]);
+        return;
+      }
+
+      const xs = cleaned.filter((_, i) => i % 2 === 0);
+      const ys = cleaned.filter((_, i) => i % 2 !== 0);
+      const minX = Math.min(...xs);
+      const maxX = Math.max(...xs);
+      const minY = Math.min(...ys);
+      const maxY = Math.max(...ys);
+      const w = Math.max(10, maxX - minX);
+      const h = Math.max(10, maxY - minY);
+
+      // Local points relative to bounding box top-left (minX, minY)
+      const localPoints = cleaned.map((val, idx) =>
+        idx % 2 === 0 ? Math.round(val - minX) : Math.round(val - minY),
+      );
+
+      const id = generateId();
+      addZone({
+        id,
+        type: 'polygon',
+        x: Math.round(minX),
+        y: Math.round(minY),
+        w: Math.round(w),
+        h: Math.round(h),
+        points: localPoints,
+        data: {
+          title: 'Nova Zona Poligonal',
+          desc: '',
+          visits: 0,
+          style: {
+            borderColor: '#8257e5',
+            fillColor: '#8257e5',
+            textColor: '#ffffff',
+          },
+          customPois: [],
+          customEvents: [],
+          customHighlights: [],
+          customThreats: [],
+          customInventory: [],
+          activeMarkers: ['destaques', 'ameacas', 'inventario'],
+          markerColors: {},
+          markerTextColors: {},
+        },
+      });
+
+      selectZone(id);
+      setActiveTool('pan');
+      setIsDrawing(false);
+      setNewShape(null);
+      setPolyPoints([]);
+    },
+    [addZone, selectZone, setActiveTool],
+  );
+
+  // --- Double Click ---
+  const handleDblClick = useCallback(
+    (e: KonvaEventObject<MouseEvent>) => {
+      if (activeTool === 'draw-poly' && polyPoints.length >= 6) {
+        e.evt.preventDefault();
+        finishPolygon(polyPoints);
+      }
+    },
+    [activeTool, polyPoints, finishPolygon],
+  );
+
   // --- Mouse Down ---
   const handleMouseDown = useCallback(
     (e: KonvaEventObject<MouseEvent>) => {
@@ -228,12 +341,29 @@ export default function StageMap() {
             points: [pos.x, pos.y],
           });
         } else {
-          setPolyPoints((prev) => [...prev, pos.x, pos.y]);
-          setNewShape((prev) =>
-            prev
-              ? { ...prev, points: [...(prev.points || []), pos.x, pos.y] }
-              : null,
-          );
+          // If at least 3 vertices (6 coordinates), check if clicking near start vertex to close
+          if (polyPoints.length >= 6) {
+            const startX = polyPoints[0];
+            const startY = polyPoints[1];
+            const dist = Math.hypot(pos.x - startX, pos.y - startY);
+            if (dist <= 25 / scale) {
+              finishPolygon(polyPoints);
+              return;
+            }
+          }
+
+          // Otherwise add new vertex if not duplicate
+          const lastX = polyPoints[polyPoints.length - 2];
+          const lastY = polyPoints[polyPoints.length - 1];
+          if (Math.hypot(pos.x - lastX, pos.y - lastY) >= 3) {
+            const nextPoints = [...polyPoints, pos.x, pos.y];
+            setPolyPoints(nextPoints);
+            setNewShape((prev) =>
+              prev
+                ? { ...prev, points: [...nextPoints, pos.x, pos.y] }
+                : null,
+            );
+          }
         }
       }
     },
@@ -243,6 +373,9 @@ export default function StageMap() {
       getRelativePointerPosition,
       setRightSidebarOpen,
       isDrawing,
+      polyPoints,
+      scale,
+      finishPolygon,
     ],
   );
 
@@ -266,10 +399,19 @@ export default function StageMap() {
     if (!newShape) return;
 
     if (newShape.type === 'polygon' && activeTool === 'draw-poly') {
+      let targetX = pos.x;
+      let targetY = pos.y;
+      if (polyPoints.length >= 6) {
+        const startX = polyPoints[0];
+        const startY = polyPoints[1];
+        if (Math.hypot(pos.x - startX, pos.y - startY) <= 25 / scale) {
+          targetX = startX;
+          targetY = startY;
+        }
+      }
       setNewShape((prev) => {
         if (!prev || !prev.points) return prev;
-        const currentPoints = [...polyPoints, pos.x, pos.y];
-        return { ...prev, points: currentPoints };
+        return { ...prev, points: [...polyPoints, targetX, targetY] };
       });
       return;
     }
@@ -291,6 +433,7 @@ export default function StageMap() {
     polyPoints,
     activeTool,
     selectionRect,
+    scale,
   ]);
 
   // --- Mouse Up ---
@@ -505,48 +648,13 @@ export default function StageMap() {
         activeTool === 'draw-poly' &&
         polyPoints.length >= 6
       ) {
-        // polyPoints has [x, y] coordinates, so length >= 6 means at least 3 points
-        const minX = Math.min(...polyPoints.filter((_, i) => i % 2 === 0));
-        const minY = Math.min(...polyPoints.filter((_, i) => i % 2 !== 0));
-        const id = generateId();
-
-        addZone({
-          id,
-          type: 'polygon',
-          x: minX,
-          y: minY,
-          w: 0,
-          h: 0,
-          points: polyPoints,
-          data: {
-            title: 'Nova Zona Poligonal',
-            desc: '',
-            visits: 0,
-            style: {
-              borderColor: '#8257e5',
-              fillColor: '#8257e5',
-              textColor: '#ffffff',
-            },
-            customPois: [],
-            customEvents: [],
-            customHighlights: [],
-            customThreats: [],
-            customInventory: [],
-            markerColors: {},
-            markerTextColors: {},
-          },
-        });
-
-        selectZone(id);
-        setActiveTool('pan');
-        setIsDrawing(false);
-        setNewShape(null);
-        setPolyPoints([]);
+        e.preventDefault();
+        finishPolygon(polyPoints);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [activeTool, polyPoints, setActiveTool, addZone, selectZone]);
+  }, [activeTool, polyPoints, setActiveTool, finishPolygon]);
 
   const cursorStyle =
     activeTool === 'pan'
@@ -580,6 +688,7 @@ export default function StageMap() {
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onDblClick={handleDblClick}
         onContextMenu={handleContextMenu}
         style={{ cursor: cursorStyle }}
       >
@@ -610,7 +719,7 @@ export default function StageMap() {
           )}
         </Layer>
         <Layer>
-          <DrawingLayer newShape={newShape} />
+          <DrawingLayer newShape={newShape} scale={scale} />
         </Layer>
       </Stage>
     </div>
