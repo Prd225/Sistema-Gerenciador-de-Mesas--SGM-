@@ -34,7 +34,6 @@ export default function SoundpadEngine() {
   const isTransitioningRef = useRef(false);
   const lastActivityTouchRef = useRef(0);
 
-
   const effectiveVolume = isMuted ? 0 : volume;
 
   const activeSong: Song | undefined = pages
@@ -131,7 +130,7 @@ export default function SoundpadEngine() {
         initSpotifyPlayer();
         const hasAuth = Boolean(
           localStorage.getItem('spotify_token') ||
-            localStorage.getItem('spotify_refresh_token'),
+          localStorage.getItem('spotify_refresh_token'),
         );
         if (!hasAuth) {
           setAudioError(
@@ -235,7 +234,10 @@ export default function SoundpadEngine() {
               .getCurrentState()
               .then((state: any) => {
                 if (!state) return;
-                if (!useSoundpadStore.getState().isSeeking && state.duration > 0) {
+                if (
+                  !useSoundpadStore.getState().isSeeking &&
+                  state.duration > 0
+                ) {
                   const newProgress = (state.position / state.duration) * 100;
                   setProgress(newProgress);
                 }
@@ -254,10 +256,7 @@ export default function SoundpadEngine() {
               })
               .catch(() => {});
           }
-        } else if (
-          activeSong.sourceType === 'youtube' &&
-          ytPlayerRef.current
-        ) {
+        } else if (activeSong.sourceType === 'youtube' && ytPlayerRef.current) {
           try {
             const player = ytPlayerRef.current;
             const currentTime = player.getCurrentTime() || 0;

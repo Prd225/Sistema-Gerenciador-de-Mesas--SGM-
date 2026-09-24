@@ -16,7 +16,10 @@ import {
   AlignJustify,
   Sigma,
 } from 'lucide-react';
-import { replaceDiceShortcodesWithHtml, toggleDiceFormulaSelection } from '@/lib/diceEmoji';
+import {
+  replaceDiceShortcodesWithHtml,
+  toggleDiceFormulaSelection,
+} from '@/lib/diceEmoji';
 
 const TEXT_COLORS = [
   '#e1e1e6',
@@ -119,7 +122,9 @@ export default function TableEditorFullscreen({
     saveTableData(newData);
   };
 
-  const [alignState, setAlignState] = useState<'left' | 'center' | 'right' | 'justify'>('left');
+  const [alignState, setAlignState] = useState<
+    'left' | 'center' | 'right' | 'justify'
+  >('left');
 
   const execCommand = (
     command: string,
@@ -148,7 +153,11 @@ export default function TableEditorFullscreen({
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
     const activeEl = document.activeElement;
-    if (activeEl && activeEl instanceof HTMLElement && activeEl.isContentEditable) {
+    if (
+      activeEl &&
+      activeEl instanceof HTMLElement &&
+      activeEl.isContentEditable
+    ) {
       toggleDiceFormulaSelection(activeEl);
     }
   };
@@ -393,7 +402,9 @@ export default function TableEditorFullscreen({
                           e.currentTarget.innerHTML,
                         )
                       }
-                      dangerouslySetInnerHTML={{ __html: replaceDiceShortcodesWithHtml(cellContent) }}
+                      dangerouslySetInnerHTML={{
+                        __html: replaceDiceShortcodesWithHtml(cellContent),
+                      }}
                       className="w-full h-full min-h-[36px] outline-none px-2.5 py-2 text-sm leading-relaxed break-all whitespace-pre-wrap overflow-visible"
                     />
                   </td>

@@ -14,7 +14,6 @@ import { useSoundpadStore } from '@/store/useSoundpadStore';
 import { fetchTrackMetadata } from '@/lib/spotifyPlayer';
 import { importPlaylistFromUrl } from '@/lib/playlistImporter';
 
-
 interface AddMusicModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -72,7 +71,8 @@ export default function AddMusicModal({
 
       // Extrair ID de faixa única: https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT?si=...
       const match = spotifyLink.match(/track\/([a-zA-Z0-9]+)/);
-      if (!match) throw new Error('Link de música ou playlist do Spotify inválido');
+      if (!match)
+        throw new Error('Link de música ou playlist do Spotify inválido');
 
       const trackId = match[1];
       const data = await fetchTrackMetadata(trackId);
@@ -155,10 +155,11 @@ export default function AddMusicModal({
     }
   };
 
-
   const handleAddLocal = async () => {
     if (!localFile && !localUrl.trim()) {
-      setError('Selecione um arquivo de áudio ou insira um link direto (.mp3, .wav, .ogg)');
+      setError(
+        'Selecione um arquivo de áudio ou insira um link direto (.mp3, .wav, .ogg)',
+      );
       return;
     }
 
@@ -182,8 +183,7 @@ export default function AddMusicModal({
             const finalDuration = Math.floor(tempAudio.duration) || 0;
             const newSong = {
               name:
-                localTitle.trim() ||
-                localFile.name.replace(/\.[^/.]+$/, ''),
+                localTitle.trim() || localFile.name.replace(/\.[^/.]+$/, ''),
               author: localAuthor.trim() || 'Arquivo Local',
               duration: finalDuration,
               sourceType: 'local' as const,
@@ -199,8 +199,7 @@ export default function AddMusicModal({
           tempAudio.onerror = () => {
             const newSong = {
               name:
-                localTitle.trim() ||
-                localFile.name.replace(/\.[^/.]+$/, ''),
+                localTitle.trim() || localFile.name.replace(/\.[^/.]+$/, ''),
               author: localAuthor.trim() || 'Arquivo Local',
               duration: 0,
               sourceType: 'local' as const,
@@ -381,7 +380,8 @@ export default function AddMusicModal({
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-[#a8a8b3] uppercase tracking-wider flex items-center gap-1.5">
-                  <Upload className="w-3.5 h-3.5 text-[#8257e5]" /> Arquivo de Áudio
+                  <Upload className="w-3.5 h-3.5 text-[#8257e5]" /> Arquivo de
+                  Áudio
                 </label>
                 <input
                   type="file"

@@ -12,10 +12,7 @@ interface MissionsTabProps {
   isEditing: boolean;
 }
 
-export const MissionsTab: FC<MissionsTabProps> = ({
-  zone,
-  isEditing,
-}) => {
+export const MissionsTab: FC<MissionsTabProps> = ({ zone, isEditing }) => {
   const updateZoneData = useZoneStore((state) => state.updateZoneData);
   const zoneData = zone.data;
 
@@ -77,7 +74,8 @@ export const MissionsTab: FC<MissionsTabProps> = ({
               </div>
               {q.reward && (
                 <div className="pl-7 text-xs text-[#ffd700] mb-1 font-medium">
-                  <span className="text-[#a8a8b3]">Recompensa:</span> {renderDiceText(q.reward)}
+                  <span className="text-[#a8a8b3]">Recompensa:</span>{' '}
+                  {renderDiceText(q.reward)}
                 </div>
               )}
               <div className="pl-7 text-xs text-[#c4c4cc] leading-relaxed">

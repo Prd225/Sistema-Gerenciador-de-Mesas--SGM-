@@ -103,7 +103,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
       return true;
     } catch (err: any) {
-      set({ error: err.message || 'Falha ao registrar conta.', isLoading: false });
+      set({
+        error: err.message || 'Falha ao registrar conta.',
+        isLoading: false,
+      });
       return false;
     }
   },

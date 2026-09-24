@@ -213,7 +213,9 @@ export function getDiceBadgeHtml(diceType: DiceType | string): string {
   const actualKey: DiceType =
     normalizedKey === '%'
       ? 'd100'
-      : (normalizedKey.startsWith('d') ? normalizedKey : `d${normalizedKey}`) as DiceType;
+      : ((normalizedKey.startsWith('d')
+          ? normalizedKey
+          : `d${normalizedKey}`) as DiceType);
   const info = DICE_CONFIG[actualKey] || DICE_CONFIG.d20;
 
   return `<span class="rpg-dice-badge" contenteditable="false" data-dice="${info.type}" style="display:inline-flex;align-items:center;justify-content:center;vertical-align:-0.32em;margin:0 0.16em;line-height:1;user-select:none;cursor:default;overflow:visible;">${info.svgHtml}</span>`;
@@ -260,7 +262,10 @@ export function toggleDiceFormulaSelection(editorEl: HTMLElement): boolean {
   let parentFormula: HTMLElement | null = null;
   let node: Node | null = currentRange.commonAncestorContainer;
   while (node && node !== editorEl) {
-    if (node instanceof HTMLElement && node.classList.contains('rpg-dice-formula')) {
+    if (
+      node instanceof HTMLElement &&
+      node.classList.contains('rpg-dice-formula')
+    ) {
       parentFormula = node;
       break;
     }
@@ -305,7 +310,11 @@ export function toggleDiceFormulaSelection(editorEl: HTMLElement): boolean {
       selection.removeAllRanges();
       selection.addRange(selRange);
     } catch {
-      document.execCommand('insertHTML', false, `<span class="rpg-dice-formula">${selection.toString()}</span>`);
+      document.execCommand(
+        'insertHTML',
+        false,
+        `<span class="rpg-dice-formula">${selection.toString()}</span>`,
+      );
     }
   }
   return true;
@@ -337,4 +346,3 @@ export function renderDiceText(text?: string | null): React.ReactNode {
 
   return React.createElement(React.Fragment, null, ...nodes);
 }
-

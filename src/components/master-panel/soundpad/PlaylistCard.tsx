@@ -33,7 +33,9 @@ export default function PlaylistCard({ playlist, onClick }: PlaylistCardProps) {
                   (s) => s.id === currentActive,
                 );
                 const targetSongId =
-                  hasCurrent && currentActive ? currentActive : playlist.songs[0].id;
+                  hasCurrent && currentActive
+                    ? currentActive
+                    : playlist.songs[0].id;
                 store.playSong(playlist.id, targetSongId);
               }
             } else {

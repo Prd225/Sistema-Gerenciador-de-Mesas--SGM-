@@ -22,7 +22,6 @@ import {
 import { touchSpotifyActivity } from '@/lib/spotifyAuth';
 import type { Song } from '@/types/soundpad';
 
-
 export default function SoundpadPlayer() {
   const isPlaying = useSoundpadStore((state) => state.isPlaying);
   const setIsPlaying = useSoundpadStore((state) => state.setIsPlaying);
@@ -166,7 +165,6 @@ export default function SoundpadPlayer() {
       );
     }
   };
-
 
   const formatTime = (percentage: number, totalSeconds: number) => {
     if (!totalSeconds) return '0:00';
@@ -337,7 +335,9 @@ export default function SoundpadPlayer() {
             toggleMute();
           }}
           className={`shrink-0 p-1 rounded hover:bg-[#323238] transition-colors ${
-            isMuted || volume === 0 ? 'text-red-400' : 'text-[#a8a8b3] hover:text-[#e1e1e6]'
+            isMuted || volume === 0
+              ? 'text-red-400'
+              : 'text-[#a8a8b3] hover:text-[#e1e1e6]'
           }`}
           title={isMuted ? 'Desmutar' : `Volume: ${volume}%`}
         >

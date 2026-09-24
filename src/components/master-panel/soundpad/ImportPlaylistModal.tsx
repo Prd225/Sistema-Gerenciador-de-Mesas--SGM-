@@ -65,7 +65,9 @@ export default function ImportPlaylistModal({
 
   const handleFetchPlaylist = async () => {
     if (!url.trim()) {
-      setError('Por favor, insira o link de uma playlist do Spotify ou YouTube.');
+      setError(
+        'Por favor, insira o link de uma playlist do Spotify ou YouTube.',
+      );
       return;
     }
 
@@ -306,8 +308,8 @@ export default function ImportPlaylistModal({
             disabled={!previewData || previewData.songs.length === 0}
             className="bg-[#8257e5] hover:bg-[#9466ff] text-white"
           >
-            Confirmar Importação (
-            {previewData ? previewData.songs.length : 0} músicas)
+            Confirmar Importação ({previewData ? previewData.songs.length : 0}{' '}
+            músicas)
           </Button>
         </div>
       </div>

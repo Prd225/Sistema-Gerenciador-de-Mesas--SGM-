@@ -12,10 +12,7 @@ interface ThreatsTabProps {
   isEditing: boolean;
 }
 
-export const ThreatsTab: FC<ThreatsTabProps> = ({
-  zone,
-  isEditing,
-}) => {
+export const ThreatsTab: FC<ThreatsTabProps> = ({ zone, isEditing }) => {
   const updateZoneData = useZoneStore((state) => state.updateZoneData);
   const zoneData = zone.data;
 

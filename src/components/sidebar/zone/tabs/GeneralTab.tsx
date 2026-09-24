@@ -39,12 +39,8 @@ export const GeneralTab: FC<GeneralTabProps> = ({
   const updateZoneData = useZoneStore((state) => state.updateZoneData);
   const zoneData = zone.data;
 
-  const {
-    eventPresets,
-    saveEventAsPreset,
-    clearPresets,
-    addPresetEvent,
-  } = useZonePresets(zone);
+  const { eventPresets, saveEventAsPreset, clearPresets, addPresetEvent } =
+    useZonePresets(zone);
 
   // Estado colapsável para Categorias
   const [collapsedCategories, setCollapsedCategories] = useState<
@@ -156,8 +152,7 @@ export const GeneralTab: FC<GeneralTabProps> = ({
                         </span>
                       </div>
                       <span className="text-[11px] font-semibold text-[#a8a8b3] bg-black/40 px-2 py-0.5 rounded-full shrink-0 border border-white/5">
-                        {optionsCount}{' '}
-                        {optionsCount === 1 ? 'ponto' : 'pontos'}
+                        {optionsCount} {optionsCount === 1 ? 'ponto' : 'pontos'}
                       </span>
                     </button>
 
@@ -462,9 +457,7 @@ export const GeneralTab: FC<GeneralTabProps> = ({
                   onClick={() => toggleCategoryCollapse(catKey)}
                   className="p-1 hover:bg-white/10 rounded text-[#a8a8b3] hover:text-white cursor-pointer shrink-0"
                   title={
-                    isCatCollapsed
-                      ? 'Expandir Categoria'
-                      : 'Recolher Categoria'
+                    isCatCollapsed ? 'Expandir Categoria' : 'Recolher Categoria'
                   }
                 >
                   {isCatCollapsed ? (
@@ -588,7 +581,9 @@ export const GeneralTab: FC<GeneralTabProps> = ({
                               placeholder="Nome do Ponto de Interesse"
                               value={opt.name}
                               onChange={(e) => {
-                                const newPois = [...(zoneData.customPois || [])];
+                                const newPois = [
+                                  ...(zoneData.customPois || []),
+                                ];
                                 newPois[catIdx].options[optIdx].name =
                                   e.target.value;
                                 updateZoneData(zone.id, {
@@ -603,7 +598,9 @@ export const GeneralTab: FC<GeneralTabProps> = ({
                               className="text-[#a8a8b3] hover:text-red-500 p-1.5 rounded hover:bg-white/5 cursor-pointer shrink-0"
                               title="Excluir Ponto de Interesse"
                               onClick={() => {
-                                const newPois = [...(zoneData.customPois || [])];
+                                const newPois = [
+                                  ...(zoneData.customPois || []),
+                                ];
                                 newPois[catIdx].options = newPois[
                                   catIdx
                                 ].options.filter((_, i) => i !== optIdx);
@@ -618,9 +615,7 @@ export const GeneralTab: FC<GeneralTabProps> = ({
 
                           {/* Caixa de Texto Padrão */}
                           <RichTextEditor
-                            value={
-                              opt.desc || opt.descriptions?.[0] || ''
-                            }
+                            value={opt.desc || opt.descriptions?.[0] || ''}
                             onChange={(val) => {
                               const newPois = [...(zoneData.customPois || [])];
                               newPois[catIdx].options[optIdx] = {
@@ -655,9 +650,7 @@ export const GeneralTab: FC<GeneralTabProps> = ({
                                           const updatedLinks = (
                                             opt.referenceLinks || []
                                           ).filter((_, i) => i !== lIdx);
-                                          newPois[catIdx].options[
-                                            optIdx
-                                          ] = {
+                                          newPois[catIdx].options[optIdx] = {
                                             ...opt,
                                             referenceLinks: updatedLinks,
                                           };
@@ -691,8 +684,7 @@ export const GeneralTab: FC<GeneralTabProps> = ({
                                   const newPois = [
                                     ...(zoneData.customPois || []),
                                   ];
-                                  const currentLinks =
-                                    opt.referenceLinks || [];
+                                  const currentLinks = opt.referenceLinks || [];
                                   if (
                                     !currentLinks.some(
                                       (l) => l.targetName === targetName,
@@ -703,8 +695,7 @@ export const GeneralTab: FC<GeneralTabProps> = ({
                                       {
                                         id: crypto.randomUUID(),
                                         targetType: targetType as
-                                          | 'item'
-                                          | 'poi',
+                                          'item' | 'poi',
                                         targetName,
                                       },
                                     ];
@@ -741,8 +732,7 @@ export const GeneralTab: FC<GeneralTabProps> = ({
                                     {zoneData.customPois.flatMap((c) =>
                                       c.options
                                         .filter(
-                                          (o) =>
-                                            o.name && o.name !== opt.name,
+                                          (o) => o.name && o.name !== opt.name,
                                         )
                                         .map((o, oi) => (
                                           <option

@@ -54,12 +54,15 @@ export default function NoteEditorFullscreen({
   const [charCount, setCharCount] = useState(0);
   const maxLength = 20000;
   const [listState, setListState] = useState<'none' | 'ul' | 'ol'>('none');
-  const [alignState, setAlignState] = useState<'left' | 'center' | 'right' | 'justify'>('left');
+  const [alignState, setAlignState] = useState<
+    'left' | 'center' | 'right' | 'justify'
+  >('left');
 
   const updateToolbarStates = () => {
     if (!editorRef.current) return;
     const sel = window.getSelection();
-    if (!sel || !sel.anchorNode || !editorRef.current.contains(sel.anchorNode)) return;
+    if (!sel || !sel.anchorNode || !editorRef.current.contains(sel.anchorNode))
+      return;
 
     const isUl = document.queryCommandState('insertUnorderedList');
     const isOl = document.queryCommandState('insertOrderedList');
@@ -68,7 +71,9 @@ export default function NoteEditorFullscreen({
     const isCenter = document.queryCommandState('justifyCenter');
     const isRight = document.queryCommandState('justifyRight');
     const isJustify = document.queryCommandState('justifyFull');
-    setAlignState(isCenter ? 'center' : isRight ? 'right' : isJustify ? 'justify' : 'left');
+    setAlignState(
+      isCenter ? 'center' : isRight ? 'right' : isJustify ? 'justify' : 'left',
+    );
   };
 
   useEffect(() => {

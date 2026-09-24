@@ -311,4 +311,3 @@ export const logoutFromSpotify = () => {
 
   window.location.reload();
 };
-

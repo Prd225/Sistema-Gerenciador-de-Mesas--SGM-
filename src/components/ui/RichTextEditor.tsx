@@ -10,7 +10,10 @@ import {
   AlignRight,
   Sigma,
 } from 'lucide-react';
-import { replaceDiceShortcodesWithHtml, toggleDiceFormulaSelection } from '@/lib/diceEmoji';
+import {
+  replaceDiceShortcodesWithHtml,
+  toggleDiceFormulaSelection,
+} from '@/lib/diceEmoji';
 
 interface RichTextEditorProps {
   value: string;
@@ -27,7 +30,9 @@ export function RichTextEditor({
 }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const [listState, setListState] = useState<'none' | 'ul' | 'ol'>('none');
-  const [alignState, setAlignState] = useState<'left' | 'center' | 'right'>('left');
+  const [alignState, setAlignState] = useState<'left' | 'center' | 'right'>(
+    'left',
+  );
 
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== value) {
@@ -43,7 +48,8 @@ export function RichTextEditor({
   const updateToolbarStates = () => {
     if (!editorRef.current) return;
     const sel = window.getSelection();
-    if (!sel || !sel.anchorNode || !editorRef.current.contains(sel.anchorNode)) return;
+    if (!sel || !sel.anchorNode || !editorRef.current.contains(sel.anchorNode))
+      return;
 
     const isUl = document.queryCommandState('insertUnorderedList');
     const isOl = document.queryCommandState('insertOrderedList');
@@ -260,5 +266,3 @@ export function RichTextView({
     />
   );
 }
-
-

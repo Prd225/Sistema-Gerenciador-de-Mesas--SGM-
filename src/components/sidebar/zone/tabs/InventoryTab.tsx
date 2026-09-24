@@ -12,10 +12,7 @@ interface InventoryTabProps {
   isEditing: boolean;
 }
 
-export const InventoryTab: FC<InventoryTabProps> = ({
-  zone,
-  isEditing,
-}) => {
+export const InventoryTab: FC<InventoryTabProps> = ({ zone, isEditing }) => {
   const updateZoneData = useZoneStore((state) => state.updateZoneData);
   const zoneData = zone.data;
 
@@ -23,8 +20,7 @@ export const InventoryTab: FC<InventoryTabProps> = ({
   if (!isEditing) {
     return (
       <div className="min-w-0">
-        {!zoneData.customInventory ||
-        zoneData.customInventory.length === 0 ? (
+        {!zoneData.customInventory || zoneData.customInventory.length === 0 ? (
           <span className="text-[#a8a8b3] italic flex-1 whitespace-pre-wrap">
             Nenhum item documentado para esta zona.
           </span>

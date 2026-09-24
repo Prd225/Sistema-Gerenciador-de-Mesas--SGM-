@@ -62,7 +62,8 @@ function youtubePlaylistPlugin(): Plugin {
             const tabs =
               data?.contents?.twoColumnBrowseResultsRenderer?.tabs || [];
             const contents =
-              tabs[0]?.tabRenderer?.content?.sectionListRenderer?.contents || [];
+              tabs[0]?.tabRenderer?.content?.sectionListRenderer?.contents ||
+              [];
             const items = contents[0]?.itemSectionRenderer?.contents || [];
 
             const videos: Array<{
@@ -168,4 +169,3 @@ export default defineConfig({
     },
   },
 });
-

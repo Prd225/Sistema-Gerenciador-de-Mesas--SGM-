@@ -350,13 +350,19 @@ export default function Header() {
                   {user.username.charAt(0).toUpperCase()}
                 </div>
               )}
-              <span className="text-xs max-w-[90px] truncate">{user.username}</span>
+              <span className="text-xs max-w-[90px] truncate">
+                {user.username}
+              </span>
               <ChevronDown className="w-3.5 h-3.5 text-[#7c7c8a]" />
             </DropdownMenuTrigger>
             <DropdownMenuContent className="bg-[#202024] border-[#323238] text-[#e1e1e6] min-w-[170px] shadow-xl">
               <div className="px-3 py-2 border-b border-[#323238]">
-                <p className="text-xs font-bold text-white truncate">{user.username}</p>
-                <p className="text-[10px] text-[#7c7c8a] truncate">{user.email}</p>
+                <p className="text-xs font-bold text-white truncate">
+                  {user.username}
+                </p>
+                <p className="text-[10px] text-[#7c7c8a] truncate">
+                  {user.email}
+                </p>
               </div>
               <DropdownMenuItem
                 onClick={logout}

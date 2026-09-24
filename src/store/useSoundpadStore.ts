@@ -4,7 +4,6 @@ import { triggerAutoSave } from '@/lib/saveHelpers';
 import { touchSpotifyActivity } from '@/lib/spotifyAuth';
 import type { SoundpadPage, Playlist, Song } from '@/types/soundpad';
 
-
 interface SoundpadState {
   pages: SoundpadPage[];
   activePlaylistId: string | null;
@@ -505,5 +504,4 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
       }
     });
   },
-
 }));

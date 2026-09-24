@@ -254,7 +254,8 @@ const SAMPLE_NPCS: NpcNode[] = [
     name: 'Vigia das Sombras',
     role: 'Mercenário Renegado',
     disposition: 'Hostil',
-    notes: 'Patrulha o corredor norte armado com arco longo e dardos envenenados.',
+    notes:
+      'Patrulha o corredor norte armado com arco longo e dardos envenenados.',
     isRevealed: true,
   },
 ];
@@ -397,9 +398,11 @@ export default function ZoneMarkerModal({
     }
 
     if (carouselContainerRef.current) {
-      const containerRect = carouselContainerRef.current.getBoundingClientRect();
+      const containerRect =
+        carouselContainerRef.current.getBoundingClientRect();
       const cardRect = e.currentTarget.getBoundingClientRect();
-      const cardCenterX = cardRect.left - containerRect.left + cardRect.width / 2;
+      const cardCenterX =
+        cardRect.left - containerRect.left + cardRect.width / 2;
       const containerWidth = containerRect.width;
 
       const tooltipWidth = 210;
@@ -413,7 +416,10 @@ export default function ZoneMarkerModal({
       // Deslocamento da seta em relação ao centro do balãozinho
       const rawOffset = cardCenterX - clampedCenterX;
       const maxOffset = halfTooltip - 16;
-      const safeArrowOffset = Math.max(-maxOffset, Math.min(rawOffset, maxOffset));
+      const safeArrowOffset = Math.max(
+        -maxOffset,
+        Math.min(rawOffset, maxOffset),
+      );
 
       // Determina dinamicamente a posição vertical conforme o espaço disponível
       const spaceAbove = cardRect.top - containerRect.top;
@@ -829,8 +835,10 @@ export default function ZoneMarkerModal({
                         const elColorMap: Record<string, string> = {
                           Conhecimento:
                             'text-yellow-500 border-yellow-500/30 bg-yellow-500/10',
-                          Sangue: 'text-red-500 border-red-500/30 bg-red-500/10',
-                          Morte: 'text-gray-400 border-gray-400/30 bg-gray-400/10',
+                          Sangue:
+                            'text-red-500 border-red-500/30 bg-red-500/10',
+                          Morte:
+                            'text-gray-400 border-gray-400/30 bg-gray-400/10',
                           Energia:
                             'text-purple-500 border-purple-500/30 bg-purple-500/10',
                         };
@@ -858,7 +866,9 @@ export default function ZoneMarkerModal({
                                 </button>
                                 <span
                                   className={`font-bold text-sm break-words min-w-0 ${
-                                    isF ? 'text-[#a8a8b3] line-through' : 'text-[#e1e1e6]'
+                                    isF
+                                      ? 'text-[#a8a8b3] line-through'
+                                      : 'text-[#e1e1e6]'
                                   }`}
                                 >
                                   {item.name}
@@ -1180,7 +1190,8 @@ export default function ZoneMarkerModal({
                           {customName || 'Novo Nó'}
                         </span>
                         <p className="text-[11px] text-[#a8a8b3] mt-1 leading-relaxed">
-                          Exemplo de nó personalizado vinculado à barra lateral desta zona.
+                          Exemplo de nó personalizado vinculado à barra lateral
+                          desta zona.
                         </p>
                       </div>
                     </div>

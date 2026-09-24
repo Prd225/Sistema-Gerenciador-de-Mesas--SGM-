@@ -148,7 +148,11 @@ function MarkerEditForm({
           ) : (
             <Square className="w-4 h-4 text-[#7a7a80]" />
           )}
-          <span>{marker.completed ? 'Marcador Concluído / Lido' : 'Marcar como Concluído'}</span>
+          <span>
+            {marker.completed
+              ? 'Marcador Concluído / Lido'
+              : 'Marcar como Concluído'}
+          </span>
         </button>
       </div>
 
@@ -170,7 +174,9 @@ export default function SidebarRight({ isOpen, toggle }: SidebarRightProps) {
   const updateMarker = useZoneStore((state) => state.updateMarker);
   const removeMarker = useZoneStore((state) => state.removeMarker);
   const selectedMarkerId = useZoneStore((state) => state.selectedMarkerId);
-  const setSelectedMarkerId = useZoneStore((state) => state.setSelectedMarkerId);
+  const setSelectedMarkerId = useZoneStore(
+    (state) => state.setSelectedMarkerId,
+  );
   const activeTool = useZoneStore((state) => state.activeTool);
   const setActiveTool = useZoneStore((state) => state.setActiveTool);
 
@@ -308,7 +314,9 @@ export default function SidebarRight({ isOpen, toggle }: SidebarRightProps) {
         {activeTool === 'add-marker' && (
           <div className="flex items-center gap-1.5 p-2 mb-3 bg-[#8257e5]/10 border border-[#8257e5]/30 rounded text-xs text-[#e1e1e6] animate-in fade-in">
             <Info className="w-4 h-4 text-[#8257e5] shrink-0" />
-            <span>Clique em qualquer posição do mapa para colocar o marcador.</span>
+            <span>
+              Clique em qualquer posição do mapa para colocar o marcador.
+            </span>
           </div>
         )}
 

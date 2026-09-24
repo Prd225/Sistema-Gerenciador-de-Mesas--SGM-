@@ -11,10 +11,7 @@ interface HighlightsTabProps {
   isEditing: boolean;
 }
 
-export const HighlightsTab: FC<HighlightsTabProps> = ({
-  zone,
-  isEditing,
-}) => {
+export const HighlightsTab: FC<HighlightsTabProps> = ({ zone, isEditing }) => {
   const updateZoneData = useZoneStore((state) => state.updateZoneData);
   const zoneData = zone.data;
 

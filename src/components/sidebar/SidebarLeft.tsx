@@ -45,8 +45,11 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
 
   // Marcadores ativos nesta zona específica
   const currentTabs = useMemo<ZoneTab[]>(() => {
-    const list =
-      zoneData?.activeMarkers ?? ['destaques', 'ameacas', 'inventario'];
+    const list = zoneData?.activeMarkers ?? [
+      'destaques',
+      'ameacas',
+      'inventario',
+    ];
     return ['geral', ...(list.filter((m) => m in TAB_CONFIGS) as ZoneTab[])];
   }, [zoneData?.activeMarkers]);
 

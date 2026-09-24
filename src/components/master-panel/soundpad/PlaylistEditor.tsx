@@ -19,7 +19,6 @@ import type { SongSource } from '@/types/soundpad';
 import AddMusicModal from './AddMusicModal';
 import ImportPlaylistModal from './ImportPlaylistModal';
 
-
 interface PlaylistEditorProps {
   pageId: string;
   playlistId: string;
@@ -245,7 +244,9 @@ export default function PlaylistEditor({
                         }
                       }}
                       className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-[#323238] text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors"
-                      title={isActive && isPlaying ? 'Pausar' : 'Tocar esta música'}
+                      title={
+                        isActive && isPlaying ? 'Pausar' : 'Tocar esta música'
+                      }
                     >
                       {isActive && isPlaying ? (
                         <Pause className="w-3.5 h-3.5 text-[#8257e5] fill-current" />

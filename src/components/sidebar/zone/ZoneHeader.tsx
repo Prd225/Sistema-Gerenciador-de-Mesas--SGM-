@@ -147,10 +147,7 @@ export const ZoneHeader: FC<ZoneHeaderProps> = ({
                         : 'text-[#a8a8b3] hover:bg-white/5 hover:text-white'
                     }`}
                   >
-                    <TabIcon
-                      className="w-4 h-4"
-                      style={{ color: itemColor }}
-                    />
+                    <TabIcon className="w-4 h-4" style={{ color: itemColor }} />
                     <span>{cfg.label}</span>
                   </button>
                 );

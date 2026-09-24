@@ -16,7 +16,9 @@ authRouter.post('/register', async (req: Request, res: Response) => {
     const result = await AuthService.register(username, email, password);
     return res.status(201).json(result);
   } catch (err: any) {
-    return res.status(400).json({ error: err.message || 'Erro ao registrar usuário.' });
+    return res
+      .status(400)
+      .json({ error: err.message || 'Erro ao registrar usuário.' });
   }
 });
 
@@ -33,7 +35,9 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     const result = await AuthService.login(identifier, password);
     return res.status(200).json(result);
   } catch (err: any) {
-    return res.status(401).json({ error: err.message || 'Credenciais inválidas.' });
+    return res
+      .status(401)
+      .json({ error: err.message || 'Credenciais inválidas.' });
   }
 });
 
@@ -42,15 +46,15 @@ authRouter.post('/google', async (req: Request, res: Response) => {
   try {
     const { idToken } = req.body;
     if (!idToken) {
-      return res
-        .status(400)
-        .json({ error: 'Token do Google não fornecido.' });
+      return res.status(400).json({ error: 'Token do Google não fornecido.' });
     }
 
     const result = await AuthService.googleAuth(idToken);
     return res.status(200).json(result);
   } catch (err: any) {
-    return res.status(401).json({ error: err.message || 'Falha na autenticação com Google.' });
+    return res
+      .status(401)
+      .json({ error: err.message || 'Falha na autenticação com Google.' });
   }
 });
 

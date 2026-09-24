@@ -262,10 +262,9 @@ export class AuthService {
   // Logout / Revogação de Sessão
   public static async revokeSession(token: string): Promise<boolean> {
     if (!token || !getDatabaseStatus()) return false;
-    const result = await pool.query(
-      `DELETE FROM sessions WHERE token = $1`,
-      [token],
-    );
+    const result = await pool.query(`DELETE FROM sessions WHERE token = $1`, [
+      token,
+    ]);
     return (result.rowCount ?? 0) > 0;
   }
 }

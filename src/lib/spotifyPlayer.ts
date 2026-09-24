@@ -237,7 +237,9 @@ const createAndConnectPlayer = () => {
     if (hasEnded && !isSpotifyTransitioning) {
       isSpotifyTransitioning = true;
       lastProgress = 0;
-      console.log('[SpotifyPlayer] Faixa finalizada naturalmente. Avançando...');
+      console.log(
+        '[SpotifyPlayer] Faixa finalizada naturalmente. Avançando...',
+      );
       useSoundpadStore.getState().playNext(); // Respects isLooping!
       setTimeout(() => {
         isSpotifyTransitioning = false;
@@ -455,7 +457,11 @@ export const playSpotifyTrack = async (trackUri: string) => {
       setSpotifyVolume(volFraction).catch(() => {});
     } else {
       const errorData = await res.json().catch(() => ({}));
-      console.error('[SpotifyPlayer] Falha ao tocar faixa:', res.status, errorData);
+      console.error(
+        '[SpotifyPlayer] Falha ao tocar faixa:',
+        res.status,
+        errorData,
+      );
 
       if (res.status === 403) {
         if (errorData?.error?.reason === 'PREMIUM_REQUIRED') {
@@ -557,4 +563,3 @@ export const disconnectSpotifyPlayer = () => {
   useSoundpadStore.getState().setSpotifyDeviceId(null);
   useSoundpadStore.getState().setIsSpotifyConnected(false);
 };
-

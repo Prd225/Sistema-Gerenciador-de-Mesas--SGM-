@@ -11,7 +11,10 @@ import {
   AlignRight,
   Sigma,
 } from 'lucide-react';
-import { replaceDiceShortcodesWithHtml, toggleDiceFormulaSelection } from '@/lib/diceEmoji';
+import {
+  replaceDiceShortcodesWithHtml,
+  toggleDiceFormulaSelection,
+} from '@/lib/diceEmoji';
 
 interface RulesEditorProps {
   initialValue: string;
@@ -38,7 +41,9 @@ export default function RulesEditor({
   // Need to hold internal value to prevent cursor jumps
   const [internalHtml, setInternalHtml] = useState(initialValue);
   const [listState, setListState] = useState<'none' | 'ul' | 'ol'>('none');
-  const [alignState, setAlignState] = useState<'left' | 'center' | 'right'>('left');
+  const [alignState, setAlignState] = useState<'left' | 'center' | 'right'>(
+    'left',
+  );
 
   useEffect(() => {
     if (editorRef.current && isEditing) {
@@ -52,7 +57,8 @@ export default function RulesEditor({
   const updateToolbarStates = () => {
     if (!editorRef.current) return;
     const sel = window.getSelection();
-    if (!sel || !sel.anchorNode || !editorRef.current.contains(sel.anchorNode)) return;
+    if (!sel || !sel.anchorNode || !editorRef.current.contains(sel.anchorNode))
+      return;
 
     const isUl = document.queryCommandState('insertUnorderedList');
     const isOl = document.queryCommandState('insertOrderedList');
@@ -280,4 +286,3 @@ export default function RulesEditor({
     </div>
   );
 }
-

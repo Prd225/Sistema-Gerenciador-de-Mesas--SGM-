@@ -82,7 +82,9 @@ export default function SoundpadHeader() {
     }
   };
 
-  const hasAuth = Boolean(token || localStorage.getItem('spotify_refresh_token'));
+  const hasAuth = Boolean(
+    token || localStorage.getItem('spotify_refresh_token'),
+  );
 
   return (
     <div className="flex items-center justify-between p-3 bg-[#202024] border-b border-[#323238] shrink-0">
@@ -119,4 +121,3 @@ export default function SoundpadHeader() {
     </div>
   );
 }
-

@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Bold, Italic, Underline, Palette, Smile, Sigma } from 'lucide-react';
-import { replaceDiceShortcodesWithHtml, toggleDiceFormulaSelection } from '@/lib/diceEmoji';
+import {
+  replaceDiceShortcodesWithHtml,
+  toggleDiceFormulaSelection,
+} from '@/lib/diceEmoji';
 
 interface RichTextEditorProps {
   initialValue: string;
