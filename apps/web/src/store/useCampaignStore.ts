@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { useTokenStore } from './useTokenStore';
 import { triggerAutoSave } from '@/lib/saveHelpers';
-import { socket } from '@/lib/socket';
 
 interface CampaignState {
   scene: number;
@@ -21,7 +20,6 @@ interface CampaignState {
   nextRound: () => void;
   setTurn: (turn: number) => void;
   addTurn: () => void;
-  setRoundTurnFromRemote: (round: number, turn: number) => void;
 
   setUrgency: (urgency: number | null) => void;
   changeUrgency: (amount: number) => void;
@@ -54,36 +52,21 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
   nextScene: () => {
     set((state) => ({ scene: state.scene + 1, round: 1, turn: 1 }));
     triggerAutoSave();
-    if (socket.connected) {
-      socket.emit('campaign:update-round-turn', { round: 1, turn: 1 });
-    }
   },
 
   setRound: (round) => {
     set({ round });
     triggerAutoSave();
-    if (socket.connected) {
-      socket.emit('campaign:update-round-turn', { round, turn: get().turn });
-    }
   },
   nextRound: () => {
     const nextR = get().round + 1;
     set({ round: nextR });
     triggerAutoSave();
-    if (socket.connected) {
-      socket.emit('campaign:update-round-turn', {
-        round: nextR,
-        turn: get().turn,
-      });
-    }
   },
 
   setTurn: (turn) => {
     set({ turn });
     triggerAutoSave();
-    if (socket.connected) {
-      socket.emit('campaign:update-round-turn', { round: get().round, turn });
-    }
   },
 
   addTurn: () => {
@@ -102,12 +85,6 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
       }
       set({ turn: nextTurn, round: nextRound, urgency: nextUrgency });
       triggerAutoSave();
-      if (socket.connected) {
-        socket.emit('campaign:update-round-turn', {
-          round: nextRound,
-          turn: nextTurn,
-        });
-      }
       return;
     }
 
@@ -173,15 +150,7 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
 
     set({ turn: currentTurn, round: currentRound, urgency: currentUrgency });
     triggerAutoSave();
-    if (socket.connected) {
-      socket.emit('campaign:update-round-turn', {
-        round: currentRound,
-        turn: currentTurn,
-      });
-    }
   },
-
-  setRoundTurnFromRemote: (round, turn) => set({ round, turn }),
 
   setUrgency: (urgency) => {
     set({ urgency });

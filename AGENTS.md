@@ -57,7 +57,6 @@ Não edite: `dist/`, `node_modules/`, `LICENSE`.
 - **Sem compatibilidade retroativa** (decisão 0005): pode mudar saves e schemas sem migração.
 - **Contratos**: tipos compartilhados ficam em `@sgm/shared`. Nenhum import entre `apps/web` e `apps/server`.
 - **Dexie**: mudou o schema, incremente a versão.
-- **Multiplayer antigo (até o bloco 2)**: funções `*FromRemote` nunca emitem evento de socket. Não adicione eventos novos nele. Nada de imagem em Base64.
 - **Código**: TypeScript estrito, sem `any` nem `@ts-ignore`. `import type` para tipos. Confira que ícones e APIs existem na versão instalada.
 - **UI**: sem hexadecimal novo, `z-[9999]`, `alert`, `confirm` ou `prompt`. Use os primitivos de `apps/web/src/components/ui/`.
 - **Git** (GitHub Flow, decisão 0008): comece com `git switch next && git pull && git switch -c tipo/nome` (`feat/`, `fix/`, `refactor/`, `chore/`, `docs/`). Commits em Conventional Commits, **sem `Co-Authored-By` de IA**. **Nunca mexa na `master`**: é a versão do Pedro. Sem push nem PR sem pedido. Não altere `LICENSE` nem o campo `license`. Sem emojis em código, commits e docs.

@@ -10,7 +10,6 @@ import InitiativeModal from '../modals/InitiativeModal';
 import TokenCreateModal from '../modals/TokenCreateModal';
 import LoadCampaignModal from '../modals/LoadCampaignModal';
 import SaveCampaignModal from '../modals/SaveCampaignModal';
-import MultiplayerModal from '../modals/MultiplayerModal';
 import MapToolbar from '../toolbar/MapToolbar';
 import MasterPanelTrigger from '../master-panel/MasterPanelTrigger';
 import MasterPanelOverlay from '../master-panel/MasterPanelOverlay';
@@ -251,9 +250,6 @@ export default function AppLayout({
 
       {/* Motor de Áudio em Background */}
       <SoundpadEngine />
-
-      {/* Modal Multiplayer */}
-      <MultiplayerModal />
     </div>
   );
 }

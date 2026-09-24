@@ -8,7 +8,6 @@ import {
   Plus,
   Swords,
   ChevronDown,
-  Radio,
   User,
   LogOut,
   WifiOff,
@@ -17,7 +16,6 @@ import { Button } from '@/components/ui/button';
 import { resetGameState } from '@/lib/saveHelpers';
 import { useTokenStore } from '@/store/useTokenStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
-import { useMultiplayerStore } from '@/store/useMultiplayerStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import AuthModal from '@/components/modals/AuthModal';
 import {
@@ -63,14 +61,6 @@ export default function Header() {
   const handleLoad = () => {
     setShowLoadModal(true);
   };
-
-  const isMultiplayerConnected = useMultiplayerStore(
-    (state) => state.isConnected,
-  );
-  const roomId = useMultiplayerStore((state) => state.roomId);
-  const setIsMultiplayerModalOpen = useMultiplayerStore(
-    (state) => state.setIsModalOpen,
-  );
 
   const user = useAuthStore((state) => state.user);
   const isServerOnline = useAuthStore((state) => state.isServerOnline);
@@ -295,33 +285,6 @@ export default function Header() {
           className="bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5 font-bold"
         >
           <Plus className="w-4 h-4 mr-2" /> Novo Token
-        </Button>
-        <Button
-          onClick={() => setIsMultiplayerModalOpen(true)}
-          variant="outline"
-          className={`font-bold transition-all border ${
-            isMultiplayerConnected
-              ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/25 hover:text-emerald-400'
-              : 'bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5'
-          }`}
-        >
-          <Radio
-            className={`w-4 h-4 mr-2 ${
-              isMultiplayerConnected
-                ? 'text-emerald-400 animate-pulse'
-                : 'text-[#8257e5]'
-            }`}
-          />
-          {isMultiplayerConnected ? (
-            <span className="flex items-center gap-1.5">
-              Mesa Online
-              <span className="px-1.5 py-0.5 text-[10px] bg-emerald-500/20 text-emerald-300 rounded-full font-mono">
-                {roomId}
-              </span>
-            </span>
-          ) : (
-            'Multiplayer'
-          )}
         </Button>
 
         {/* Indicador de Modo Local quando backend offline */}
