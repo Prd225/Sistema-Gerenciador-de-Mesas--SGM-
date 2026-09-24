@@ -1,0 +1,23 @@
+name: PR title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Título em Conventional Commits
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|refactor|chore|docs|style|test|perf|ci|build|revert)(\([a-z0-9-]+\))?!?: .+'
+          if [[ ! "$TITLE" =~ $pattern ]]; then
+            echo "Título fora do padrão: $TITLE"
+            echo "Exemplo: feat(tokens): adicionar filtro por tipo"
+            exit 1
+          fi

@@ -25,6 +25,7 @@ Transformar o SGM numa base robusta e padronizada:
 | Sem compatibilidade retroativa durante o desenvolvimento | [0005](../decisions/0005-sem-compatibilidade-retroativa.md)   |
 | Stack revisada (lista fechada de bibliotecas)            | [0006](../decisions/0006-stack-revisada.md)                   |
 | Monorepo com engine compartilhada                        | [0007](../decisions/0007-arquitetura-engine-compartilhada.md) |
+| GitHub Flow: `master` (v7, Pedro) e `next` (v8) | [0008](../decisions/0008-github-flow-duas-linhas.md) |
 
 ---
 
@@ -101,11 +102,13 @@ Spec: [`ci-cd.md`](../specs/ci-cd.md).
 
 - [ ] `infra/docker/Dockerfile` multi-stage, `.dockerignore`, `.env.example`.
 - [ ] `compose.dev.yaml` (Postgres), `compose.e2e.yaml`, `compose.prod.yaml` com Caddy e backup.
-- [ ] `ci.yml` com os jobs `quality`, `unit`, `security`, `build`, `docker`, `e2e` e `publish`. `integration` entra com o primeiro teste de integração (Fase 4).
+- [ ] Expandir o `ci.yml` (hoje: um job `check` com `npm run check`) para `quality`, `unit`, `security`, `build`, `docker`, `e2e` e `publish`. Manter um job final chamado `check` que depende dos outros: é o nome exigido nas regras do GitHub. `integration` entra na Fase 4.
 - [ ] Playwright configurado com o roteiro de fumaça atual e viewport de celular.
-- [ ] `pr-title.yml`, `codeql.yml`, `release.yml` (release-please), `dependabot.yml`.
+- [x] `pr-title.yml`.
+- [ ] `codeql.yml` (só roda em repositório público ou com plano pago), `dependabot.yml` (precisa estar na `master` com `target-branch: next`, via PR para o Pedro). `release.yml` só depois da v8.
 - [ ] `deploy.yml` para staging e produção. Se ainda não houver VPS, deixar o workflow pronto e desabilitado até os segredos existirem, e documentar os segredos necessários.
-- [ ] Templates de PR e issue, `CODEOWNERS`.
+- [x] Template de PR e hooks locais (`.githooks/`).
+- [ ] Templates de issue e `CODEOWNERS` (precisa dos usuários do GitHub de cada um).
 - [ ] Documentar em `docs/architecture/` como rodar localmente com Docker.
 
 ### Fase 4 — Fundação do servidor

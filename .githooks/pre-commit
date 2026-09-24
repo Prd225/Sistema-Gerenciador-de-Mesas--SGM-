@@ -1,0 +1,11 @@
+#!/bin/sh
+# GitHub Flow: master e next só recebem mudanças por PR.
+branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+case "$branch" in
+  master | next)
+    echo "pre-commit: commit direto na '$branch' não é permitido." >&2
+    echo "Crie uma branch: git switch -c feat/nome-da-tarefa" >&2
+    exit 1
+    ;;
+esac
+exit 0

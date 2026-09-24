@@ -2,38 +2,29 @@ name: CI
 
 on:
   push:
-    branches: [master, main]
+    branches: [next, master]
   pull_request:
-    branches: [master, main]
+    branches: [next, master]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
-  build-and-test:
+  check:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'npm'
+          node-version-file: .nvmrc
+          cache: npm
 
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
 
-      - name: Check code formatting (Prettier)
-        run: npm run format:check
-
-      - name: Run linter (Oxlint)
-        run: npm run lint
-
-      - name: Check types (TypeScript)
-        run: npm run typecheck
-
-      - name: Run unit tests (Vitest)
-        run: npm test
-
-      - name: Build project (Vite)
-        run: npm run build
+      - name: Formatação, lint, tipos, fronteiras, testes e build
+        run: npm run check
