@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: sgm_secret
       POSTGRES_DB: sgm_dev
     ports:
-      - '5432:5432'
+      - '5433:5432'
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
     healthcheck:
@@ -16,5 +16,19 @@ services:
       timeout: 5s
       retries: 5
 
+  # Interface web para ver o banco. Opcional: docker compose --profile tools up -d
+  dbeaver:
+    image: dbeaver/cloudbeaver:latest
+    restart: unless-stopped
+    profiles: ['tools']
+    ports:
+      - '8080:8978'
+    volumes:
+      - dbeaver_data:/opt/cloudbeaver/workspace
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres_dev_data:
+  dbeaver_data:
