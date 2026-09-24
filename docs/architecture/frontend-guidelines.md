@@ -1,6 +1,7 @@
 # Front-end: Regras e Verificação
 
 Regras tiradas de bugs reais do histórico do projeto. Valem para qualquer mudança em `src/`.
+Regras tiradas de bugs reais do histórico do projeto. Valem para qualquer mudança em `apps/web/src/`.
 
 ## 1. Verificação obrigatória no navegador
 
@@ -45,6 +46,7 @@ Modais (`Dialog`) e seus menus subordinados (`Select`, `DropdownMenu`) renderiza
 - **Closures desatualizadas**: callbacks assíncronos, timers e listeners devem ler o estado atual com `useXStore.getState()`, não uma variável capturada no render. Lógica de sequência (próxima faixa, próximo turno) fica no store, não no componente.
 - **Limpeza de efeitos**: todo `setTimeout`, `setInterval`, `addEventListener` e `socket.on` criado num `useEffect` precisa ser removido no retorno do efeito.
 - **Singletons e HMR**: players (Spotify, YouTube) e conexões ficam em módulos de `src/lib/`, não dentro de componentes, para não duplicar no remount ou no hot reload.
+- **Singletons e HMR**: players (Spotify, YouTube) e conexões ficam em módulos de `apps/web/src/lib/`, não dentro de componentes, para não duplicar no remount ou no hot reload.
 - **Estado de UI x estado de jogo**: estado efêmero (hover, modal aberto, input em edição) fica em `useState`. Só vai para store o que é salvo ou compartilhado.
 
 ## 5. Dados salvos
@@ -52,12 +54,14 @@ Modais (`Dialog`) e seus menus subordinados (`Select`, `DropdownMenu`) renderiza
 - Não há compatibilidade com saves antigos durante o desenvolvimento (decisão 0005). Pode renomear, remover e reestruturar campos sem migração. Não escreva código para aceitar formatos antigos.
 - Mesmo assim, o app não pode quebrar ao encontrar um save de formato antigo no navegador: se o formato não bater, descarte o save e comece limpo, em vez de dar tela branca.
 - Store novo que precisa ser salvo entra em `collectGameState`, `applyGameState` e `resetGameState` (`src/lib/saveHelpers.ts`).
+- Store novo que precisa ser salvo entra em `collectGameState`, `applyGameState` e `resetGameState` (`apps/web/src/lib/saveHelpers.ts`).
 
 ## 6. Componentes
 
 - `SidebarLeft.tsx` (mais de 2.600 linhas), `ZoneMarkerModal.tsx` e `TokenSheetModal.tsx` (mais de 1.000 cada) são frágeis. Não aumente esses arquivos: código novo vai em um componente separado na mesma pasta e é importado.
 - Componente novo com mais de 300 linhas é sinal de que precisa ser dividido.
 - Use os primitivos de `src/components/ui/` antes de criar um novo. Se um primitivo não funciona no contexto (ex.: `Dialog` dentro do painel do mestre), corrija o primitivo em vez de contorná-lo.
+- Use os primitivos de `apps/web/src/components/ui/` antes de criar um novo. Se um primitivo não funciona no contexto (ex.: `Dialog` dentro do painel do mestre), corrija o primitivo em vez de contorná-lo.
 - Use somente as cores da paleta. Enquanto os tokens de `docs/specs/ui-design-system.md` não existirem, use os hexadecimais de `docs/architecture/design-system.md`. Não invente valores novos.
 - Textos da interface curtos e em português. Tooltips com uma frase no máximo.
 - Existem error boundaries na raiz e em cada subpainel do mestre. Regiões novas (modais, sidebars, mapa) também precisam de um. Mesmo assim, trate `undefined` em dados vindos de save ou da rede (`token.imageUrl?`, listas vazias).

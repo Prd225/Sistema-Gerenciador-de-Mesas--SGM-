@@ -1,6 +1,7 @@
 # Canvas (Battlemap)
 
 Implementado com React-Konva. Ponto de entrada: `src/canvas/StageMap.tsx`.
+Implementado com React-Konva. Ponto de entrada: `apps/web/src/canvas/StageMap.tsx`.
 
 ## Coordenadas
 

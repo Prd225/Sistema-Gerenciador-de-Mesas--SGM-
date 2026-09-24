@@ -7,22 +7,43 @@ Fonte única de regras para qualquer agente (Claude, Gemini, Cursor, Copilot, Co
 Sistema Gerenciador de Mesas (SGM v7): Virtual Tabletop para RPG com battlemap 2D, painel do mestre e multiplayer em tempo real. Software **proprietário**, todos os direitos reservados.
 
 O repositório está no meio de uma reestruturação ([plano](docs/plans/modernizacao-arquitetural.md)). Hoje ainda é um único `package.json` com cliente em `src/` e servidor em `server/src/`. O alvo é um monorepo com `apps/web`, `apps/server`, `packages/shared` e `packages/engine` ([arquitetura de código](docs/specs/code-architecture.md)). Quando a Fase 2 do plano terminar, as seções "Comandos" e "Mapa do repositório" abaixo devem ser atualizadas.
+O repositório é organizado como um monorepo npm workspaces com `apps/web`, `apps/server`, `packages/shared` e `packages/engine` ([arquitetura de código](docs/specs/code-architecture.md)).
 
 ## Comandos
 
 | Comando                                     | Uso                                                                                      |
 | :------------------------------------------ | :--------------------------------------------------------------------------------------- |
 | `npm run dev`                               | Cliente (Vite, porta 5173) e servidor (tsx watch, porta 3001) juntos                     |
+| `npm run dev`                               | Cliente (Vite, porta 5173) e servidor (tsx watch, porta 3001) juntos via workspaces     |
 | `npm run dev:client` / `npm run dev:server` | Só um dos lados                                                                          |
 | `npm run typecheck`                         | Checa cliente **e** servidor (`tsc -b` com `tsconfig.app.json` e `tsconfig.server.json`) |
 | `npm run lint`                              | Oxlint                                                                                   |
 | `npm run format` / `npm run format:check`   | Prettier                                                                                 |
 | `npm run build`                             | Build de produção do cliente                                                             |
 | `npm test`                                  | Testes com Vitest                                                                        |
+| `npm run typecheck`                         | Checa todos os workspaces (`tsc -b --noEmit`)                                            |
+| `npm run lint`                              | Oxlint em todos os workspaces                                                            |
+| `npm run format` / `npm run format:check`   | Prettier em todo o monorepo                                                              |
+| `npm run depcruise`                         | Checa regras de fronteiras entre pacotes com dependency-cruiser                         |
+| `npm run build`                             | Build de produção do cliente (@sgm/web)                                                  |
+| `npm test`                                  | Testes com Vitest em todos os workspaces                                                 |
+| Comando                                     | Uso                                                              |
+| :------------------------------------------ | :--------------------------------------------------------------- |
+| `npm run dev`                               | Cliente (Vite, porta 5173) e servidor (tsx watch, porta 3001)   |
+| `npm run dev:client` / `npm run dev:server` | Só um dos lados                                                  |
+| `npm run typecheck`                         | Checa todos os workspaces (`tsc -b --noEmit`)                    |
+| `npm run lint`                              | Oxlint em todos os workspaces                                    |
+| `npm run format` / `npm run format:check`   | Prettier em todo o monorepo                                      |
+| `npm run depcruise`                         | Checa regras de fronteiras entre pacotes com dependency-cruiser |
+| `npm run build`                             | Build de produção do cliente (@sgm/web)                          |
+| `npm test`                                  | Testes com Vitest em todos os workspaces                         |
 
 Antes de concluir qualquer tarefa: `npm run format:check && npm run lint && npm run typecheck && npm test && npm run build`.
+Antes de concluir qualquer tarefa: `npm run format:check && npm run lint && npm run typecheck && npm run depcruise && npm test && npm run build`.
+Validação completa: execute `npm run format:check && npm run lint && npm run typecheck && npm run depcruise && npm test && npm run build` somente ao concluir uma fase ou antes da entrega final. Durante o desenvolvimento ou passos intermediários, rode apenas verificações pontuais (ex: `npm run typecheck` ou teste unitário do módulo específico) para evitar execuções excessivas e lentidão desnecessária.
 
 **Mudou algo em `src/`?** Os comandos acima não bastam. Abra o app no navegador, confira que o console não mostra erros novos e rode o roteiro de fumaça de `docs/architecture/frontend-guidelines.md`. Se não conseguir testar no navegador, diga isso na entrega em vez de declarar a tarefa concluída.
+**Mudou algo em `apps/web/src/`?** Os comandos acima não bastam. Abra o app no navegador, confira que o console não mostra erros novos e rode o roteiro de fumaça de `docs/architecture/frontend-guidelines.md`. Se não conseguir testar no navegador, diga isso na entrega em vez de declarar a tarefa concluída.
 
 ## Mapa do repositório
 
@@ -35,10 +56,26 @@ src/                  Frontend React 19 (alias @/ -> src/)
   lib/                db.ts (Dexie), saveHelpers.ts (autosave), socket.ts, Spotify
   types/              Reexportações do @shared para compatibilidade
 server/src/           Servidor Node: Express (/api/auth) + Socket.io + RoomManager
+apps/
+  web/                @sgm/web: Frontend React 19 (alias @/ -> apps/web/src/)
+    src/canvas/       Battlemap Konva: StageMap e camadas
+    src/components/   UI por domínio (master-panel/, modals/, sidebar/, ui/ ...)
+    src/store/        Stores Zustand
+    src/lib/          db.ts (Dexie), saveHelpers.ts (autosave), socket.ts, Spotify
+    src/types/        Reexportações de @sgm/shared para compatibilidade
+  server/             @sgm/server: Servidor Node Express (/api/auth) + Socket.io + RoomManager
+    src/db/           Conexão PostgreSQL
+    src/handlers/     Handlers de socket
+    src/routes/       Rotas HTTP (/api/auth)
+    src/services/     Serviços de aplicação
+packages/
+  shared/             @sgm/shared: Contratos e schemas Zod compartilhados (domain/, protocol/, api/, constants/)
+  engine/             @sgm/engine: Regras puras do jogo e autoridade de salas
 docs/                 Documentação (índice em docs/README.md)
 ```
 
 Não edite: `dist/`, `server/dist/`, `node_modules/`, `LICENSE`.
+Não edite: `apps/web/dist/`, `apps/server/dist/`, `node_modules/`, `LICENSE`.
 
 ## O que ler antes de cada tipo de tarefa
 
@@ -64,6 +101,7 @@ Não edite: `dist/`, `server/dist/`, `node_modules/`, `LICENSE`.
 2. **Escopo pequeno.** Uma tarefa, um PR, uma fase do plano por vez. Não aproveite para refatorar o que não foi pedido.
 3. **Edite, não reescreva.** Faça mudanças pontuais. Reescrever um arquivo inteiro para mudar um trecho apaga código que você não leu.
 4. **Verifique.** Rode os comandos da seção "Comandos" e, se mexeu em `src/`, teste no navegador (roteiro em `docs/architecture/frontend-guidelines.md`).
+4. **Verifique.** Rode os comandos da seção "Comandos" e, se mexeu em `apps/web/src/`, teste no navegador (roteiro em `docs/architecture/frontend-guidelines.md`).
 5. **Relate com honestidade.** Diga o que foi feito, o que foi verificado e como, e o que ficou pendente ou não foi testado. Nunca declare concluído algo que não rodou.
 6. **Na dúvida, pare.** Se o plano ou o spec não fizer sentido diante do código, explique o conflito em vez de improvisar uma solução.
 
@@ -79,6 +117,7 @@ Não edite: `dist/`, `server/dist/`, `node_modules/`, `LICENSE`.
 | Regra de jogo escrita num componente, store ou handler do servidor      | Regras só em `@sgm/engine` (a partir da Fase 5)                                                        |
 | Resolver sobreposição com `z-[9999]` ou overlay manual                  | Escala de z-index do design system                                                                     |
 | Hexadecimal, `text-[10px]` ou estilo solto na tela                      | Tokens e primitivos de `src/components/ui/`                                                            |
+| Hexadecimal, `text-[10px]` ou estilo solto na tela                      | Tokens e primitivos de `apps/web/src/components/ui/`                                                    |
 | `alert`, `confirm`, `prompt`                                            | `Toast`, `AlertDialog`, `Dialog`                                                                       |
 | Timer, listener ou `socket.on` sem limpeza                              | Retorno de limpeza em todo `useEffect`                                                                 |
 | Ler estado antigo dentro de callback assíncrono                         | `useXStore.getState()` no momento da execução                                                          |
@@ -97,6 +136,8 @@ Não edite: `dist/`, `server/dist/`, `node_modules/`, `LICENSE`.
 - **Sem compatibilidade retroativa por enquanto** (`docs/decisions/0005-sem-compatibilidade-retroativa.md`): o projeto está em desenvolvimento. Pode mudar formato de save, schema do Dexie, schema do Postgres e contratos de socket sem migração nem shims. Não escreva código de compatibilidade com formatos antigos.
 - **Tipos compartilhados**: alterar `src/types/game.ts` ou `src/types/multiplayer.ts` afeta o servidor. Rode `npm run typecheck` (cobre os dois lados).
 - **Dexie**: ao mudar o schema em `src/lib/db.ts`, incremente a versão. Dados antigos podem ser descartados.
+- **Tipos compartilhados**: alterar tipos em `packages/shared/` afeta cliente e servidor. Rode `npm run typecheck` (cobre todos os workspaces).
+- **Dexie**: ao mudar o schema em `apps/web/src/lib/db.ts`, incremente a versão. Dados antigos podem ser descartados.
 - **Canvas**: toda conversão tela -> mundo usa a matriz inversa do stage (detalhes em `docs/architecture/canvas.md`).
 
 ### Multiplayer (estado de transição)
@@ -106,6 +147,7 @@ O servidor está migrando de "repassador de eventos" para "autoridade da sala" (
 - Ação local: o store atualiza o estado, chama `triggerAutoSave()` e emite o evento de socket.
 - Ação remota: o listener em `useMultiplayerStore` chama `*FromRemote`, que só atualiza o estado. **Uma função `*FromRemote` nunca emite evento de socket.**
 - Todo evento novo precisa ser declarado em `ClientToServerEvents` / `ServerToClientEvents` (`src/types/multiplayer.ts`) e tratado em `server/src/handlers/socketHandlers.ts`.
+- Todo evento novo precisa ser declarado no protocolo de `@sgm/shared` (`packages/shared/src/protocol/`) e tratado em `apps/server/src/handlers/socketHandlers.ts`.
 - Não transmita imagens em Base64 em eventos novos. Se precisar, sinalize: o upload por HTTP está no plano (Fase 7).
 
 ### Código

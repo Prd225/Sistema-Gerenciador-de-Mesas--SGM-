@@ -84,15 +84,15 @@ Spec: [`code-architecture.md`](../specs/code-architecture.md), seções 3 e 6.
 
 Esta fase **move** código e cria os pacotes. Não reorganiza o cliente em `features/` (isso é a Fase 6) e não troca bibliotecas do servidor (Fase 4).
 
-- [ ] npm workspaces na raiz com `apps/*` e `packages/*`. `.nvmrc` e `engines` com Node 24.
-- [ ] `tsconfig.base.json` na raiz. Cada workspace com o próprio `tsconfig.json` e `package.json` (`@sgm/web`, `@sgm/server`, `@sgm/shared`, `@sgm/engine`).
-- [ ] Mover `src/`, `index.html`, `public/`, `vite.config.ts`, `vitest.config.ts`, Tailwind e PostCSS para `apps/web/`. Mover `server/` para `apps/server/`.
-- [ ] Criar `@sgm/shared` com schemas Zod das entidades atuais (`domain/`) e dos eventos de socket atuais (`protocol/`), a partir de `src/types/game.ts` e `src/types/multiplayer.ts`. Tipos com `z.infer`.
-- [ ] Cliente e servidor passam a importar de `@sgm/shared`. Nenhum import relativo entre apps.
-- [ ] Criar `@sgm/engine` só com a estrutura e um teste de exemplo (o conteúdo vem na Fase 5).
-- [ ] Scripts da raiz rodando em todos os workspaces (`dev`, `build`, `test`, `lint`, `typecheck`, `format`) e `dev.sh` ajustado.
-- [ ] `dependency-cruiser` com as regras entre pacotes da seção 6 do spec e script `depcruise`.
-- [ ] Atualizar caminhos em `AGENTS.md`, `README.md` e `docs/architecture/`.
+- [x] npm workspaces na raiz com `apps/*` e `packages/*`. `.nvmrc` e `engines` com Node 24.
+- [x] `tsconfig.base.json` na raiz. Cada workspace com o próprio `tsconfig.json` e `package.json` (`@sgm/web`, `@sgm/server`, `@sgm/shared`, `@sgm/engine`).
+- [x] Mover `src/`, `index.html`, `public/`, `vite.config.ts`, `vitest.config.ts`, Tailwind e PostCSS para `apps/web/`. Mover `server/` para `apps/server/`.
+- [x] Criar `@sgm/shared` com schemas Zod das entidades atuais (`domain/`) e dos eventos de socket atuais (`protocol/`), a partir de `src/types/game.ts` e `src/types/multiplayer.ts`. Tipos com `z.infer`.
+- [x] Cliente e servidor passam a importar de `@sgm/shared`. Nenhum import relativo entre apps.
+- [x] Criar `@sgm/engine` só com a estrutura e um teste de exemplo (o conteúdo vem na Fase 5).
+- [x] Scripts da raiz rodando em todos os workspaces (`dev`, `build`, `test`, `lint`, `typecheck`, `format`) e `dev.sh` ajustado.
+- [x] `dependency-cruiser` com as regras entre pacotes da seção 6 do spec e script `depcruise`.
+- [x] Atualizar caminhos em `AGENTS.md`, `README.md` e `docs/architecture/`.
 - [ ] O app funciona exatamente como antes (roteiro de fumaça completo).
 
 ### Fase 3 — Docker e CI/CD
