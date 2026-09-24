@@ -1,16 +1,20 @@
 import { useTokenStore } from '@/store/useTokenStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
+import { useZoneStore } from '@/store/useZoneStore';
 import { ArrowDown, Hourglass, Ban, Skull } from 'lucide-react';
 
 /**
- * Initiative bar displayed at the bottom-left of the viewport.
- * Shows the initiative order with the active turn highlighted.
+ * Initiative bar displayed at the bottom of the viewport.
+ * Dynamically offsets to the right of SidebarLeft so it is never covered.
  */
 export default function InitiativeBar() {
   const tokens = useTokenStore((state) => state.tokens);
   const queue = useTokenStore((state) => state.initiativeQueue);
   const sortMode = useTokenStore((state) => state.initiativeSortMode);
   const turn = useCampaignStore((state) => state.turn);
+
+  const leftOpen = useZoneStore((state) => state.leftSidebarOpen);
+  const leftWidth = useZoneStore((state) => state.leftSidebarWidth);
 
   if (queue.length === 0) return null;
 
@@ -24,8 +28,16 @@ export default function InitiativeBar() {
     gray: '#a8a8b3',
   };
 
+  const leftOffset = leftOpen ? leftWidth + 16 : 64;
+
   return (
-    <div className="absolute bottom-5 left-5 flex gap-4 px-4 pb-4 pt-8 bg-[#202024]/95 border border-[#323238] rounded-lg shadow-[0_4px_15px_rgba(0,0,0,0.7)] max-w-[calc(100%-100px)] overflow-x-auto z-30 items-end pointer-events-auto">
+    <div
+      style={{
+        left: `${leftOffset}px`,
+        maxWidth: `calc(100vw - ${leftOffset + 24}px - 80px)`,
+      }}
+      className="absolute bottom-5 flex gap-4 px-4 pb-4 pt-8 bg-[#202024]/95 border border-[#323238] rounded-lg shadow-[0_4px_15px_rgba(0,0,0,0.7)] overflow-x-auto z-30 items-end pointer-events-auto transition-[left,max-width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+    >
       {queue.map((item, index) => {
         const token = tokens.find((t) => t.id === item.tokenId);
         if (!token) return null;

@@ -99,15 +99,25 @@ export interface Token {
 
 // --- Zone Types (matching DM_tool_6v AppState.zones) ---
 
+export interface POIReferenceLink {
+  id: string;
+  targetType: 'item' | 'poi';
+  targetName: string;
+}
+
 export interface POIOption {
   name: string;
   desc: string;
+  descriptions?: string[];
   isRevealed?: boolean;
+  referenceLinks?: POIReferenceLink[];
 }
 
 export interface POICategory {
   title: string;
-  icon: 'none' | 'star' | 'spiral' | 'triangle';
+  color?: string;
+  icon?: 'none' | 'star' | 'spiral' | 'triangle';
+  isCollapsed?: boolean;
   options: POIOption[];
 }
 
@@ -223,6 +233,8 @@ export interface Marker {
   color?: string;
   textColor?: string;
   iconType?: 'pin' | 'sword' | 'chest' | 'skull' | 'jewel';
+  completed?: boolean;
+  hidden?: boolean;
 }
 
 // --- Initiative ---

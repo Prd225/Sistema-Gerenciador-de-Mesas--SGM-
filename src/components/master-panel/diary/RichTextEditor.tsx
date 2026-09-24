@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bold, Italic, Underline, Palette, Smile } from 'lucide-react';
+import { Bold, Italic, Underline, Palette, Smile, Sigma } from 'lucide-react';
+import { replaceDiceShortcodesWithHtml, toggleDiceFormulaSelection } from '@/lib/diceEmoji';
 
 interface RichTextEditorProps {
   initialValue: string;
@@ -39,38 +40,37 @@ export default function RichTextEditor({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!editorRef.current) return;
+    const isControlKey =
+      e.ctrlKey ||
+      e.metaKey ||
+      [
+        'Backspace',
+        'Delete',
+        'ArrowLeft',
+        'ArrowRight',
+        'ArrowUp',
+        'ArrowDown',
+      ].includes(e.key);
 
-    const allowedKeys = [
-      'Backspace',
-      'Delete',
-      'ArrowLeft',
-      'ArrowRight',
-      'ArrowUp',
-      'ArrowDown',
-      'Tab',
-      'Home',
-      'End',
-    ];
-
-    if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey || e.altKey) {
-      return;
-    }
-
-    if (charCount >= maxLength) {
+    if (
+      !isControlKey &&
+      editorRef.current.innerText.length >= maxLength &&
+      window.getSelection()?.isCollapsed
+    ) {
       e.preventDefault();
     }
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
+    const text = e.clipboardData.getData('text/plain');
     if (!editorRef.current) return;
 
-    const text = e.clipboardData.getData('text/plain');
-    const remaining = maxLength - charCount;
-
-    if (remaining > 0) {
-      const textToInsert = text.slice(0, remaining);
-      document.execCommand('insertText', false, textToInsert);
+    const currentLen = editorRef.current.innerText.length;
+    const available = maxLength - currentLen;
+    if (available > 0) {
+      document.execCommand('insertText', false, text.slice(0, available));
+      handleInput();
     }
   };
 
@@ -91,14 +91,24 @@ export default function RichTextEditor({
     exec('insertText', text);
   };
 
+  const handleToggleFormula = () => {
+    if (editorRef.current) {
+      toggleDiceFormulaSelection(editorRef.current);
+      editorRef.current.focus();
+      handleInput();
+    }
+  };
+
   if (!isEditing) {
+    const renderedHtml = initialValue
+      ? replaceDiceShortcodesWithHtml(initialValue)
+      : '<span class="italic text-gray-500">Sem descrição...</span>';
+
     return (
       <div
-        className="prose prose-invert max-w-none text-sm text-gray-300 pointer-events-none break-words"
+        className="prose prose-invert max-w-none text-sm leading-relaxed text-gray-300 pointer-events-auto break-words p-1 overflow-visible"
         dangerouslySetInnerHTML={{
-          __html:
-            initialValue ||
-            '<span class="italic text-gray-500">Sem descrição...</span>',
+          __html: renderedHtml,
         }}
       />
     );
@@ -114,6 +124,7 @@ export default function RichTextEditor({
             exec('bold');
           }}
           className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white"
+          title="Negrito"
         >
           <Bold className="w-4 h-4" />
         </button>
@@ -123,6 +134,7 @@ export default function RichTextEditor({
             exec('italic');
           }}
           className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white"
+          title="Itálico"
         >
           <Italic className="w-4 h-4" />
         </button>
@@ -132,14 +144,32 @@ export default function RichTextEditor({
             exec('underline');
           }}
           className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white"
+          title="Sublinhado"
         >
           <Underline className="w-4 h-4" />
         </button>
 
-        <div className="w-px h-4 bg-[#323238] mx-1" />
+        <div className="w-px h-4 bg-[#323238] mx-0.5" />
+
+        {/* Dice Formula Button */}
+        <button
+          onMouseDown={(e) => {
+            e.preventDefault();
+            handleToggleFormula();
+          }}
+          className="p-1 hover:bg-[#8257e5]/20 hover:text-[#a78bfa] rounded text-[#a8a8b3] hover:border hover:border-[#8257e5]/40 transition-colors"
+          title="Fórmula"
+        >
+          <Sigma className="w-4 h-4" />
+        </button>
+
+        <div className="w-px h-4 bg-[#323238] mx-0.5" />
 
         <div className="relative group/color">
-          <button className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white">
+          <button
+            className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white"
+            title="Cor do Texto"
+          >
             <Palette className="w-4 h-4" />
           </button>
           <div className="absolute left-0 top-full pt-1 hidden group-hover/color:block z-10">
@@ -153,6 +183,7 @@ export default function RichTextEditor({
                   }}
                   className="w-4 h-4 rounded-full border border-[#323238] hover:scale-110 transition-transform"
                   style={{ backgroundColor: c }}
+                  title={c}
                 />
               ))}
             </div>
@@ -160,7 +191,10 @@ export default function RichTextEditor({
         </div>
 
         <div className="relative group/emoji">
-          <button className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white">
+          <button
+            className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white"
+            title="Emojis"
+          >
             <Smile className="w-4 h-4" />
           </button>
           <div className="absolute left-0 top-full pt-1 hidden group-hover/emoji:block z-10 w-[140px]">

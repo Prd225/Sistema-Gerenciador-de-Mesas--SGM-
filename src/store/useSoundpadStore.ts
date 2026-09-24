@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import { generateId } from '@/lib/uuid';
 import { triggerAutoSave } from '@/lib/saveHelpers';
+import { touchSpotifyActivity } from '@/lib/spotifyAuth';
 import type { SoundpadPage, Playlist, Song } from '@/types/soundpad';
+
 
 interface SoundpadState {
   pages: SoundpadPage[];
@@ -35,6 +37,16 @@ interface SoundpadState {
     playlistId: string,
     songData: Omit<Song, 'id'>,
   ) => void;
+  addSongsToPlaylist: (
+    pageId: string,
+    playlistId: string,
+    songs: Omit<Song, 'id'>[],
+  ) => void;
+  importPlaylist: (
+    pageId: string,
+    name: string,
+    songs: Omit<Song, 'id'>[],
+  ) => string;
   removeSongFromPlaylist: (
     pageId: string,
     playlistId: string,
@@ -50,10 +62,22 @@ interface SoundpadState {
   // Player controls
   setActivePlaylist: (id: string | null) => void;
   setActiveSong: (id: string | null) => void;
+  playSong: (playlistId: string, songId: string) => void;
   setIsPlaying: (playing: boolean) => void;
   setProgress: (progress: number) => void;
   toggleLoop: () => void;
   setSpotifyDeviceId: (id: string | null) => void;
+
+  volume: number;
+  isMuted: boolean;
+  setVolume: (volume: number) => void;
+  toggleMute: () => void;
+
+  isSeeking: boolean;
+  setIsSeeking: (isSeeking: boolean) => void;
+
+  audioError: string | null;
+  setAudioError: (error: string | null) => void;
 
   playbackTrigger: number;
   isSpotifyConnected: boolean;
@@ -62,7 +86,7 @@ interface SoundpadState {
   setIsSpotifyConnected: (connected: boolean) => void;
   setSpotifyError: (error: string | null) => void;
 
-  playNext: () => void;
+  playNext: (forceNext?: boolean) => void;
   playPrev: () => void;
 }
 
@@ -80,6 +104,16 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
   progress: 0,
   isLooping: false,
   spotifyDeviceId: null,
+  volume:
+    typeof window !== 'undefined'
+      ? Number(localStorage.getItem('sgm_soundpad_volume') ?? 50)
+      : 50,
+  isMuted:
+    typeof window !== 'undefined'
+      ? localStorage.getItem('sgm_soundpad_muted') === 'true'
+      : false,
+  isSeeking: false,
+  audioError: null,
   playbackTrigger: 0,
   isSpotifyConnected: false,
   spotifyError: null,
@@ -221,6 +255,62 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
       return newState;
     }),
 
+  addSongsToPlaylist: (pageId, playlistId, songs) =>
+    set((state) => {
+      touchSpotifyActivity();
+      const newSongs: Song[] = songs.map((s) => ({
+        id: generateId(),
+        ...s,
+      }));
+      const newState = {
+        pages: state.pages.map((p) => {
+          if (p.id === pageId) {
+            return {
+              ...p,
+              playlists: p.playlists.map((pl) =>
+                pl.id === playlistId
+                  ? {
+                      ...pl,
+                      songs: [...pl.songs, ...newSongs],
+                      updatedAt: Date.now(),
+                    }
+                  : pl,
+              ),
+            };
+          }
+          return p;
+        }),
+      };
+      setTimeout(() => triggerAutoSave(), 0);
+      return newState;
+    }),
+
+  importPlaylist: (pageId, name, songs) => {
+    touchSpotifyActivity();
+    const newPlaylistId = generateId();
+    const newPlaylist: Playlist = {
+      id: newPlaylistId,
+      name: name.trim() || 'Nova Playlist',
+      tags: [],
+      songs: songs.map((s) => ({
+        id: generateId(),
+        ...s,
+      })),
+      updatedAt: Date.now(),
+    };
+
+    set((state) => ({
+      pages: state.pages.map((p) => {
+        if (p.id === pageId) {
+          return { ...p, playlists: [...p.playlists, newPlaylist] };
+        }
+        return p;
+      }),
+    }));
+    setTimeout(() => triggerAutoSave(), 0);
+    return newPlaylistId;
+  },
+
   removeSongFromPlaylist: (pageId, playlistId, songId) =>
     set((state) => {
       const newState = {
@@ -291,16 +381,47 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
 
   setActivePlaylist: (id) => set({ activePlaylistId: id }),
   setActiveSong: (id) =>
-    set({ activeSongId: id, isPlaying: false, progress: 0 }),
+    set({ activeSongId: id, isPlaying: false, progress: 0, audioError: null }),
+  playSong: (playlistId, songId) => {
+    touchSpotifyActivity();
+    return set((state) => ({
+      activePlaylistId: playlistId,
+      activeSongId: songId,
+      isPlaying: true,
+      progress: 0,
+      audioError: null,
+      playbackTrigger: (state.playbackTrigger || 0) + 1,
+    }));
+  },
   setIsPlaying: (playing) => set({ isPlaying: playing }),
   setProgress: (progress) => set({ progress }),
   toggleLoop: () => set((state) => ({ isLooping: !state.isLooping })),
   setSpotifyDeviceId: (id) => set({ spotifyDeviceId: id }),
+
+  setVolume: (volume) => {
+    const clamped = Math.max(0, Math.min(100, volume));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sgm_soundpad_volume', String(clamped));
+    }
+    set({ volume: clamped, isMuted: false });
+  },
+  toggleMute: () =>
+    set((state) => {
+      const newMuted = !state.isMuted;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('sgm_soundpad_muted', String(newMuted));
+      }
+      return { isMuted: newMuted };
+    }),
+  setIsSeeking: (isSeeking) => set({ isSeeking }),
+  setAudioError: (error) => set({ audioError: error }),
+
   setIsSpotifyConnected: (connected) => set({ isSpotifyConnected: connected }),
   setSpotifyError: (error) => set({ spotifyError: error }),
 
-  playNext: () =>
-    set((state) => {
+  playNext: (forceNext = false) => {
+    touchSpotifyActivity();
+    return set((state) => {
       if (!state.activePlaylistId) return state;
 
       let songs: Song[] = [];
@@ -312,11 +433,12 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
       if (songs.length === 0) return state;
 
       const currentIndex = songs.findIndex((s) => s.id === state.activeSongId);
+      const nextTrigger = (state.playbackTrigger || 0) + 1;
 
-      // If loop is active, repeat the exact same song
-      if (state.isLooping && currentIndex !== -1) {
+      // If loop is active and not forced (i.e. natural song completion), repeat the exact same song
+      if (state.isLooping && !forceNext && currentIndex !== -1) {
         return {
-          playbackTrigger: state.playbackTrigger + 1,
+          playbackTrigger: nextTrigger,
           isPlaying: true,
           progress: 0,
         };
@@ -324,21 +446,34 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
 
       // Otherwise, go to next song. If at end, loop the playlist.
       if (currentIndex === -1) {
-        return { activeSongId: songs[0].id, isPlaying: true, progress: 0 };
+        return {
+          activeSongId: songs[0].id,
+          isPlaying: true,
+          progress: 0,
+          playbackTrigger: nextTrigger,
+        };
       } else if (currentIndex < songs.length - 1) {
         return {
           activeSongId: songs[currentIndex + 1].id,
           isPlaying: true,
           progress: 0,
+          playbackTrigger: nextTrigger,
         };
       } else {
         // Loop entire playlist natively
-        return { activeSongId: songs[0].id, isPlaying: true, progress: 0 };
+        return {
+          activeSongId: songs[0].id,
+          isPlaying: true,
+          progress: 0,
+          playbackTrigger: nextTrigger,
+        };
       }
-    }),
+    });
+  },
 
-  playPrev: () =>
-    set((state) => {
+  playPrev: () => {
+    touchSpotifyActivity();
+    return set((state) => {
       if (!state.activePlaylistId) return state;
 
       let songs: Song[] = [];
@@ -350,11 +485,14 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
       if (songs.length === 0) return state;
 
       const currentIndex = songs.findIndex((s) => s.id === state.activeSongId);
+      const nextTrigger = (state.playbackTrigger || 0) + 1;
+
       if (currentIndex > 0) {
         return {
           activeSongId: songs[currentIndex - 1].id,
           isPlaying: true,
           progress: 0,
+          playbackTrigger: nextTrigger,
         };
       } else {
         // Loop around to last song natively
@@ -362,7 +500,10 @@ export const useSoundpadStore = create<SoundpadState>((set) => ({
           activeSongId: songs[songs.length - 1].id,
           isPlaying: true,
           progress: 0,
+          playbackTrigger: nextTrigger,
         };
       }
-    }),
+    });
+  },
+
 }));

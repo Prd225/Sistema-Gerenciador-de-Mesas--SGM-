@@ -10,9 +10,15 @@ import {
   Hash,
   Trash2,
   MonitorPlay,
+  Play,
+  Pause,
+  GripVertical,
+  Download,
 } from 'lucide-react';
 import type { SongSource } from '@/types/soundpad';
 import AddMusicModal from './AddMusicModal';
+import ImportPlaylistModal from './ImportPlaylistModal';
+
 
 interface PlaylistEditorProps {
   pageId: string;
@@ -29,7 +35,9 @@ export default function PlaylistEditor({
   const updatePlaylist = useSoundpadStore((state) => state.updatePlaylist);
   const removePlaylist = useSoundpadStore((state) => state.removePlaylist);
   const activeSongId = useSoundpadStore((state) => state.activeSongId);
-  const setActiveSong = useSoundpadStore((state) => state.setActiveSong);
+  const isPlaying = useSoundpadStore((state) => state.isPlaying);
+  const setIsPlaying = useSoundpadStore((state) => state.setIsPlaying);
+  const playSong = useSoundpadStore((state) => state.playSong);
   const removeSongFromPlaylist = useSoundpadStore(
     (state) => state.removeSongFromPlaylist,
   );
@@ -60,6 +68,7 @@ export default function PlaylistEditor({
   const [tagInput, setTagInput] = useState('');
   const [isFooterMinimized, setIsFooterMinimized] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   if (!playlist) return null;
 
@@ -167,7 +176,11 @@ export default function PlaylistEditor({
               return (
                 <div
                   key={song.id}
-                  onDoubleClick={() => setActiveSong(song.id)}
+                  onDoubleClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    playSong(playlistId, song.id);
+                  }}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     setContextMenu({
@@ -176,11 +189,6 @@ export default function PlaylistEditor({
                       songId: song.id,
                       songUrl: song.sourceUrl,
                     });
-                  }}
-                  draggable
-                  onDragStart={(e) => {
-                    setDraggedIdx(idx);
-                    e.dataTransfer.effectAllowed = 'move';
                   }}
                   onDragOver={(e) => {
                     e.preventDefault();
@@ -198,23 +206,73 @@ export default function PlaylistEditor({
                     updatePlaylistSongs(pageId, playlistId, newSongs);
                     setDraggedIdx(null);
                   }}
-                  onDragEnd={() => {
-                    setDraggedIdx(null);
-                    setDragOverIdx(null);
-                  }}
-                  className={`flex items-center gap-3 p-2 bg-[#202024] hover:bg-[#29292e] border ${isActive ? 'border-[#1DB954] shadow-[0_0_10px_rgba(29,185,84,0.1)]' : 'border-[#323238] hover:border-[#8257e5]/50'} rounded cursor-pointer group transition-all ${isDragged ? 'opacity-50 scale-95' : ''} ${isDragOver ? 'border-t-[#8257e5] border-t-2' : ''}`}
+                  className={`flex items-center gap-2 p-2 bg-[#202024] hover:bg-[#29292e] border ${
+                    isActive
+                      ? 'border-[#8257e5] bg-[#8257e5]/10 shadow-[0_0_10px_rgba(130,87,229,0.15)]'
+                      : 'border-[#323238] hover:border-[#8257e5]/50'
+                  } rounded cursor-pointer group transition-all select-none ${
+                    isDragged ? 'opacity-50 scale-95' : ''
+                  } ${isDragOver ? 'border-t-[#8257e5] border-t-2' : ''}`}
                 >
-                  <div className="w-6 text-center text-[#4d4d57] font-mono text-sm group-hover:text-[#8257e5] transition-colors">
-                    {idx + 1}
+                  {/* Drag Handle & Play Trigger */}
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <div
+                      draggable
+                      onDragStart={(e) => {
+                        e.stopPropagation();
+                        setDraggedIdx(idx);
+                        e.dataTransfer.effectAllowed = 'move';
+                      }}
+                      onDragEnd={() => {
+                        setDraggedIdx(null);
+                        setDragOverIdx(null);
+                      }}
+                      className="w-4 h-6 flex items-center justify-center opacity-0 group-hover:opacity-70 hover:!opacity-100 cursor-grab active:cursor-grabbing text-[#7a7a80]"
+                      title="Arrastar para reordenar"
+                    >
+                      <GripVertical className="w-3.5 h-3.5" />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (isActive && isPlaying) {
+                          setIsPlaying(false);
+                        } else {
+                          playSong(playlistId, song.id);
+                        }
+                      }}
+                      className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-[#323238] text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors"
+                      title={isActive && isPlaying ? 'Pausar' : 'Tocar esta música'}
+                    >
+                      {isActive && isPlaying ? (
+                        <Pause className="w-3.5 h-3.5 text-[#8257e5] fill-current" />
+                      ) : (
+                        <>
+                          <span className="group-hover:hidden font-mono text-xs text-[#7a7a80]">
+                            {idx + 1}
+                          </span>
+                          <Play className="w-3.5 h-3.5 hidden group-hover:block fill-current translate-x-0.5 text-[#8257e5]" />
+                        </>
+                      )}
+                    </button>
                   </div>
+
                   <div className="flex-1 min-w-0">
-                    <p className="text-[#e1e1e6] font-medium text-sm truncate">
+                    <p
+                      className={`text-sm font-medium truncate ${
+                        isActive ? 'text-[#8257e5]' : 'text-[#e1e1e6]'
+                      }`}
+                    >
                       {song.name}
                     </p>
                     <p className="text-[#7a7a80] text-xs truncate">
                       {song.author}
                     </p>
                   </div>
+
                   <div className="flex items-center gap-3 shrink-0">
                     <SourceIcon type={song.sourceType} />
                     <span className="text-xs text-[#7a7a80] font-mono w-10 text-right">
@@ -227,14 +285,23 @@ export default function PlaylistEditor({
           )}
         </div>
 
-        {/* Botão de Adicionar Música (Compacto) */}
-        <div className="px-2 pt-2 pb-4">
+        {/* Botões de Adicionar Música e Importar Playlist */}
+        <div className="px-2 pt-2 pb-4 flex gap-2">
           <button
             onClick={handleAddSongClick}
-            className="w-full flex items-center justify-center gap-2 p-2.5 bg-[#8257e5]/10 text-[#8257e5] hover:bg-[#8257e5]/20 border border-[#8257e5]/20 hover:border-[#8257e5]/40 rounded transition-all font-medium text-sm"
+            className="flex-1 flex items-center justify-center gap-2 p-2.5 bg-[#8257e5]/10 text-[#8257e5] hover:bg-[#8257e5]/20 border border-[#8257e5]/20 hover:border-[#8257e5]/40 rounded transition-all font-medium text-sm"
           >
             <Plus className="w-4 h-4" />
             <span>Adicionar Música</span>
+          </button>
+
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-[#202024] hover:bg-[#29292e] text-[#a8a8b3] hover:text-[#e1e1e6] border border-[#323238] hover:border-[#8257e5]/40 rounded transition-all font-medium text-sm"
+            title="Importar Playlist do Spotify ou YouTube"
+          >
+            <Download className="w-4 h-4 text-[#8257e5]" />
+            <span className="hidden sm:inline text-xs">Importar Playlist</span>
           </button>
         </div>
       </div>
@@ -319,6 +386,13 @@ export default function PlaylistEditor({
         onOpenChange={setIsAddModalOpen}
         pageId={pageId}
         playlistId={playlistId}
+      />
+
+      <ImportPlaylistModal
+        open={isImportModalOpen}
+        onOpenChange={setIsImportModalOpen}
+        pageId={pageId}
+        targetPlaylistId={playlistId}
       />
 
       {/* Menu de Contexto (Botão Direito) */}

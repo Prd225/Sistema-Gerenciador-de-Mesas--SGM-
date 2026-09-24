@@ -8,6 +8,8 @@ const SCOPES = [
   'user-read-playback-state',
 ];
 
+const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
+
 function generateRandomString(length: number) {
   let text = '';
   const possible =
@@ -28,18 +30,151 @@ async function generateCodeChallenge(codeVerifier: string) {
     .replace(/=+$/, '');
 }
 
+/**
+ * Atualiza o timestamp da última atividade do Spotify (reprodução ou interação do usuário).
+ */
+export const touchSpotifyActivity = () => {
+  localStorage.setItem('spotify_last_activity', Date.now().toString());
+};
+
+/**
+ * Verifica se ainda está dentro da janela de atividade de 4 horas.
+ */
+export const isWithinSpotifyActivityWindow = (): boolean => {
+  const lastActivityStr = localStorage.getItem('spotify_last_activity');
+  if (!lastActivityStr) {
+    // Se há um token existente, inicia o tracking de atividade agora
+    const token = localStorage.getItem('spotify_token');
+    if (token) {
+      touchSpotifyActivity();
+      return true;
+    }
+    return false;
+  }
+  const lastActivity = Number(lastActivityStr);
+  return Date.now() - lastActivity < FOUR_HOURS_MS;
+};
+
+/**
+ * Retorna o tempo restante de atividade em milissegundos.
+ */
+export const getRemainingSpotifyActiveTime = (): number => {
+  const lastActivityStr = localStorage.getItem('spotify_last_activity');
+  if (!lastActivityStr) return 0;
+  return Math.max(0, FOUR_HOURS_MS - (Date.now() - Number(lastActivityStr)));
+};
+
+/**
+ * Retorna o token atual caso ainda seja válido sincronamente.
+ */
 export const getSpotifyToken = (): string | null => {
   const token = localStorage.getItem('spotify_token');
   const expires = localStorage.getItem('spotify_token_expires');
 
   if (token && expires) {
-    if (new Date().getTime() > Number(expires)) {
-      localStorage.removeItem('spotify_token');
-      localStorage.removeItem('spotify_token_expires');
+    if (Date.now() > Number(expires)) {
       return null;
     }
     return token;
   }
+  return null;
+};
+
+let refreshPromise: Promise<string | null> | null = null;
+
+/**
+ * Renova o access_token utilizando o refresh_token (PKCE).
+ * Só executa se estiver dentro da janela de 4 horas de atividade.
+ */
+export const refreshSpotifyToken = async (): Promise<string | null> => {
+  const refreshToken = localStorage.getItem('spotify_refresh_token');
+  if (!refreshToken || !CLIENT_ID) {
+    return null;
+  }
+
+  if (!isWithinSpotifyActivityWindow()) {
+    console.log(
+      '[SpotifyAuth] Mais de 4 horas sem atividade. Conexão expirada por inatividade.',
+    );
+    return null;
+  }
+
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  refreshPromise = (async () => {
+    try {
+      const body = new URLSearchParams({
+        client_id: CLIENT_ID,
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+      });
+
+      const response = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+      });
+
+      if (!response.ok) {
+        console.error(
+          '[SpotifyAuth] Falha ao renovar token Spotify, status:',
+          response.status,
+        );
+        if (response.status === 400 || response.status === 401) {
+          localStorage.removeItem('spotify_token');
+          localStorage.removeItem('spotify_token_expires');
+          localStorage.removeItem('spotify_refresh_token');
+        }
+        return null;
+      }
+
+      const data = await response.json();
+      const expiresAt = Date.now() + (data.expires_in || 3600) * 1000;
+      localStorage.setItem('spotify_token', data.access_token);
+      localStorage.setItem('spotify_token_expires', expiresAt.toString());
+
+      if (data.refresh_token) {
+        localStorage.setItem('spotify_refresh_token', data.refresh_token);
+      }
+
+      touchSpotifyActivity();
+      console.log(
+        '[SpotifyAuth] Token Spotify renovado com sucesso. Válido até:',
+        new Date(expiresAt).toLocaleTimeString(),
+      );
+      return data.access_token as string;
+    } catch (err) {
+      console.error('[SpotifyAuth] Erro ao renovar token do Spotify:', err);
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+};
+
+/**
+ * Retorna um token válido. Se expirou ou vai expirar em menos de 60s,
+ * renova automaticamente caso dentro da janela de 4 horas.
+ */
+export const getValidSpotifyToken = async (): Promise<string | null> => {
+  const token = localStorage.getItem('spotify_token');
+  const expires = Number(localStorage.getItem('spotify_token_expires') || '0');
+
+  // Se o token ainda tem mais de 60 segundos de validade
+  if (token && expires && Date.now() < expires - 60000) {
+    return token;
+  }
+
+  // Renova usando o refresh_token se estiver na janela ativa de 4h
+  if (isWithinSpotifyActivityWindow()) {
+    const refreshed = await refreshSpotifyToken();
+    if (refreshed) return refreshed;
+  }
+
   return null;
 };
 
@@ -70,9 +205,13 @@ export const handleSpotifyAuthCallback = async (): Promise<boolean> => {
 
     const data = await response.json();
 
-    const expiresAt = new Date().getTime() + data.expires_in * 1000;
+    const expiresAt = Date.now() + (data.expires_in || 3600) * 1000;
     localStorage.setItem('spotify_token', data.access_token);
     localStorage.setItem('spotify_token_expires', expiresAt.toString());
+    if (data.refresh_token) {
+      localStorage.setItem('spotify_refresh_token', data.refresh_token);
+    }
+    touchSpotifyActivity();
 
     // Se estiver em um popup de autenticação, avisa a janela principal e fecha
     if (window.opener) {
@@ -81,6 +220,7 @@ export const handleSpotifyAuthCallback = async (): Promise<boolean> => {
           {
             type: 'SPOTIFY_AUTH_SUCCESS',
             token: data.access_token,
+            refreshToken: data.refresh_token,
             expiresAt,
           },
           '*',
@@ -158,6 +298,17 @@ export const loginToSpotify = async () => {
 export const logoutFromSpotify = () => {
   localStorage.removeItem('spotify_token');
   localStorage.removeItem('spotify_token_expires');
+  localStorage.removeItem('spotify_refresh_token');
   localStorage.removeItem('spotify_verifier');
+  localStorage.removeItem('spotify_last_activity');
+
+  const playerInstance = (window as any).SpotifyPlayerInstance;
+  if (playerInstance) {
+    try {
+      playerInstance.disconnect();
+    } catch {}
+  }
+
   window.location.reload();
 };
+

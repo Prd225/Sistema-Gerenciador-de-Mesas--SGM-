@@ -24,6 +24,7 @@ import {
   CheckSquare,
   Check,
   Plus,
+  X,
 } from 'lucide-react';
 import type { Zone } from '@/types/game';
 import { useZoneStore } from '@/store/useZoneStore';
@@ -451,14 +452,27 @@ export default function ZoneMarkerModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#202024] border-[#323238] text-[#e1e1e6] sm:max-w-[620px] max-h-[90vh] flex flex-col shadow-2xl p-0 overflow-hidden">
+      <DialogContent
+        showCloseButton={false}
+        className="bg-[#202024] border-[#323238] text-[#e1e1e6] sm:max-w-[620px] max-h-[90vh] flex flex-col shadow-2xl p-0 overflow-hidden"
+      >
         {/* Header */}
         <div className="p-4 pb-2.5 border-b border-[#323238]">
-          <DialogHeader>
-            <DialogTitle className="text-[#ffd700] flex items-center gap-2.5 text-base font-bold">
-              <BookmarkPlus className="w-5 h-5 text-[#ffd700]" />
-              Gerenciador de Marcadores
-            </DialogTitle>
+          <DialogHeader className="gap-1">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-[#ffd700] flex items-center gap-2 text-base font-bold">
+                <BookmarkPlus className="w-4.5 h-4.5 text-[#ffd700] shrink-0" />
+                <span>Gerenciador de Marcadores</span>
+              </DialogTitle>
+              <button
+                type="button"
+                onClick={() => onOpenChange(false)}
+                className="text-[#a8a8b3] hover:text-white transition-colors p-1 rounded-md hover:bg-white/10 cursor-pointer -mr-1"
+                aria-label="Fechar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
             <DialogDescription className="text-xs text-[#a8a8b3]">
               Personalize os marcadores e submenus da lateral de{' '}
               <span className="font-semibold text-white">{zoneTitle}</span>.
@@ -1188,11 +1202,11 @@ export default function ZoneMarkerModal({
         </div>
 
         {/* Footer */}
-        <DialogFooter className="p-3 border-t border-[#323238] bg-[#1a1a1e] flex justify-end">
+        <DialogFooter className="m-0 px-4 py-3 border-t border-[#323238] bg-[#1a1a1e] flex justify-end">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="border-[#323238] bg-transparent text-[#e1e1e6] hover:bg-white/5 text-xs font-semibold"
+            className="border-[#323238] bg-transparent text-[#e1e1e6] hover:bg-white/5 text-xs font-semibold px-4 cursor-pointer"
           >
             Fechar
           </Button>

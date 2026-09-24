@@ -14,7 +14,9 @@ import {
   AlignCenter,
   AlignRight,
   AlignJustify,
+  Sigma,
 } from 'lucide-react';
+import { replaceDiceShortcodesWithHtml, toggleDiceFormulaSelection } from '@/lib/diceEmoji';
 
 const TEXT_COLORS = [
   '#e1e1e6',
@@ -117,11 +119,38 @@ export default function TableEditorFullscreen({
     saveTableData(newData);
   };
 
+  const [alignState, setAlignState] = useState<'left' | 'center' | 'right' | 'justify'>('left');
+
   const execCommand = (
     command: string,
     value: string | undefined = undefined,
   ) => {
     document.execCommand(command, false, value);
+  };
+
+  const handleCycleAlign = () => {
+    if (alignState === 'left') {
+      execCommand('justifyCenter');
+      setAlignState('center');
+    } else if (alignState === 'center') {
+      execCommand('justifyRight');
+      setAlignState('right');
+    } else if (alignState === 'right') {
+      execCommand('justifyFull');
+      setAlignState('justify');
+    } else {
+      execCommand('justifyLeft');
+      setAlignState('left');
+    }
+  };
+
+  const handleToggleFormula = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const activeEl = document.activeElement;
+    if (activeEl && activeEl instanceof HTMLElement && activeEl.isContentEditable) {
+      toggleDiceFormulaSelection(activeEl);
+    }
   };
 
   if (!table) return null;
@@ -208,45 +237,41 @@ export default function TableEditorFullscreen({
           <Underline className="w-4 h-4" />
         </button>
         <div className="w-px h-4 bg-[#323238] mx-1 shrink-0" />
+
+        {/* Compact Align Cycle Button */}
         <button
           onMouseDown={(e) => {
             e.preventDefault();
-            execCommand('justifyLeft');
+            handleCycleAlign();
           }}
-          className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors shrink-0"
-          title="Alinhar à Esquerda"
+          className={`p-1.5 rounded transition-colors shrink-0 ${
+            alignState !== 'left'
+              ? 'bg-[#8257e5]/20 text-[#a78bfa] border border-[#8257e5]/40'
+              : 'hover:bg-[#323238] text-[#a8a8b3] hover:text-[#e1e1e6]'
+          }`}
+          title="Alinhamento"
         >
-          <AlignLeft className="w-4 h-4" />
+          {alignState === 'center' ? (
+            <AlignCenter className="w-4 h-4" />
+          ) : alignState === 'right' ? (
+            <AlignRight className="w-4 h-4" />
+          ) : alignState === 'justify' ? (
+            <AlignJustify className="w-4 h-4" />
+          ) : (
+            <AlignLeft className="w-4 h-4" />
+          )}
         </button>
+
+        {/* Dice Formula Button */}
         <button
           onMouseDown={(e) => {
             e.preventDefault();
-            execCommand('justifyCenter');
+            handleToggleFormula();
           }}
-          className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors shrink-0"
-          title="Centralizar"
+          className="p-1.5 hover:bg-[#8257e5]/20 hover:text-[#a78bfa] rounded text-[#a8a8b3] hover:border hover:border-[#8257e5]/40 transition-colors shrink-0"
+          title="Fórmula"
         >
-          <AlignCenter className="w-4 h-4" />
-        </button>
-        <button
-          onMouseDown={(e) => {
-            e.preventDefault();
-            execCommand('justifyRight');
-          }}
-          className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors shrink-0"
-          title="Alinhar à Direita"
-        >
-          <AlignRight className="w-4 h-4" />
-        </button>
-        <button
-          onMouseDown={(e) => {
-            e.preventDefault();
-            execCommand('justifyFull');
-          }}
-          className="p-1.5 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors shrink-0"
-          title="Justificar"
-        >
-          <AlignJustify className="w-4 h-4" />
+          <Sigma className="w-4 h-4" />
         </button>
 
         <div className="w-px h-4 bg-[#323238] mx-1 shrink-0" />
@@ -354,7 +379,7 @@ export default function TableEditorFullscreen({
                 {row.map((cellContent, colIndex) => (
                   <td
                     key={colIndex}
-                    className={`border-r border-[#323238] p-0 relative ${rowIndex === 0 ? 'bg-[#202024] font-semibold text-[#e1e1e6]' : 'text-[#c4c4cc]'}`}
+                    className={`border-r border-[#323238] p-0 relative overflow-visible ${rowIndex === 0 ? 'bg-[#202024] font-semibold text-[#e1e1e6]' : 'text-[#c4c4cc]'}`}
                     style={{ minWidth: '100px' }}
                   >
                     <div
@@ -368,8 +393,8 @@ export default function TableEditorFullscreen({
                           e.currentTarget.innerHTML,
                         )
                       }
-                      dangerouslySetInnerHTML={{ __html: cellContent }}
-                      className="w-full h-full min-h-[32px] outline-none px-2 py-1.5 text-sm break-all whitespace-pre-wrap"
+                      dangerouslySetInnerHTML={{ __html: replaceDiceShortcodesWithHtml(cellContent) }}
+                      className="w-full h-full min-h-[36px] outline-none px-2.5 py-2 text-sm leading-relaxed break-all whitespace-pre-wrap overflow-visible"
                     />
                   </td>
                 ))}

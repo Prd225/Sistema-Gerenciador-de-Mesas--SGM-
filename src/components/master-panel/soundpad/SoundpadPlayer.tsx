@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react';
 import { useSoundpadStore } from '@/store/useSoundpadStore';
 import {
   Play,
@@ -6,13 +7,21 @@ import {
   SkipForward,
   Square,
   Repeat,
+  Volume2,
+  Volume1,
+  VolumeX,
+  AlertCircle,
 } from 'lucide-react';
 import {
   pauseSpotifyTrack,
   resumeSpotifyTrack,
   seekSpotifyTrack,
+  playSpotifyTrack,
+  getPlayer,
 } from '@/lib/spotifyPlayer';
+import { touchSpotifyActivity } from '@/lib/spotifyAuth';
 import type { Song } from '@/types/soundpad';
+
 
 export default function SoundpadPlayer() {
   const isPlaying = useSoundpadStore((state) => state.isPlaying);
@@ -28,19 +37,34 @@ export default function SoundpadPlayer() {
     (state) => state.setActivePlaylist,
   );
 
+  const volume = useSoundpadStore((state) => state.volume);
+  const isMuted = useSoundpadStore((state) => state.isMuted);
+  const setVolume = useSoundpadStore((state) => state.setVolume);
+  const toggleMute = useSoundpadStore((state) => state.toggleMute);
+  const setIsSeeking = useSoundpadStore((state) => state.setIsSeeking);
+  const audioError = useSoundpadStore((state) => state.audioError);
+
   const playNext = useSoundpadStore((state) => state.playNext);
   const playPrev = useSoundpadStore((state) => state.playPrev);
   const pages = useSoundpadStore((state) => state.pages);
+
+  // Local drag state for smooth progress bar without rubber-banding
+  const [localProgress, setLocalProgress] = useState(progress);
+  const isDraggingRef = useRef(false);
+
+  useEffect(() => {
+    if (!isDraggingRef.current && !useSoundpadStore.getState().isSeeking) {
+      setLocalProgress(progress);
+    }
+  }, [progress]);
 
   const activeSong: Song | undefined = pages
     ?.flatMap((p) => p.playlists || [])
     .flatMap((pl) => pl.songs || [])
     .find((s) => s.id === activeSongId);
 
-  // Auto-play, interval, and track switching logic have been moved to SoundpadEngine.tsx
-  // to ensure playback continues even when the master panel is minimized or closed.
-
   const handlePlayPause = async () => {
+    touchSpotifyActivity();
     if (!activeSong) {
       if (activePlaylistId) {
         let songs: Song[] = [];
@@ -60,7 +84,17 @@ export default function SoundpadPlayer() {
       if (isPlaying) {
         await pauseSpotifyTrack();
       } else {
-        await resumeSpotifyTrack();
+        const player = getPlayer();
+        if (player) {
+          const state = await player.getCurrentState().catch(() => null);
+          if (state && state.track_window?.current_track) {
+            await resumeSpotifyTrack();
+          } else {
+            await playSpotifyTrack(activeSong.sourceUrl);
+          }
+        } else {
+          await playSpotifyTrack(activeSong.sourceUrl);
+        }
       }
     } else if (activeSong.sourceType === 'youtube') {
       if (isPlaying) {
@@ -70,36 +104,69 @@ export default function SoundpadPlayer() {
         window.dispatchEvent(new Event('soundpad-play-yt'));
         setIsPlaying(true);
       }
+    } else if (activeSong.sourceType === 'local') {
+      if (isPlaying) {
+        window.dispatchEvent(new Event('soundpad-pause-local'));
+        setIsPlaying(false);
+      } else {
+        window.dispatchEvent(new Event('soundpad-play-local'));
+        setIsPlaying(true);
+      }
     } else {
       setIsPlaying(!isPlaying);
     }
   };
 
   const handleStop = async () => {
-    // Always attempt to pause both sources to prevent orphaned audio
+    touchSpotifyActivity();
+    // Pause all potential audio sources
     await pauseSpotifyTrack().catch(() => {});
     window.dispatchEvent(new Event('soundpad-pause-yt'));
+    window.dispatchEvent(new Event('soundpad-pause-local'));
 
     setIsPlaying(false);
     setProgress(0);
+    setLocalProgress(0);
     setActiveSong(null);
     setActivePlaylist(null);
   };
 
-  const handleSeek = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newProgress = Number(e.target.value);
-    setProgress(newProgress);
+  const handleSeekCommit = async (newVal: number) => {
+    touchSpotifyActivity();
+    setProgress(newVal);
 
     if (activeSong?.sourceType === 'spotify') {
-      const positionMs = (newProgress / 100) * (activeSong.duration * 1000);
+      let durationMs = (activeSong.duration || 0) * 1000;
+      if (durationMs <= 0) {
+        const player = getPlayer();
+        if (player) {
+          const state = await player.getCurrentState().catch(() => null);
+          if (state?.duration) {
+            durationMs = state.duration;
+            useSoundpadStore
+              .getState()
+              .updateSongDuration(
+                activeSong.id,
+                Math.floor(state.duration / 1000),
+              );
+          }
+        }
+      }
+      const positionMs = (newVal / 100) * (durationMs || 0);
       await seekSpotifyTrack(positionMs);
     } else if (activeSong?.sourceType === 'youtube') {
-      const positionSec = (newProgress / 100) * (activeSong.duration || 0);
+      const positionSec = (newVal / 100) * (activeSong.duration || 0);
       window.dispatchEvent(
         new CustomEvent('soundpad-seek-yt', { detail: { positionSec } }),
       );
+    } else if (activeSong?.sourceType === 'local') {
+      const positionSec = (newVal / 100) * (activeSong.duration || 0);
+      window.dispatchEvent(
+        new CustomEvent('soundpad-seek-local', { detail: { positionSec } }),
+      );
     }
   };
+
 
   const formatTime = (percentage: number, totalSeconds: number) => {
     if (!totalSeconds) return '0:00';
@@ -118,19 +185,46 @@ export default function SoundpadPlayer() {
   };
 
   return (
-    <div className="bg-[#1a1a1e] border-b border-[#323238] p-3 flex flex-col gap-2 shrink-0">
-      <div className="flex items-center justify-center gap-4">
+    <div className="bg-[#1a1a1e] border-b border-[#323238] p-2 flex flex-col gap-1.5 shrink-0 select-none">
+      {/* Apenas o nome da música: texto puro, sem ícone, sem caixinha/card, sem artista, cortado se extenso */}
+      {activeSong && (
+        <div className="px-3 py-0.5 min-w-0 overflow-hidden text-center">
+          <p
+            className="text-xs text-[#e1e1e6] font-medium truncate select-text"
+            title={activeSong.name}
+          >
+            {activeSong.name}
+          </p>
+        </div>
+      )}
+
+      {/* Audio Error Banner */}
+      {audioError && (
+        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-[0.65rem] animate-in fade-in">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate flex-1">{audioError}</span>
+        </div>
+      )}
+
+      {/* Controls Row */}
+      <div className="flex items-center justify-center gap-3">
         <button
           onClick={handleStop}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#323238] text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors"
+          className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#323238] text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors"
           title="Parar"
         >
-          <Square className="w-4 h-4 fill-current" />
+          <Square className="w-3.5 h-3.5 fill-current" />
         </button>
 
         <button
-          onClick={playPrev}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#323238] text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors disabled:opacity-50"
+          onClick={async () => {
+            touchSpotifyActivity();
+            if (activeSong?.sourceType === 'spotify') {
+              await pauseSpotifyTrack().catch(() => {});
+            }
+            playPrev();
+          }}
+          className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#323238] text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors disabled:opacity-50"
           title="Música Anterior"
         >
           <SkipBack className="w-4 h-4 fill-current" />
@@ -139,44 +233,54 @@ export default function SoundpadPlayer() {
         <button
           onClick={handlePlayPause}
           disabled={!activeSong && !activePlaylistId}
-          className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors shadow-lg ${
+          className={`w-9 h-9 flex items-center justify-center rounded-full transition-all shadow-md ${
             !activeSong && !activePlaylistId
               ? 'bg-[#323238] text-[#7a7a80] cursor-not-allowed'
-              : 'bg-[#8257e5] hover:bg-[#9466ff] text-white shadow-[#8257e5]/20'
+              : 'bg-[#8257e5] hover:bg-[#9466ff] text-white shadow-[#8257e5]/25 hover:scale-105 active:scale-95'
           }`}
           title={isPlaying ? 'Pausar' : 'Tocar'}
         >
           {isPlaying ? (
-            <Pause className="w-5 h-5 fill-current" />
+            <Pause className="w-4 h-4 fill-current" />
           ) : (
-            <Play className="w-5 h-5 fill-current translate-x-0.5" />
+            <Play className="w-4 h-4 fill-current translate-x-0.5" />
           )}
         </button>
 
         <button
-          onClick={playNext}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#323238] text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors disabled:opacity-50"
+          onClick={async () => {
+            touchSpotifyActivity();
+            if (activeSong?.sourceType === 'spotify') {
+              await pauseSpotifyTrack().catch(() => {});
+            }
+            playNext(true);
+          }}
+          className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#323238] text-[#a8a8b3] hover:text-[#e1e1e6] transition-colors disabled:opacity-50"
           title="Próxima Música"
         >
           <SkipForward className="w-4 h-4 fill-current" />
         </button>
 
         <button
-          onClick={toggleLoop}
-          className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${
+          onClick={() => {
+            touchSpotifyActivity();
+            toggleLoop();
+          }}
+          className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${
             isLooping
               ? 'text-[#8257e5] bg-[#8257e5]/10'
               : 'text-[#a8a8b3] hover:bg-[#323238] hover:text-[#e1e1e6]'
           }`}
-          title="Repetir (Looping)"
+          title={isLooping ? 'Repetir ativado' : 'Repetir desativado'}
         >
-          <Repeat className="w-4 h-4" />
+          <Repeat className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      <div className="flex items-center gap-3 px-2">
-        <span className="text-[0.65rem] text-[#7a7a80] font-mono w-8 text-right">
-          {formatTime(progress, activeSong?.duration || 0)}
+      {/* Progress Seekbar Row */}
+      <div className="flex items-center gap-2.5 px-2">
+        <span className="text-[0.65rem] text-[#7a7a80] font-mono w-7 text-right">
+          {formatTime(localProgress, activeSong?.duration || 0)}
         </span>
         <div className="flex-1 flex items-center h-4 cursor-pointer">
           <input
@@ -184,18 +288,84 @@ export default function SoundpadPlayer() {
             min={0}
             max={100}
             step={1}
-            value={progress}
-            onChange={handleSeek}
+            value={localProgress}
+            onMouseDown={() => {
+              isDraggingRef.current = true;
+              setIsSeeking(true);
+            }}
+            onTouchStart={() => {
+              isDraggingRef.current = true;
+              setIsSeeking(true);
+            }}
+            onChange={(e) => {
+              setLocalProgress(Number(e.target.value));
+            }}
+            onMouseUp={(e) => {
+              const val = Number((e.target as HTMLInputElement).value);
+              handleSeekCommit(val);
+              setTimeout(() => {
+                isDraggingRef.current = false;
+                setIsSeeking(false);
+              }, 350);
+            }}
+            onTouchEnd={(e) => {
+              const val = Number((e.target as HTMLInputElement).value);
+              handleSeekCommit(val);
+              setTimeout(() => {
+                isDraggingRef.current = false;
+                setIsSeeking(false);
+              }, 350);
+            }}
             disabled={!activeSong}
-            className={`w-full h-1.5 rounded-full appearance-none accent-[#8257e5] ${
+            className={`w-full h-1.5 rounded-full appearance-none accent-[#8257e5] transition-all ${
               !activeSong
-                ? 'bg-[#202024] cursor-not-allowed'
-                : 'bg-[#323238] cursor-pointer'
+                ? 'bg-[#202024] cursor-not-allowed opacity-50'
+                : 'bg-[#323238] cursor-pointer hover:bg-[#3d3d45]'
             }`}
           />
         </div>
-        <span className="text-[0.65rem] text-[#7a7a80] font-mono w-8">
+        <span className="text-[0.65rem] text-[#7a7a80] font-mono w-7">
           {formatDuration(activeSong?.duration || 0)}
+        </span>
+      </div>
+
+      {/* Volume Row - Abaixo da barra de duração sem pop-up */}
+      <div className="flex items-center gap-2 px-2 pt-0.5">
+        <button
+          onClick={() => {
+            touchSpotifyActivity();
+            toggleMute();
+          }}
+          className={`shrink-0 p-1 rounded hover:bg-[#323238] transition-colors ${
+            isMuted || volume === 0 ? 'text-red-400' : 'text-[#a8a8b3] hover:text-[#e1e1e6]'
+          }`}
+          title={isMuted ? 'Desmutar' : `Volume: ${volume}%`}
+        >
+          {isMuted || volume === 0 ? (
+            <VolumeX className="w-3.5 h-3.5" />
+          ) : volume < 50 ? (
+            <Volume1 className="w-3.5 h-3.5" />
+          ) : (
+            <Volume2 className="w-3.5 h-3.5" />
+          )}
+        </button>
+
+        <div className="flex-1 flex items-center h-3 cursor-pointer">
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={isMuted ? 0 : volume}
+            onChange={(e) => {
+              touchSpotifyActivity();
+              setVolume(Number(e.target.value));
+            }}
+            className="w-full h-1 rounded-full appearance-none accent-[#8257e5] bg-[#323238] hover:bg-[#3d3d45] cursor-pointer"
+          />
+        </div>
+
+        <span className="text-[0.65rem] font-mono text-[#7a7a80] w-7 text-right shrink-0">
+          {isMuted ? '0%' : `${volume}%`}
         </span>
       </div>
     </div>

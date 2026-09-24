@@ -273,6 +273,10 @@ export const resetGameState = async () => {
     clearTimeout(debounceTimeout);
     debounceTimeout = null;
   }
+  if (maxWaitTimeout) {
+    clearTimeout(maxWaitTimeout);
+    maxWaitTimeout = null;
+  }
   if (fadeOutTimeout) {
     clearTimeout(fadeOutTimeout);
     fadeOutTimeout = null;
@@ -406,7 +410,12 @@ export const resetGameState = async () => {
   window.location.reload();
 };
 
+// Configurações de Debounce do Salvamento Automático
+export const AUTOSAVE_DEBOUNCE_MS = 3500; // 3.5s de inatividade para agrupar alterações
+export const AUTOSAVE_MAX_WAIT_MS = 15000; // 15s limite máximo sem salvar em alterações ininterruptas
+
 let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
+let maxWaitTimeout: ReturnType<typeof setTimeout> | null = null;
 let fadeOutTimeout: ReturnType<typeof setTimeout> | null = null;
 
 export const triggerAutoSave = (forceImmediate = false) => {
@@ -421,6 +430,17 @@ export const triggerAutoSave = (forceImmediate = false) => {
 
   // Pause se modais meta de salvar/carregar estiverem abertos
   if (campaignState.showSaveModal || campaignState.showLoadModal) return;
+
+  const clearTimers = () => {
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout);
+      debounceTimeout = null;
+    }
+    if (maxWaitTimeout) {
+      clearTimeout(maxWaitTimeout);
+      maxWaitTimeout = null;
+    }
+  };
 
   const executeSave = async () => {
     if (isResetting) return;
@@ -482,13 +502,22 @@ export const triggerAutoSave = (forceImmediate = false) => {
   };
 
   if (forceImmediate) {
-    if (debounceTimeout) clearTimeout(debounceTimeout);
+    clearTimers();
     executeSave();
   } else {
-    // Debounce de 800ms para acúmulo suave de eventos
+    // 1. Debounce suave aguardando 3.5 segundos de inatividade
     if (debounceTimeout) clearTimeout(debounceTimeout);
     debounceTimeout = setTimeout(() => {
+      clearTimers();
       executeSave();
-    }, 800);
+    }, AUTOSAVE_DEBOUNCE_MS);
+
+    // 2. Limite máximo (15 segundos) para salvar mesmo sob digitação ininterrupta
+    if (!maxWaitTimeout) {
+      maxWaitTimeout = setTimeout(() => {
+        clearTimers();
+        executeSave();
+      }, AUTOSAVE_MAX_WAIT_MS);
+    }
   }
 };
