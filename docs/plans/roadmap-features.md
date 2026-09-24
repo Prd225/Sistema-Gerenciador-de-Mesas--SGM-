@@ -388,3 +388,20 @@ gantt
 3. **Velocidade do OCR**: Processamento completo de imagem de mapa Full HD (1920x1080) em menos de 4 segundos em computadores convencionais de usuários.
 4. **Precisão Mínima do OCR**: Taxa de acerto superior a 80% em números de sala impressos com contraste padrão.
 5. **Robustez de Dados**: Qualquer preset carregado deve ser salvo no IndexedDB via Dexie e persistir após recarregamento da página (F5) sem perdas de integridade relacional.
+
+---
+
+## 8. Ideias Futuras (fora do planejamento atual)
+
+### 8.1. Importação de Fichas por Foto (OCR + LLM pequeno)
+
+O jogador fotografa a ficha de papel e o SGM monta ficha, token e entrada de iniciativa automaticamente. Combina com o uso em mesa presencial.
+
+Pontos a considerar quando for implementar:
+
+- **Alvo estruturado**: extrair para o schema Zod da ficha de cada sistema (ex.: Tormenta20, Ordem Paranormal), não para texto livre.
+- **Revisão humana obrigatória**: foto, extração, tela de revisão com campos incertos destacados e confirmação pelo jogador antes de salvar.
+- **OCR separado ou não**: comparar Tesseract seguido de LLM com um modelo de visão pequeno que lê a imagem e devolve JSON em um passo. Testar com fichas manuscritas reais.
+- **Execução isolada**: worker separado (provavelmente Python) para a inferência não travar o servidor de salas. Reaproveita o endpoint de upload de imagens.
+- **Local ou API**: modelo local (sem custo por uso, privado, exige GPU ou aceita lentidão) contra API (mais precisa, custo por ficha, dependência externa).
+- **Extensão posterior**: gerar encontros e cenas a partir das fichas importadas, só depois que a importação estiver sólida.

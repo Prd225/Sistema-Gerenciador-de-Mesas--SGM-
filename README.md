@@ -101,14 +101,13 @@ Abra o navegador em `http://localhost:5173` (ou execute `npm run dev -- --open` 
 
 ## 📁 Estrutura do Projeto
 
+Documentação técnica em [`docs/`](docs/README.md). Instruções para agentes de IA em [`AGENTS.md`](AGENTS.md).
+
 ```text
 Sistema-Gerenciador-de-Mesas--SGM-/
-├── legacy/                # Arquivos arquivados da versão v6.x (HTML/JS monolítico)
-│   └── v6/
-│       ├── DM_tool_6v.html
-│       ├── css/
-│       └── js/
+├── docs/                  # Arquitetura, planos e registros de decisão
 ├── public/                # Favicons, ícones e assets estáticos
+├── server/src/            # Servidor Node (Express + Socket.io)
 ├── src/
 │   ├── assets/            # Imagens e vetores da interface
 │   ├── canvas/            # Componentes Konva do Battlemap (StageMap, Grid, Tokens, Zonas, etc.)
