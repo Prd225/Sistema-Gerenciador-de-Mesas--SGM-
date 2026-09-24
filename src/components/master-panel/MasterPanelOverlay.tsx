@@ -1,9 +1,10 @@
-import { useMasterPanelStore } from '@/store/useMasterPanelStore';
+import { useMasterPanelStore, type SlotId } from '@/store/useMasterPanelStore';
 import { ChevronDown, Sparkles } from 'lucide-react';
+import { ErrorBoundary } from 'react-error-boundary';
 import MasterPanelMenu from './MasterPanelMenu';
 import SubPanelPlaceholder from './SubPanelPlaceholder';
+import SubPanelErrorFallback from './SubPanelErrorFallback';
 import MasterDiary from './diary/MasterDiary';
-
 import MasterRules from './rules/MasterRules';
 import MasterNotes from './notes/MasterNotes';
 import MasterTables from './tables/MasterTables';
@@ -11,7 +12,7 @@ import MasterRoulettes from './roulettes/MasterRoulettes';
 import MasterSoundpad from './soundpad/MasterSoundpad';
 import ScenesPanel from './scenes/ScenesPanel';
 
-function RenderPanel({ panelId }: { panelId: string }) {
+function PanelDispatcher({ panelId }: { panelId: string }) {
   if (panelId === 'diary') return <MasterDiary />;
   if (panelId === 'rules') return <MasterRules />;
   if (panelId === 'notes') return <MasterNotes />;
@@ -20,6 +21,25 @@ function RenderPanel({ panelId }: { panelId: string }) {
   if (panelId === 'soundpad') return <MasterSoundpad />;
   if (panelId === 'scenes') return <ScenesPanel />;
   return <SubPanelPlaceholder panelId={panelId as any} />;
+}
+
+function RenderPanel({ panelId, slot }: { panelId: string; slot: SlotId }) {
+  const setSlot = useMasterPanelStore((state) => state.setSlot);
+
+  return (
+    <ErrorBoundary
+      key={panelId}
+      FallbackComponent={(props) => (
+        <SubPanelErrorFallback
+          {...props}
+          panelId={panelId}
+          onClose={() => setSlot(slot, null)}
+        />
+      )}
+    >
+      <PanelDispatcher panelId={panelId} />
+    </ErrorBoundary>
+  );
 }
 
 export default function MasterPanelOverlay() {
@@ -59,7 +79,7 @@ export default function MasterPanelOverlay() {
         {/* Esquerda (40%) */}
         <div className="flex-[4] flex flex-col h-full bg-[#121214]/40 rounded-xl overflow-hidden border border-[#323238]/50">
           {layout.left ? (
-            <RenderPanel panelId={layout.left} />
+            <RenderPanel panelId={layout.left} slot="left" />
           ) : (
             <div className="flex-1 flex items-center justify-center text-[#4d4d57] font-medium italic">
               Nenhum painel selecionado
@@ -70,7 +90,7 @@ export default function MasterPanelOverlay() {
         {/* Centro (20%) */}
         <div className="flex-[2] flex flex-col h-full bg-[#121214]/40 rounded-xl overflow-hidden border border-[#323238]/50">
           {layout.center ? (
-            <RenderPanel panelId={layout.center} />
+            <RenderPanel panelId={layout.center} slot="center" />
           ) : (
             <div className="flex-1 flex items-center justify-center text-[#4d4d57] font-medium italic">
               Nenhum painel selecionado
@@ -81,7 +101,7 @@ export default function MasterPanelOverlay() {
         {/* Direita (40%) */}
         <div className="flex-[4] flex flex-col h-full bg-[#121214]/40 rounded-xl overflow-hidden border border-[#323238]/50">
           {layout.right ? (
-            <RenderPanel panelId={layout.right} />
+            <RenderPanel panelId={layout.right} slot="right" />
           ) : (
             <div className="flex-1 flex items-center justify-center text-[#4d4d57] font-medium italic">
               Nenhum painel selecionado
