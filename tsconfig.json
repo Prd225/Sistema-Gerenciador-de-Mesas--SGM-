@@ -6,9 +6,7 @@
       "@sgm/shared/*": ["./packages/shared/src/*"],
       "@sgm/engine": ["./packages/engine/src/index.ts"],
       "@sgm/engine/*": ["./packages/engine/src/*"],
-      "@/*": ["./apps/web/src/*"],
-      "@shared": ["./packages/shared/src/index.ts"],
-      "@shared/*": ["./packages/shared/src/*"]
+      "@/*": ["./apps/web/src/*"]
     }
   },
   "files": [],

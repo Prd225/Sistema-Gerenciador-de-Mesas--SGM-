@@ -12,8 +12,6 @@
     "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
-      "@shared": ["../../shared/src/index.ts"],
-      "@shared/*": ["../../shared/src/*"],
       "@sgm/shared": ["../../packages/shared/src/index.ts"],
       "@sgm/shared/*": ["../../packages/shared/src/*"]
     }
