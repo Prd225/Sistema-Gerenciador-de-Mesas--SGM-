@@ -6,6 +6,7 @@
   "description": "Sistema Gerenciador de Mesas (SGM v7.0) - Virtual Tabletop (VTT) e Ferramenta do Mestre para RPG",
   "type": "module",
   "scripts": {
+    "start": "npm run dev",
     "dev": "concurrently -n client,server -c cyan,green \"vite --host\" \"tsx watch server/src/index.ts\"",
     "dev:client": "vite --host",
     "dev:server": "tsx watch server/src/index.ts",
