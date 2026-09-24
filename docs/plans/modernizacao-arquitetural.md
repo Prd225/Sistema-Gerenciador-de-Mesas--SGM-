@@ -130,11 +130,11 @@ Cada fase termina com CI verde e pode ser entregue em um PR próprio.
 
 ### Fase 0 — Alinhamento do repositório
 
-- [ ] Commitar a remoção de `legacy/` (ou restaurar, se ainda for necessária).
-- [ ] Trazer os 12 commits de `origin/master` para `feat/multiplayer-server` e resolver conflitos.
-- [ ] Publicar a branch no remoto.
-- [ ] Remover as pastas órfãs `client/` e `shared/` antigas.
-- [ ] Limpeza de dependências da seção 3.4 (exceto a migração para Tailwind v4, que fica para depois).
+- [x] Commitar a remoção de `legacy/` (ou restaurar, se ainda for necessária).
+- [x] Trazer os 12 commits de `origin/master` para `feat/multiplayer-server` e resolver conflitos.
+- [x] Publicar a branch no remoto.
+- [x] Remover as pastas órfãs `client/` e `shared/` antigas.
+- [x] Limpeza de dependências da seção 3.4 (exceto a migração para Tailwind v4, que fica para depois).
 
 ### Fase 1 — Testes e contratos
 
