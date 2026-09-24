@@ -10,12 +10,12 @@ Regras: um bloco por vez (o 2 e o 3 podem ser divididos em vários PRs). Nada de
 
 Spec: `../specs/ci-cd.md`.
 
-- [ ] Limpeza: dependências da raiz só `concurrently`, `dependency-cruiser`, `oxlint`, `prettier`, `typescript`; aliases `@shared` antigos (tsconfigs de web e server, `vite.config.ts`, `vitest.config.ts`); `tsconfig.node.json` da raiz se nada usar; arquivos mortos `packages/shared/src/game.ts`, `multiplayer.ts`, `auth.ts`.
-- [ ] `infra/docker/Dockerfile` multi-stage, `.dockerignore`, `.env.example`. O servidor atual serve o `apps/web/dist` e responde `/healthz`.
-- [ ] `infra/compose/compose.dev.yaml`, `compose.e2e.yaml`, `compose.prod.yaml` (Caddy, migrate, app, postgres, backup).
-- [ ] Playwright em `apps/web/e2e/` com o roteiro de 4 passos (desktop e 390x844) e `npm run test:e2e`.
-- [ ] `ci.yml`: manter `check`, adicionar `e2e` e `publish` (GHCR, só push na `next`).
-- [ ] `docs/architecture/overview.md`: como rodar com Docker (curto).
+- [x] Limpeza: dependências da raiz só `concurrently`, `dependency-cruiser`, `oxlint`, `prettier`, `typescript`; aliases `@shared` antigos (tsconfigs de web e server, `vite.config.ts`, `vitest.config.ts`); `tsconfig.node.json` da raiz se nada usar; arquivos mortos `packages/shared/src/game.ts`, `multiplayer.ts`, `auth.ts`.
+- [x] `infra/docker/Dockerfile` multi-stage, `.dockerignore`, `.env.example`. O servidor atual serve o `apps/web/dist` e responde `/healthz`.
+- [x] `infra/compose/compose.dev.yaml`, `compose.e2e.yaml`, `compose.prod.yaml` (Caddy, migrate, app, postgres, backup).
+- [x] Playwright em `apps/web/e2e/` com o roteiro de 4 passos (desktop e 390x844) e `npm run test:e2e`.
+- [x] `ci.yml`: manter `check`, adicionar `e2e` e `publish` (GHCR, só push na `next`).
+- [x] `docs/architecture/overview.md`: como rodar com Docker (curto).
 
 Fora deste bloco (Ronald faz): `dependabot.yml` por PR na `master`, regras de proteção no GitHub.
 
