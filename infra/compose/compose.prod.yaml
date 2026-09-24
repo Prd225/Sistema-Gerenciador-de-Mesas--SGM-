@@ -1,3 +1,5 @@
+name: sgm-prod
+
 services:
   caddy:
     image: caddy:2-alpine
