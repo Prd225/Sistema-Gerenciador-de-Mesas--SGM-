@@ -3,7 +3,6 @@ import type {
   ClientToServerEvents,
   ServerToClientEvents,
   RoomPing,
-} from '@shared';
 } from '@sgm/shared';
 import { roomManager } from '../roomManager';
 

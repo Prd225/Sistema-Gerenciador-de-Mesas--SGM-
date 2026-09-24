@@ -7,7 +7,6 @@ import type {
   RoomMember,
   RoomState,
   SyncStatePayload,
-} from '@shared';
 } from '@sgm/shared';
 
 export interface ActiveRoom {

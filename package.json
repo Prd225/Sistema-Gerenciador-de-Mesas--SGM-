@@ -14,16 +14,16 @@
   ],
   "scripts": {
     "start": "npm run dev",
-    "dev": "concurrently -n client,server -c cyan,green \"vite --host\" \"tsx watch server/src/index.ts\"",
-    "dev:client": "vite --host",
-    "dev:server": "tsx watch server/src/index.ts",
-    "build": "tsc -b && vite build",
-    "test": "vitest run",
+    "dev": "concurrently -n web,server -c cyan,green \"npm run dev --workspace=@sgm/web\" \"npm run dev --workspace=@sgm/server\"",
+    "dev:client": "npm run dev --workspace=@sgm/web",
+    "dev:server": "npm run dev --workspace=@sgm/server",
+    "build": "tsc -b && npm run build --workspace=@sgm/web",
+    "test": "npm run test --workspaces --if-present",
     "typecheck": "tsc -b --noEmit",
     "lint": "oxlint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "preview": "vite preview"
+    "preview": "npm run preview --workspace=@sgm/web"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

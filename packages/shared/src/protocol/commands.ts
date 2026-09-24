@@ -129,4 +129,3 @@ export const MapPingPayloadSchema = z.object({
 });
 export const MapPingPayload = MapPingPayloadSchema;
 export type MapPingPayload = z.infer<typeof MapPingPayloadSchema>;
-

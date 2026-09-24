@@ -143,4 +143,3 @@ export interface ServerToClientEvents {
   // Map ping
   'map:pinged': (payload: RoomPing) => void;
 }
-

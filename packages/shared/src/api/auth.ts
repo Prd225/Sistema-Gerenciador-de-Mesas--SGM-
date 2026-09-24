@@ -40,4 +40,3 @@ export const GoogleAuthInputSchema = z.object({
 });
 export const GoogleAuthInput = GoogleAuthInputSchema;
 export type GoogleAuthInput = z.infer<typeof GoogleAuthInputSchema>;
-

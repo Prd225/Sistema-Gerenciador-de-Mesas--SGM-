@@ -19,4 +19,3 @@ export const SocketErrorSchema = z.object({
 });
 export const SocketError = SocketErrorSchema;
 export type SocketError = z.infer<typeof SocketErrorSchema>;
-

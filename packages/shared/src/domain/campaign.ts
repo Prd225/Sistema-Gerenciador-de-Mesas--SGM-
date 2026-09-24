@@ -27,4 +27,3 @@ export const CampaignSlotSchema = z.object({
 });
 export const CampaignSlot = CampaignSlotSchema;
 export type CampaignSlot = z.infer<typeof CampaignSlotSchema>;
-

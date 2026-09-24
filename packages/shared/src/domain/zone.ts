@@ -159,4 +159,3 @@ export const ZoneSchema = z.object({
 });
 export const Zone = ZoneSchema;
 export type Zone = z.infer<typeof ZoneSchema>;
-

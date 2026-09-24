@@ -1,10 +1,6 @@
 import type { RoomMember, RoomState, Token } from '@sgm/shared';
 import { can } from './permissions';
-import {
-  handleTokenMove,
-  handleTokenAdd,
-  handleTokenRemove,
-} from './commands';
+import { handleTokenMove, handleTokenAdd, handleTokenRemove } from './commands';
 
 export interface EngineRejection {
   success: false;
@@ -77,9 +73,7 @@ export function applyCommand(
       return {
         success: true,
         state: { ...state },
-        events: [
-          { type: `${command.type}.applied`, payload: command.payload },
-        ],
+        events: [{ type: `${command.type}.applied`, payload: command.payload }],
       };
   }
 }

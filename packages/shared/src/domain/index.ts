@@ -5,4 +5,3 @@ export * from './background';
 export * from './initiative';
 export * from './campaign';
 export * from './member';
-

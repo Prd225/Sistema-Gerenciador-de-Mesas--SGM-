@@ -24,4 +24,3 @@ export const MarkerSchema = z.object({
 });
 export const Marker = MarkerSchema;
 export type Marker = z.infer<typeof MarkerSchema>;
-

@@ -10,4 +10,3 @@ export const BgImageSchema = z.object({
 });
 export const BgImage = BgImageSchema;
 export type BgImage = z.infer<typeof BgImageSchema>;
-

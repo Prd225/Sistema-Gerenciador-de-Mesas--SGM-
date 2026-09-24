@@ -56,4 +56,3 @@ export const RoomStateSchema = z.object({
 });
 export const RoomState = RoomStateSchema;
 export type RoomState = z.infer<typeof RoomStateSchema>;
-

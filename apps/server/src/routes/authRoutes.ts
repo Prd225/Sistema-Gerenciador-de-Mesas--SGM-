@@ -4,7 +4,6 @@ import {
   RegisterInputSchema,
   LoginInputSchema,
   GoogleAuthInputSchema,
-} from '@shared';
 } from '@sgm/shared';
 
 export const authRouter = Router();

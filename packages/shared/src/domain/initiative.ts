@@ -14,4 +14,3 @@ export const InitiativeItemSchema = z.object({
 });
 export const InitiativeItem = InitiativeItemSchema;
 export type InitiativeItem = z.infer<typeof InitiativeItemSchema>;
-

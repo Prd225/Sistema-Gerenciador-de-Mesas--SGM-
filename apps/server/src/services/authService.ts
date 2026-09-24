@@ -1,7 +1,6 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { pool, getDatabaseStatus } from '../db/db';
-import type { UserProfile } from '@shared';
 import type { UserProfile } from '@sgm/shared';
 
 export type UserDTO = UserProfile;
