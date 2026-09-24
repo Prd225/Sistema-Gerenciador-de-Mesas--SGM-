@@ -1,4 +1,4 @@
-import type { RoomState } from '@sgm/shared';
+import type { RoomState } from './types';
 
 export function createEmptyRoom(code: string, hostId: string): RoomState {
   return {

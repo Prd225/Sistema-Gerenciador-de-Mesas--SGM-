@@ -1,4 +1,4 @@
-import type { RoomState, Token } from '@sgm/shared';
+import type { RoomState, Token } from '../types';
 
 export function handleTokenMove(
   state: RoomState,

@@ -1,4 +1,4 @@
-import type { RoomState, InitiativeItem } from '@sgm/shared';
+import type { RoomState, InitiativeItem } from '../types';
 
 export function handleInitiativeUpdate(
   state: RoomState,

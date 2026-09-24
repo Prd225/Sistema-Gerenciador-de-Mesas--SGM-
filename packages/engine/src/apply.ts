@@ -1,4 +1,5 @@
-import type { RoomMember, RoomState, Token } from '@sgm/shared';
+import type { RoomMember } from '@sgm/shared';
+import type { RoomState, Token } from './types';
 import { can } from './permissions';
 import { handleTokenMove, handleTokenAdd, handleTokenRemove } from './commands';
 

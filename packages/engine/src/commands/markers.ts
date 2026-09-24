@@ -1,4 +1,4 @@
-import type { RoomState, Marker } from '@sgm/shared';
+import type { RoomState, Marker } from '../types';
 
 export function handleMarkerAdd(state: RoomState, marker: Marker): RoomState {
   return {

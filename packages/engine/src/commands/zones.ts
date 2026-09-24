@@ -1,4 +1,4 @@
-import type { RoomState, Zone } from '@sgm/shared';
+import type { RoomState, Zone } from '../types';
 
 export function handleZoneAdd(state: RoomState, zone: Zone): RoomState {
   return {

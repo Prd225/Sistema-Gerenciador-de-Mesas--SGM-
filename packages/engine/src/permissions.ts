@@ -1,4 +1,5 @@
-import type { RoomMember, RoomState } from '@sgm/shared';
+import type { RoomMember } from '@sgm/shared';
+import type { RoomState } from './types';
 
 export function can(
   actor: RoomMember,

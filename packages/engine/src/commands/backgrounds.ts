@@ -1,4 +1,4 @@
-import type { RoomState, BgImage } from '@sgm/shared';
+import type { RoomState, BgImage } from '../types';
 
 export function handleBgAdd(state: RoomState, bg: BgImage): RoomState {
   return {
