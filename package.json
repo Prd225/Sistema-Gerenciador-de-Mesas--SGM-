@@ -5,6 +5,13 @@
   "license": "UNLICENSED",
   "description": "Sistema Gerenciador de Mesas (SGM v7.0) - Virtual Tabletop (VTT) e Ferramenta do Mestre para RPG",
   "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "start": "npm run dev",
     "dev": "concurrently -n client,server -c cyan,green \"vite --host\" \"tsx watch server/src/index.ts\"",
