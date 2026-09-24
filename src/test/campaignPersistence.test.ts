@@ -113,9 +113,17 @@ describe('Campaign Persistence & Slots — Dexie e Serialização', () => {
       entries: [
         {
           id: 'diary-1',
-          title: 'Pistas Encontradas',
-          content: 'Uma chave de ferro foi localizada no sótão.',
+          name: 'Pistas Encontradas',
           date: '2026-09-24',
+          points: [
+            {
+              id: 'point-1',
+              text: 'Uma chave de ferro foi localizada no sótão.',
+              isComplex: false,
+              createdAt: Date.now(),
+            },
+          ],
+          createdAt: Date.now(),
         },
       ],
     });
