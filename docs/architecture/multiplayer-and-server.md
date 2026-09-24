@@ -87,5 +87,4 @@ sequenceDiagram
 | `POST /logout`   | Encerra a sessão                                   |
 | `GET /me`        | Usuário da sessão atual                            |
 
-Tabelas no Postgres (criadas em `server/src/db/db.ts`): `users`, `sessions`, `campaigns`. Sem `DATABASE_URL`, as rotas respondem que o banco está offline e o app continua funcionando localmente.
 Tabelas no Postgres (criadas em `apps/server/src/db/db.ts`): `users`, `sessions`, `campaigns`. Sem `DATABASE_URL`, as rotas respondem que o banco está offline e o app continua funcionando localmente.

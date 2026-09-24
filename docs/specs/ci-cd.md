@@ -2,6 +2,8 @@
 
 > Especificação de containers, pipelines e deploy. Stack em [0006](../decisions/0006-stack-revisada.md), estrutura de pastas em [`code-architecture.md`](code-architecture.md), comportamento em runtime em [`system-design.md`](system-design.md).
 
+**Branches (GitHub Flow, decisão 0008):** até a v8 substituir a v7, tudo deste documento roda na `next`. Onde estiver escrito `master`, leia `next`. A `master` (v7 do Pedro) mantém o CI atual até lá. Release, tags e produção só começam depois da v8 entrar na `master`.
+
 ---
 
 ## 1. Objetivos
@@ -154,8 +156,8 @@ Semanal para `npm`, `github-actions` e `docker`, com atualizações de patch e m
 
 ## 5. Regras do repositório
 
-- `master` protegida: exige os checks de `ci.yml`, `pr-title.yml` e `codeql.yml`, uma aprovação, branch atualizada e histórico linear (squash).
-- Push direto na `master` bloqueado, inclusive para administradores.
+- `master` e `next` protegidas: só por PR, com os checks de `ci.yml`, `pr-title.yml` e `codeql.yml` verdes, histórico linear (squash) e sem force push nem exclusão.
+- Sem aprovação obrigatória: com duas pessoas, o GitHub não deixa aprovar o próprio PR. Revisão do outro é bem-vinda, não bloqueante.
 - Templates em `.github/`: PR (o que mudou, como foi testado, screenshots se for UI, fase do plano) e issues (bug e feature).
 - `CODEOWNERS` com os responsáveis por `packages/engine`, `apps/server/src/realtime` e `infra/`.
 

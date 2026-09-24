@@ -2,7 +2,7 @@
 
 - Status: Aceita
 - Data: 2026-09-24
-- Substitui: [0004](0004-stack-definida.md)
+- Substitui: 0004 (removida, disponível no histórico do git)
 
 ## Contexto
 
