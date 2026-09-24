@@ -344,3 +344,4 @@ export const ActiveToolSchema = z.enum([
   'add-marker',
 ]);
 export type ActiveTool = z.infer<typeof ActiveToolSchema>;
+export * from './domain';

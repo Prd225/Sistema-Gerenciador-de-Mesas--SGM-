@@ -26,7 +26,7 @@ import {
   RegisterInputSchema,
   LoginInputSchema,
   GoogleAuthInputSchema,
-} from '@shared';
+} from '@sgm/shared';
 
 describe('Contracts — Schemas Zod de Game', () => {
   it('valida tipos de elemento e dano permitidos', () => {

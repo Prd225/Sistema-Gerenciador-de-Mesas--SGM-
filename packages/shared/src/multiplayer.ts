@@ -284,3 +284,5 @@ export interface ServerToClientEvents {
   // Map ping
   'map:pinged': (payload: RoomPing) => void;
 }
+export * from './protocol';
+export * from './domain/member';

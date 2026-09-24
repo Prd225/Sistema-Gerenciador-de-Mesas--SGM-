@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useTokenStore } from '@/store/useTokenStore';
-import type { Token } from '@shared';
+import type { Token } from '@sgm/shared';
 
 const createMockToken = (id: string, name: string): Token => ({
   id,

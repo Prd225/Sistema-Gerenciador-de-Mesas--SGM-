@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import type { ClientToServerEvents, ServerToClientEvents } from '@shared';
+import type { ClientToServerEvents, ServerToClientEvents } from '@sgm/shared';
 import { registerSocketHandlers } from './handlers/socketHandlers';
 import { initDatabase, getDatabaseStatus } from './db/db';
 import { authRouter } from './routes/authRoutes';

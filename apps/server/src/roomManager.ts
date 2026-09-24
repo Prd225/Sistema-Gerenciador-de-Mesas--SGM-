@@ -8,6 +8,7 @@ import type {
   RoomState,
   SyncStatePayload,
 } from '@shared';
+} from '@sgm/shared';
 
 export interface ActiveRoom {
   code: string;

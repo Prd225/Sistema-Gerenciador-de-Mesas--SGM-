@@ -1,0 +1,5 @@
+export const MAX_PAYLOAD_SIZE = 64 * 1024; // 64 KB
+export const MAX_ROOM_MEMBERS = 32;
+export const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+export const ROOM_CODE_LENGTH = 6;
+

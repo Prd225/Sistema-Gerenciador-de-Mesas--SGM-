@@ -4,6 +4,7 @@ import type {
   ServerToClientEvents,
   RoomPing,
 } from '@shared';
+} from '@sgm/shared';
 import { roomManager } from '../roomManager';
 
 type SgmSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
