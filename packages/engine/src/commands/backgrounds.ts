@@ -1,15 +1,41 @@
-import type { RoomState, BgImage } from '../types';
+import type {
+  TableState,
+  BackgroundCreatePayload,
+  BackgroundUpdatePayload,
+  BackgroundDeletePayload,
+} from '@sgm/shared';
+import { withScene, findScene } from './shared';
 
-export function handleBgAdd(state: RoomState, bg: BgImage): RoomState {
-  return {
-    ...state,
-    bgImages: [...state.bgImages, bg],
-  };
+export function backgroundCreate(
+  table: TableState,
+  payload: BackgroundCreatePayload,
+): TableState | null {
+  return withScene(table, payload.sceneId, (scene) => {
+    scene.backgrounds[payload.background.id] = payload.background;
+  });
 }
 
-export function handleBgRemove(state: RoomState, bgId: string): RoomState {
-  return {
-    ...state,
-    bgImages: state.bgImages.filter((bg) => bg.id !== bgId),
-  };
+export function backgroundUpdate(
+  table: TableState,
+  payload: BackgroundUpdatePayload,
+): TableState | null {
+  const scene = findScene(table, payload.sceneId);
+  if (!scene || !scene.backgrounds[payload.backgroundId]) return null;
+
+  return withScene(table, payload.sceneId, (draftScene) => {
+    const background = draftScene.backgrounds[payload.backgroundId]!;
+    Object.assign(background, payload.updates);
+  });
+}
+
+export function backgroundDelete(
+  table: TableState,
+  payload: BackgroundDeletePayload,
+): TableState | null {
+  const scene = findScene(table, payload.sceneId);
+  if (!scene || !scene.backgrounds[payload.backgroundId]) return null;
+
+  return withScene(table, payload.sceneId, (draftScene) => {
+    delete draftScene.backgrounds[payload.backgroundId];
+  });
 }

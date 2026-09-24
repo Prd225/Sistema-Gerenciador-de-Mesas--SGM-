@@ -1,20 +1,41 @@
-import type { RoomState, Zone } from '../types';
+import type {
+  TableState,
+  ZoneCreatePayload,
+  ZoneUpdatePayload,
+  ZoneDeletePayload,
+} from '@sgm/shared';
+import { withScene, findScene } from './shared';
 
-export function handleZoneAdd(state: RoomState, zone: Zone): RoomState {
-  return {
-    ...state,
-    zones: {
-      ...state.zones,
-      [zone.id]: zone,
-    },
-  };
+export function zoneCreate(
+  table: TableState,
+  payload: ZoneCreatePayload,
+): TableState | null {
+  return withScene(table, payload.sceneId, (scene) => {
+    scene.zones[payload.zone.id] = payload.zone;
+  });
 }
 
-export function handleZoneRemove(state: RoomState, zoneId: string): RoomState {
-  const nextZones = { ...state.zones };
-  delete nextZones[zoneId];
-  return {
-    ...state,
-    zones: nextZones,
-  };
+export function zoneUpdate(
+  table: TableState,
+  payload: ZoneUpdatePayload,
+): TableState | null {
+  const scene = findScene(table, payload.sceneId);
+  if (!scene || !scene.zones[payload.zoneId]) return null;
+
+  return withScene(table, payload.sceneId, (draftScene) => {
+    const zone = draftScene.zones[payload.zoneId]!;
+    Object.assign(zone, payload.updates);
+  });
+}
+
+export function zoneDelete(
+  table: TableState,
+  payload: ZoneDeletePayload,
+): TableState | null {
+  const scene = findScene(table, payload.sceneId);
+  if (!scene || !scene.zones[payload.zoneId]) return null;
+
+  return withScene(table, payload.sceneId, (draftScene) => {
+    delete draftScene.zones[payload.zoneId];
+  });
 }
