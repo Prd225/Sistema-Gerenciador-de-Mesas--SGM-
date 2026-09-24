@@ -84,7 +84,7 @@ Spec: [`code-architecture.md`](../specs/code-architecture.md), seções 3 e 6.
 
 Esta fase **move** código e cria os pacotes. Não reorganiza o cliente em `features/` (isso é a Fase 6) e não troca bibliotecas do servidor (Fase 4).
 
-- [x] npm workspaces na raiz com `apps/*` e `packages/*`. `.nvmrc` e `engines` com Node 24.
+- [ ] npm workspaces na raiz com `apps/*` e `packages/*`. `.nvmrc` e `engines` com Node 24.
 - [ ] `tsconfig.base.json` na raiz. Cada workspace com o próprio `tsconfig.json` e `package.json` (`@sgm/web`, `@sgm/server`, `@sgm/shared`, `@sgm/engine`).
 - [ ] Mover `src/`, `index.html`, `public/`, `vite.config.ts`, `vitest.config.ts`, Tailwind e PostCSS para `apps/web/`. Mover `server/` para `apps/server/`.
 - [ ] Criar `@sgm/shared` com schemas Zod das entidades atuais (`domain/`) e dos eventos de socket atuais (`protocol/`), a partir de `src/types/game.ts` e `src/types/multiplayer.ts`. Tipos com `z.infer`.
