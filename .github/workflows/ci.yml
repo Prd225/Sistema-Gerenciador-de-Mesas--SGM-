@@ -32,5 +32,8 @@ jobs:
       - name: Check types (TypeScript)
         run: npm run typecheck
 
+      - name: Run unit tests (Vitest)
+        run: npm test
+
       - name: Build project (Vite)
         run: npm run build
