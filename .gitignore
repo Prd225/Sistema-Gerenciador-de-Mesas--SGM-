@@ -23,4 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 test_desempenho/
-*.tsbuildinfo
+*.tsbuildinfo
+test-results/
+playwright-report/
