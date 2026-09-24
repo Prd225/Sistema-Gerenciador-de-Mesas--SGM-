@@ -28,7 +28,7 @@ O salvamento é pausado com os modais de save/load abertos e durante o reset (`i
 
 Outras funções: `applyGameState` (aplica um estado salvo em todos os stores), `loadWorkingSession`, `clearWorkingSession`, `resetGameState` (limpa tudo e recarrega a página).
 
-Dívida conhecida: `saveHelpers.ts` importa todos os stores e os stores importam `triggerAutoSave`, uma dependência circular. A correção está no plano (Fase 6). Até lá, ao criar um store novo que precisa ser salvo, adicione-o em `collectGameState` e `applyGameState`.
+Dívida conhecida: `saveHelpers.ts` importa todos os stores e os stores importam `triggerAutoSave`, uma dependência circular. Some no bloco 2 do plano. Até lá, ao criar um store novo que precisa ser salvo, adicione-o em `collectGameState` e `applyGameState`.
 
 ## IndexedDB (`apps/web/src/lib/db.ts`)
 

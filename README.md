@@ -1,59 +1,8 @@
-# 🎲 Sistema Gerenciador de Mesas (SGM v7.0)
+# Sistema Gerenciador de Mesas (SGM)
 
-> **Virtual Tabletop (VTT) & Ferramenta do Mestre para RPG de Mesa**  
-> Uma plataforma moderna, rápida e _offline-first_ para mestres e jogadores gerenciarem combates, mapas táticos, anotações e fichas com fluidez.
+Mesa virtual de RPG: mapa 2D com tokens, zonas e iniciativa, painel do mestre (diário, notas, regras, tabelas, roletas, trilha sonora) e, na v8, salas online com jogadores pelo celular.
 
----
-
-## 🚀 Visão Geral
-
-O **SGM v7.0** é uma ferramenta pensada para mestres que precisam de agilidade na preparação e condução de sessões de RPG de mesa. O projeto combina um **Battlemap 2D interativo** com um **Painel do Mestre completo**, armazenando tudo localmente no navegador sem depender de servidores externos.
-
----
-
-## ✨ Funcionalidades Principais
-
-### 🗺️ Battlemap & Grid Tático
-
-- **Renderização em Canvas com Konva**: Zoom, pan suave, grid quadrado configurável e medição de distâncias.
-- **Camadas Independentes**:
-  - **Fundo**: Upload e ajuste de mapas de batalha e imagens de cenário.
-  - **Tokens**: Movimentação, rotação, barras de vida, condições/status e context menu rápido.
-  - **Zonas de Efeito**: Desenho de áreas retangulares, circulares e poligonais com cores e opacidades customizáveis.
-  - **Desenho Livre & Marcadores**: Anotações e marcações táticas em tempo real.
-
-### ⚔️ Gestão de Combate & Iniciativa
-
-- **Barra de Iniciativa Dinâmica**: Controle visual de turnos e rounds.
-- **Tracking de Condições & Status**: Aplicação de estados (atordoado, caído, envenenado, etc.) diretamente nos tokens.
-- **Modal de Ordenação**: Reorganização fácil da fila de iniciativa durante o combate.
-
-### 🧙‍♂️ Painel do Mestre (Master Panel)
-
-- 📖 **Diário de Campanha**: Registro narrativo de sessões com editor de texto rico e paginação.
-- 📝 **Notas Rápidas**: Cartões de anotações (estilo post-it) para NPCs, ganchos e lembretes imediatos.
-- 🎯 **Roletas Personalizadas**: Roletas visuais com animação acelerada por hardware para sorteios aleatórios.
-- 🎲 **Tabelas Roláveis**: Criação e rolagem de tabelas de encontros, itens e eventos.
-- 📜 **Compêndio de Regras**: Consulta rápida a resumos de regras do sistema de jogo.
-
-### 💾 Persistência Offline-First
-
-- **Banco IndexedDB via Dexie.js**: Suporte a até 50 slots de salvamento independentes.
-- **Auto-Save Inteligente**: Salvamento automático periódico (a cada 10 minutos) e atalho global `Ctrl + S`.
-- **Exportação/Importação**: Salve ou restaure campanhas completas em arquivos `.json`.
-
----
-
-## 🛠️ Stack Tecnológica
-
-- **Core**: [React 19](https://react.dev/), [TypeScript](https://www.typescriptlang.org/), [Vite](https://vitejs.dev/)
-- **Canvas 2D**: [Konva](https://konvajs.org/) & [react-konva](https://github.com/konvajs/react-konva)
-- **Gerenciamento de Estado**: [Zustand](https://zustand.docs.pmnd.rs/)
-- **Estilização & UI**: [Tailwind CSS](https://tailwindcss.com/), [Lucide Icons](https://lucide.dev/), [Base UI / Radix](https://base-ui.com/)
-- **Banco de Dados Local**: [Dexie.js](https://dexie.org/) (IndexedDB)
-- **Linter & Formatador**: [Oxlint](https://oxc.rs/) & [Prettier](https://prettier.io/)
-
----
+Dois modos ([guia](docs/guia/1-visao-geral.md)): **local**, sem conta, com tudo no navegador, e **nuvem**, com conta, campanha no servidor e jogadores entrando por código ou QR.
 
 ## Como rodar
 
@@ -80,14 +29,15 @@ apps/web/          Cliente React 19 + Konva + Vite (@sgm/web)
 apps/server/       Servidor Express + Socket.io (@sgm/server)
 packages/shared/   Schemas Zod compartilhados (@sgm/shared)
 packages/engine/   Regras do jogo (@sgm/engine)
-docs/              Arquitetura, specs, planos e decisões
+docs/guia/         Guia para humanos, com diagramas UML
+docs/              Specs, plano e decisões (para agentes de IA)
 ```
 
-Documentação em [`docs/`](docs/README.md). Instruções para agentes de IA em [`AGENTS.md`](AGENTS.md).
+Para entender o sistema, comece pelo [guia](docs/guia/README.md). Plano atual: [modernização](docs/plans/modernizacao-arquitetural.md). Instruções para agentes de IA: [`AGENTS.md`](AGENTS.md).
 
 ## Como trabalhamos (Git)
 
-GitHub Flow com duas linhas ([decisão 0008](docs/decisions/0008-github-flow-duas-linhas.md)). Ninguém commita direto em `master` nem em `next`: tudo entra por PR.
+GitHub Flow com duas linhas ([decisão 0008](docs/decisoes.md)). Ninguém commita direto em `master` nem em `next`: tudo entra por PR.
 
 | Branch | O que é | Quem usa |
 | :--- | :--- | :--- |

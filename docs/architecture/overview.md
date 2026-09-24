@@ -38,7 +38,7 @@ apps/server/src/
   services/        authService.ts
   db/              pool Postgres
 packages/shared/src/   domain/, protocol/, api/, constants/ (schemas Zod)
-packages/engine/src/   regras puras (conteúdo real na Fase 5)
+packages/engine/src/   regras puras (esqueleto; completo no bloco 2)
 ```
 
 ## Variáveis de ambiente

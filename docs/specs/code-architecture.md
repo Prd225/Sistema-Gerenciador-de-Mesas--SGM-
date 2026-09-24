@@ -1,94 +1,76 @@
-# Arquitetura de Código
+# Arquitetura de código
 
-Estrutura alvo, camadas e fronteiras. Comportamento em `system-design.md`. Decisões 0006 e 0007.
+Estrutura alvo e fronteiras. Comportamento em `system-design.md`. Decisões 0007 e 0009.
 
-## 1. Princípios
+## Princípios
 
-1. **Regra de jogo num lugar só**: `@sgm/engine`, funções puras, rodando igual no cliente e no servidor.
-2. **Offline e online são o mesmo fluxo**: a UI manda comandos para uma `RoomConnection`. A local roda o engine no navegador e salva no Dexie; a remota usa o socket e o servidor roda o mesmo engine.
-3. **Por funcionalidade**: tudo de zonas em `features/zones/`, não espalhado por `components/`, `store/`, `types/`.
-4. **Dependências numa direção**, verificadas no CI (seção 5).
-5. **Contratos primeiro**: entidades, comandos, eventos e rotas são schemas Zod em `@sgm/shared`.
+1. Regra de jogo só em `@sgm/engine`, funções puras, iguais no cliente e no servidor.
+2. A UI manda comandos para uma `RoomConnection` (local: engine + Dexie; remota: socket). A tela não sabe o modo.
+3. Cliente organizado por funcionalidade (`features/<nome>/`).
+4. Contratos primeiro: entidades, comandos, eventos e rotas são schemas Zod em `@sgm/shared`.
+5. Dependências numa direção, verificadas pelo `dependency-cruiser`.
 
-## 2. Pacotes
-
-```
-apps/web/          @sgm/web     SPA React
-apps/server/       @sgm/server  Fastify + Socket.io
-apps/ocr-worker/   (futuro)     OCR + LLM, seção 6
-packages/shared/   @sgm/shared  contratos
-packages/engine/   @sgm/engine  regras do jogo
-infra/docker/      Dockerfile, Caddyfile
-infra/compose/     compose.dev/e2e/prod.yaml
-```
-
-**shared** (`src/domain/`, `protocol/`, `api/`, `constants/`): só depende de `zod`. Cada arquivo exporta schema e tipo com o mesmo nome (`Token` e `z.infer<typeof Token>`). Limites de tamanho de string e array ficam nos schemas.
-
-**engine** (`state.ts`, `apply.ts`, `commands/<grupo>.ts`, `permissions.ts` com `can()`, `project.ts` com `projectFor`/`projectEvent`): só depende de `@sgm/shared` e `immer`. Sem I/O, `Date.now()` ou `Math.random()`: tempo e ids entram por parâmetro. Estado imutável. Cobertura mínima de 90%.
-
-## 3. Servidor (`apps/server/src/`)
+## Pacotes
 
 ```
-main.ts          sobe o servidor, shutdown gracioso no SIGTERM
-app.ts           buildApp(): Fastify + plugins + módulos (usado nos testes)
-config/env.ts    variáveis de ambiente validadas com Zod
-plugins/         db, auth, cors, helmet, rate-limit, static, sensible
-modules/<nome>/  routes.ts -> service.ts -> repository.ts (auth, campaigns, rooms, media, health)
-realtime/        gateway.ts, handshake.ts, room-registry.ts (fila por sala), broadcaster.ts, room-store.ts
-db/              schema/ (Drizzle), migrations/, client.ts
-observability/   logger, métricas
-test/integration/
+apps/web/          @sgm/web
+apps/server/       @sgm/server
+apps/ocr-worker/   reservado (futuro, fora do plano): container próprio, sem import de código
+packages/shared/   @sgm/shared   src/domain, protocol, api, constants. Só zod
+packages/engine/   @sgm/engine   state, apply, commands/<grupo>, permissions (can), project (projectFor). Só shared e immer
+infra/docker/, infra/compose/
 ```
 
-Só o `repository.ts` fala com o banco. A camada `realtime/` é escrita à mão sobre Socket.io.
+- shared: cada arquivo exporta schema e tipo com o mesmo nome (`export const Token = z.object(...)`, `export type Token = z.infer<typeof Token>`). Limites de string e array nos schemas.
+- engine: sem I/O, `Date.now()` ou `Math.random()` (tempo e ids por parâmetro). Imutável. Cobertura mínima 90%.
 
-## 4. Cliente (`apps/web/src/`)
+## Cliente (`apps/web/src/`)
 
 ```
-app/            providers, router, error-boundary, layout/ (AppShell, Header, Footer)
-routes/         TanStack Router, finas: /, /sala/$code, /tv/$code, /login
-features/<nome>/ components/, hooks/, store.ts (UI), api.ts (Query), model.ts (lógica pura), index.ts (API pública)
-room/           connection.ts, local-connection.ts, remote-connection.ts, room-store.ts, hooks.ts (useRoom, useCommand)
-persistence/    db.ts (Dexie), campaigns-repo.ts, media-repo.ts
-shared/         ui/ (shadcn), components/ (ElementBadge, StatBar, TokenAvatar), hooks/, lib/, styles/
+app/        providers, router, layout, error boundaries
+routes/     /, /campanha/$id, /sala/$code, /tv/$code, /entrar. Finas: só montam features
+features/   battlemap, tokens, zones, initiative, scenes, campaigns, room, auth,
+            panel/(diary, notes, rules, tables, roulettes, soundpad). Cada uma com index.ts público
+room/       connection.ts, local-connection.ts, remote-connection.ts, room-store.ts, hooks.ts (useRoom, useCommand)
+lib/        db.ts (Dexie: campaigns, media), media.ts, api.ts, utils
+ui/         primitivos shadcn e componentes de domínio (StatBar, ElementBadge, TokenAvatar)
 ```
 
-Features: battlemap, tokens, zones, initiative, scenes, campaign, room, auth, master-panel (só o contêiner), notes, diary, rules, tables, roulettes, soundpad.
+| Estado | Onde |
+| :-- | :-- |
+| Mesa (`table`) | Só no `room-store`. Ler com `useRoom(selector)`, alterar com `useCommand()` |
+| Painel (`panel`) | Store da feature; salvo direto (Dexie ou `PATCH /api/campaigns/:id/panel`) |
+| UI (ferramenta, seleção, zoom) | `useState` ou store da feature |
+| HTTP | TanStack Query |
 
-Onde fica cada estado:
-- **Sala** (tokens, zonas, marcadores, fundos, iniciativa): só no `room-store`. Ler com `useRoom(selector)`, alterar com `useCommand()`.
-- **UI** (ferramenta, seleção, zoom): `store.ts` da feature ou `useState`.
-- **HTTP** (usuário, campanhas): cache do TanStack Query.
-- Autosave deixa de existir: a `LocalRoomConnection` persiste cada comando confirmado.
+Migração: `canvas/` → `features/battlemap`; `components/master-panel/<sub>` → `features/panel/<sub>`; `components/ui` → `ui/`; `lib/socket.ts` + `useMultiplayerStore` → `room/remote-connection.ts`; `useTokenStore`, `useZoneStore`, `useScenesStore` e parte do `useCampaignStore` → `room-store` + engine; `saveHelpers.ts` e `types/` (reexports) removidos.
 
-Migração do código atual: `canvas/` → `features/battlemap`; modais e sidebars → a feature do seu conteúdo; `components/master-panel/<sub>` → `features/<sub>`; `components/layout` → `app/layout`; `components/ui` → `shared/ui`; `lib/db.ts` → `persistence/`; `lib/socket.ts` e `useMultiplayerStore` → `room/remote-connection.ts`; `useTokenStore`, `useZoneStore` e parte de `useCampaignStore` → `room-store` + engine; demais stores → `features/<nome>/store.ts`; `saveHelpers.ts` é removido. No servidor: `roomManager` e `socketHandlers` → `realtime/` + engine; auth → `modules/auth` (Better Auth); `db/` → Drizzle.
+## Servidor (`apps/server/src/`)
 
-## 5. Convenções e fronteiras
+```
+main.ts, app.ts (buildApp, usado nos testes), env.ts (Zod)
+plugins/    db, auth, security (helmet, cors só em dev, rate-limit), static
+modules/    auth, campaigns, rooms, media, health: routes.ts + service.ts (service usa o Drizzle direto)
+realtime/   gateway.ts (socket, handshake, Zod, rate limit), live-rooms.ts (salas em memória,
+            fila por sala, applyCommand, projectFor, envio), persist.ts (grava a mesa com debounce)
+db/         schema.ts, migrations/, client.ts
+```
 
-- Arquivos e pastas em `kebab-case`. Componentes em `PascalCase`, um público por arquivo. Exports nomeados.
-- Comandos `dominio.verbo` (`token.move`), eventos no particípio (`token.moved`).
-- Testes ao lado do arquivo (`apply.test.ts`); integração em `apps/server/test/`, E2E em `apps/web/e2e/`. Stories ao lado do componente.
+## Convenções
+
+- Arquivos em `kebab-case`, componentes em `PascalCase`, exports nomeados. Arquivo acima de 300 linhas é dividido.
+- Comandos `dominio.verbo`, eventos no particípio.
+- Testes ao lado do arquivo; integração em `apps/server/test/`; E2E em `apps/web/e2e/`.
 - Entre pacotes, import pelo nome (`@sgm/shared`). No web, alias `@/`.
-- Arquivo com mais de 300 linhas é dividido.
-
-Regras do `dependency-cruiser` (violação falha o CI; ciclos proibidos):
 
 | De | Pode importar | Não pode |
-| :--- | :--- | :--- |
-| shared | `zod` | Qualquer pacote do projeto |
-| engine | shared, `immer` | React, Node, I/O |
-| server / web | shared, engine | um ao outro |
-| web/routes | `features/*/index.ts`, `app/`, `shared/` | Interior de features |
-| web/features/X | `room/`, `persistence/`, `shared/`, `features/Y/index.ts` | Interior de outra feature |
-| web/shared | Bibliotecas externas | `features/`, `room/`, `routes/` |
-| web/room | engine, `persistence/`, `shared/lib` | `features/` |
-| server/modules/X | `db/`, `plugins/`, `observability/`, `modules/Y/service.ts` | `repository.ts` alheio, `realtime/` |
-| server/realtime | engine, `db/`, `modules/*/service.ts`, `observability/` | `modules/*/routes.ts` |
-
-## 6. Reservado: `apps/ocr-worker` (futuro)
-
-Importação de fichas por foto (roadmap, seção 4.1). Fora de todas as fases atuais.
-
-- Processo e container próprios, provavelmente Python, fora dos npm workspaces, com job de CI próprio.
-- Nenhum import de código em nenhum sentido. O servidor cria um job (imagem de `/api/media` + sistema de RPG), o worker devolve JSON e o servidor valida com o schema da ficha em `@sgm/shared`.
-- Transporte (HTTP interno ou fila no Postgres) será decidido quando o worker for planejado.
+| :-- | :-- | :-- |
+| shared | zod | Pacotes do projeto |
+| engine | shared, immer | React, Node, I/O |
+| web, server | shared, engine | Um ao outro |
+| web/routes | `features/*/index.ts`, `app/`, `ui/` | Interior de features |
+| web/features/X | `room/`, `lib/`, `ui/`, `features/Y/index.ts` | Interior de outra feature |
+| web/ui, web/lib | Bibliotecas externas | `features/`, `room/`, `routes/` |
+| web/room | engine, `lib/` | `features/` |
+| server/modules/X | `db/`, `plugins/`, `modules/Y/service.ts` | `realtime/` |
+| server/realtime | engine, `modules/*/service.ts` | `modules/*/routes.ts` |

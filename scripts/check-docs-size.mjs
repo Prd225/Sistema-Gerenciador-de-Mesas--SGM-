@@ -1,14 +1,18 @@
-// Documentação lida por agentes de IA não pode passar de 50 mil tokens.
+// Documentação lida por agentes de IA não pode passar de 20 mil tokens.
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-const LIMIT_TOKENS = 50_000;
+const LIMIT_TOKENS = 20_000;
 const BYTES_PER_TOKEN = 3.5;
 
-const files = ['AGENTS.md', 'CLAUDE.md', 'GEMINI.md', 'README.md'];
+// README.md e docs/guia/ são para humanos e ficam fora da conta.
+const HUMAN_ONLY = join('docs', 'guia');
+
+const files = ['AGENTS.md', 'CLAUDE.md', 'GEMINI.md'];
 const walk = (dir) => {
   for (const name of readdirSync(dir)) {
     const path = join(dir, name);
+    if (path === HUMAN_ONLY) continue;
     if (statSync(path).isDirectory()) walk(path);
     else if (name.endsWith('.md')) files.push(path);
   }

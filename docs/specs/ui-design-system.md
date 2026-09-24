@@ -4,11 +4,11 @@ Alvo da interface. Hoje: `docs/architecture/design-system.md`. Prioridades: padr
 
 ## 1. Bibliotecas
 
-Tailwind v4 (tokens em `@theme`), shadcn/ui sobre `@base-ui/react` (única fonte de primitivos), `lucide-react`, `sonner` (toasts), `vaul` (drawer), `react-hook-form` + Zod, `@tanstack/react-virtual` (listas com mais de 100 itens), `react-error-boundary`, `dompurify` (obrigatório antes de `dangerouslySetInnerHTML`), Storybook, Playwright, fonte Geist (`tabular-nums` em números). Nenhuma outra biblioteca de componentes (MUI, Mantine, Chakra).
+Tailwind v4 (tokens em `@theme`), shadcn/ui sobre `@base-ui/react` (única fonte de primitivos), `lucide-react`, `sonner` (toasts), `vaul` (drawer), `react-hook-form` + Zod, `@tanstack/react-virtual` (listas com mais de 100 itens), `react-error-boundary`, `dompurify` (obrigatório antes de `dangerouslySetInnerHTML`), Playwright, fonte Geist (`tabular-nums` em números). Nenhuma outra biblioteca de componentes (MUI, Mantine, Chakra).
 
 ## 2. Tokens
 
-Proibido em código novo ou migrado: hexadecimal solto, `text-[Npx]`, `z-[N]`. Tokens em CSS (`@theme`) e em `shared/styles/tokens.ts` (para o Konva). As variáveis do shadcn (`--background`, `--primary`...) apontam para eles.
+Proibido em código novo ou migrado: hexadecimal solto, `text-[Npx]`, `z-[N]`. Tokens em CSS (`@theme`) e em `ui/tokens.ts` (para o Konva). As variáveis do shadcn (`--background`, `--primary`...) apontam para eles.
 
 | Token | Valor | Uso |
 | :--- | :--- | :--- |
@@ -33,7 +33,7 @@ Proibido em código novo ou migrado: hexadecimal solto, `text-[Npx]`, `z-[N]`. T
 
 ## 3. Componentes
 
-Só primitivos de `shared/ui/`. Se faltar, adicione via shadcn antes de usar.
+Só primitivos de `ui/`. Se faltar, adicione via shadcn antes de usar.
 
 - **Ações**: `Button` (primary, secondary, ghost, danger, icon), `Toggle`, `ToggleGroup`.
 - **Entrada**: `Input`, `Textarea`, `NumberInput`, `Select`, `Combobox`, `Checkbox`, `Switch`, `Slider`, `Form`.
@@ -68,9 +68,8 @@ Modo TV: só mapa e iniciativa. Iniciativa sempre em faixa horizontal com rolage
 - Error boundary na raiz, no mapa, em cada sidebar, subpainel e modal, com botão para recarregar só a região.
 - Dado de save ou rede com formato inesperado é descartado com aviso, nunca derruba a tela.
 - Um dono por dado (store ou `useState`); sem copiar store para estado local fora de formulários.
-- Storybook com todos os estados de cada primitivo e componente de domínio.
 - Playwright tira screenshot das telas principais em 390×844, 1024×768 e 1440×900; diferença acima do limite falha o CI.
 - Guarda no CI contra hexadecimal, `text-[Npx]`, `z-[N]`, `alert(`, `confirm(`, `prompt(` em `apps/web/src` (lista de exceções só diminui).
 - Acessibilidade: foco visível, Esc fecha modais (Base UI já faz), cor nunca é o único indicador, `alt` com o nome do personagem.
 
-Tela pronta = só primitivos e tokens, funciona nas três faixas, tem error boundary, tem story ou screenshot, passa na guarda do CI.
+Tela pronta = só primitivos e tokens, funciona nas três faixas, tem error boundary, tem screenshot, passa na guarda do CI.
