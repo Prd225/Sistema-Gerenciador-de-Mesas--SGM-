@@ -16,12 +16,12 @@ module.exports = {
     {
       name: 'shared-boundaries',
       severity: 'error',
-      comment: '@sgm/shared só pode importar zod e módulos internos',
+      comment: '@sgm/shared só pode importar zod, vitest e módulos internos',
       from: {
         path: '^packages/shared/src',
       },
       to: {
-        pathNot: '^(packages/shared/src|node_modules/zod)',
+        pathNot: '^(packages/shared/src|node_modules/(zod|vitest))',
       },
     },
     {

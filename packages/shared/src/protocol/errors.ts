@@ -1,21 +1,18 @@
 import { z } from 'zod';
 
-export const ErrorCodeSchema = z.enum([
-  'UNAUTHORIZED',
-  'FORBIDDEN',
-  'ROOM_NOT_FOUND',
-  'ROOM_FULL',
+export const ErrorCode = z.enum([
   'INVALID_PAYLOAD',
+  'FORBIDDEN',
+  'NOT_FOUND',
+  'CONFLICT',
   'RATE_LIMITED',
-  'INTERNAL_ERROR',
+  'ROOM_CLOSED',
 ]);
-export const ErrorCode = ErrorCodeSchema;
-export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
+export type ErrorCode = z.infer<typeof ErrorCode>;
 
-export const SocketErrorSchema = z.object({
-  code: ErrorCodeSchema,
-  message: z.string(),
-  details: z.any().optional(),
+export const ProtocolError = z.object({
+  code: ErrorCode,
+  message: z.string().max(500),
+  details: z.unknown().optional(),
 });
-export const SocketError = SocketErrorSchema;
-export type SocketError = z.infer<typeof SocketErrorSchema>;
+export type ProtocolError = z.infer<typeof ProtocolError>;

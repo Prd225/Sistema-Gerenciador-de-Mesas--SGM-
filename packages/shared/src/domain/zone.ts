@@ -1,73 +1,66 @@
 import { z } from 'zod';
 
-export const POIReferenceLinkSchema = z.object({
-  id: z.string(),
+export const POIReferenceLink = z.object({
+  id: z.string().max(100),
   targetType: z.enum(['item', 'poi']),
-  targetName: z.string(),
+  targetName: z.string().max(100),
 });
-export const POIReferenceLink = POIReferenceLinkSchema;
-export type POIReferenceLink = z.infer<typeof POIReferenceLinkSchema>;
+export type POIReferenceLink = z.infer<typeof POIReferenceLink>;
 
-export const POIOptionSchema = z.object({
-  name: z.string(),
-  desc: z.string(),
-  descriptions: z.array(z.string()).optional(),
+export const POIOption = z.object({
+  name: z.string().max(100),
+  desc: z.string().max(2000),
+  descriptions: z.array(z.string().max(2000)).max(50).optional(),
   isRevealed: z.boolean().optional(),
-  referenceLinks: z.array(POIReferenceLinkSchema).optional(),
+  referenceLinks: z.array(POIReferenceLink).max(50).optional(),
 });
-export const POIOption = POIOptionSchema;
-export type POIOption = z.infer<typeof POIOptionSchema>;
+export type POIOption = z.infer<typeof POIOption>;
 
-export const POICategorySchema = z.object({
-  title: z.string(),
-  color: z.string().optional(),
+export const POICategory = z.object({
+  title: z.string().max(100),
+  color: z.string().max(50).optional(),
   icon: z.enum(['none', 'star', 'spiral', 'triangle']).optional(),
   isCollapsed: z.boolean().optional(),
-  options: z.array(POIOptionSchema),
+  options: z.array(POIOption).max(100),
 });
-export const POICategory = POICategorySchema;
-export type POICategory = z.infer<typeof POICategorySchema>;
+export type POICategory = z.infer<typeof POICategory>;
 
-export const ZoneEventSchema = z.object({
-  name: z.string(),
-  desc: z.string(),
+export const ZoneEvent = z.object({
+  name: z.string().max(100),
+  desc: z.string().max(2000),
   color: z.enum(['red', 'yellow', 'green', 'purple']),
 });
-export const ZoneEvent = ZoneEventSchema;
-export type ZoneEvent = z.infer<typeof ZoneEventSchema>;
+export type ZoneEvent = z.infer<typeof ZoneEvent>;
 
-export const ZoneHighlightSchema = z.object({
-  name: z.string(),
-  desc: z.string(),
-  tags: z.string(),
+export const ZoneHighlight = z.object({
+  name: z.string().max(100),
+  desc: z.string().max(2000),
+  tags: z.string().max(200),
   color: z.enum(['red', 'yellow', 'green', 'purple', 'blue', 'gray']),
   isRevealed: z.boolean().optional(),
 });
-export const ZoneHighlight = ZoneHighlightSchema;
-export type ZoneHighlight = z.infer<typeof ZoneHighlightSchema>;
+export type ZoneHighlight = z.infer<typeof ZoneHighlight>;
 
-export const ZoneHighlightCategorySchema = z.object({
-  title: z.string(),
-  options: z.array(ZoneHighlightSchema),
+export const ZoneHighlightCategory = z.object({
+  title: z.string().max(100),
+  options: z.array(ZoneHighlight).max(100),
 });
-export const ZoneHighlightCategory = ZoneHighlightCategorySchema;
-export type ZoneHighlightCategory = z.infer<typeof ZoneHighlightCategorySchema>;
+export type ZoneHighlightCategory = z.infer<typeof ZoneHighlightCategory>;
 
-export const ZoneThreatSchema = z.object({
-  name: z.string(),
-  type: z.string(),
-  effect: z.string(),
-  damage: z.string(),
-  damageType: z.string(),
+export const ZoneThreat = z.object({
+  name: z.string().max(100),
+  type: z.string().max(100),
+  effect: z.string().max(2000),
+  damage: z.string().max(100),
+  damageType: z.string().max(100),
   isRevealed: z.boolean().optional(),
 });
-export const ZoneThreat = ZoneThreatSchema;
-export type ZoneThreat = z.infer<typeof ZoneThreatSchema>;
+export type ZoneThreat = z.infer<typeof ZoneThreat>;
 
-export const ZoneInventoryItemSchema = z.object({
-  name: z.string(),
-  type: z.string(),
-  weight: z.string(),
+export const ZoneInventoryItem = z.object({
+  name: z.string().max(100),
+  type: z.string().max(100),
+  weight: z.string().max(50),
   element: z.enum([
     'Sangue',
     'Morte',
@@ -76,75 +69,73 @@ export const ZoneInventoryItemSchema = z.object({
     'Medo',
     'Comum',
   ]),
-  effect: z.string(),
-  desc: z.string(),
+  effect: z.string().max(2000),
+  desc: z.string().max(2000),
   isFound: z.boolean().optional(),
 });
-export const ZoneInventoryItem = ZoneInventoryItemSchema;
-export type ZoneInventoryItem = z.infer<typeof ZoneInventoryItemSchema>;
+export type ZoneInventoryItem = z.infer<typeof ZoneInventoryItem>;
 
-export const ZoneJournalEntrySchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  session: z.string(),
-  author: z.string(),
-  text: z.string(),
+export const ZoneJournalEntry = z.object({
+  id: z.string().max(100),
+  title: z.string().max(100),
+  session: z.string().max(100),
+  author: z.string().max(100),
+  text: z.string().max(10000),
   isRevealed: z.boolean().optional(),
 });
-export const ZoneJournalEntry = ZoneJournalEntrySchema;
-export type ZoneJournalEntry = z.infer<typeof ZoneJournalEntrySchema>;
+export type ZoneJournalEntry = z.infer<typeof ZoneJournalEntry>;
 
-export const ZoneNpcNodeSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  role: z.string(),
-  disposition: z.string(),
-  notes: z.string(),
+export const ZoneNpcNode = z.object({
+  id: z.string().max(100),
+  name: z.string().max(100),
+  role: z.string().max(100),
+  disposition: z.string().max(100),
+  notes: z.string().max(5000),
   isRevealed: z.boolean().optional(),
 });
-export const ZoneNpcNode = ZoneNpcNodeSchema;
-export type ZoneNpcNode = z.infer<typeof ZoneNpcNodeSchema>;
+export type ZoneNpcNode = z.infer<typeof ZoneNpcNode>;
 
-export const ZoneQuestNodeSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  priority: z.string(),
-  reward: z.string(),
-  objective: z.string(),
+export const ZoneQuestNode = z.object({
+  id: z.string().max(100),
+  title: z.string().max(100),
+  priority: z.string().max(50),
+  reward: z.string().max(500),
+  objective: z.string().max(2000),
   isCompleted: z.boolean().optional(),
 });
-export const ZoneQuestNode = ZoneQuestNodeSchema;
-export type ZoneQuestNode = z.infer<typeof ZoneQuestNodeSchema>;
+export type ZoneQuestNode = z.infer<typeof ZoneQuestNode>;
 
-export const ZoneDataSchema = z.object({
-  title: z.string(),
-  desc: z.string(),
-  visits: z.number(),
-  imageUrl: z.string().optional(),
-  style: z
-    .object({
-      borderColor: z.string(),
-      fillColor: z.string(),
-      textColor: z.string(),
-    })
-    .optional(),
-  customPois: z.array(POICategorySchema),
-  customEvents: z.array(ZoneEventSchema),
-  customHighlights: z.array(ZoneHighlightCategorySchema).optional(),
-  customThreats: z.array(ZoneThreatSchema).optional(),
-  customInventory: z.array(ZoneInventoryItemSchema).optional(),
-  customJournal: z.array(ZoneJournalEntrySchema).optional(),
-  customNpcs: z.array(ZoneNpcNodeSchema).optional(),
-  customQuests: z.array(ZoneQuestNodeSchema).optional(),
-  activeMarkers: z.array(z.string()).optional(),
-  markerColors: z.record(z.string(), z.string()).optional(),
-  markerTextColors: z.record(z.string(), z.string()).optional(),
+export const ZoneStyle = z.object({
+  borderColor: z.string().max(50),
+  fillColor: z.string().max(50),
+  textColor: z.string().max(50),
 });
-export const ZoneData = ZoneDataSchema;
-export type ZoneData = z.infer<typeof ZoneDataSchema>;
+export type ZoneStyle = z.infer<typeof ZoneStyle>;
 
-export const ZoneSchema = z.object({
-  id: z.string(),
+export const ZoneData = z.object({
+  title: z.string().max(100),
+  desc: z.string().max(5000),
+  visits: z.number().int().nonnegative(),
+  imageRef: z.string().max(255).nullable().optional(),
+  style: ZoneStyle.optional(),
+  customPois: z.array(POICategory).max(100).optional(),
+  customEvents: z.array(ZoneEvent).max(100).optional(),
+  customHighlights: z.array(ZoneHighlightCategory).max(100).optional(),
+  customThreats: z.array(ZoneThreat).max(100).optional(),
+  customInventory: z.array(ZoneInventoryItem).max(100).optional(),
+  customJournal: z.array(ZoneJournalEntry).max(100).optional(),
+  customNpcs: z.array(ZoneNpcNode).max(100).optional(),
+  customQuests: z.array(ZoneQuestNode).max(100).optional(),
+  activeMarkers: z.array(z.string().max(100)).max(100).optional(),
+  markerColors: z.record(z.string().max(100), z.string().max(50)).optional(),
+  markerTextColors: z
+    .record(z.string().max(100), z.string().max(50))
+    .optional(),
+});
+export type ZoneData = z.infer<typeof ZoneData>;
+
+export const Zone = z.object({
+  id: z.string().uuid(),
   type: z.enum(['rect', 'ellipse', 'polygon']),
   x: z.number(),
   y: z.number(),
@@ -153,9 +144,8 @@ export const ZoneSchema = z.object({
   rotation: z.number().optional(),
   scaleX: z.number().optional(),
   scaleY: z.number().optional(),
-  clipPath: z.string().optional(),
-  points: z.array(z.number()).optional(),
-  data: ZoneDataSchema,
+  clipPath: z.string().max(5000).optional(),
+  points: z.array(z.number()).max(1000).optional(),
+  data: ZoneData,
 });
-export const Zone = ZoneSchema;
-export type Zone = z.infer<typeof ZoneSchema>;
+export type Zone = z.infer<typeof Zone>;
