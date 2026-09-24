@@ -1,16 +1,12 @@
 import { Router, type Request, type Response } from 'express';
 import { AuthService } from '../services/authService';
-import {
-  RegisterInputSchema,
-  LoginInputSchema,
-  GoogleAuthInputSchema,
-} from '@sgm/shared';
+import { RegisterInput, LoginInput, GoogleAuthInput } from '@sgm/shared';
 
 export const authRouter = Router();
 
 // POST /api/auth/register
 authRouter.post('/register', async (req: Request, res: Response) => {
-  const parsed = RegisterInputSchema.safeParse(req.body);
+  const parsed = RegisterInput.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({
       error: parsed.error.issues[0]?.message || 'Dados de cadastro inválidos.',
@@ -30,7 +26,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
 
 // POST /api/auth/login
 authRouter.post('/login', async (req: Request, res: Response) => {
-  const parsed = LoginInputSchema.safeParse(req.body);
+  const parsed = LoginInput.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({
       error: parsed.error.issues[0]?.message || 'Dados de login inválidos.',
@@ -50,7 +46,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
 
 // POST /api/auth/google
 authRouter.post('/google', async (req: Request, res: Response) => {
-  const parsed = GoogleAuthInputSchema.safeParse(req.body);
+  const parsed = GoogleAuthInput.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({
       error:
