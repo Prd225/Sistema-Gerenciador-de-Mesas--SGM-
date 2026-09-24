@@ -9,7 +9,7 @@
   },
   "files": [],
   "references": [
-    { "path": "./tsconfig.app.json" },
+    { "path": "./apps/web/tsconfig.json" },
     { "path": "./tsconfig.node.json" },
     { "path": "./tsconfig.server.json" }
   ]
