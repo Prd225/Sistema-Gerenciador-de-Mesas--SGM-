@@ -2,10 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import type {
-  ClientToServerEvents,
-  ServerToClientEvents,
-} from '../../src/types/multiplayer';
+import type { ClientToServerEvents, ServerToClientEvents } from '@shared';
 import { registerSocketHandlers } from './handlers/socketHandlers';
 import { initDatabase, getDatabaseStatus } from './db/db';
 import { authRouter } from './routes/authRoutes';

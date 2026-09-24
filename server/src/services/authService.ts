@@ -1,15 +1,9 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { pool, getDatabaseStatus } from '../db/db';
+import type { UserProfile } from '@shared';
 
-export interface UserDTO {
-  id: string;
-  username: string;
-  email: string;
-  avatarUrl: string | null;
-  role: string;
-  createdAt: string;
-}
+export type UserDTO = UserProfile;
 
 export class AuthService {
   // Gera token de sessão seguro com 30 dias de validade

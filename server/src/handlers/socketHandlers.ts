@@ -3,7 +3,7 @@ import type {
   ClientToServerEvents,
   ServerToClientEvents,
   RoomPing,
-} from '../../../src/types/multiplayer';
+} from '@shared';
 import { roomManager } from '../roomManager';
 
 type SgmSocket = Socket<ClientToServerEvents, ServerToClientEvents>;

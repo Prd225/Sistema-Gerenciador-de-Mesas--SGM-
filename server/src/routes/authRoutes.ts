@@ -1,60 +1,71 @@
-import { Router, Request, Response } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { AuthService } from '../services/authService';
+import {
+  RegisterInputSchema,
+  LoginInputSchema,
+  GoogleAuthInputSchema,
+} from '@shared';
 
 export const authRouter = Router();
 
 // POST /api/auth/register
 authRouter.post('/register', async (req: Request, res: Response) => {
-  try {
-    const { username, email, password } = req.body;
-    if (!username || !email || !password) {
-      return res
-        .status(400)
-        .json({ error: 'Todos os campos são obrigatórios.' });
-    }
+  const parsed = RegisterInputSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: parsed.error.issues[0]?.message || 'Dados de cadastro inválidos.',
+    });
+  }
 
+  try {
+    const { username, email, password } = parsed.data;
     const result = await AuthService.register(username, email, password);
     return res.status(201).json(result);
-  } catch (err: any) {
-    return res
-      .status(400)
-      .json({ error: err.message || 'Erro ao registrar usuário.' });
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : 'Erro ao registrar usuário.';
+    return res.status(400).json({ error: message });
   }
 });
 
 // POST /api/auth/login
 authRouter.post('/login', async (req: Request, res: Response) => {
-  try {
-    const { identifier, password } = req.body;
-    if (!identifier || !password) {
-      return res
-        .status(400)
-        .json({ error: 'Informe o usuário/e-mail e a senha.' });
-    }
+  const parsed = LoginInputSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: parsed.error.issues[0]?.message || 'Dados de login inválidos.',
+    });
+  }
 
+  try {
+    const { identifier, password } = parsed.data;
     const result = await AuthService.login(identifier, password);
     return res.status(200).json(result);
-  } catch (err: any) {
-    return res
-      .status(401)
-      .json({ error: err.message || 'Credenciais inválidas.' });
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : 'Credenciais inválidas.';
+    return res.status(401).json({ error: message });
   }
 });
 
 // POST /api/auth/google
 authRouter.post('/google', async (req: Request, res: Response) => {
-  try {
-    const { idToken } = req.body;
-    if (!idToken) {
-      return res.status(400).json({ error: 'Token do Google não fornecido.' });
-    }
+  const parsed = GoogleAuthInputSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error:
+        parsed.error.issues[0]?.message || 'Token do Google não fornecido.',
+    });
+  }
 
+  try {
+    const { idToken } = parsed.data;
     const result = await AuthService.googleAuth(idToken);
     return res.status(200).json(result);
-  } catch (err: any) {
-    return res
-      .status(401)
-      .json({ error: err.message || 'Falha na autenticação com Google.' });
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : 'Falha na autenticação com Google.';
+    return res.status(410).json({ error: message });
   }
 });
 
@@ -70,7 +81,7 @@ authRouter.post('/logout', async (req: Request, res: Response) => {
       await AuthService.revokeSession(token);
     }
     return res.status(200).json({ success: true });
-  } catch (err: any) {
+  } catch {
     return res.status(500).json({ error: 'Erro ao deslogar.' });
   }
 });
@@ -93,7 +104,7 @@ authRouter.get('/me', async (req: Request, res: Response) => {
     }
 
     return res.status(200).json({ user });
-  } catch (err: any) {
+  } catch {
     return res.status(500).json({ error: 'Erro interno ao validar sessão.' });
   }
 });

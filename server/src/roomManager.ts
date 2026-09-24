@@ -4,12 +4,10 @@ import type {
   BgImage,
   Zone,
   Marker,
-} from '../../src/types/game';
-import type {
   RoomMember,
   RoomState,
   SyncStatePayload,
-} from '../../src/types/multiplayer';
+} from '@shared';
 
 export interface ActiveRoom {
   code: string;

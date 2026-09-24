@@ -1,5 +1,4 @@
 import { Pool } from 'pg';
-import crypto from 'crypto';
 
 // Conexão com o PostgreSQL usando DATABASE_URL ou valores padrão locais
 const databaseUrl =
