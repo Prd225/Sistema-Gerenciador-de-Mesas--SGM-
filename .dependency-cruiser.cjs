@@ -4,7 +4,8 @@ module.exports = {
     {
       name: 'no-circular',
       severity: 'error',
-      comment: 'Proíbe ciclos de dependência fora dos stores legados do cliente',
+      comment:
+        'Proíbe ciclos de dependência fora dos stores legados do cliente',
       from: {
         pathNot: '^apps/web/src/(lib/saveHelpers\\.ts|store/)',
       },
@@ -73,4 +74,3 @@ module.exports = {
     },
   },
 };
-

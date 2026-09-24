@@ -90,15 +90,15 @@ Abra o navegador em `http://localhost:5173`. O servidor de backend e Socket.io i
 
 ## 📜 Scripts Disponíveis
 
-| Comando                | Descrição                                                                     |
-| :--------------------- | :---------------------------------------------------------------------------- |
-| `npm run dev`          | Inicia o servidor Vite para desenvolvimento local com HMR.                    |
-| `npm run build`        | Compila o TypeScript (`tsc -b`) e gera o bundle de produção otimizado.        |
-| `npm run preview`      | Pré-visualiza localmente o build gerado em `dist/`.                           |
-| `npm run typecheck`    | Executa a verificação de tipos do TypeScript sem gerar arquivos.              |
-| `npm run lint`         | Executa a análise estática ultrarrápida de código com **Oxlint**.             |
-| `npm run format`       | Formata todos os arquivos do projeto de acordo com as regras do **Prettier**. |
-| `npm run format:check` | Verifica se há arquivos que não estão formatados com o **Prettier**.          |
+| Comando                                     | Descrição                                                                      |
+| :------------------------------------------ | :----------------------------------------------------------------------------- |
+| `npm run dev`                               | Inicia o servidor Vite para desenvolvimento local com HMR.                     |
+| `npm run build`                             | Compila o TypeScript (`tsc -b`) e gera o bundle de produção otimizado.         |
+| `npm run preview`                           | Pré-visualiza localmente o build gerado em `dist/`.                            |
+| `npm run typecheck`                         | Executa a verificação de tipos do TypeScript sem gerar arquivos.               |
+| `npm run lint`                              | Executa a análise estática ultrarrápida de código com **Oxlint**.              |
+| `npm run format`                            | Formata todos os arquivos do projeto de acordo com as regras do **Prettier**.  |
+| `npm run format:check`                      | Verifica se há arquivos que não estão formatados com o **Prettier**.           |
 | Comando                                     | Descrição                                                                      |
 | :------------------------------------------ | :----------------------------------------------------------------------------- |
 | `npm run dev`                               | Executa cliente web (`@sgm/web`) e servidor (`@sgm/server`) em paralelo.       |

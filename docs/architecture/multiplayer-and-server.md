@@ -4,14 +4,14 @@
 
 ## Componentes
 
-| Arquivo                                 | Papel                                                                                                                           |
-| :-------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------ |
-| `server/src/index.ts`                   | Express com CORS e JSON, rota `/api/auth` e Socket.io (`maxHttpBufferSize` de 20 MB)                                            |
-| `server/src/roomManager.ts`             | Singleton com as salas em um `Map` na memória. Código de sala no formato `SGM-XXXX`. Sala é removida quando o último membro sai |
-| `server/src/handlers/socketHandlers.ts` | Um handler por evento: atualiza o `RoomManager` e retransmite para a sala                                                       |
-| `src/types/multiplayer.ts`              | Contratos `ClientToServerEvents` e `ServerToClientEvents`, usados pelos dois lados                                              |
-| `src/lib/socket.ts`                     | Instância única do cliente Socket.io (`autoConnect: false`, até 5 tentativas de reconexão)                                      |
-| `src/store/useMultiplayerStore.ts`      | Cria e entra em salas, registra os listeners e repassa eventos recebidos para os outros stores                                  |
+| Arquivo                                      | Papel                                                                                                                           |
+| :------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------ |
+| `server/src/index.ts`                        | Express com CORS e JSON, rota `/api/auth` e Socket.io (`maxHttpBufferSize` de 20 MB)                                            |
+| `server/src/roomManager.ts`                  | Singleton com as salas em um `Map` na memória. Código de sala no formato `SGM-XXXX`. Sala é removida quando o último membro sai |
+| `server/src/handlers/socketHandlers.ts`      | Um handler por evento: atualiza o `RoomManager` e retransmite para a sala                                                       |
+| `src/types/multiplayer.ts`                   | Contratos `ClientToServerEvents` e `ServerToClientEvents`, usados pelos dois lados                                              |
+| `src/lib/socket.ts`                          | Instância única do cliente Socket.io (`autoConnect: false`, até 5 tentativas de reconexão)                                      |
+| `src/store/useMultiplayerStore.ts`           | Cria e entra em salas, registra os listeners e repassa eventos recebidos para os outros stores                                  |
 | Arquivo                                      | Papel                                                                                                                           |
 | :------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------ |
 | `apps/server/src/index.ts`                   | Express com CORS e JSON, rota `/api/auth` e Socket.io (`maxHttpBufferSize` de 20 MB)                                            |
@@ -64,11 +64,11 @@ sequenceDiagram
 
 1. Declare o evento em `ClientToServerEvents` e `ServerToClientEvents` (`src/types/multiplayer.ts`).
 2. Trate em `server/src/handlers/socketHandlers.ts` e, se o estado da sala mudar, em `roomManager.ts`.
-1. Declare o evento em `ClientToServerEvents` e `ServerToClientEvents` em `@sgm/shared` (`packages/shared/src/protocol/socketEvents.ts`).
-2. Trate em `apps/server/src/handlers/socketHandlers.ts` e, se o estado da sala mudar, em `apps/server/src/roomManager.ts`.
-3. No store do domínio, crie a ação local (emite) e a `*FromRemote` (não emite).
-4. Registre o listener em `useMultiplayerStore`.
-4. Registre o listener em `apps/web/src/store/useMultiplayerStore.ts`.
+3. Declare o evento em `ClientToServerEvents` e `ServerToClientEvents` em `@sgm/shared` (`packages/shared/src/protocol/socketEvents.ts`).
+4. Trate em `apps/server/src/handlers/socketHandlers.ts` e, se o estado da sala mudar, em `apps/server/src/roomManager.ts`.
+5. No store do domínio, crie a ação local (emite) e a `*FromRemote` (não emite).
+6. Registre o listener em `useMultiplayerStore`.
+7. Registre o listener em `apps/web/src/store/useMultiplayerStore.ts`.
 
 ## Limitações atuais
 

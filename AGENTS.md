@@ -14,7 +14,7 @@ O repositório é organizado como um monorepo npm workspaces com `apps/web`, `ap
 | Comando                                     | Uso                                                                                      |
 | :------------------------------------------ | :--------------------------------------------------------------------------------------- |
 | `npm run dev`                               | Cliente (Vite, porta 5173) e servidor (tsx watch, porta 3001) juntos                     |
-| `npm run dev`                               | Cliente (Vite, porta 5173) e servidor (tsx watch, porta 3001) juntos via workspaces     |
+| `npm run dev`                               | Cliente (Vite, porta 5173) e servidor (tsx watch, porta 3001) juntos via workspaces      |
 | `npm run dev:client` / `npm run dev:server` | Só um dos lados                                                                          |
 | `npm run typecheck`                         | Checa cliente **e** servidor (`tsc -b` com `tsconfig.app.json` e `tsconfig.server.json`) |
 | `npm run lint`                              | Oxlint                                                                                   |
@@ -24,19 +24,19 @@ O repositório é organizado como um monorepo npm workspaces com `apps/web`, `ap
 | `npm run typecheck`                         | Checa todos os workspaces (`tsc -b --noEmit`)                                            |
 | `npm run lint`                              | Oxlint em todos os workspaces                                                            |
 | `npm run format` / `npm run format:check`   | Prettier em todo o monorepo                                                              |
-| `npm run depcruise`                         | Checa regras de fronteiras entre pacotes com dependency-cruiser                         |
+| `npm run depcruise`                         | Checa regras de fronteiras entre pacotes com dependency-cruiser                          |
 | `npm run build`                             | Build de produção do cliente (@sgm/web)                                                  |
 | `npm test`                                  | Testes com Vitest em todos os workspaces                                                 |
-| Comando                                     | Uso                                                              |
-| :------------------------------------------ | :--------------------------------------------------------------- |
-| `npm run dev`                               | Cliente (Vite, porta 5173) e servidor (tsx watch, porta 3001)   |
-| `npm run dev:client` / `npm run dev:server` | Só um dos lados                                                  |
-| `npm run typecheck`                         | Checa todos os workspaces (`tsc -b --noEmit`)                    |
-| `npm run lint`                              | Oxlint em todos os workspaces                                    |
-| `npm run format` / `npm run format:check`   | Prettier em todo o monorepo                                      |
-| `npm run depcruise`                         | Checa regras de fronteiras entre pacotes com dependency-cruiser |
-| `npm run build`                             | Build de produção do cliente (@sgm/web)                          |
-| `npm test`                                  | Testes com Vitest em todos os workspaces                         |
+| Comando                                     | Uso                                                                                      |
+| :------------------------------------------ | :---------------------------------------------------------------                         |
+| `npm run dev`                               | Cliente (Vite, porta 5173) e servidor (tsx watch, porta 3001)                            |
+| `npm run dev:client` / `npm run dev:server` | Só um dos lados                                                                          |
+| `npm run typecheck`                         | Checa todos os workspaces (`tsc -b --noEmit`)                                            |
+| `npm run lint`                              | Oxlint em todos os workspaces                                                            |
+| `npm run format` / `npm run format:check`   | Prettier em todo o monorepo                                                              |
+| `npm run depcruise`                         | Checa regras de fronteiras entre pacotes com dependency-cruiser                          |
+| `npm run build`                             | Build de produção do cliente (@sgm/web)                                                  |
+| `npm test`                                  | Testes com Vitest em todos os workspaces                                                 |
 
 Antes de concluir qualquer tarefa: `npm run format:check && npm run lint && npm run typecheck && npm test && npm run build`.
 Antes de concluir qualquer tarefa: `npm run format:check && npm run lint && npm run typecheck && npm run depcruise && npm test && npm run build`.
@@ -101,9 +101,9 @@ Não edite: `apps/web/dist/`, `apps/server/dist/`, `node_modules/`, `LICENSE`.
 2. **Escopo pequeno.** Uma tarefa, um PR, uma fase do plano por vez. Não aproveite para refatorar o que não foi pedido.
 3. **Edite, não reescreva.** Faça mudanças pontuais. Reescrever um arquivo inteiro para mudar um trecho apaga código que você não leu.
 4. **Verifique.** Rode os comandos da seção "Comandos" e, se mexeu em `src/`, teste no navegador (roteiro em `docs/architecture/frontend-guidelines.md`).
-4. **Verifique.** Rode os comandos da seção "Comandos" e, se mexeu em `apps/web/src/`, teste no navegador (roteiro em `docs/architecture/frontend-guidelines.md`).
-5. **Relate com honestidade.** Diga o que foi feito, o que foi verificado e como, e o que ficou pendente ou não foi testado. Nunca declare concluído algo que não rodou.
-6. **Na dúvida, pare.** Se o plano ou o spec não fizer sentido diante do código, explique o conflito em vez de improvisar uma solução.
+5. **Verifique.** Rode os comandos da seção "Comandos" e, se mexeu em `apps/web/src/`, teste no navegador (roteiro em `docs/architecture/frontend-guidelines.md`).
+6. **Relate com honestidade.** Diga o que foi feito, o que foi verificado e como, e o que ficou pendente ou não foi testado. Nunca declare concluído algo que não rodou.
+7. **Na dúvida, pare.** Se o plano ou o spec não fizer sentido diante do código, explique o conflito em vez de improvisar uma solução.
 
 ## Erros comuns a evitar
 
@@ -117,7 +117,7 @@ Não edite: `apps/web/dist/`, `apps/server/dist/`, `node_modules/`, `LICENSE`.
 | Regra de jogo escrita num componente, store ou handler do servidor      | Regras só em `@sgm/engine` (a partir da Fase 5)                                                        |
 | Resolver sobreposição com `z-[9999]` ou overlay manual                  | Escala de z-index do design system                                                                     |
 | Hexadecimal, `text-[10px]` ou estilo solto na tela                      | Tokens e primitivos de `src/components/ui/`                                                            |
-| Hexadecimal, `text-[10px]` ou estilo solto na tela                      | Tokens e primitivos de `apps/web/src/components/ui/`                                                    |
+| Hexadecimal, `text-[10px]` ou estilo solto na tela                      | Tokens e primitivos de `apps/web/src/components/ui/`                                                   |
 | `alert`, `confirm`, `prompt`                                            | `Toast`, `AlertDialog`, `Dialog`                                                                       |
 | Timer, listener ou `socket.on` sem limpeza                              | Retorno de limpeza em todo `useEffect`                                                                 |
 | Ler estado antigo dentro de callback assíncrono                         | `useXStore.getState()` no momento da execução                                                          |

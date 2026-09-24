@@ -2,11 +2,11 @@
 
 ## Processos
 
-| Processo | Código        | Porta (dev)    | Responsabilidade                                              |
-| :------- | :------------ | :------------- | :------------------------------------------------------------ |
-| Cliente  | `src/`        | 5173 (Vite)    | SPA React 19: battlemap, painel do mestre, persistência local |
-| Servidor | `server/src/` | 3001 (`PORT`)  | Express (`/api/auth`) e Socket.io (salas multiplayer)         |
-| Banco    | —             | `DATABASE_URL` | Postgres: usuários, sessões e campanhas                       |
+| Processo | Código         | Porta (dev)    | Responsabilidade                                              |
+| :------- | :------------- | :------------- | :------------------------------------------------------------ |
+| Cliente  | `src/`         | 5173 (Vite)    | SPA React 19: battlemap, painel do mestre, persistência local |
+| Servidor | `server/src/`  | 3001 (`PORT`)  | Express (`/api/auth`) e Socket.io (salas multiplayer)         |
+| Banco    | —              | `DATABASE_URL` | Postgres: usuários, sessões e campanhas                       |
 | Processo | Código         | Porta (dev)    | Responsabilidade                                              |
 | :------- | :------------- | :------------- | :------------------------------------------------------------ |
 | Cliente  | `apps/web/`    | 5173 (Vite)    | SPA React 19: battlemap, painel do mestre, persistência local |

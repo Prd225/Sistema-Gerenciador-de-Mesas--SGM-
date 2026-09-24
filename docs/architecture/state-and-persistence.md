@@ -1,6 +1,7 @@
 # Estado e Persistência
 
 ## Stores Zustand (`src/store/`)
+
 ## Stores Zustand (`apps/web/src/store/`)
 
 | Store                                                                                                        | Domínio                                                                               |       Autosave        | Emite socket |
@@ -18,6 +19,7 @@
 Nenhum store usa o middleware `persist` do Zustand. A persistência passa toda por `saveHelpers.ts` ou, no caso das cenas, direto pelo Dexie.
 
 ## Autosave (`src/lib/saveHelpers.ts`)
+
 ## Autosave (`apps/web/src/lib/saveHelpers.ts`)
 
 1. Uma ação de store chama `triggerAutoSave()`.
@@ -33,6 +35,7 @@ Outras funções: `applyGameState` (aplica um estado salvo em todos os stores), 
 Dívida conhecida: `saveHelpers.ts` importa todos os stores e os stores importam `triggerAutoSave`, uma dependência circular. A correção está no plano (Fase 6). Até lá, ao criar um store novo que precisa ser salvo, adicione-o em `collectGameState` e `applyGameState`.
 
 ## IndexedDB (`src/lib/db.ts`)
+
 ## IndexedDB (`apps/web/src/lib/db.ts`)
 
 Banco `SGMDatabase`, schema na versão 7:
