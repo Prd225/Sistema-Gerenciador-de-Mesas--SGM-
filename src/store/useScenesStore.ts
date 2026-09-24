@@ -119,18 +119,35 @@ export const useScenesStore = create<ScenesState>((set, get) => {
     },
 
     removeScene: async (id: string) => {
-      const { scenes, activeSceneId, switchScene } = get();
+      const { scenes, activeSceneId } = get();
       if (scenes.length <= 1) return; // Não permite apagar a última cena
 
       const newScenes = scenes.filter((s) => s.id !== id);
-      set({ scenes: newScenes });
+
+      if (activeSceneId === id) {
+        const targetSceneId = newScenes[0].id;
+        const targetData = await db.activeScenes.get(targetSceneId);
+
+        set({ scenes: newScenes, activeSceneId: targetSceneId });
+
+        if (targetData) {
+          useTokenStore.setState({
+            tokens: targetData.tokens,
+            initiativeQueue: targetData.initiativeQueue,
+          });
+          useZoneStore.setState({
+            zones: targetData.zones,
+            markers: targetData.markers,
+            bgImages: targetData.bgImages,
+          });
+        }
+
+        setTimeout(() => window.dispatchEvent(new Event('scene-switched')), 50);
+      } else {
+        set({ scenes: newScenes });
+      }
 
       await db.activeScenes.delete(id);
-
-      // Se apagou a cena ativa, muda pra primeira da lista
-      if (activeSceneId === id) {
-        await switchScene(newScenes[0].id);
-      }
     },
 
     loadLegacyData: async (tokensData: any, zonesData: any) => {
