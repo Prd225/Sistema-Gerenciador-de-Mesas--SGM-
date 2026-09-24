@@ -1,12 +1,17 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Music,
   HardDrive,
   MonitorPlay,
   Search,
   Loader2,
-  X,
   Upload,
   Link,
 } from 'lucide-react';
@@ -264,20 +269,14 @@ export default function AddMusicModal({
     }
   };
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4">
-      <div className="bg-[#121214] border border-[#323238] rounded-xl text-[#e1e1e6] w-full max-w-md overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
-        <div className="p-4 border-b border-[#323238] bg-[#1a1a1e] flex items-center justify-between">
-          <h2 className="font-bold">Adicionar Música</h2>
-          <button
-            onClick={() => onOpenChange(false)}
-            className="p-1 text-[#7a7a80] hover:text-[#e1e1e6] rounded hover:bg-[#323238] transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-[#121214] border-[#323238] text-[#e1e1e6] sm:max-w-md p-0 overflow-hidden shadow-2xl gap-0">
+        <DialogHeader className="p-4 border-b border-[#323238] bg-[#1a1a1e]">
+          <DialogTitle className="font-bold text-base text-[#e1e1e6]">
+            Adicionar Música
+          </DialogTitle>
+        </DialogHeader>
 
         <div className="flex border-b border-[#323238]">
           <button
@@ -456,7 +455,7 @@ export default function AddMusicModal({
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -33,11 +33,11 @@ Use apenas estes níveis. Não crie valores novos como `z-[9999]`.
 | `z-40`             | Sidebars e gatilhos flutuantes sobre o mapa              |
 | `z-50`             | Header, footer e popovers internos de painéis            |
 | `z-[60]`, `z-[61]` | Overlays do `AppLayout`                                  |
-| `z-[100]`          | `Dialog` (`ui/dialog.tsx`)                               |
-| `z-[110]`          | `Select` e `DropdownMenu` (precisam abrir sobre dialogs) |
 | `z-[200]`          | Overlay do painel do mestre                              |
+| `z-[300]`          | `Dialog` (`ui/dialog.tsx`)                               |
+| `z-[310]`          | `Select` e `DropdownMenu` (precisam abrir sobre dialogs) |
 
-Problema conhecido: o painel do mestre (200) fica acima do `Dialog` (100). Um modal aberto de dentro do painel aparece por baixo dele, e é por isso que o `AddMusicModal` usa um overlay próprio com `z-[9999]`. A correção certa é reordenar a escala (dialogs acima do painel), não criar outro overlay manual. Se a sua tarefa abrir um modal dentro do painel do mestre, corrija a escala e atualize esta tabela.
+Modais (`Dialog`) e seus menus subordinados (`Select`, `DropdownMenu`) renderizam acima do painel do mestre via Portal (`z-[300]` e `z-[310]`), permitindo que modais acionados de dentro do painel do mestre apareçam normalmente sem necessidade de overlays manuais ou `z-[9999]`.
 
 ## 4. React e Zustand
 
