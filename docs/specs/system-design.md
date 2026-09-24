@@ -1,6 +1,6 @@
 # System Design — SGM
 
-> Especificação do sistema alvo. O estado atual está em [`../architecture/`](../architecture/) e a ordem de execução em [`../plans/modernizacao-arquitetural.md`](../plans/modernizacao-arquitetural.md). Decisões de base: [0001](../decisions/0001-manter-stack-node.md), [0002](../decisions/0002-backend-proprio-sem-baas.md), [0003](../decisions/0003-servidor-autoritativo.md).
+> Especificação do sistema alvo. O estado atual está em [`../architecture/`](../architecture/) e a ordem de execução em [`../plans/modernizacao-arquitetural.md`](../plans/modernizacao-arquitetural.md). Decisões de base: [0002](../decisions/0002-backend-proprio-sem-baas.md), [0003](../decisions/0003-servidor-autoritativo.md), [0006](../decisions/0006-stack-revisada.md), [0007](../decisions/0007-arquitetura-engine-compartilhada.md). Estrutura de pastas em [`code-architecture.md`](code-architecture.md), pipelines e deploy em [`ci-cd.md`](ci-cd.md).
 
 ---
 
@@ -57,27 +57,31 @@ Conclusão: um processo Node sobra. O único risco real de desempenho é trafega
 
 ```mermaid
 flowchart TB
-    subgraph Browser["Navegador"]
-        UI["UI React (componentes)"]
-        Stores["Stores Zustand (estado de UI e projeção da sala)"]
-        Sync["Sync Engine (src/sync/)"]
+    subgraph Browser["Navegador (apps/web)"]
+        UI["Features React"]
+        RS["room-store (Zustand)"]
+        Conn["RoomConnection<br/>local ou remota"]
+        EngC["@sgm/engine<br/>(previsão e modo offline)"]
         Local["Persistência local (Dexie)"]
-        UI --> Stores
-        Stores --> Sync
-        Stores --> Local
+        UI --> RS
+        UI --> Conn
+        Conn --> RS
+        Conn --> EngC
+        Conn --> Local
     end
 
-    subgraph Node["Servidor Node (processo único)"]
-        HTTP["HTTP API (Express)<br/>auth, campanhas, mídia"]
-        GW["Realtime Gateway (Socket.io)<br/>handshake, validação, rate limit"]
-        Engine["Room Engine<br/>applyCommand, projectFor"]
-        Persist["Room Persistence<br/>snapshot + log de eventos"]
+    subgraph Node["Servidor Node (apps/server, processo único)"]
+        HTTP["HTTP API (Fastify)<br/>auth (Better Auth), campanhas, salas, mídia"]
+        GW["Realtime Gateway (Socket.io, escrito à mão)<br/>handshake, validação, rate limit"]
+        Engine["@sgm/engine<br/>applyCommand, projectFor"]
+        Persist["Room Store<br/>snapshot + log de eventos (Drizzle)"]
         Media["Media Service<br/>validação, WebP, hash"]
-        GW --> Engine --> Persist
+        GW --> Engine
+        GW --> Persist
         HTTP --> Media
     end
 
-    Sync <-->|"WSS: comandos e eventos"| GW
+    Conn <-->|"WSS: comandos e eventos"| GW
     UI -->|"HTTPS"| HTTP
     Persist --> PG[("Postgres")]
     HTTP --> PG
@@ -85,16 +89,16 @@ flowchart TB
     Browser -->|"GET /media/:hash"| Disk
 ```
 
-| Componente         | Responsabilidade                                                                              | Não faz                                        |
-| :----------------- | :-------------------------------------------------------------------------------------------- | :--------------------------------------------- |
-| UI React           | Renderizar e capturar intenção do usuário                                                     | Não fala com o socket diretamente              |
-| Stores             | Estado de UI e cópia local da sala                                                            | Não decide permissões                          |
-| Sync Engine        | Envia comandos, aplica eventos confirmados, otimismo, reconexão, detecção de lacuna de versão | Não contém regra de jogo                       |
-| Persistência local | Campanha do mestre offline, cache de sessão para F5                                           | Não é fonte de verdade durante uma sala online |
-| Realtime Gateway   | Autentica o socket, valida schema, limita taxa, encaminha para a Engine                       | Não altera estado                              |
-| Room Engine        | Regras e permissões. Funções puras                                                            | Não faz I/O                                    |
-| Room Persistence   | Snapshot periódico, log de eventos, recarga no boot                                           | Não conhece regras                             |
-| Media Service      | Recebe, valida, converte, deduplica e serve imagens                                           | Não trafega pelo socket                        |
+| Componente         | Responsabilidade                                                                                                             | Não faz                                            |
+| :----------------- | :--------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------- |
+| Features React     | Renderizar e capturar intenção do usuário                                                                                    | Não falam com o socket nem com o Dexie diretamente |
+| room-store         | Estado da sala visto pela UI                                                                                                 | Não decide permissões                              |
+| RoomConnection     | Envia comandos, aplica eventos confirmados, otimismo, reconexão, lacuna de versão. A versão local roda o engine no navegador | Não contém regra de jogo                           |
+| Persistência local | Campanha do mestre offline, imagens `local:`, cache de sessão para F5                                                        | Não é fonte de verdade durante uma sala online     |
+| Realtime Gateway   | Autentica o socket, valida schema, limita taxa, encaminha para o engine                                                      | Não altera estado                                  |
+| `@sgm/engine`      | Regras e permissões. Funções puras e determinísticas, as mesmas no cliente e no servidor                                     | Não faz I/O                                        |
+| Room Store         | Snapshot periódico, log de eventos, recarga no boot                                                                          | Não conhece regras                                 |
+| Media Service      | Recebe, valida, converte, deduplica e serve imagens                                                                          | Não trafega pelo socket                            |
 
 ---
 
@@ -102,10 +106,10 @@ flowchart TB
 
 ### 4.1 Tipos de identidade
 
-| Identidade | Como é criada                            | Onde fica                                                                                    |
-| :--------- | :--------------------------------------- | :------------------------------------------------------------------------------------------- |
-| Usuário    | Cadastro ou Google OAuth                 | Tabela `users`. Sessão em cookie `httpOnly`                                                  |
-| Convidado  | Automática ao entrar numa sala sem conta | `memberToken` aleatório (32 bytes) guardado no `localStorage`, hash na tabela `room_members` |
+| Identidade | Como é criada                                              | Onde fica                                                                                    |
+| :--------- | :--------------------------------------------------------- | :------------------------------------------------------------------------------------------- |
+| Usuário    | Cadastro (e-mail e senha) ou Google OAuth, via Better Auth | Tabelas do Better Auth. Sessão em cookie `httpOnly` gerenciada por ele                       |
+| Convidado  | Automática ao entrar numa sala sem conta                   | `memberToken` aleatório (32 bytes) guardado no `localStorage`, hash na tabela `room_members` |
 
 O mestre precisa de conta para abrir sala online (a campanha pertence a ele). Jogadores podem ser convidados.
 
@@ -123,7 +127,7 @@ sequenceDiagram
     participant G as Gateway
     participant E as Room Engine
     C->>G: connect { auth: { roomCode, memberToken? } } + cookie de sessão
-    G->>G: resolve usuário (cookie) ou convidado (memberToken)
+    G->>G: resolve usuário (auth.api.getSession com os headers do handshake) ou convidado (memberToken)
     alt membro novo
         G->>E: addMember(nome, papel)
         G-->>C: welcome { memberId, memberToken, role }
@@ -139,10 +143,14 @@ sequenceDiagram
 
 ### 5.1 Postgres
 
+Schema definido com Drizzle em `apps/server/src/db/schema/`, migrações geradas pelo `drizzle-kit`.
+
 ```sql
-users        (id uuid pk, username, email, password_hash, google_id, avatar_url, created_at, updated_at)
-sessions     (id uuid pk, user_id fk, token_hash, expires_at, created_at)
-campaigns    (id uuid pk, owner_id fk, name, data jsonb, updated_at)
+-- geradas pelo Better Auth (adapter do Drizzle)
+user, session, account, verification
+
+-- do SGM
+campaigns    (id uuid pk, owner_id fk user, name, data jsonb, updated_at)
 rooms        (id uuid pk, code text unique, campaign_id fk null, owner_user_id fk,
               state jsonb, version bigint, status text,        -- 'open' | 'closed'
               created_at, updated_at, closed_at)
@@ -153,7 +161,7 @@ room_events  (room_id fk, version bigint, member_id fk, type text, payload jsonb
 media        (hash text pk, owner_user_id fk, mime, bytes int, width int, height int, created_at)
 ```
 
-- `sessions.token_hash`: guardar o hash, não o token (hoje o token é guardado em claro).
+- As tabelas de usuário e sessão são do Better Auth. Não criar tabelas próprias de usuário ou sessão.
 - `room_events` é append-only. Serve para auditoria, depuração e o replay/resumo de sessão (F10). Retenção sugerida: 90 dias.
 - Sem versionamento de formato de campanha por enquanto (decisão 0005). Antes do lançamento público, `campaigns` ganha `schema_version` e migrações.
 
@@ -198,7 +206,7 @@ Tudo indexado por id: atualizações viram `O(1)` e não existe "índice do arra
 
 ### 6.1 Envelope
 
-Um evento de socket para comandos e um para eventos, com união discriminada validada por Zod (`shared/protocol.ts`):
+Um evento de socket para comandos e um para eventos, com união discriminada validada por Zod (`packages/shared/src/protocol/`):
 
 ```ts
 // cliente -> servidor
@@ -253,7 +261,8 @@ sequenceDiagram
 
 ### 6.4 Cliente: otimismo e reconciliação
 
-- Comandos discretos (criar zona, mudar iniciativa): o cliente espera o ack. A UI mostra estado pendente se passar de 300 ms.
+- O cliente prevê o resultado rodando o mesmo `applyCommand` do `@sgm/engine` sobre o estado confirmado. Se o servidor rejeitar, descarta a previsão.
+- Comandos discretos (criar zona, mudar iniciativa): a previsão aparece na hora e a UI mostra estado pendente se o ack passar de 300 ms.
 - Arrasto de token: o cliente move localmente, envia `token.move` com throttle de 50 ms (20 Hz) e um comando final no `dragend`. Se o ack vier com `FORBIDDEN`, o token volta para a última posição confirmada.
 - O cliente guarda `lastVersion`. Evento com `version > lastVersion + 1` significa lacuna: o cliente pede `snapshot`.
 
@@ -308,7 +317,7 @@ Mestre clica em "Encerrar": `room.status = 'closed'`, estado final gravado na ca
 
 ### 8.1 Upload
 
-`POST /api/media` (multipart, autenticado):
+`POST /api/media` (`@fastify/multipart`, autenticado):
 
 1. Limite de 15 MB por arquivo. Rejeita se o conteúdo real (magic bytes) não for PNG, JPEG, WebP ou GIF.
 2. Converte com `sharp` para WebP, dimensão máxima 8192 px (mapas) e remove metadados EXIF.
@@ -340,12 +349,13 @@ Ao abrir uma sala (7.1), o cliente sobe cada `local:` e troca pela URL `/media/`
 | Payload malicioso ou gigante  | Zod em todo comando, `maxHttpBufferSize` de 64 KB, limites de tamanho em strings e arrays nos schemas                                                                                                                                 |
 | Flood de comandos             | Token bucket por socket: 30 comandos/s com rajada de 60. `ping`: 2/s                                                                                                                                                                  |
 | Força bruta de código de sala | 6 caracteres e limite de 10 tentativas de entrada por IP por minuto                                                                                                                                                                   |
-| Força bruta de login          | Rate limit em `/api/auth/*` (5 por minuto por IP e por usuário)                                                                                                                                                                       |
+| Força bruta de login          | Rate limit do Better Auth nas rotas de login e cadastro, mais `@fastify/rate-limit` global por IP                                                                                                                                     |
 | Roubo de sessão por XSS       | Cookie `httpOnly`, `Secure`, `SameSite=Lax`. Sem token de usuário no `localStorage`. Sanitizar com DOMPurify todo HTML renderizado via `dangerouslySetInnerHTML` ou `innerHTML` (hoje `RichTextEditor` e `RulesEditor` não sanitizam) |
-| CSRF                          | `SameSite=Lax` e checagem de `Origin` nas rotas que alteram dados                                                                                                                                                                     |
-| CORS aberto                   | Lista explícita de origens (hoje é `cors()` sem restrição)                                                                                                                                                                            |
+| CSRF                          | `SameSite=Lax`, `trustedOrigins` do Better Auth e checagem de `Origin` nas rotas que alteram dados                                                                                                                                    |
+| CORS aberto                   | Em produção, uma origem só (o servidor serve o cliente). Em desenvolvimento, `@fastify/cors` com a origem do Vite                                                                                                                     |
+| Headers de segurança          | `@fastify/helmet` com CSP restrita às origens do app, do YouTube e do Spotify                                                                                                                                                         |
 | Upload malicioso              | Validação por magic bytes, reprocessamento com `sharp`, nunca servir o arquivo original                                                                                                                                               |
-| Senhas                        | `bcrypt` nativo (compatível com os hashes atuais do `bcryptjs`)                                                                                                                                                                       |
+| Senhas                        | Hash do Better Auth (scrypt). Nenhum código próprio de hash                                                                                                                                                                           |
 
 ---
 
@@ -366,7 +376,7 @@ Ao abrir uma sala (7.1), o cliente sobe cada `local:` e troca pela URL `/media/`
 
 ## 11. Observabilidade
 
-- Logs estruturados com `pino`: todo log de socket inclui `roomId`, `memberId` e `cmdId`.
+- Logs estruturados com o `pino` do Fastify: toda requisição tem `reqId`, e todo log de socket inclui `roomId`, `memberId` e `cmdId`.
 - `GET /healthz` (processo vivo) e `GET /readyz` (Postgres acessível).
 - Contadores simples expostos em `/metrics` (formato Prometheus, pacote `prom-client`): salas abertas, sockets conectados, comandos por tipo, rejeições por código, latência de `applyCommand`, duração do snapshot.
 - Erros do cliente enviados para `POST /api/client-errors` a partir do error boundary.
@@ -375,17 +385,21 @@ Ao abrir uma sala (7.1), o cliente sobe cada `local:` e troca pela URL `/media/`
 
 ## 12. Deploy
 
+Resumo. A especificação completa (imagem, compose, pipelines, ambientes, rollback) está em [`ci-cd.md`](ci-cd.md).
+
 ```
 VPS (1 vCPU, 1-2 GB)
 └── docker compose
-    ├── caddy      TLS automático, proxy para app, serve /media
-    ├── app        Node: HTTP + Socket.io + bundle estático do cliente
-    └── postgres   volume persistente
+    ├── caddy      TLS automático, proxy reverso
+    ├── migrate    drizzle migrate antes de cada deploy
+    ├── app        Fastify + Socket.io + build estático do cliente + /media
+    ├── postgres   volume persistente
+    └── backup     pg_dump diário
 ```
 
-- O cliente é servido pelo próprio Node (ou pelo Caddy) a partir do build do Vite: uma origem só, sem problema de CORS nem de cookie.
-- Backup diário com `pg_dump` e cópia de `/data/media` para fora do servidor.
-- Deploy: build da imagem, `docker compose up -d app`. O shutdown gracioso (7.4) mantém a interrupção abaixo de 5 s.
+- O cliente é servido pelo próprio Fastify (`@fastify/static`): uma origem só, sem problema de CORS nem de cookie.
+- Staging recebe cada merge na `master`. Produção recebe releases com aprovação manual. Rollback automático se `/readyz` não responder.
+- O shutdown gracioso (7.4) mantém a interrupção de um deploy abaixo de 5 s.
 
 Quando escalar (fora de escopo agora): várias instâncias exigem sticky sessions por sala e o adapter Redis do Socket.io, ou roteamento de cada sala para uma instância fixa.
 
@@ -393,22 +407,22 @@ Quando escalar (fora de escopo agora): várias instâncias exigem sticky session
 
 ## 13. Estratégia de testes
 
-| Nível                  | Ferramenta                                              | O que cobre                                                                                               |
-| :--------------------- | :------------------------------------------------------ | :-------------------------------------------------------------------------------------------------------- |
-| Unidade                | Vitest                                                  | `applyCommand` (cada comando, cada permissão negada), `projectFor` (cada campo secreto), schemas Zod      |
-| Integração do servidor | Vitest + servidor em porta efêmera + `socket.io-client` | Handshake, dois clientes na mesma sala, reconexão, rejeição, snapshot após restart simulado               |
-| Cliente                | Vitest + Testing Library + `fake-indexeddb`             | Sync Engine (otimismo, lacuna de versão), autosave                                                        |
-| Ponta a ponta          | Playwright                                              | Roteiro de fumaça de `frontend-guidelines.md`, dois navegadores na mesma sala, celular (viewport 390×844) |
+| Nível                  | Ferramenta                                                             | O que cobre                                                                                                            |
+| :--------------------- | :--------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------- |
+| Unidade                | Vitest                                                                 | `applyCommand` (cada comando, cada permissão negada), `projectFor` (cada campo secreto), schemas Zod                   |
+| Integração do servidor | Vitest + `buildApp()` em porta efêmera + Postgres + `socket.io-client` | Rotas HTTP (`app.inject`), handshake, dois clientes na mesma sala, reconexão, rejeição, snapshot após restart simulado |
+| Cliente                | Vitest + Testing Library + `fake-indexeddb`                            | `RoomConnection` local e remota (otimismo, rejeição, lacuna de versão), persistência local                             |
+| Ponta a ponta          | Playwright                                                             | Roteiro de fumaça de `frontend-guidelines.md`, dois navegadores na mesma sala, celular (viewport 390×844)              |
 
 ---
 
 ## 14. Relação com o plano
 
-| Seção deste documento                      | Fase do plano                                             |
-| :----------------------------------------- | :-------------------------------------------------------- |
-| 6.1 (schemas), 13 (Vitest)                 | Fase 1                                                    |
-| 4, 6.2, 6.3, 6.5, 9                        | Fase 2                                                    |
-| 6.4, Sync Engine                           | Fase 3                                                    |
-| 5, 7.3, 7.4, 7.5                           | Fase 4                                                    |
-| 8                                          | Fase 5                                                    |
-| 11, 12, `room_events`, QR code, espectador | Depois das fases 1 a 6, em ordem de prioridade do produto |
+| Seção deste documento                                           | Fase do plano |
+| :-------------------------------------------------------------- | :------------ |
+| 12                                                              | Fase 3        |
+| 4.1, 5.1 (tabelas do Better Auth), 9 (HTTP), 11 (logs e health) | Fase 4        |
+| 4.2, 4.3, 5.2, 6.1 a 6.3, 6.5, 9 (socket)                       | Fase 5        |
+| 6.4, 7.2, 7.3                                                   | Fase 6        |
+| 5.1 (salas, mídia), 5.3, 7.1, 7.4, 7.5, 8                       | Fase 7        |
+| 11 (métricas), `room_events` para replay, QR code, espectador   | Depois        |

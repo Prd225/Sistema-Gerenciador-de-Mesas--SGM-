@@ -1,6 +1,6 @@
 # 0004. Stack definida (bibliotecas aprovadas)
 
-- Status: Aceita
+- Status: Substituída por [0006](0006-stack-revisada.md)
 - Data: 2026-09-24
 
 ## Contexto

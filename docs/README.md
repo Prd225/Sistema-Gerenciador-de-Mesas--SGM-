@@ -20,12 +20,14 @@ Regras para agentes de IA e o mapa do repositório estão em [`/AGENTS.md`](../A
 
 ## Especificações (sistema alvo)
 
+- [Arquitetura de código](specs/code-architecture.md): monorepo, pacotes, camadas, estrutura de pastas e fronteiras
 - [System design](specs/system-design.md): requisitos, protocolo, modelo de dados, projeção por papel, segurança, falhas e deploy
+- [CI/CD e infraestrutura](specs/ci-cd.md): Docker, pipelines, ambientes, release e deploy
 - [Design system](specs/ui-design-system.md): bibliotecas, tokens, componentes, responsividade e estabilidade da interface
 
 ## Planos
 
-- [Modernização arquitetural](plans/modernizacao-arquitetural.md): servidor autoritativo, contratos, testes e persistência de salas
+- [Modernização arquitetural](plans/modernizacao-arquitetural.md): ordem das fases, do monorepo ao design system
 - [Roadmap de funcionalidades](plans/roadmap-features.md): galeria de cards, starter pack, OCR de mapas e ideias futuras
 
 ## Decisões

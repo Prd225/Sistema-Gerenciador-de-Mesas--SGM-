@@ -1,6 +1,6 @@
 # 0002. Backend construído pela equipe, sem BaaS
 
-- Status: Aceita
+- Status: Aceita. As bibliotecas citadas (Express, auth à mão) foram trocadas pela [0006](0006-stack-revisada.md). O princípio continua: servidor próprio, sem BaaS, com Better Auth rodando no próprio servidor.
 - Data: 2026-09-24
 
 ## Contexto

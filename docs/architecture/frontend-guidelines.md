@@ -60,7 +60,7 @@ Modais (`Dialog`) e seus menus subordinados (`Select`, `DropdownMenu`) renderiza
 - Use os primitivos de `src/components/ui/` antes de criar um novo. Se um primitivo não funciona no contexto (ex.: `Dialog` dentro do painel do mestre), corrija o primitivo em vez de contorná-lo.
 - Use somente as cores da paleta. Enquanto os tokens de `docs/specs/ui-design-system.md` não existirem, use os hexadecimais de `docs/architecture/design-system.md`. Não invente valores novos.
 - Textos da interface curtos e em português. Tooltips com uma frase no máximo.
-- Não existe error boundary hoje: qualquer erro de render derruba o app inteiro. Trate `undefined` em dados vindos de save ou da rede (`token.imageUrl?`, listas vazias).
+- Existem error boundaries na raiz e em cada subpainel do mestre. Regiões novas (modais, sidebars, mapa) também precisam de um. Mesmo assim, trate `undefined` em dados vindos de save ou da rede (`token.imageUrl?`, listas vazias).
 
 ## 7. Roteiro de fumaça
 

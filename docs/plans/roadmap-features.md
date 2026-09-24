@@ -402,6 +402,6 @@ Pontos a considerar quando for implementar:
 - **Alvo estruturado**: extrair para o schema Zod da ficha de cada sistema (ex.: Tormenta20, Ordem Paranormal), não para texto livre.
 - **Revisão humana obrigatória**: foto, extração, tela de revisão com campos incertos destacados e confirmação pelo jogador antes de salvar.
 - **OCR separado ou não**: comparar Tesseract seguido de LLM com um modelo de visão pequeno que lê a imagem e devolve JSON em um passo. Testar com fichas manuscritas reais.
-- **Execução isolada**: worker separado (provavelmente Python) para a inferência não travar o servidor de salas. Reaproveita o endpoint de upload de imagens.
+- **Execução isolada**: serviço próprio `apps/ocr-worker` (provavelmente Python), em container separado, para a inferência não travar o servidor de salas. Reaproveita o endpoint de upload de imagens. O lugar e as regras de comunicação já estão reservados em [`../specs/code-architecture.md`](../specs/code-architecture.md), seção 7.
 - **Local ou API**: modelo local (sem custo por uso, privado, exige GPU ou aceita lentidão) contra API (mais precisa, custo por ficha, dependência externa).
 - **Extensão posterior**: gerar encontros e cenas a partir das fichas importadas, só depois que a importação estiver sólida.

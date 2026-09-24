@@ -58,7 +58,8 @@ sgm/
 ├── .nvmrc                    versão do Node
 ├── apps/
 │   ├── web/                  @sgm/web     SPA React
-│   └── server/               @sgm/server  Fastify + Socket.io
+│   ├── server/               @sgm/server  Fastify + Socket.io
+│   └── ocr-worker/           (futuro) serviço separado de OCR + LLM, ver seção 7
 ├── packages/
 │   ├── shared/               @sgm/shared  contratos
 │   └── engine/               @sgm/engine  regras do jogo
@@ -278,3 +279,14 @@ Verificadas no CI com `dependency-cruiser`. Violação falha o build.
 | `server/realtime`  | `@sgm/engine`, `db/`, `modules/*/service.ts`, `observability/` | `modules/*/routes.ts`                         |
 
 Também são proibidos ciclos de import em qualquer pacote.
+
+---
+
+## 7. Espaço reservado: worker de OCR + LLM (futuro)
+
+A importação de fichas por foto ([roadmap](../plans/roadmap-features.md), seção 8) vai rodar num serviço próprio, `apps/ocr-worker`, **fora do processo do servidor**. Não faz parte de nenhuma fase atual. As decisões de hoje não podem impedir que ele exista:
+
+- **Processo e container separados.** Inferência é pesada e não pode travar as salas. O worker tem imagem Docker própria e entra no `compose.prod.yaml` como mais um serviço.
+- **Linguagem livre.** Provavelmente Python, pelo ecossistema de OCR e modelos. Por isso fica fora dos npm workspaces e tem o próprio gerenciador de dependências e job de CI.
+- **Nenhum import de código.** O worker não importa `@sgm/*` e o servidor não importa o worker. A comunicação é só por contrato: o servidor cria um job de importação (imagem já enviada por `/api/media` e sistema de RPG alvo), o worker processa e devolve um JSON que o servidor valida com o schema Zod da ficha em `@sgm/shared` antes de aceitar. O transporte (HTTP interno ou fila numa tabela do Postgres) será decidido quando o worker for planejado, numa decisão própria.
+- **O que já prepara o terreno:** fichas como schemas Zod estruturados por sistema em `@sgm/shared`, o upload de imagens por HTTP (Fase 7) e o compose com espaço para serviços extras.
