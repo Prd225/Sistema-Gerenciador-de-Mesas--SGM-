@@ -93,7 +93,7 @@ Esta fase **move** código e cria os pacotes. Não reorganiza o cliente em `feat
 - [x] Scripts da raiz rodando em todos os workspaces (`dev`, `build`, `test`, `lint`, `typecheck`, `format`) e `dev.sh` ajustado.
 - [x] `dependency-cruiser` com as regras entre pacotes da seção 6 do spec e script `depcruise`.
 - [x] Atualizar caminhos em `AGENTS.md`, `README.md` e `docs/architecture/`.
-- [ ] O app funciona exatamente como antes (roteiro de fumaça completo).
+- [x] O app funciona exatamente como antes (roteiro de fumaça completo).
 
 ### Fase 3 — Docker e CI/CD
 
