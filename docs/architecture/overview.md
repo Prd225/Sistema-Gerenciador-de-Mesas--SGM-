@@ -50,4 +50,12 @@ packages/engine/src/   regras puras (esqueleto; completo no bloco 2)
 | `VITE_SERVER_URL`        | cliente  | URL do servidor. Padrão: `http://<hostname>:3001` |
 | `VITE_SPOTIFY_CLIENT_ID` | cliente  | Spotify no soundpad                               |
 
+## Execução com Docker
+
+| Ambiente | Comando | Uso |
+| :------- | :------ | :-- |
+| Desenvolvimento | `docker compose -f infra/compose/compose.dev.yaml up -d` | Sobe o Postgres 17; cliente e servidor rodam no host (`npm run dev`) |
+| Produção local | `docker compose -f infra/compose/compose.prod.yaml up -d --build` | Stack completa com Caddy (proxy reverso), app, Postgres e rotina de backup |
+| Testes E2E | `docker compose -f infra/compose/compose.e2e.yaml up -d --build` | Ambiente isolado para execução de testes Playwright |
+
 Dívidas conhecidas: [plano](../plans/modernizacao-arquitetural.md), seção 3.
