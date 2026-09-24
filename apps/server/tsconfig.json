@@ -1,4 +1,5 @@
 {
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "target": "es2023",
     "module": "esnext",
@@ -11,10 +12,12 @@
     "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@shared": ["./shared/src/index.ts"],
-      "@shared/*": ["./shared/src/*"]
+      "@shared": ["../../shared/src/index.ts"],
+      "@shared/*": ["../../shared/src/*"],
+      "@sgm/shared": ["../../packages/shared/src/index.ts"],
+      "@sgm/shared/*": ["../../packages/shared/src/*"]
     }
   },
-  "include": ["server", "shared"]
+  "include": ["src"]
 }
+
