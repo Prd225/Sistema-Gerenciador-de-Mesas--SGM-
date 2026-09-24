@@ -27,9 +27,9 @@ Etapas na ordem, uma branch e um PR por etapa. Cada etapa termina com `npm run c
 
 ### 2a — Tirar o legado do caminho
 
-- [ ] Remover o multiplayer antigo. Servidor: `roomManager.ts`, `handlers/` e o Socket.io do `index.ts`. Web: `lib/socket.ts`, `useMultiplayerStore`, `MultiplayerModal`, funções `*FromRemote` e botões de sala. Tirar a regra "Multiplayer antigo" do `AGENTS.md`.
-- [ ] Web para de importar `@sgm/shared`: os tipos que o front usa passam a ser definidos em `apps/web/src/types/` (somem no 2d).
-- [ ] `@sgm/shared` no formato novo: `Campaign { table, panel }`, `TableState`, `Scene`, coleções em `Record`, `imageRef`, `ownerMemberId`, `visibility`, comandos, eventos, envelope e erros da seção 4. Schema e tipo com o mesmo nome, com limites. Apagar os `*Schema` e o que não estiver no spec (`api/auth` fica até o bloco 3).
+- [x] Remover o multiplayer antigo. Servidor: `roomManager.ts`, `handlers/` e o Socket.io do `index.ts`. Web: `lib/socket.ts`, `useMultiplayerStore`, `MultiplayerModal`, funções `*FromRemote` e botões de sala. Tirar a regra "Multiplayer antigo" do `AGENTS.md`.
+- [x] Web para de importar `@sgm/shared`: os tipos que o front usa passam a ser definidos em `apps/web/src/types/` (somem no 2d).
+- [x] `@sgm/shared` no formato novo: `Campaign { table, panel }`, `TableState`, `Scene`, coleções em `Record`, `imageRef`, `ownerMemberId`, `visibility`, comandos, eventos, envelope e erros da seção 4. Schema e tipo com o mesmo nome, com limites. Apagar os `*Schema` e o que não estiver no spec (`api/auth` fica até o bloco 3).
 
 ### 2b — Engine e base do design system (paralelo, 2 agentes)
 
