@@ -163,8 +163,15 @@ export default defineConfig({
     },
   },
   server: {
+    allowedHosts: true,
     watch: {
       ignored: ['**/dist/**'],
+    },
+    proxy: {
+      '/socket.io': {
+        target: 'http://localhost:3001',
+        ws: true,
+      },
     },
   },
 });

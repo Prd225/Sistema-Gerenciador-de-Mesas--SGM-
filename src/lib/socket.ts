@@ -11,9 +11,10 @@ const getSocketUrl = (): string => {
   if (envServerUrl) {
     return envServerUrl;
   }
-  // Se estiver acessando via browser (seja localhost, IP local ou rede externa)
+  // No navegador (localhost, rede local ou túnel como Cloudflare),
+  // conectamos na mesma origem para usar o proxy do Vite para a porta 3001
   if (typeof window !== 'undefined') {
-    return `http://${window.location.hostname}:3001`;
+    return window.location.origin;
   }
   return 'http://localhost:3001';
 };
