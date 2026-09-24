@@ -39,7 +39,7 @@ Etapas na ordem, uma branch e um PR por etapa. Cada etapa termina com `npm run c
 ### 2c — Camada `room/`
 
 - [ ] `RoomConnection`, `LocalRoomConnection` (engine e Dexie com debounce), `room-store`, `useRoom(selector)`, `useCommand()`. Sem tela nova.
-- [ ] Dexie com versão nova: `campaigns`, `media` (hash, Blob), imagens `local:<hash>` via `lib/media.ts`. As tabelas antigas ficam até o 2d. Importar e exportar JSON validado por `Campaign` (inválido é descartado com aviso).
+- [ ] Dexie com versão nova: `campaigns`, `media` (hash, Blob), imagens `local:<hash>` via `lib/media.ts`. As tabelas antigas ficam até o 2d. Tipar o `PanelState` do `shared` (hoje `z.unknown()`). Importar e exportar JSON validado por `Campaign` (inválido é descartado com aviso).
 - [ ] Testes da `LocalRoomConnection` com fake-indexeddb.
 
 ### 2d — Virada da mesa
