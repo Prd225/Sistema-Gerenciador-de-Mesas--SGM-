@@ -25,7 +25,8 @@
     "format:check": "prettier --check .",
     "depcruise": "depcruise --config .dependency-cruiser.cjs apps packages",
     "preview": "npm run preview --workspace=@sgm/web",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm run depcruise && npm test && npm run build",
+    "docs:size": "node scripts/check-docs-size.mjs",
+    "check": "npm run format:check && npm run docs:size && npm run lint && npm run typecheck && npm run depcruise && npm test && npm run build",
     "prepare": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {

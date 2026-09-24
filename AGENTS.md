@@ -33,7 +33,7 @@ Não edite: `dist/`, `node_modules/`, `LICENSE`.
 - Siga a fase atual de `docs/plans/modernizacao-arquitetural.md`. Uma fase por vez, sem adiantar itens.
 - Leia o arquivo inteiro antes de editar. Faça edições pontuais, não reescreva arquivos.
 - Ao atualizar docs, **substitua** a linha antiga. Nunca deixe a versão velha e a nova lado a lado.
-- Docs curtos: tabelas e tópicos, sem repetir o que já está em outro doc. Leia só os docs da tarefa atual. Total de `docs/` + `AGENTS.md` abaixo de 200 mil tokens (hoje ~50 mil).
+- Docs curtos: tabelas e tópicos, sem repetir o que já está em outro doc. Leia só os docs da tarefa atual. Limite de **50 mil tokens** somando `AGENTS.md`, `README.md` e `docs/` (hoje ~29 mil). O `npm run check` falha se passar.
 - Se o spec não bater com o código, pare e explique.
 
 ## Onde ler
