@@ -1,0 +1,17 @@
+#!/bin/sh
+# Bloqueia push direto em master/next e push de código quebrado.
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    refs/heads/master | refs/heads/next)
+      echo "pre-push: push direto em '${remote_ref#refs/heads/}' não é permitido. Abra um PR." >&2
+      exit 1
+      ;;
+  esac
+done
+
+echo "pre-push: rodando npm run check..." >&2
+if ! npm run -s check; then
+  echo "pre-push: npm run check falhou, push cancelado." >&2
+  exit 1
+fi
+exit 0

@@ -1,0 +1,18 @@
+#!/bin/sh
+# Mensagens no padrão Conventional Commits: tipo(escopo): descrição
+first_line=$(head -n 1 "$1")
+case "$first_line" in
+  Merge* | Revert* | fixup!* | squash!*) exit 0 ;;
+esac
+pattern='^(feat|fix|refactor|chore|docs|style|test|perf|ci|build|revert)(\([a-z0-9-]+\))?!?: .+'
+if ! printf '%s\n' "$first_line" | grep -Eq "$pattern"; then
+  echo "commit-msg: mensagem fora do padrão Conventional Commits." >&2
+  echo "Exemplo: feat(tokens): adicionar filtro por tipo" >&2
+  echo "Recebido: $first_line" >&2
+  exit 1
+fi
+if grep -Eiq '^Co-Authored-By:.*(claude|anthropic|gemini|google|openai|copilot|cursor|codex)' "$1"; then
+  echo "commit-msg: remova o Co-Authored-By de IA. Commits não levam coautoria de agentes." >&2
+  exit 1
+fi
+exit 0
