@@ -29,8 +29,6 @@ describe('Domain Schemas', () => {
         x: 100,
         y: 200,
         size: 1,
-        hp: 25,
-        maxHp: 25,
       };
 
       const result = Token.safeParse(validToken);
@@ -52,8 +50,6 @@ describe('Domain Schemas', () => {
         x: 50,
         y: 80,
         size: 2,
-        hp: 120,
-        maxHp: 120,
       };
 
       const result = Token.safeParse(gmToken);
@@ -70,8 +66,6 @@ describe('Domain Schemas', () => {
         x: 0,
         y: 0,
         size: 1,
-        hp: 10,
-        maxHp: 10,
       };
 
       const result = Token.safeParse(invalid);
@@ -88,8 +82,6 @@ describe('Domain Schemas', () => {
         x: 0,
         y: 0,
         size: 0,
-        hp: 10,
-        maxHp: 10,
       };
 
       const result = Token.safeParse(invalid);
@@ -106,8 +98,6 @@ describe('Domain Schemas', () => {
         x: 0,
         y: 0,
         size: 1,
-        hp: 10,
-        maxHp: 10,
       };
 
       const result = Token.safeParse(invalid);
@@ -245,8 +235,6 @@ describe('Domain Schemas', () => {
             x: 50,
             y: 50,
             size: 1,
-            hp: 20,
-            maxHp: 20,
           },
         },
         zones: {},

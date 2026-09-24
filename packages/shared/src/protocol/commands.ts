@@ -17,8 +17,9 @@ export type TokenCreatePayload = z.infer<typeof TokenCreatePayload>;
 export const TokenMovePayload = z.object({
   sceneId: z.string().uuid().optional(),
   tokenId: z.string().uuid(),
-  x: z.number(),
-  y: z.number(),
+  // null = recolher para a reserva
+  x: z.number().nullable(),
+  y: z.number().nullable(),
 });
 export type TokenMovePayload = z.infer<typeof TokenMovePayload>;
 
@@ -182,3 +183,32 @@ export const ClientCommand = z.object({
   payload: z.unknown(),
 });
 export type ClientCommand = z.infer<typeof ClientCommand>;
+
+const cmd = <T extends string, P extends z.ZodType>(type: T, payload: P) =>
+  z.object({ type: z.literal(type), payload });
+
+// Comando com payload tipado pelo `type`. Usado pelo engine.
+export const Command = z.discriminatedUnion('type', [
+  cmd('token.create', TokenCreatePayload),
+  cmd('token.move', TokenMovePayload),
+  cmd('token.update', TokenUpdatePayload),
+  cmd('token.delete', TokenDeletePayload),
+  cmd('zone.create', ZoneCreatePayload),
+  cmd('zone.update', ZoneUpdatePayload),
+  cmd('zone.delete', ZoneDeletePayload),
+  cmd('marker.create', MarkerCreatePayload),
+  cmd('marker.update', MarkerUpdatePayload),
+  cmd('marker.delete', MarkerDeletePayload),
+  cmd('background.create', BackgroundCreatePayload),
+  cmd('background.update', BackgroundUpdatePayload),
+  cmd('background.delete', BackgroundDeletePayload),
+  cmd('scene.create', SceneCreatePayload),
+  cmd('scene.update', SceneUpdatePayload),
+  cmd('scene.delete', SceneDeletePayload),
+  cmd('scene.activate', SceneActivatePayload),
+  cmd('initiative.update', InitiativeUpdatePayload),
+  cmd('round.next', RoundNextPayload),
+  cmd('turn.next', TurnNextPayload),
+  cmd('ping', PingPayload),
+]);
+export type Command = z.infer<typeof Command>;

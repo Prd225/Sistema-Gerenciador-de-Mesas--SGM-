@@ -124,11 +124,10 @@ export const Token = z.object({
   ownerMemberId: z.string().uuid().nullable(),
   visibility: TokenVisibility,
   imageRef: z.string().max(255).nullable(),
-  x: z.number(),
-  y: z.number(),
+  // null = na reserva (fora do mapa)
+  x: z.number().nullable(),
+  y: z.number().nullable(),
   size: z.number().positive(),
-  hp: z.number(),
-  maxHp: z.number(),
   fullName: z.string().max(100).optional(),
   colorText: z.string().max(50).optional(),
   colorBorder: z.string().max(50).optional(),
@@ -139,15 +138,3 @@ export const Token = z.object({
   rotation: z.number().optional(),
 });
 export type Token = z.infer<typeof Token>;
-
-export const ActiveTool = z.enum([
-  'pan',
-  'select',
-  'edit-zone',
-  'draw-rect',
-  'draw-ellipse',
-  'draw-poly',
-  'edit-bg',
-  'add-marker',
-]);
-export type ActiveTool = z.infer<typeof ActiveTool>;

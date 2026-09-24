@@ -10,6 +10,7 @@ import {
   Snapshot,
   ErrorCode,
   CommandType,
+  Command,
   EventType,
   TokenMovePayload,
   TokenCreatePayload,
@@ -231,15 +232,13 @@ describe('Protocol Schemas & Envelopes', () => {
           x: 0,
           y: 0,
           size: 1,
-          hp: 10,
-          maxHp: 10,
         },
       };
       expect(TokenCreatePayload.safeParse(createPayload).success).toBe(true);
 
       const updatePayload = {
         tokenId: sampleUuid1,
-        updates: { hp: 5 },
+        updates: { name: 'Ferido' },
       };
       expect(TokenUpdatePayload.safeParse(updatePayload).success).toBe(true);
     });
@@ -399,6 +398,37 @@ describe('Protocol Schemas & Envelopes', () => {
       for (const evt of events) {
         expect(EventType.safeParse(evt).success).toBe(true);
       }
+    });
+  });
+
+  describe('Command', () => {
+    const tokenId = '123e4567-e89b-12d3-a456-426614174000';
+
+    it('valida o payload pelo type', () => {
+      expect(
+        Command.safeParse({
+          type: 'token.move',
+          payload: { tokenId, x: 10, y: 20 },
+        }).success,
+      ).toBe(true);
+      expect(
+        Command.safeParse({ type: 'token.move', payload: { tokenId } }).success,
+      ).toBe(false);
+    });
+
+    it('aceita recolher o token para a reserva', () => {
+      expect(
+        Command.safeParse({
+          type: 'token.move',
+          payload: { tokenId, x: null, y: null },
+        }).success,
+      ).toBe(true);
+    });
+
+    it('rejeita type desconhecido', () => {
+      expect(
+        Command.safeParse({ type: 'token.fly', payload: {} }).success,
+      ).toBe(false);
     });
   });
 });
