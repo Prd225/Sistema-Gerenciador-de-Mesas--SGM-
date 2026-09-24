@@ -25,4 +25,8 @@ dist-ssr
 test_desempenho/
 *.tsbuildinfo
 test-results/
-playwright-report/
+playwright-report/
+# Variaveis de ambiente (so o exemplo vai para o git)
+.env
+.env.*
+!.env.example
