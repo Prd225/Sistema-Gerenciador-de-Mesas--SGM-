@@ -64,6 +64,7 @@ export default function MasterPanelOverlay() {
         {/* Aba de Fechar */}
         <button
           onClick={toggleOpen}
+          aria-label="Fechar Painel do Mestre"
           className="group flex flex-col items-center justify-center bg-[#202024] hover:bg-[#323238] border border-[#323238] border-t-0 rounded-b-full w-24 h-6 transition-all shadow-md absolute top-0 left-1/2 -translate-x-1/2"
         >
           <ChevronDown className="w-4 h-4 text-[#8257e5] group-hover:translate-y-0.5 transition-transform" />

@@ -52,15 +52,16 @@ export async function initDatabase(): Promise<boolean> {
         );
       `);
       isDatabaseConnected = true;
-      console.log('📦 PostgreSQL: Tabelas verificadas e prontas com sucesso.');
+      console.log('PostgreSQL: Tabelas verificadas e prontas com sucesso.');
       return true;
     } finally {
       client.release();
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     isDatabaseConnected = false;
+    const errorMessage = err instanceof Error ? err.message : 'offline';
     console.warn(
-      `⚠️ PostgreSQL não conectado (${err.message || 'offline'}). O servidor operará com fallback gracioso para modo local.`,
+      `PostgreSQL nao conectado (${errorMessage}). O servidor operara com fallback gracioso para modo local.`,
     );
     return false;
   }

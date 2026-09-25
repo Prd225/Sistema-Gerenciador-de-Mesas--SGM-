@@ -23,4 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 test_desempenho/
-*.tsbuildinfo
+*.tsbuildinfo
+test-results/
+playwright-report/
+# Variaveis de ambiente (so o exemplo vai para o git)
+.env
+.env.*
+!.env.example

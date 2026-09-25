@@ -21,8 +21,6 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@shared": ["../../shared/src/index.ts"],
-      "@shared/*": ["../../shared/src/*"],
       "@sgm/shared": ["../../packages/shared/src/index.ts"],
       "@sgm/shared/*": ["../../packages/shared/src/*"],
       "@sgm/engine": ["../../packages/engine/src/index.ts"],

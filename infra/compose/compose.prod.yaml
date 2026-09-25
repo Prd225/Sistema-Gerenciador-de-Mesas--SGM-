@@ -1,0 +1,89 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    environment:
+      DOMAIN: ${DOMAIN:-:80}
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+      - ../caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      app:
+        condition: service_healthy
+
+  app:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile
+    image: ${IMAGE_NAME:-sgm}:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sgm}:${POSTGRES_PASSWORD:-sgm_secret}@postgres:5432/${POSTGRES_DB:-sgm_prod}
+    volumes:
+      - media_data:/data/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:3001/healthz').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sgm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sgm_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-sgm_prod}
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${POSTGRES_USER:-sgm} -d ${POSTGRES_DB:-sgm_prod}',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backup:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-sgm}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-sgm_secret}
+      PGDATABASE: ${POSTGRES_DB:-sgm_prod}
+      BACKUP_DIR: /backups
+    volumes:
+      - backup_data:/backups
+      - media_data:/data/media:ro
+      - ../backup/backup.sh:/usr/local/bin/backup.sh:ro
+    entrypoint: ['/bin/sh', '/usr/local/bin/backup.sh']
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_prod_data:
+  media_data:
+  caddy_data:
+  caddy_config:
+  backup_data:
