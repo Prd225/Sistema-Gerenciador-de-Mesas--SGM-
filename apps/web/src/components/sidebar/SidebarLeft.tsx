@@ -73,7 +73,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
   return (
     <>
       <aside
-        style={{ width: isOpen ? `${width}px` : '48px' }}
+        style={{ width: isOpen ? `${width}px` : '48px', maxWidth: '100%' }}
         className={`bg-[#202024] border-r border-[#323238] flex flex-col h-full z-40 overflow-visible relative shadow-2xl ${
           isDragging
             ? ''
@@ -98,7 +98,7 @@ export default function SidebarLeft({ isOpen, toggle }: SidebarLeftProps) {
               ? 'opacity-100 pointer-events-auto delay-75'
               : 'opacity-0 pointer-events-none invisible'
           }`}
-          style={{ minWidth: `${width}px` }}
+          style={{ minWidth: `min(${width}px, 100%)` }}
         >
           <div className="p-5 overflow-y-auto flex-1 h-full flex flex-col relative">
             {/* Header da Barra */}
