@@ -2,9 +2,9 @@ import type { FC } from 'react';
 import { Trash, CheckSquare, Square } from 'lucide-react';
 import type { Zone } from '@/types/game';
 import { useZoneStore } from '@/store/useZoneStore';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { RichTextEditor, RichTextView } from '@/components/ui/RichTextEditor';
+import { Button } from '@/ui/button';
+import { Input } from '@/ui/input';
+import { RichTextEditor, RichTextView } from '@/ui/RichTextEditor';
 import { renderDiceText } from '@/lib/diceEmoji';
 
 interface NpcsTabProps {

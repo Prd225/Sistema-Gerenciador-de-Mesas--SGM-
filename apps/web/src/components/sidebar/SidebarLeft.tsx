@@ -1,13 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { SquareDashed } from 'lucide-react';
 import { useZoneStore } from '@/store/useZoneStore';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { ImageCropper } from '@/components/ui/ImageCropper';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/dialog';
+import { ImageCropper } from '@/ui/ImageCropper';
 import ZoneMarkerModal from '@/components/modals/ZoneMarkerModal';
 
 import { useSidebarResize } from './hooks/useSidebarResize';

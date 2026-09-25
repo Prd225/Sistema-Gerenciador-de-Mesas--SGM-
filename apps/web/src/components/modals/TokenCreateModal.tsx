@@ -5,19 +5,19 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
+} from '@/ui/dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/ui/select';
 import { useTokenStore } from '@/store/useTokenStore';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Input } from '@/ui/input';
+import { Button } from '@/ui/button';
 import { ImagePlus, X } from 'lucide-react';
-import { ImageCropper } from '@/components/ui/ImageCropper';
+import { ImageCropper } from '@/ui/ImageCropper';
 import type { Token, TokenStats } from '@/types/game';
 import { generateId } from '@/lib/uuid';
 

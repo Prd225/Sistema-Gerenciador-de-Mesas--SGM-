@@ -1,6 +1,6 @@
 import type { FallbackProps } from 'react-error-boundary';
 import { AlertTriangle, RotateCcw, RefreshCw, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/button';
 import { clearWorkingSession } from '@/lib/saveHelpers';
 
 export default function RootErrorFallback({

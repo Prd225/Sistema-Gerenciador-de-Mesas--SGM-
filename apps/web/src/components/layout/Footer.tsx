@@ -8,7 +8,7 @@ import {
   ChevronUp,
   ChevronDown,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/button';
 import { useTimerStore } from '@/store/useTimerStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useEffect, useState, useRef } from 'react';

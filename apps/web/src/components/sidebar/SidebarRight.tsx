@@ -19,8 +19,8 @@ import {
   EyeOff,
 } from 'lucide-react';
 import { useZoneStore } from '@/store/useZoneStore';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Input } from '@/ui/input';
+import { Button } from '@/ui/button';
 import type { Marker } from '@/types/game';
 
 interface SidebarRightProps {
