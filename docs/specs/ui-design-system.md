@@ -45,6 +45,8 @@ Só primitivos de `ui/`. Se faltar, adicione via shadcn antes de usar.
 
 Substituições: `alert`/`confirm`/`prompt` (28 usos) → `Toast`/`AlertDialog`/`Dialog`; `title="..."` (127) → `Tooltip`; menu de contexto manual do `AppLayout` → `ContextMenu` com alternativa por toque; overlays `fixed inset-0` → `Dialog`/`Sheet`/`Drawer`; mapas de cor de elemento duplicados → `ElementBadge`; barras de vida soltas → `StatBar`.
 
+Cor com disciplina: uma cor de ação por tela (`primary`); títulos em `text`, nunca coloridos; `highlight` só para o turno atual; cor de elemento ou categoria só em ícone ou `Badge` pequeno, nunca em título, aba, fundo ou borda grande; estado (ativo, desativar) por variante de `Badge` ou `Button`, não por cor solta.
+
 Regras: tela não define cor, borda ou raio próprio; variantes via `cva` no primitivo; todo interativo tem hover, foco visível, desabilitado e carregando; toda lista tem vazio e carregando; botão só com ícone tem `aria-label` e `Tooltip`; textos curtos, botões no infinitivo.
 
 ## 4. Responsividade
