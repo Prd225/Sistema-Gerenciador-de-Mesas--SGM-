@@ -222,7 +222,7 @@ export default function Footer() {
             <ChevronUp className="h-3 w-3" />
           </button>
           <span
-            className={`font-bold text-[1.4rem] min-w-[25px] text-center leading-none my-1 ${urgencyFlashing || urgency === 0 ? 'text-red-500' : 'text-[#e55757]'}`}
+            className={`font-bold text-[1.4rem] min-w-[25px] text-center leading-none my-1 whitespace-nowrap ${urgencyFlashing || urgency === 0 ? 'text-red-500' : 'text-[#e55757]'}`}
           >
             {urgency !== null ? urgency : '---'}
           </span>
