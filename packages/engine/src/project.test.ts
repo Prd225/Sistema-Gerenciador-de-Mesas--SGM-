@@ -236,34 +236,106 @@ describe('projectFor', () => {
 });
 
 describe('projectEvent', () => {
-  it('mestre recebe todos os eventos', () => {
-    const table = buildTable();
+  // `table` sempre representa a mesa DEPOIS do comando, ja com o efeito
+  // do evento aplicado (e' assim que projectEvent decide o payload).
+
+  it('mestre recebe o payload completo, sem projecao', () => {
+    const threat = buildThreatToken({ id: 'tok-1' });
+    const table = buildTable({
+      scenes: { [SCENE_ID]: buildScene({ tokens: { [threat.id]: threat } }) },
+    });
     const event = {
-      type: 'token.created' as const,
-      payload: { sceneId: SCENE_ID, token: buildToken({ visibility: 'gm' }) },
+      type: 'token.updated' as const,
+      payload: {
+        sceneId: SCENE_ID,
+        tokenId: threat.id,
+        updates: { stats: threat.stats },
+      },
     };
     expect(projectEvent(event, table, GM)).toBe(event);
   });
 
   it('esconde criacao de token gm', () => {
-    const table = buildTable();
+    const token = buildToken({ id: 'tok-1', visibility: 'gm' });
+    const table = buildTable({
+      scenes: { [SCENE_ID]: buildScene({ tokens: { [token.id]: token } }) },
+    });
     const event = {
       type: 'token.created' as const,
-      payload: { sceneId: SCENE_ID, token: buildToken({ visibility: 'gm' }) },
+      payload: { sceneId: SCENE_ID, token },
     };
     expect(projectEvent(event, table, PLAYER)).toBeNull();
   });
 
-  it('mostra criacao de token publico', () => {
-    const table = buildTable();
+  it('mostra criacao de token publico com a entidade projetada', () => {
+    const token = buildToken({ id: 'tok-1', visibility: 'all' });
+    const table = buildTable({
+      scenes: { [SCENE_ID]: buildScene({ tokens: { [token.id]: token } }) },
+    });
     const event = {
       type: 'token.created' as const,
-      payload: { sceneId: SCENE_ID, token: buildToken({ visibility: 'all' }) },
+      payload: { sceneId: SCENE_ID, token },
     };
-    expect(projectEvent(event, table, PLAYER)).toBe(event);
+    expect(projectEvent(event, table, PLAYER)).toEqual({
+      type: 'token.created',
+      payload: { sceneId: SCENE_ID, token },
+    });
   });
 
-  it('esconde evento de token existente com visibility gm', () => {
+  it('token.updated de ameaca nao vaza stats: payload vira a entidade projetada', () => {
+    const threat = buildThreatToken({ id: 'tok-1' });
+    const table = buildTable({
+      scenes: { [SCENE_ID]: buildScene({ tokens: { [threat.id]: threat } }) },
+    });
+    const event = {
+      type: 'token.updated' as const,
+      payload: {
+        sceneId: SCENE_ID,
+        tokenId: threat.id,
+        // payload cru do comando ainda carregaria stats.pv; projectEvent
+        // nunca deve repassar isso para jogador/espectador.
+        updates: { stats: { ...threat.stats!, pv: 5 } },
+      },
+    };
+    const projected = projectEvent(event, table, PLAYER);
+    expect(projected?.type).toBe('token.updated');
+    const payload = projected?.payload as { token: { stats?: unknown } };
+    expect(payload.token.stats).toBeUndefined();
+    expect(JSON.stringify(projected)).not.toContain('"pv"');
+  });
+
+  it('token.updated de token gm continua escondido', () => {
+    const token = buildToken({ id: 'tok-1', visibility: 'gm' });
+    const table = buildTable({
+      scenes: { [SCENE_ID]: buildScene({ tokens: { [token.id]: token } }) },
+    });
+    const event = {
+      type: 'token.updated' as const,
+      payload: { sceneId: SCENE_ID, tokenId: token.id, updates: { name: 'X' } },
+    };
+    expect(projectEvent(event, table, PLAYER)).toBeNull();
+  });
+
+  it('revelar token (gm -> all) chega como token.created com a entidade projetada', () => {
+    const token = buildToken({ id: 'tok-1', visibility: 'all' });
+    const table = buildTable({
+      scenes: { [SCENE_ID]: buildScene({ tokens: { [token.id]: token } }) },
+    });
+    const event = {
+      type: 'token.updated' as const,
+      payload: {
+        sceneId: SCENE_ID,
+        tokenId: token.id,
+        updates: { visibility: 'all' },
+      },
+    };
+    expect(projectEvent(event, table, PLAYER)).toEqual({
+      type: 'token.created',
+      payload: { sceneId: SCENE_ID, token },
+    });
+  });
+
+  it('esconde evento de token existente com visibility gm (moved)', () => {
     const token = buildToken({ id: 'tok-1', visibility: 'gm' });
     const table = buildTable({
       scenes: { [SCENE_ID]: buildScene({ tokens: { [token.id]: token } }) },
@@ -276,7 +348,13 @@ describe('projectEvent', () => {
   });
 
   it('esconde evento de marcador oculto', () => {
-    const table = buildTable();
+    const table = buildTable({
+      scenes: {
+        [SCENE_ID]: buildScene({
+          markers: { [HIDDEN_MARKER.id]: HIDDEN_MARKER },
+        }),
+      },
+    });
     const event = {
       type: 'marker.created' as const,
       payload: { sceneId: SCENE_ID, marker: HIDDEN_MARKER },
@@ -284,13 +362,73 @@ describe('projectEvent', () => {
     expect(projectEvent(event, table, PLAYER)).toBeNull();
   });
 
-  it('mostra evento de marcador visivel', () => {
-    const table = buildTable();
+  it('mostra evento de marcador visivel com a entidade projetada', () => {
+    const table = buildTable({
+      scenes: {
+        [SCENE_ID]: buildScene({
+          markers: { [VISIBLE_MARKER.id]: VISIBLE_MARKER },
+        }),
+      },
+    });
     const event = {
       type: 'marker.created' as const,
       payload: { sceneId: SCENE_ID, marker: VISIBLE_MARKER },
     };
-    expect(projectEvent(event, table, PLAYER)).toBe(event);
+    expect(projectEvent(event, table, PLAYER)).toEqual({
+      type: 'marker.created',
+      payload: { sceneId: SCENE_ID, marker: VISIBLE_MARKER },
+    });
+  });
+
+  it('revelar marcador (hidden true -> false) chega como marker.created', () => {
+    const revealed: Marker = { ...HIDDEN_MARKER, hidden: false };
+    const table = buildTable({
+      scenes: {
+        [SCENE_ID]: buildScene({ markers: { [revealed.id]: revealed } }),
+      },
+    });
+    const event = {
+      type: 'marker.updated' as const,
+      payload: {
+        sceneId: SCENE_ID,
+        markerId: revealed.id,
+        updates: { hidden: false },
+      },
+    };
+    expect(projectEvent(event, table, PLAYER)).toEqual({
+      type: 'marker.created',
+      payload: { sceneId: SCENE_ID, marker: revealed },
+    });
+  });
+
+  it('zone.created nao vaza itens nao revelados: payload vira a zona projetada', () => {
+    const table = buildTable({
+      scenes: { [SCENE_ID]: buildScene({ zones: { [ZONE.id]: ZONE } }) },
+    });
+    const event = {
+      type: 'zone.created' as const,
+      payload: { sceneId: SCENE_ID, zone: ZONE },
+    };
+    const projected = projectEvent(event, table, PLAYER);
+    expect(JSON.stringify(projected)).not.toContain('"oculto"');
+    const payload = projected?.payload as { zone: Zone };
+    expect(payload.zone.data.customPois![0]!.options).toHaveLength(1);
+  });
+
+  it('zone.updated nao vaza itens nao revelados: payload vira a zona projetada', () => {
+    const table = buildTable({
+      scenes: { [SCENE_ID]: buildScene({ zones: { [ZONE.id]: ZONE } }) },
+    });
+    const event = {
+      type: 'zone.updated' as const,
+      payload: {
+        sceneId: SCENE_ID,
+        zoneId: ZONE.id,
+        updates: { data: ZONE.data },
+      },
+    };
+    const projected = projectEvent(event, table, SPECTATOR);
+    expect(JSON.stringify(projected)).not.toContain('"oculto"');
   });
 
   it('esconde evento fora da cena ativa', () => {
@@ -324,5 +462,14 @@ describe('projectEvent', () => {
       payload: { sceneId: SCENE_ID, tokenId: 'sumiu' },
     };
     expect(projectEvent(event, table, PLAYER)).toBe(event);
+  });
+
+  it('token.created/marker.created/zone.created sem sceneId nem cena ativa passam direto', () => {
+    const table = buildTable({ activeSceneId: null });
+    const tokenEvent = {
+      type: 'token.created' as const,
+      payload: { token: buildToken({ id: 'sem-cena' }) },
+    };
+    expect(projectEvent(tokenEvent, table, PLAYER)).toBe(tokenEvent);
   });
 });

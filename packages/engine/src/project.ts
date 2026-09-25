@@ -1,5 +1,6 @@
 import { produce } from 'immer';
 import type {
+  EventType,
   RoomMember,
   Scene,
   TableState,
@@ -83,18 +84,6 @@ export function projectFor(table: TableState, member: RoomMember): TableState {
   });
 }
 
-function tokenFromPayload(payload: unknown): Token | undefined {
-  if (
-    payload !== null &&
-    typeof payload === 'object' &&
-    'token' in payload &&
-    typeof (payload as { token: unknown }).token === 'object'
-  ) {
-    return (payload as { token: Token }).token;
-  }
-  return undefined;
-}
-
 function sceneIdFromPayload(payload: unknown): string | undefined {
   if (payload !== null && typeof payload === 'object' && 'sceneId' in payload) {
     return (payload as { sceneId?: string }).sceneId;
@@ -102,34 +91,26 @@ function sceneIdFromPayload(payload: unknown): string | undefined {
   return undefined;
 }
 
-function tokenIdFromPayload(payload: unknown): string | undefined {
-  if (payload !== null && typeof payload === 'object' && 'tokenId' in payload) {
-    return (payload as { tokenId?: string }).tokenId;
+function idFieldFromPayload(payload: unknown, key: string): string | undefined {
+  if (payload !== null && typeof payload === 'object' && key in payload) {
+    const value = (payload as Record<string, unknown>)[key];
+    return typeof value === 'string' ? value : undefined;
   }
   return undefined;
 }
 
-function isTokenSecret(table: TableState, event: EngineEvent): boolean {
-  const created = tokenFromPayload(event.payload);
-  if (created) return created.visibility === 'gm';
-
-  const sceneId = sceneIdFromPayload(event.payload) ?? table.activeSceneId;
-  const tokenId = tokenIdFromPayload(event.payload);
-  if (sceneId === undefined || sceneId === null || !tokenId) return false;
-  const token = table.scenes[sceneId]?.tokens[tokenId];
-  return token?.visibility === 'gm';
-}
-
-function isMarkerSecret(payload: unknown): boolean {
-  if (
-    payload !== null &&
-    typeof payload === 'object' &&
-    'marker' in payload &&
-    typeof (payload as { marker: unknown }).marker === 'object'
-  ) {
-    return Boolean((payload as { marker: { hidden?: boolean } }).marker.hidden);
+function entityIdFromPayload(
+  payload: unknown,
+  key: string,
+): string | undefined {
+  if (payload !== null && typeof payload === 'object' && key in payload) {
+    const entity = (payload as Record<string, unknown>)[key];
+    if (entity !== null && typeof entity === 'object' && 'id' in entity) {
+      const id = (entity as { id: unknown }).id;
+      return typeof id === 'string' ? id : undefined;
+    }
   }
-  return false;
+  return undefined;
 }
 
 function isOffActiveScene(table: TableState, payload: unknown): boolean {
@@ -138,10 +119,113 @@ function isOffActiveScene(table: TableState, payload: unknown): boolean {
   return sceneId !== table.activeSceneId;
 }
 
+/** Checa se um `updates` do payload troca `field` para `revealedValue`. */
+function isRevealingUpdate<T>(
+  payload: unknown,
+  field: string,
+  revealedValue: T,
+): boolean {
+  if (
+    payload === null ||
+    typeof payload !== 'object' ||
+    !('updates' in payload)
+  ) {
+    return false;
+  }
+  const updates = (payload as { updates?: Record<string, unknown> }).updates;
+  return updates !== undefined && updates[field] === revealedValue;
+}
+
 /**
- * Projeta um evento para um membro: retorna `null` quando o evento
- * revela algo secreto para aquele membro (token de mestre, marcador
- * oculto ou algo fora da cena ativa).
+ * Eventos `token.created`/`token.updated`: troca o payload pela entidade
+ * já projetada (nunca o `updates` cru, que pode conter `stats` secreto).
+ * Se o token não existir mais para o membro, o evento vira `null`. Se a
+ * atualização revelou um token antes `visibility: 'gm'`, o evento chega
+ * como `token.created`.
+ */
+function projectTokenEvent(
+  event: EngineEvent,
+  table: TableState,
+): EngineEvent | null {
+  const sceneId = sceneIdFromPayload(event.payload) ?? table.activeSceneId;
+  const tokenId =
+    event.type === 'token.created'
+      ? entityIdFromPayload(event.payload, 'token')
+      : idFieldFromPayload(event.payload, 'tokenId');
+  if (sceneId === undefined || sceneId === null || !tokenId) return event;
+
+  const token = table.scenes[sceneId]?.tokens[tokenId];
+  if (!token) return null;
+
+  const projected = projectToken(token);
+  if (!projected) return null;
+
+  const revealed =
+    event.type === 'token.updated' &&
+    isRevealingUpdate(event.payload, 'visibility', 'all');
+  const type: EventType = revealed ? 'token.created' : event.type;
+
+  return { type, payload: { sceneId, token: projected } };
+}
+
+/**
+ * Eventos `marker.created`/`marker.updated`: troca o payload pelo marcador
+ * já projetado. Marcador oculto vira `null`; revelar (`hidden: true -> false`)
+ * chega como `marker.created`.
+ */
+function projectMarkerEvent(
+  event: EngineEvent,
+  table: TableState,
+): EngineEvent | null {
+  const sceneId = sceneIdFromPayload(event.payload) ?? table.activeSceneId;
+  const markerId =
+    event.type === 'marker.created'
+      ? entityIdFromPayload(event.payload, 'marker')
+      : idFieldFromPayload(event.payload, 'markerId');
+  if (sceneId === undefined || sceneId === null || !markerId) return event;
+
+  const marker = table.scenes[sceneId]?.markers[markerId];
+  if (!marker) return null;
+  if (marker.hidden) return null;
+
+  const revealed =
+    event.type === 'marker.updated' &&
+    isRevealingUpdate(event.payload, 'hidden', false);
+  const type: EventType = revealed ? 'marker.created' : event.type;
+
+  return { type, payload: { sceneId, marker } };
+}
+
+/**
+ * Eventos `zone.created`/`zone.updated`: troca o payload pela zona já
+ * projetada (sem itens `isRevealed: false`/`isFound: false`).
+ */
+function projectZoneEvent(event: EngineEvent, table: TableState): EngineEvent {
+  const sceneId = sceneIdFromPayload(event.payload) ?? table.activeSceneId;
+  const zoneId =
+    event.type === 'zone.created'
+      ? entityIdFromPayload(event.payload, 'zone')
+      : idFieldFromPayload(event.payload, 'zoneId');
+  if (sceneId === undefined || sceneId === null || !zoneId) return event;
+
+  const zone = table.scenes[sceneId]?.zones[zoneId];
+  if (!zone) return event;
+
+  return { type: event.type, payload: { sceneId, zone: projectZone(zone) } };
+}
+
+function isTokenVisibilitySecret(table: TableState, payload: unknown): boolean {
+  const sceneId = sceneIdFromPayload(payload) ?? table.activeSceneId;
+  const tokenId = idFieldFromPayload(payload, 'tokenId');
+  if (sceneId === undefined || sceneId === null || !tokenId) return false;
+  return table.scenes[sceneId]?.tokens[tokenId]?.visibility === 'gm';
+}
+
+/**
+ * Projeta um evento para um membro. `table` é a mesa DEPOIS do comando
+ * (o estado já refletindo o efeito do evento). Retorna `null` quando o
+ * evento revela algo secreto para aquele membro: token de mestre,
+ * marcador oculto, item de zona não revelado ou algo fora da cena ativa.
  */
 export function projectEvent(
   event: EngineEvent,
@@ -152,11 +236,20 @@ export function projectEvent(
 
   if (isOffActiveScene(table, event.payload)) return null;
 
-  if (event.type.startsWith('token.') && isTokenSecret(table, event))
-    return null;
+  if (event.type === 'token.created' || event.type === 'token.updated') {
+    return projectTokenEvent(event, table);
+  }
+  if (event.type === 'token.moved' || event.type === 'token.deleted') {
+    return isTokenVisibilitySecret(table, event.payload) ? null : event;
+  }
 
-  if (event.type.startsWith('marker.') && isMarkerSecret(event.payload))
-    return null;
+  if (event.type === 'marker.created' || event.type === 'marker.updated') {
+    return projectMarkerEvent(event, table);
+  }
+
+  if (event.type === 'zone.created' || event.type === 'zone.updated') {
+    return projectZoneEvent(event, table);
+  }
 
   return event;
 }
