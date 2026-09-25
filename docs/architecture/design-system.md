@@ -2,36 +2,46 @@
 
 ## Situação atual
 
-O app tem **apenas tema escuro**. Não existe alternador de tema e a classe `.dark` não é aplicada em lugar nenhum.
+O app tem **apenas tema escuro** (sem alternador). Tailwind v4, tokens em `@theme` (`apps/web/src/index.css`), Vite plugin `@tailwindcss/vite` (sem `tailwind.config.js` nem PostCSS). Os mesmos valores existem em `apps/web/src/ui/tokens.ts` para uso fora do CSS (Konva).
 
-As cores são valores hexadecimais fixos nas classes Tailwind dos componentes (`bg-[#121214]`, `text-[#a8a8b3]`...). As variáveis de `apps/web/src/index.css` e as cores de `tailwind.config.js` (`background`, `primary`, `muted`...) são o padrão gerado pelo shadcn e quase não são usadas fora de `apps/web/src/components/ui/`.
+As variáveis do shadcn (`--background`, `--primary`, `--border`...) ficam fixas em `:root`, todas derivadas dos tokens SGM. Não existe classe `.dark`.
 
-## Paleta em uso
+## Tokens
 
-Use exatamente estes valores. Não introduza hexadecimais novos.
+Nomes e valores: ver `docs/specs/ui-design-system.md`, seção 2 (é a fonte única; não repetido aqui).
 
-| Papel                       | Cor                            | Classe típica                      |
-| :-------------------------- | :----------------------------- | :--------------------------------- |
-| Fundo da aplicação          | `#121214`                      | `bg-[#121214]`                     |
-| Superfície (cards, painéis) | `#202024`                      | `bg-[#202024]`                     |
-| Superfície alternativa      | `#1a1a1e`, `#18181b`           | `bg-[#1a1a1e]`                     |
-| Borda e fundo de controles  | `#323238`                      | `border-[#323238]`, `bg-[#323238]` |
-| Texto principal             | `#e1e1e6`                      | `text-[#e1e1e6]`                   |
-| Texto secundário            | `#a8a8b3`                      | `text-[#a8a8b3]`                   |
-| Texto apagado               | `#7c7c8a`, `#7a7a80`           | `text-[#7c7c8a]`                   |
-| Marca (roxo)                | `#8257e5`, hover `#9466ff`     | `bg-[#8257e5] hover:bg-[#9466ff]`  |
-| Destaque (dourado)          | `#ffd700`                      | `text-[#ffd700]`                   |
-| Sucesso (verde)             | `#04d361`                      | `text-[#04d361]`                   |
-| Perigo                      | Tailwind `red-400` / `red-500` | `text-red-400`, `bg-red-500`       |
+Decisão de nomenclatura: o shadcn usa `--accent` para o hover de menus/itens (mapeado para `control`, `#323238`). O "destaque" do spec (`#ffd700`, turno atual) é um token à parte, `--color-highlight` / `colorTokens.highlight`, para não colidir com o `--accent` do shadcn.
 
-Pendência (sem data): transformar essa paleta em variáveis CSS e classes semânticas no `tailwind.config.js`, e trocar os hexadecimais pelos nomes. Até isso acontecer, siga a tabela acima.
+## Primitivos
 
-## Componentes
+Todos em `apps/web/src/ui/` (movidos de `apps/web/src/components/ui/`), gerados via `npx shadcn add ...` (style `base-nova`, sobre `@base-ui/react`), exceto os marcados "manual".
 
-- Primitivos em `apps/web/src/components/ui/` gerados pelo shadcn (`components.json`) sobre `@base-ui/react`: `button`, `dialog`, `dropdown-menu`, `input`, `select`.
-- Componentes próprios no mesmo diretório: `ImageCropper`, `RichTextEditor`.
-- Ícones: `lucide-react`.
-- Fonte: Geist (`@fontsource-variable/geist`).
-- Camadas e z-index: ver `frontend-guidelines.md`, seção 3.
+| Categoria | Componentes |
+| :-- | :-- |
+| Ações | `button`, `toggle`, `toggle-group` |
+| Entrada | `input`, `textarea`, `number-input` (manual), `select`, `combobox`, `checkbox`, `switch`, `slider`, `form` (manual, react-hook-form) |
+| Sobreposição | `dialog`, `alert-dialog`, `sheet`, `drawer` (vaul via base-ui), `popover`, `tooltip`, `dropdown-menu`, `context-menu` |
+| Feedback/estrutura | `sonner` (Toaster), `skeleton`, `progress`, `badge`, `empty-state` (manual), `card`, `tabs`, `scroll-area`, `separator`, `collapsible`, `responsive-panel` (manual) |
+| Domínio | `element-badge`, `stat-bar`, `condition-chip`, `token-avatar`, `dice-result` |
+| Estabilidade | `region-boundary` (error boundary reutilizável) |
+| Próprios (não shadcn) | `ImageCropper`, `RichTextEditor`, `label` |
 
-Pendência: o projeto usa Tailwind v3, mas `shadcn` v4 e `tw-animate-css` pressupõem Tailwind v4. Ao gerar componentes novos com a CLI do shadcn, confira se o resultado compila e se as cores seguem a paleta acima.
+`Button`: variantes `primary`, `secondary`, `ghost`, `danger` (mais `default`/`outline`/`destructive`/`link` como aliases, mantidos só para as telas antigas ainda não migradas — não usar em código novo). Tamanho `icon`/`icon-sm`/`icon-lg` cobre o caso "botão só com ícone".
+
+`ResponsivePanel`: decide Drawer (< 768px) vs Sheet ou Dialog (`desktopVariant`, padrão Sheet) via `useMediaQuery` (`apps/web/src/hooks/useMediaQuery.ts`, com limpeza no `useEffect`).
+
+`Toaster` (sonner) montado em `App.tsx`. Tema fixo `dark` (sem `next-themes`, fora da stack).
+
+## Estabilidade
+
+- `apps/web/src/ui/region-boundary.tsx`: error boundary com botão "Recarregar" que reseta só a região (usa `react-error-boundary`).
+- `apps/web/src/lib/sanitize.ts` (`sanitizeHtml`, DOMPurify): todo `dangerouslySetInnerHTML` do app passa por ela.
+
+## Guarda de CI
+
+`npm run ui:guard` (`scripts/check-ui-guard.mjs`), parte do `npm run check`. Procura em `apps/web/src` hexadecimal solto, `text-[Npx]`, `z-[N]`, `alert(`, `confirm(`, `prompt(`. Exceções por arquivo/violação em `scripts/ui-guard-exceptions.json` (contagem atual das telas ainda não migradas); falha em arquivo novo ou contagem maior, avisa quando uma contagem cai.
+
+## Pendências
+
+- Telas ainda não usam os primitivos nem só os tokens (próxima etapa). Até lá, a lista de exceções da guarda cobre o código existente.
+- Ícones: `lucide-react`. Fonte: Geist (`@fontsource-variable/geist`).
