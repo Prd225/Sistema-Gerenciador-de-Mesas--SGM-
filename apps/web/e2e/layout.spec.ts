@@ -192,3 +192,49 @@ test.describe('Subpainéis do painel do mestre', () => {
     expect(Math.abs(a!.y - c!.y)).toBeLessThan(20);
   });
 });
+
+test.describe('Menu de configurar painéis', () => {
+  async function openMenu(page: Page, width: number) {
+    await open(page, width);
+    await page.getByRole('button', { name: 'Abrir Painel do Mestre' }).click();
+    await page.getByRole('button', { name: /menu/i }).click();
+  }
+
+  test('no celular os slots se chamam Topo, Meio e Base', async ({ page }) => {
+    await openMenu(page, 390);
+    await expect(
+      page.getByRole('button', { name: 'Topo' }).first(),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Esq.' })).toHaveCount(0);
+  });
+
+  test('no desktop os slots se chamam Esq., Centro e Dir.', async ({
+    page,
+  }) => {
+    await openMenu(page, 1440);
+    await expect(
+      page.getByRole('button', { name: 'Esq.' }).first(),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Topo' })).toHaveCount(0);
+  });
+});
+
+test.describe('Cabeçalho', () => {
+  for (const width of [390, 800, 1440]) {
+    test(`todos os botões ficam dentro da tela (${width}px)`, async ({
+      page,
+    }) => {
+      await open(page, width);
+      for (const name of ['Arquivo', 'Ajuda', 'Novo Token', 'Entrar']) {
+        const button = page
+          .locator('header')
+          .getByRole('button', { name, exact: true });
+        await expect(button).toBeVisible();
+        const box = await button.boundingBox();
+        expect(box, name).not.toBeNull();
+        expect(box!.x, name).toBeGreaterThanOrEqual(0);
+        expect(box!.x + box!.width, name).toBeLessThanOrEqual(width);
+      }
+    });
+  }
+});

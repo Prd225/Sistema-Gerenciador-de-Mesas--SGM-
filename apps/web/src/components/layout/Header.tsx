@@ -75,9 +75,9 @@ export default function Header() {
   }, [checkServerAndSession]);
 
   return (
-    <header className="h-[70px] bg-[#202024]/95 border-b border-[#323238] flex items-center justify-between px-5 z-50 shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
+    <header className="h-[70px] bg-[#202024]/95 border-b border-[#323238] flex items-center justify-between gap-2 px-3 md:px-5 z-50 shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
       {/* Logo & File Menu */}
-      <div className="flex items-center gap-4">
+      <div className="flex shrink-0 items-center gap-2 md:gap-4">
         <div
           className={`font-bold flex items-center gap-2 transition-colors duration-500 ${
             autoSaveStatus === 'success'
@@ -109,7 +109,7 @@ export default function Header() {
               </span>
             </div>
             <span
-              className={`text-[0.60rem] font-semibold uppercase tracking-wider leading-none mt-0.5 transition-colors duration-500 ${
+              className={`hidden sm:block text-[0.60rem] font-semibold uppercase tracking-wider leading-none mt-0.5 transition-colors duration-500 ${
                 autoSaveStatus === 'success'
                   ? 'text-green-600'
                   : 'text-[#7a7a80]'
@@ -121,9 +121,12 @@ export default function Header() {
         </div>
 
         <DropdownMenu>
-          <DropdownMenuTrigger className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input h-9 px-4 py-2 bg-transparent border-none font-bold text-[#e1e1e6] hover:bg-white/5 hover:text-white">
-            <FileText className="w-4 h-4 mr-2" />
-            Arquivo
+          <DropdownMenuTrigger
+            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input h-9 px-2 md:px-4 py-2 bg-transparent border-none font-bold text-[#e1e1e6] hover:bg-white/5 hover:text-white"
+            aria-label="Arquivo"
+          >
+            <FileText className="w-4 h-4 md:mr-2" />
+            <span className="hidden md:inline">Arquivo</span>
             <ChevronDown className="w-4 h-4 ml-1" />
           </DropdownMenuTrigger>
           <DropdownMenuContent className="bg-[#202024] border-[#323238] text-[#e1e1e6]">
@@ -156,7 +159,7 @@ export default function Header() {
       </div>
 
       {/* Token Roster */}
-      <div className="flex-1 px-5 mx-5 border-x border-[#323238] h-full flex items-center overflow-x-auto gap-3">
+      <div className="flex-1 min-w-0 px-2 mx-1 md:px-5 md:mx-5 border-x border-[#323238] h-full flex items-center overflow-x-auto gap-3">
         {tokens.map((t) => {
           const isOnMap = t.x !== null;
           return (
@@ -209,11 +212,12 @@ export default function Header() {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-2">
+      <div className="flex shrink-0 items-center gap-1 md:gap-2">
         <Dialog>
           <DialogTrigger
-            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-transparent text-[#a8a8b3] hover:text-white hover:bg-white/5 h-10 px-4 py-2 border-none"
+            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-transparent text-[#a8a8b3] hover:text-white hover:bg-white/5 h-10 px-2 md:px-4 py-2 border-none"
             title="Ajuda"
+            aria-label="Ajuda"
           >
             <HelpCircle className="w-5 h-5" />
           </DialogTrigger>
@@ -282,9 +286,11 @@ export default function Header() {
         <Button
           onClick={() => setShowTokenCreateModal(true)}
           variant="outline"
-          className="bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5 font-bold"
+          aria-label="Novo Token"
+          className="bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5 font-bold px-3 md:px-4"
         >
-          <Plus className="w-4 h-4 mr-2" /> Novo Token
+          <Plus className="w-4 h-4 md:mr-2" />
+          <span className="hidden md:inline">Novo Token</span>
         </Button>
 
         {/* Indicador de Modo Local quando backend offline */}
@@ -294,7 +300,7 @@ export default function Header() {
             className="flex items-center gap-1 text-[11px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-1 rounded-md"
           >
             <WifiOff className="w-3.5 h-3.5" />
-            <span>Modo Local</span>
+            <span className="hidden md:inline">Modo Local</span>
           </div>
         )}
 
@@ -342,8 +348,10 @@ export default function Header() {
             variant="outline"
             className="bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5 font-bold text-xs h-10 px-3"
             title="Entrar na conta ou cadastrar"
+            aria-label="Entrar"
           >
-            <User className="w-4 h-4 mr-1.5 text-[#8257e5]" /> Entrar
+            <User className="w-4 h-4 md:mr-1.5 text-[#8257e5]" />
+            <span className="hidden md:inline">Entrar</span>
           </Button>
         )}
 
