@@ -1,6 +1,7 @@
 import { Group, Rect, Ellipse, Line, Circle } from 'react-konva';
 import React from 'react';
 import type { NewShapeState } from './ZoneLayer';
+import { colorTokens } from '@/ui/tokens';
 
 /**
  * Renders the shape currently being drawn on the canvas.
@@ -48,7 +49,7 @@ function DrawingLayer({
           width={Math.abs(newShape.width || 0)}
           height={Math.abs(newShape.height || 0)}
           fill="rgba(130, 87, 229, 0.2)"
-          stroke="#8257e5"
+          stroke={colorTokens.primary}
           strokeWidth={2 / scale}
           dash={[6 / scale, 4 / scale]}
         />
@@ -60,7 +61,7 @@ function DrawingLayer({
           radiusX={Math.abs((newShape.width || 0) / 2)}
           radiusY={Math.abs((newShape.height || 0) / 2)}
           fill="rgba(130, 87, 229, 0.2)"
-          stroke="#8257e5"
+          stroke={colorTokens.primary}
           strokeWidth={2 / scale}
           dash={[6 / scale, 4 / scale]}
         />
@@ -80,7 +81,9 @@ function DrawingLayer({
           {/* Polygon line preview */}
           <Line
             points={polyPoints}
-            stroke={isSnappedToStart ? '#ffd700' : '#8257e5'}
+            stroke={
+              isSnappedToStart ? colorTokens.highlight : colorTokens.primary
+            }
             strokeWidth={2 / scale}
             dash={[6 / scale, 4 / scale]}
             closed={false}
@@ -96,8 +99,8 @@ function DrawingLayer({
                 x={polyPoints[idx]}
                 y={polyPoints[idx + 1]}
                 radius={3.5 / scale}
-                fill="#8257e5"
-                stroke="#ffffff"
+                fill={colorTokens.primary}
+                stroke={colorTokens.text}
                 strokeWidth={1 / scale}
               />
             );
@@ -108,11 +111,11 @@ function DrawingLayer({
             x={startX}
             y={startY}
             radius={(canClose ? (isSnappedToStart ? 9 : 7) : 5) / scale}
-            fill={canClose ? '#ffd700' : '#8257e5'}
-            stroke="#ffffff"
+            fill={canClose ? colorTokens.highlight : colorTokens.primary}
+            stroke={colorTokens.text}
             strokeWidth={(canClose ? 2 : 1) / scale}
             shadowBlur={canClose ? 8 / scale : 0}
-            shadowColor="#ffd700"
+            shadowColor={colorTokens.highlight}
           />
 
           {/* Outer target ring on start vertex when polygon can be closed */}
@@ -121,7 +124,7 @@ function DrawingLayer({
               x={startX}
               y={startY}
               radius={(isSnappedToStart ? 14 : 12) / scale}
-              stroke="#ffd700"
+              stroke={colorTokens.highlight}
               strokeWidth={1.5 / scale}
               dash={[3 / scale, 3 / scale]}
             />

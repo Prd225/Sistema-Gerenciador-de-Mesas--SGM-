@@ -3,9 +3,6 @@
     "hex-color": 1,
     "confirm-call": 1
   },
-  "apps/web/src/canvas/DrawingLayer.tsx": {
-    "hex-color": 4
-  },
   "apps/web/src/canvas/MarkerLayer.tsx": {
     "hex-color": 5
   },
@@ -15,9 +12,6 @@
   "apps/web/src/canvas/TokenLayer.tsx": {
     "hex-color": 6,
     "confirm-call": 1
-  },
-  "apps/web/src/canvas/ZoneLayer.tsx": {
-    "hex-color": 1
   },
   "apps/web/src/components/initiative/InitiativeBar.tsx": {
     "hex-color": 16,

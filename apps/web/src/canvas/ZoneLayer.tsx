@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { Group, Rect, Ellipse, Line, Text, Transformer } from 'react-konva';
 import { useZoneStore } from '@/store/useZoneStore';
 import type { Zone } from '@/types/game';
+import { colorTokens } from '@/ui/tokens';
 
 export interface NewShapeState {
   type: 'rect' | 'ellipse' | 'polygon';
@@ -151,7 +152,7 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
 
         const fill = applyOp(s?.fillColor, isActive);
         const stroke = isActive
-          ? '#ffd700'
+          ? colorTokens.highlight
           : s?.borderColor || 'rgba(130, 87, 229, 0.5)';
         const textColor = s?.textColor || 'white';
         const strokeWidth = isActive ? 2.5 : 1.5;
@@ -310,10 +311,10 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
         <Transformer
           ref={trRef}
           rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
-          borderStroke="#ffd700"
+          borderStroke={colorTokens.highlight}
           borderDash={[4, 4]}
-          anchorStroke="#ffd700"
-          anchorFill="#202024"
+          anchorStroke={colorTokens.highlight}
+          anchorFill={colorTokens.surface}
           anchorSize={8}
           anchorCornerRadius={2}
           boundBoxFunc={(oldBox, newBox) => {
