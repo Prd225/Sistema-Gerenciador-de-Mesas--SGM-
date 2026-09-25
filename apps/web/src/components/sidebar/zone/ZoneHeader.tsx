@@ -74,6 +74,8 @@ export const ZoneHeader: FC<ZoneHeaderProps> = ({
           <button
             onClick={toggle}
             className="text-[#a8a8b3] hover:text-[#e1e1e6] p-1 rounded hover:bg-white/5"
+            title="Recolher Barra"
+            aria-label="Recolher barra da zona"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -186,6 +188,8 @@ export const ZoneHeader: FC<ZoneHeaderProps> = ({
           <button
             onClick={toggle}
             className="text-[#a8a8b3] hover:text-[#e1e1e6] p-1 rounded hover:bg-white/5"
+            title="Recolher Barra"
+            aria-label="Recolher barra da zona"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>

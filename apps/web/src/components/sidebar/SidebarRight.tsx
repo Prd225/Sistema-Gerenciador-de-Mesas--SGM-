@@ -248,6 +248,7 @@ export default function SidebarRight({ isOpen, toggle }: SidebarRightProps) {
           onClick={toggle}
           className="text-[#a8a8b3] hover:text-[#e1e1e6] p-2 hover:bg-white/5 rounded"
           title="Expandir Marcadores"
+          aria-label="Expandir marcadores"
         >
           <ChevronRight className="rotate-180" />
         </button>
@@ -273,6 +274,7 @@ export default function SidebarRight({ isOpen, toggle }: SidebarRightProps) {
             onClick={toggle}
             className="text-[#a8a8b3] hover:text-[#e1e1e6] p-1 -ml-1 rounded hover:bg-white/5"
             title="Recolher Barra"
+            aria-label="Recolher marcadores"
           >
             <ChevronRight className="w-5 h-5" />
           </button>

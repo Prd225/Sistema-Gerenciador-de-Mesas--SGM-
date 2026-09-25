@@ -42,6 +42,7 @@ export const ZoneCollapsedBar: FC<ZoneCollapsedBarProps> = ({
           onClick={toggle}
           className="text-[#a8a8b3] hover:text-[#e1e1e6] p-2 hover:bg-white/5 rounded transition-colors cursor-pointer"
           title="Expandir Barra Lateral"
+          aria-label="Expandir barra da zona"
         >
           <ChevronLeft className="rotate-180 w-5 h-5 transition-transform duration-300" />
         </button>
