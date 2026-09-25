@@ -12,6 +12,9 @@ import TokenLayer from './TokenLayer';
 import MarkerLayer from './MarkerLayer';
 import DrawingLayer from './DrawingLayer';
 
+// Distancia na tela (px) em que um segundo clique conta como o mesmo ponto.
+const REPEAT_CLICK_PX = 10;
+
 const generateId = () =>
   window.crypto?.randomUUID?.() ?? Math.random().toString(36).substring(2, 11);
 
@@ -154,6 +157,8 @@ export default function StageMap() {
 
   // --- Touch & Mouse Down ---
   const lastTouchDistRef = useRef<number | null>(null);
+  // Se o ultimo clique no desenho de poligono caiu sobre o vertice anterior.
+  const lastClickRepeatedRef = useRef(false);
 
   // Cancel drawing in progress if tool changes to non-drawing
   useEffect(() => {
@@ -260,10 +265,15 @@ export default function StageMap() {
   // --- Double Click ---
   const handleDblClick = useCallback(
     (e: KonvaEventObject<MouseEvent>) => {
-      if (activeTool === 'draw-poly' && polyPoints.length >= 6) {
-        e.evt.preventDefault();
-        finishPolygon(polyPoints);
-      }
+      if (activeTool !== 'draw-poly' || polyPoints.length < 6) return;
+      // O Konva dispara dblclick para dois cliques rapidos mesmo longe um do
+      // outro. So fecha se o segundo clique caiu perto do primeiro (e por
+      // isso nao virou vertice); senao, clicar os vertices em ritmo normal
+      // fechava o poligono no 3o ponto.
+      if (!lastClickRepeatedRef.current) return;
+
+      e.evt.preventDefault();
+      finishPolygon(polyPoints);
     },
     [activeTool, polyPoints, finishPolygon],
   );
@@ -344,6 +354,7 @@ export default function StageMap() {
 
       if (activeTool === 'draw-poly') {
         if (!isDrawing) {
+          lastClickRepeatedRef.current = false;
           setIsDrawing(true);
           setPolyPoints([pos.x, pos.y]);
           setNewShape({
@@ -364,10 +375,14 @@ export default function StageMap() {
             }
           }
 
-          // Otherwise add new vertex if not duplicate
+          // Otherwise add new vertex. Clique ate REPEAT_CLICK_PX (na tela) do
+          // ultimo vertice conta como repeticao, nao como vertice novo.
           const lastX = polyPoints[polyPoints.length - 2];
           const lastY = polyPoints[polyPoints.length - 1];
-          if (Math.hypot(pos.x - lastX, pos.y - lastY) >= 3) {
+          const repeated =
+            Math.hypot(pos.x - lastX, pos.y - lastY) < REPEAT_CLICK_PX / scale;
+          lastClickRepeatedRef.current = repeated;
+          if (!repeated) {
             const nextPoints = [...polyPoints, pos.x, pos.y];
             setPolyPoints(nextPoints);
             setNewShape((prev) =>
