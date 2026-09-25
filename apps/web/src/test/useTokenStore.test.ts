@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useTokenStore } from '@/store/useTokenStore';
-import type { Token } from '@sgm/shared';
+import type { Token } from '@/types/game';
 
 const createMockToken = (id: string, name = 'Token de Teste'): Token => ({
   id,
@@ -144,26 +144,5 @@ describe('useTokenStore — Gestão de Tokens e Iniciativa', () => {
 
     useTokenStore.getState().clearInitiative();
     expect(useTokenStore.getState().initiativeQueue).toHaveLength(0);
-  });
-
-  it('trata operacoes remotas (from remote) sem duplicacoes', () => {
-    const tok = createMockToken('tok-remote', 'Inimigo Remoto');
-
-    useTokenStore.getState().addTokenFromRemote(tok);
-    expect(useTokenStore.getState().tokens).toHaveLength(1);
-
-    // Evita duplicar se ja existir
-    useTokenStore.getState().addTokenFromRemote(tok);
-    expect(useTokenStore.getState().tokens).toHaveLength(1);
-
-    useTokenStore
-      .getState()
-      .updateTokenFromRemote('tok-remote', { name: 'Novo Nome Remoto' });
-    expect(useTokenStore.getState().getTokenById('tok-remote')?.name).toBe(
-      'Novo Nome Remoto',
-    );
-
-    useTokenStore.getState().removeTokenFromRemote('tok-remote');
-    expect(useTokenStore.getState().tokens).toHaveLength(0);
   });
 });

@@ -1,0 +1,297 @@
+{
+  "apps/web/src/canvas/BackgroundLayer.tsx": {
+    "hex-color": 1,
+    "confirm-call": 1
+  },
+  "apps/web/src/canvas/DrawingLayer.tsx": {
+    "hex-color": 4
+  },
+  "apps/web/src/canvas/MarkerLayer.tsx": {
+    "hex-color": 5
+  },
+  "apps/web/src/canvas/StageMap.tsx": {
+    "hex-color": 7
+  },
+  "apps/web/src/canvas/TokenLayer.tsx": {
+    "hex-color": 6,
+    "confirm-call": 1
+  },
+  "apps/web/src/canvas/ZoneLayer.tsx": {
+    "hex-color": 1
+  },
+  "apps/web/src/components/initiative/InitiativeBar.tsx": {
+    "hex-color": 16,
+    "text-px-arbitrary": 1
+  },
+  "apps/web/src/components/layout/AppLayout.tsx": {
+    "hex-color": 10,
+    "z-arbitrary": 2,
+    "confirm-call": 1
+  },
+  "apps/web/src/components/layout/Footer.tsx": {
+    "hex-color": 52,
+    "prompt-call": 1
+  },
+  "apps/web/src/components/layout/Header.tsx": {
+    "hex-color": 41,
+    "text-px-arbitrary": 4,
+    "confirm-call": 1
+  },
+  "apps/web/src/components/layout/RootErrorFallback.tsx": {
+    "hex-color": 12,
+    "confirm-call": 1
+  },
+  "apps/web/src/components/master-panel/MasterPanelMenu.tsx": {
+    "hex-color": 24
+  },
+  "apps/web/src/components/master-panel/MasterPanelOverlay.tsx": {
+    "hex-color": 16,
+    "z-arbitrary": 1
+  },
+  "apps/web/src/components/master-panel/MasterPanelTrigger.tsx": {
+    "hex-color": 4
+  },
+  "apps/web/src/components/master-panel/SubPanelErrorFallback.tsx": {
+    "hex-color": 10
+  },
+  "apps/web/src/components/master-panel/SubPanelPlaceholder.tsx": {
+    "hex-color": 7
+  },
+  "apps/web/src/components/master-panel/diary/DiaryEntryView.tsx": {
+    "hex-color": 26,
+    "confirm-call": 1
+  },
+  "apps/web/src/components/master-panel/diary/DiaryList.tsx": {
+    "hex-color": 21,
+    "confirm-call": 1
+  },
+  "apps/web/src/components/master-panel/diary/DiaryPagination.tsx": {
+    "hex-color": 7
+  },
+  "apps/web/src/components/master-panel/diary/MasterDiary.tsx": {
+    "hex-color": 1
+  },
+  "apps/web/src/components/master-panel/diary/RichTextEditor.tsx": {
+    "hex-color": 36,
+    "text-px-arbitrary": 1
+  },
+  "apps/web/src/components/master-panel/notes/MasterNotes.tsx": {
+    "hex-color": 23,
+    "confirm-call": 1
+  },
+  "apps/web/src/components/master-panel/notes/NoteCard.tsx": {
+    "hex-color": 5,
+    "confirm-call": 1
+  },
+  "apps/web/src/components/master-panel/notes/NoteEditorFullscreen.tsx": {
+    "hex-color": 73,
+    "text-px-arbitrary": 1
+  },
+  "apps/web/src/components/master-panel/notes/NotesGrid.tsx": {
+    "hex-color": 10
+  },
+  "apps/web/src/components/master-panel/roulettes/MasterRoulettes.tsx": {
+    "hex-color": 18,
+    "confirm-call": 1
+  },
+  "apps/web/src/components/master-panel/roulettes/RouletteCard.tsx": {
+    "hex-color": 8,
+    "confirm-call": 1
+  },
+  "apps/web/src/components/master-panel/roulettes/RouletteEditorFullscreen.tsx": {
+    "hex-color": 55
+  },
+  "apps/web/src/components/master-panel/roulettes/RoulettesGrid.tsx": {
+    "hex-color": 10
+  },
+  "apps/web/src/components/master-panel/rules/MasterRules.tsx": {
+    "hex-color": 9,
+    "confirm-call": 1
+  },
+  "apps/web/src/components/master-panel/rules/RulesCard.tsx": {
+    "hex-color": 47,
+    "text-px-arbitrary": 2
+  },
+  "apps/web/src/components/master-panel/rules/RulesEditor.tsx": {
+    "hex-color": 39
+  },
+  "apps/web/src/components/master-panel/rules/RulesGrid.tsx": {
+    "hex-color": 1
+  },
+  "apps/web/src/components/master-panel/rules/RulesPagination.tsx": {
+    "hex-color": 10
+  },
+  "apps/web/src/components/master-panel/scenes/ScenesPanel.tsx": {
+    "hex-color": 27,
+    "confirm-call": 1
+  },
+  "apps/web/src/components/master-panel/soundpad/AddMusicModal.tsx": {
+    "hex-color": 67
+  },
+  "apps/web/src/components/master-panel/soundpad/ImportPlaylistModal.tsx": {
+    "hex-color": 54,
+    "z-arbitrary": 1
+  },
+  "apps/web/src/components/master-panel/soundpad/MasterSoundpad.tsx": {
+    "hex-color": 1
+  },
+  "apps/web/src/components/master-panel/soundpad/PlaylistCard.tsx": {
+    "hex-color": 17
+  },
+  "apps/web/src/components/master-panel/soundpad/PlaylistEditor.tsx": {
+    "hex-color": 74,
+    "z-arbitrary": 1,
+    "confirm-call": 2
+  },
+  "apps/web/src/components/master-panel/soundpad/SoundpadGrid.tsx": {
+    "hex-color": 19
+  },
+  "apps/web/src/components/master-panel/soundpad/SoundpadHeader.tsx": {
+    "hex-color": 7
+  },
+  "apps/web/src/components/master-panel/soundpad/SoundpadPagination.tsx": {
+    "hex-color": 15,
+    "confirm-call": 1
+  },
+  "apps/web/src/components/master-panel/soundpad/SoundpadPlayer.tsx": {
+    "hex-color": 35
+  },
+  "apps/web/src/components/master-panel/tables/MasterTables.tsx": {
+    "hex-color": 18,
+    "confirm-call": 1
+  },
+  "apps/web/src/components/master-panel/tables/TableCard.tsx": {
+    "hex-color": 8,
+    "confirm-call": 1
+  },
+  "apps/web/src/components/master-panel/tables/TableEditorFullscreen.tsx": {
+    "hex-color": 83
+  },
+  "apps/web/src/components/master-panel/tables/TablesGrid.tsx": {
+    "hex-color": 10
+  },
+  "apps/web/src/components/modals/AuthModal.tsx": {
+    "hex-color": 63,
+    "text-px-arbitrary": 2
+  },
+  "apps/web/src/components/modals/InitiativeModal.tsx": {
+    "hex-color": 20
+  },
+  "apps/web/src/components/modals/InitiativeToolbar.tsx": {
+    "hex-color": 17
+  },
+  "apps/web/src/components/modals/LoadCampaignModal.tsx": {
+    "hex-color": 22,
+    "alert-call": 2,
+    "confirm-call": 1
+  },
+  "apps/web/src/components/modals/SaveCampaignModal.tsx": {
+    "hex-color": 34,
+    "alert-call": 1,
+    "confirm-call": 3,
+    "prompt-call": 1
+  },
+  "apps/web/src/components/modals/TokenCreateModal.tsx": {
+    "hex-color": 42,
+    "text-px-arbitrary": 4
+  },
+  "apps/web/src/components/modals/TokenSheetModal.tsx": {
+    "hex-color": 135,
+    "text-px-arbitrary": 29
+  },
+  "apps/web/src/components/modals/ZoneMarkerModal.tsx": {
+    "hex-color": 162,
+    "text-px-arbitrary": 18
+  },
+  "apps/web/src/components/sidebar/SidebarLeft.tsx": {
+    "hex-color": 9
+  },
+  "apps/web/src/components/sidebar/SidebarRight.tsx": {
+    "hex-color": 78,
+    "text-px-arbitrary": 3
+  },
+  "apps/web/src/components/sidebar/hooks/useZonePresets.ts": {
+    "confirm-call": 1
+  },
+  "apps/web/src/components/sidebar/zone/ZoneCollapsedBar.tsx": {
+    "hex-color": 8
+  },
+  "apps/web/src/components/sidebar/zone/ZoneColorPalette.tsx": {
+    "hex-color": 18
+  },
+  "apps/web/src/components/sidebar/zone/ZoneFloatingTabs.tsx": {
+    "hex-color": 6
+  },
+  "apps/web/src/components/sidebar/zone/ZoneHeader.tsx": {
+    "hex-color": 18,
+    "text-px-arbitrary": 1
+  },
+  "apps/web/src/components/sidebar/zone/tabs/DiaryTab.tsx": {
+    "hex-color": 24,
+    "text-px-arbitrary": 2
+  },
+  "apps/web/src/components/sidebar/zone/tabs/GeneralTab.tsx": {
+    "hex-color": 107,
+    "text-px-arbitrary": 6
+  },
+  "apps/web/src/components/sidebar/zone/tabs/HighlightsTab.tsx": {
+    "hex-color": 29
+  },
+  "apps/web/src/components/sidebar/zone/tabs/InventoryTab.tsx": {
+    "hex-color": 36
+  },
+  "apps/web/src/components/sidebar/zone/tabs/MissionsTab.tsx": {
+    "hex-color": 25,
+    "text-px-arbitrary": 1
+  },
+  "apps/web/src/components/sidebar/zone/tabs/NpcsTab.tsx": {
+    "hex-color": 27,
+    "text-px-arbitrary": 2
+  },
+  "apps/web/src/components/sidebar/zone/tabs/ThreatsTab.tsx": {
+    "hex-color": 25
+  },
+  "apps/web/src/components/sidebar/zone/types.ts": {
+    "hex-color": 10
+  },
+  "apps/web/src/components/tokens/ConditionManager.tsx": {
+    "hex-color": 41,
+    "text-px-arbitrary": 2
+  },
+  "apps/web/src/components/toolbar/MapToolbar.tsx": {
+    "hex-color": 16
+  },
+  "apps/web/src/lib/diceEmoji.ts": {
+    "hex-color": 91
+  },
+  "apps/web/src/lib/spotifyAuth.ts": {
+    "alert-call": 1
+  },
+  "apps/web/src/main.tsx": {
+    "hex-color": 4
+  },
+  "apps/web/src/store/useNotesStore.ts": {
+    "hex-color": 1
+  },
+  "apps/web/src/store/useRoulettesStore.ts": {
+    "hex-color": 2
+  },
+  "apps/web/src/test/campaignPersistence.test.ts": {
+    "hex-color": 3
+  },
+  "apps/web/src/test/useCampaignStore.test.ts": {
+    "hex-color": 4
+  },
+  "apps/web/src/test/useScenesStore.test.ts": {
+    "hex-color": 3
+  },
+  "apps/web/src/test/useTokenStore.test.ts": {
+    "hex-color": 4
+  },
+  "apps/web/src/ui/ImageCropper.tsx": {
+    "hex-color": 18
+  },
+  "apps/web/src/ui/RichTextEditor.tsx": {
+    "hex-color": 27
+  }
+}

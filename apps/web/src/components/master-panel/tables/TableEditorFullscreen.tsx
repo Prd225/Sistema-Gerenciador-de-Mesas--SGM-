@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { sanitizeHtml } from '@/lib/sanitize';
 import { useTablesStore } from '@/store/useTablesStore';
 import {
   ChevronLeft,
@@ -403,7 +404,9 @@ export default function TableEditorFullscreen({
                         )
                       }
                       dangerouslySetInnerHTML={{
-                        __html: replaceDiceShortcodesWithHtml(cellContent),
+                        __html: sanitizeHtml(
+                          replaceDiceShortcodesWithHtml(cellContent),
+                        ),
                       }}
                       className="w-full h-full min-h-[36px] outline-none px-2.5 py-2 text-sm leading-relaxed break-all whitespace-pre-wrap overflow-visible"
                     />

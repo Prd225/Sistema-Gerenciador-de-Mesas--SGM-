@@ -4,7 +4,6 @@ import type { KonvaEventObject } from 'konva/lib/Node';
 import { useZoneStore } from '@/store/useZoneStore';
 import { useTokenStore } from '@/store/useTokenStore';
 import { useMasterPanelStore } from '@/store/useMasterPanelStore';
-import { useMultiplayerStore } from '@/store/useMultiplayerStore';
 
 import GridLayer from './GridLayer';
 import BackgroundLayer from './BackgroundLayer';
@@ -170,15 +169,6 @@ export default function StageMap() {
           p1.clientX - p2.clientX,
           p1.clientY - p2.clientY,
         );
-        return;
-      }
-
-      // Alt + Click ou Botão do Meio (roda) -> Emite Ping tático multiplayer em qualquer ponto do mapa
-      const isAltClick = 'altKey' in e.evt && e.evt.altKey;
-      const isMiddleClick = 'button' in e.evt && e.evt.button === 1;
-      if (isAltClick || isMiddleClick) {
-        e.evt.preventDefault();
-        useMultiplayerStore.getState().sendPing(pos.x, pos.y);
         return;
       }
 

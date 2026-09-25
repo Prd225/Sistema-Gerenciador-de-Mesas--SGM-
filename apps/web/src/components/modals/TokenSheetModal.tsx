@@ -1,20 +1,15 @@
 import { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/dialog';
 import { useTokenStore } from '@/store/useTokenStore';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Input } from '@/ui/input';
+import { Button } from '@/ui/button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/ui/select';
 import { Eye, Edit2, Trash2 } from 'lucide-react';
 import ConditionManager from '../tokens/ConditionManager';
 

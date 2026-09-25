@@ -5,8 +5,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+} from '@/ui/dialog';
+import { Button } from '@/ui/button';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { db } from '@/lib/db';
 import { collectGameState } from '@/lib/saveHelpers';

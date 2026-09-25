@@ -1,6 +1,6 @@
 import type { FallbackProps } from 'react-error-boundary';
 import { AlertCircle, RotateCcw, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/button';
 import type { SubPanelId } from '@/store/useMasterPanelStore';
 
 const PANEL_NAMES: Record<SubPanelId, string> = {

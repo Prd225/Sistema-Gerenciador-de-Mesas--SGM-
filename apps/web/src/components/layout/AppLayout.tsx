@@ -10,7 +10,6 @@ import InitiativeModal from '../modals/InitiativeModal';
 import TokenCreateModal from '../modals/TokenCreateModal';
 import LoadCampaignModal from '../modals/LoadCampaignModal';
 import SaveCampaignModal from '../modals/SaveCampaignModal';
-import MultiplayerModal from '../modals/MultiplayerModal';
 import MapToolbar from '../toolbar/MapToolbar';
 import MasterPanelTrigger from '../master-panel/MasterPanelTrigger';
 import MasterPanelOverlay from '../master-panel/MasterPanelOverlay';
@@ -36,8 +35,37 @@ export default function AppLayout({
   const { showInitModal, setShowInitModal } = useCampaignStore();
   const leftOpen = useZoneStore((state) => state.leftSidebarOpen);
   const rightOpen = useZoneStore((state) => state.rightSidebarOpen);
-  const toggleLeft = useZoneStore((state) => state.toggleLeftSidebar);
-  const toggleRight = useZoneStore((state) => state.toggleRightSidebar);
+  const toggleLeftRaw = useZoneStore((state) => state.toggleLeftSidebar);
+  const toggleRightRaw = useZoneStore((state) => state.toggleRightSidebar);
+
+  // Em tela estreita as duas sidebars nao cabem juntas: abrir uma fecha a outra.
+  // Paliativo ate o layout responsivo da etapa 2e.
+  const isNarrow = () => window.matchMedia('(max-width: 1023px)').matches;
+  const toggleLeft = () => {
+    const { leftSidebarOpen, rightSidebarOpen } = useZoneStore.getState();
+    if (!leftSidebarOpen && rightSidebarOpen && isNarrow()) toggleRightRaw();
+    toggleLeftRaw();
+  };
+  const toggleRight = () => {
+    const { leftSidebarOpen, rightSidebarOpen } = useZoneStore.getState();
+    if (!rightSidebarOpen && leftSidebarOpen && isNarrow()) toggleLeftRaw();
+    toggleRightRaw();
+  };
+
+  // Mesma regra ao carregar (estado salvo com as duas abertas) e ao estreitar a janela.
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 1023px)');
+    const enforce = () => {
+      const { leftSidebarOpen, rightSidebarOpen, toggleLeftSidebar } =
+        useZoneStore.getState();
+      if (media.matches && leftSidebarOpen && rightSidebarOpen) {
+        toggleLeftSidebar();
+      }
+    };
+    enforce();
+    media.addEventListener('change', enforce);
+    return () => media.removeEventListener('change', enforce);
+  }, [leftOpen, rightOpen]);
 
   const tokenCtx = useTokenStore((state) => state.tokenContextMenu);
   const setTokenCtx = useTokenStore((state) => state.setTokenContextMenu);
@@ -136,15 +164,16 @@ export default function AppLayout({
       <Header />
 
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Left Sidebar: absolute overlay so it never pushes the map */}
-        <div className="absolute inset-y-0 left-0 z-40 pointer-events-none">
-          <div className="pointer-events-auto h-full">
-            <SidebarLeft isOpen={leftOpen} toggle={toggleLeft} />
-          </div>
-        </div>
-
         {/* Main Viewport — always full width, sidebars float on top */}
         <main className="flex-1 relative overflow-hidden bg-[#0d0d0f] select-none">
+          {/* Left Sidebar: overlay limitado a area do mapa, para nunca ficar
+              por baixo da sidebar direita em telas estreitas */}
+          <div className="absolute inset-0 z-40 pointer-events-none">
+            <div className="pointer-events-auto h-full w-fit max-w-full">
+              <SidebarLeft isOpen={leftOpen} toggle={toggleLeft} />
+            </div>
+          </div>
+
           <StageMap />
           <MapToolbar />
           <InitiativeBar />
@@ -251,9 +280,6 @@ export default function AppLayout({
 
       {/* Motor de Áudio em Background */}
       <SoundpadEngine />
-
-      {/* Modal Multiplayer */}
-      <MultiplayerModal />
     </div>
   );
 }

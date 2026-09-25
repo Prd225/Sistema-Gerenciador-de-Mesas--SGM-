@@ -1,18 +1,15 @@
 import { z } from 'zod';
 
-// --- Element & Damage Types ---
-
-export const ElementTypeSchema = z.enum([
+export const ElementType = z.enum([
   'Sangue',
   'Morte',
   'Conhecimento',
   'Energia',
   'Medo',
 ]);
-export const ElementType = ElementTypeSchema;
-export type ElementType = z.infer<typeof ElementTypeSchema>;
+export type ElementType = z.infer<typeof ElementType>;
 
-export const DamageTypeSchema = z.enum([
+export const DamageType = z.enum([
   'Balístico',
   'Impacto',
   'Perfuração',
@@ -28,22 +25,52 @@ export const DamageTypeSchema = z.enum([
   'Energia',
   'Medo',
 ]);
-export const DamageType = DamageTypeSchema;
-export type DamageType = z.infer<typeof DamageTypeSchema>;
+export type DamageType = z.infer<typeof DamageType>;
 
-export const ActionTypeSchema = z.enum([
+export const ActionType = z.enum([
   'Padrão',
   'Movimento',
   'Reação',
   'Ação Livre',
   'Completa',
 ]);
-export const ActionType = ActionTypeSchema;
-export type ActionType = z.infer<typeof ActionTypeSchema>;
+export type ActionType = z.infer<typeof ActionType>;
 
-// --- Token & Stats Types ---
+export const Condition = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().min(1).max(100),
+  desc: z.string().max(1000),
+  color: z.string().max(50),
+  type: z
+    .enum(['skip_turn', 'stat_modifier', 'out_of_combat', 'custom'])
+    .optional(),
+  durationTurns: z.number().int().nonnegative().optional(),
+});
+export type Condition = z.infer<typeof Condition>;
 
-export const TokenStatsSchema = z.object({
+export const Resistance = z.object({
+  type: z.string().max(100),
+  val: z.number(),
+});
+export type Resistance = z.infer<typeof Resistance>;
+
+export const Ability = z.object({
+  title: z.string().max(100),
+  desc: z.string().max(5000),
+});
+export type Ability = z.infer<typeof Ability>;
+
+export const AttackAction = z.object({
+  type: z.string().max(50),
+  name: z.string().max(100),
+  test: z.string().max(100),
+  damage: z.string().max(100),
+  mult: z.string().max(50),
+  desc: z.string().max(5000),
+});
+export type AttackAction = z.infer<typeof AttackAction>;
+
+export const TokenStats = z.object({
   type: z.enum(['player', 'threat']),
   system: z.enum(['san', 'det']),
   threatType: z.enum(['realidade', 'paranormal']).optional(),
@@ -57,10 +84,10 @@ export const TokenStatsSchema = z.object({
 
   // Defenses
   def: z.number(),
-  bloq: z.union([z.number(), z.string()]),
-  esq: z.union([z.number(), z.string()]),
-  fort: z.string().optional(),
-  von: z.string().optional(),
+  bloq: z.union([z.number(), z.string().max(50)]),
+  esq: z.union([z.number(), z.string().max(50)]),
+  fort: z.string().max(50).optional(),
+  von: z.string().max(50).optional(),
 
   // Vitals
   pv: z.number(),
@@ -73,78 +100,41 @@ export const TokenStatsSchema = z.object({
   maxPd: z.number(),
 
   // Threat-specific
-  size: z.string().optional(),
-  speed: z.string().optional(),
-  elements: z.array(ElementTypeSchema).optional(),
+  size: z.string().max(50).optional(),
+  speed: z.string().max(50).optional(),
+  elements: z.array(ElementType).max(10).optional(),
   presDt: z.number().optional(),
-  presDano: z.string().optional(),
+  presDano: z.string().max(50).optional(),
   presNex: z.number().optional(),
-  enigma: z.string().optional(),
-  senses: z.array(z.string()).optional(),
-  resistances: z
-    .array(z.object({ type: z.string(), val: z.number() }))
-    .optional(),
-  vulnerabilities: z.array(z.string()).optional(),
-  abilities: z
-    .array(z.object({ title: z.string(), desc: z.string() }))
-    .optional(),
-  actions: z
-    .array(
-      z.object({
-        type: z.string(),
-        name: z.string(),
-        test: z.string(),
-        damage: z.string(),
-        mult: z.string(),
-        desc: z.string(),
-      }),
-    )
-    .optional(),
+  enigma: z.string().max(5000).optional(),
+  senses: z.array(z.string().max(100)).max(20).optional(),
+  resistances: z.array(Resistance).max(50).optional(),
+  vulnerabilities: z.array(z.string().max(100)).max(20).optional(),
+  abilities: z.array(Ability).max(50).optional(),
+  actions: z.array(AttackAction).max(50).optional(),
 });
-export const TokenStats = TokenStatsSchema;
-export type TokenStats = z.infer<typeof TokenStatsSchema>;
+export type TokenStats = z.infer<typeof TokenStats>;
 
-export const ConditionSchema = z.object({
-  id: z.string().optional(),
-  name: z.string(),
-  desc: z.string(),
-  color: z.string(),
-  type: z
-    .enum(['skip_turn', 'stat_modifier', 'out_of_combat', 'custom'])
-    .optional(),
-  durationTurns: z.number().optional(),
-});
-export const Condition = ConditionSchema;
-export type Condition = z.infer<typeof ConditionSchema>;
+export const TokenVisibility = z.enum(['all', 'gm']);
+export type TokenVisibility = z.infer<typeof TokenVisibility>;
 
-export const TokenSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  fullName: z.string(),
-  colorText: z.string(),
-  colorBorder: z.string(),
-  colorFill: z.string(),
+export const Token = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).max(100),
+  ownerMemberId: z.string().uuid().nullable(),
+  visibility: TokenVisibility,
+  imageRef: z.string().max(255).nullable(),
+  // null = na reserva (fora do mapa)
   x: z.number().nullable(),
   y: z.number().nullable(),
-  imageUrl: z.string().optional(),
-  desc: z.string(),
-  conditions: z.array(ConditionSchema),
-  stats: TokenStatsSchema,
-  ownerMemberId: z.string().nullable().optional(),
-  visibility: z.enum(['all', 'gm']).optional(),
+  size: z.number().positive(),
+  fullName: z.string().max(100).optional(),
+  colorText: z.string().max(50).optional(),
+  colorBorder: z.string().max(50).optional(),
+  colorFill: z.string().max(50).optional(),
+  desc: z.string().max(5000).optional(),
+  conditions: z.array(Condition).max(100).default([]),
+  stats: TokenStats.optional(),
+  rotation: z.number().optional(),
 });
-export const Token = TokenSchema;
-export type Token = z.infer<typeof TokenSchema>;
-
-export const ActiveToolSchema = z.enum([
-  'pan',
-  'select',
-  'edit-zone',
-  'draw-rect',
-  'draw-ellipse',
-  'draw-poly',
-  'edit-bg',
-  'add-marker',
-]);
-export const ActiveTool = ActiveToolSchema;
-export type ActiveTool = z.infer<typeof ActiveToolSchema>;
+export type Token = z.infer<typeof Token>;

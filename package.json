@@ -27,7 +27,8 @@
     "depcruise": "depcruise --config .dependency-cruiser.cjs apps packages",
     "preview": "npm run preview --workspace=@sgm/web",
     "docs:size": "node scripts/check-docs-size.mjs",
-    "check": "npm run format:check && npm run docs:size && npm run lint && npm run typecheck && npm run depcruise && npm test && npm run build",
+    "ui:guard": "node scripts/check-ui-guard.mjs",
+    "check": "npm run format:check && npm run docs:size && npm run ui:guard && npm run lint && npm run typecheck && npm run depcruise && npm test && npm run build",
     "prepare": "git config core.hooksPath .githooks || true"
   },
   "devDependencies": {

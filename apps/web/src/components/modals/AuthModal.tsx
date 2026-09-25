@@ -1,12 +1,7 @@
 import { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/dialog';
+import { Button } from '@/ui/button';
+import { Input } from '@/ui/input';
 import { useAuthStore } from '@/store/useAuthStore';
 import { User, Lock, Mail, AlertCircle, LogIn, UserPlus } from 'lucide-react';
 

@@ -1,6 +1,7 @@
 import path from 'path';
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 
 function youtubePlaylistPlugin(): Plugin {
   return {
@@ -157,11 +158,10 @@ function youtubePlaylistPlugin(): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), youtubePlaylistPlugin()],
+  plugins: [react(), tailwindcss(), youtubePlaylistPlugin()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@sgm/shared': path.resolve(__dirname, '../../packages/shared/src'),
       '@sgm/engine': path.resolve(__dirname, '../../packages/engine/src'),
     },
   },

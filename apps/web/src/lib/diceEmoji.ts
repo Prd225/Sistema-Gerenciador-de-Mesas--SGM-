@@ -1,4 +1,5 @@
 import React from 'react';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 export type DiceType = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20' | 'd100';
 
@@ -337,7 +338,9 @@ export function renderDiceText(text?: string | null): React.ReactNode {
       nodes.push(
         React.createElement('span', {
           key: i,
-          dangerouslySetInnerHTML: { __html: getDiceBadgeHtml(rawType) },
+          dangerouslySetInnerHTML: {
+            __html: sanitizeHtml(getDiceBadgeHtml(rawType)),
+          },
           style: { display: 'inline' },
         }),
       );

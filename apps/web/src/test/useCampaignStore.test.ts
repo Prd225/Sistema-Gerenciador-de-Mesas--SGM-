@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useTokenStore } from '@/store/useTokenStore';
-import type { Token } from '@sgm/shared';
+import type { Token } from '@/types/game';
 
 const createMockToken = (id: string, name: string): Token => ({
   id,
@@ -150,11 +150,5 @@ describe('useCampaignStore — Rodadas, Turnos e Urgência', () => {
     useCampaignStore.getState().setAutoSaveSlot(null);
     expect(useCampaignStore.getState().autoSaveSlot).toBeNull();
     expect(localStorage.getItem('sgm_autoSaveSlot')).toBeNull();
-  });
-
-  it('atualiza estado a partir de sincronizacao remota', () => {
-    useCampaignStore.getState().setRoundTurnFromRemote(5, 3);
-    expect(useCampaignStore.getState().round).toBe(5);
-    expect(useCampaignStore.getState().turn).toBe(3);
   });
 });

@@ -27,19 +27,19 @@ Etapas na ordem, uma branch e um PR por etapa. Cada etapa termina com `npm run c
 
 ### 2a — Tirar o legado do caminho
 
-- [ ] Remover o multiplayer antigo. Servidor: `roomManager.ts`, `handlers/` e o Socket.io do `index.ts`. Web: `lib/socket.ts`, `useMultiplayerStore`, `MultiplayerModal`, funções `*FromRemote` e botões de sala. Tirar a regra "Multiplayer antigo" do `AGENTS.md`.
-- [ ] Web para de importar `@sgm/shared`: os tipos que o front usa passam a ser definidos em `apps/web/src/types/` (somem no 2d).
-- [ ] `@sgm/shared` no formato novo: `Campaign { table, panel }`, `TableState`, `Scene`, coleções em `Record`, `imageRef`, `ownerMemberId`, `visibility`, comandos, eventos, envelope e erros da seção 4. Schema e tipo com o mesmo nome, com limites. Apagar os `*Schema` e o que não estiver no spec (`api/auth` fica até o bloco 3).
+- [x] Remover o multiplayer antigo. Servidor: `roomManager.ts`, `handlers/` e o Socket.io do `index.ts`. Web: `lib/socket.ts`, `useMultiplayerStore`, `MultiplayerModal`, funções `*FromRemote` e botões de sala. Tirar a regra "Multiplayer antigo" do `AGENTS.md`.
+- [x] Web para de importar `@sgm/shared`: os tipos que o front usa passam a ser definidos em `apps/web/src/types/` (somem no 2d).
+- [x] `@sgm/shared` no formato novo: `Campaign { table, panel }`, `TableState`, `Scene`, coleções em `Record`, `imageRef`, `ownerMemberId`, `visibility`, comandos, eventos, envelope e erros da seção 4. Schema e tipo com o mesmo nome, com limites. Apagar os `*Schema` e o que não estiver no spec (`api/auth` fica até o bloco 3).
 
 ### 2b — Engine e base do design system (paralelo, 2 agentes)
 
-- [ ] Engine (só `packages/engine`): `applyCommand` com todos os comandos, `can` pela tabela da seção 4, `projectFor` com todos os segredos. immer, sem I/O, tempo e ids por parâmetro. Teste de cada comando, permissão negada e segredo. Cobertura mínima de 90% no vitest.
-- [ ] UI (só config do web e `src/ui/`): Tailwind v4 (`@tailwindcss/upgrade`), tokens em `@theme` e `ui/tokens.ts`, mover `components/ui` para `src/ui/` (nas telas, só os imports), primitivos e componentes de domínio da seção 3, `ResponsivePanel`, sonner, DOMPurify, error boundary reutilizável, guarda no CI com a lista de exceções de hoje. Atualizar `AGENTS.md` e `docs/architecture/design-system.md`. As telas ainda não migram.
+- [x] Engine (só `packages/engine`): `applyCommand` com todos os comandos, `can` pela tabela da seção 4, `projectFor` com todos os segredos. immer, sem I/O, tempo e ids por parâmetro. Teste de cada comando, permissão negada e segredo. Cobertura mínima de 90% no vitest.
+- [x] UI (só config do web e `src/ui/`): Tailwind v4 (`@tailwindcss/upgrade`), tokens em `@theme` e `ui/tokens.ts`, mover `components/ui` para `src/ui/` (nas telas, só os imports), primitivos e componentes de domínio da seção 3, `ResponsivePanel`, sonner, DOMPurify, error boundary reutilizável, guarda no CI com a lista de exceções de hoje. Atualizar `AGENTS.md` e `docs/architecture/design-system.md`. As telas ainda não migram.
 
 ### 2c — Camada `room/`
 
 - [ ] `RoomConnection`, `LocalRoomConnection` (engine e Dexie com debounce), `room-store`, `useRoom(selector)`, `useCommand()`. Sem tela nova.
-- [ ] Dexie com versão nova: `campaigns`, `media` (hash, Blob), imagens `local:<hash>` via `lib/media.ts`. As tabelas antigas ficam até o 2d. Importar e exportar JSON validado por `Campaign` (inválido é descartado com aviso).
+- [ ] Dexie com versão nova: `campaigns`, `media` (hash, Blob), imagens `local:<hash>` via `lib/media.ts`. As tabelas antigas ficam até o 2d. Tipar o `PanelState` do `shared` (hoje `z.unknown()`). Importar e exportar JSON validado por `Campaign` (inválido é descartado com aviso).
 - [ ] Testes da `LocalRoomConnection` com fake-indexeddb.
 
 ### 2d — Virada da mesa

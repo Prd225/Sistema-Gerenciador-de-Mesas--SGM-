@@ -1,3 +1,5 @@
+name: sgm-e2e
+
 services:
   postgres:
     image: postgres:17-alpine

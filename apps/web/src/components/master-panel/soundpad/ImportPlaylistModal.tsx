@@ -9,7 +9,7 @@ import {
   ListMusic,
   Sparkles,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/button';
 import { useSoundpadStore } from '@/store/useSoundpadStore';
 import {
   importPlaylistFromUrl,

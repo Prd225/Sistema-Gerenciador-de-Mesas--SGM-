@@ -1,79 +1,307 @@
-import type { RoomMember, RoomState, Token } from '@sgm/shared';
+import type {
+  Command,
+  EventType,
+  ErrorCode,
+  RoomMember,
+  TableState,
+} from '@sgm/shared';
 import { can } from './permissions';
-import { handleTokenMove, handleTokenAdd, handleTokenRemove } from './commands';
+import {
+  tokenCreate,
+  tokenMove,
+  tokenUpdate,
+  tokenDelete,
+  zoneCreate,
+  zoneUpdate,
+  zoneDelete,
+  markerCreate,
+  markerUpdate,
+  markerDelete,
+  backgroundCreate,
+  backgroundUpdate,
+  backgroundDelete,
+  sceneCreate,
+  sceneUpdate,
+  sceneDelete,
+  sceneActivate,
+  initiativeUpdate,
+  roundNext,
+  turnNext,
+  ping,
+} from './commands';
 
-export interface EngineRejection {
-  success: false;
-  error: string;
-  code: string;
+export interface EngineEvent {
+  type: EventType;
+  payload: unknown;
 }
 
-export interface EngineSuccess {
-  success: true;
-  state: RoomState;
-  events: Array<{ type: string; payload: unknown }>;
+export type ApplyResult =
+  | { ok: true; table: TableState; events: EngineEvent[] }
+  | { ok: false; code: ErrorCode; message: string };
+
+function forbidden(): ApplyResult {
+  return { ok: false, code: 'FORBIDDEN', message: 'Permissão negada.' };
 }
 
-export type EngineResult = EngineSuccess | EngineRejection;
-
-export interface Command<T = unknown> {
-  type: string;
-  payload: T;
+function notFound(): ApplyResult {
+  return { ok: false, code: 'NOT_FOUND', message: 'Alvo não encontrado.' };
 }
 
+function conflict(): ApplyResult {
+  return {
+    ok: false,
+    code: 'CONFLICT',
+    message: 'Já existe um item com esse id.',
+  };
+}
+
+function applied(
+  table: TableState,
+  nextTable: TableState | null | 'conflict',
+  type: EventType,
+  payload: unknown,
+): ApplyResult {
+  if (nextTable === null) return notFound();
+  if (nextTable === 'conflict') return conflict();
+  const version = table.version + 1;
+  return {
+    ok: true,
+    table: { ...nextTable, version },
+    events: [{ type, payload }],
+  };
+}
+
+/**
+ * Aplica um comando à mesa: checa permissão, executa o handler do grupo
+ * e incrementa a versão (exceto `ping`, que não altera a mesa).
+ */
 export function applyCommand(
-  state: RoomState,
+  table: TableState,
   command: Command,
   actor: RoomMember,
-): EngineResult {
-  if (!can(actor, command, state)) {
-    return {
-      success: false,
-      error: 'Permissão negada para executar esta ação',
-      code: 'FORBIDDEN',
-    };
-  }
+): ApplyResult {
+  if (!can(actor, command, table)) return forbidden();
 
   switch (command.type) {
-    case 'token.move': {
-      const nextState = handleTokenMove(
-        state,
-        command.payload as {
-          tokenId: string;
-          x: number | null;
-          y: number | null;
+    case 'token.create': {
+      const sceneId = command.payload.sceneId;
+      return applied(
+        table,
+        tokenCreate(table, command.payload),
+        'token.created',
+        {
+          sceneId,
+          token: command.payload.token,
         },
       );
-      return {
-        success: true,
-        state: nextState,
-        events: [{ type: 'token.moved', payload: command.payload }],
-      };
     }
-    case 'token.add': {
-      const nextState = handleTokenAdd(state, command.payload as Token);
-      return {
-        success: true,
-        state: nextState,
-        events: [{ type: 'token.added', payload: command.payload }],
-      };
+    case 'token.move': {
+      const sceneId = command.payload.sceneId;
+      return applied(table, tokenMove(table, command.payload), 'token.moved', {
+        sceneId,
+        tokenId: command.payload.tokenId,
+        x: command.payload.x,
+        y: command.payload.y,
+      });
     }
-    case 'token.remove': {
-      const nextState = handleTokenRemove(
-        state,
-        (command.payload as { tokenId: string }).tokenId,
+    case 'token.update': {
+      const sceneId = command.payload.sceneId;
+      return applied(
+        table,
+        tokenUpdate(table, command.payload),
+        'token.updated',
+        {
+          sceneId,
+          tokenId: command.payload.tokenId,
+          updates: command.payload.updates,
+        },
       );
+    }
+    case 'token.delete': {
+      const sceneId = command.payload.sceneId;
+      return applied(
+        table,
+        tokenDelete(table, command.payload),
+        'token.deleted',
+        {
+          sceneId,
+          tokenId: command.payload.tokenId,
+        },
+      );
+    }
+    case 'zone.create': {
+      const sceneId = command.payload.sceneId;
+      return applied(
+        table,
+        zoneCreate(table, command.payload),
+        'zone.created',
+        {
+          sceneId,
+          zone: command.payload.zone,
+        },
+      );
+    }
+    case 'zone.update': {
+      const sceneId = command.payload.sceneId;
+      return applied(
+        table,
+        zoneUpdate(table, command.payload),
+        'zone.updated',
+        {
+          sceneId,
+          zoneId: command.payload.zoneId,
+          updates: command.payload.updates,
+        },
+      );
+    }
+    case 'zone.delete': {
+      const sceneId = command.payload.sceneId;
+      return applied(
+        table,
+        zoneDelete(table, command.payload),
+        'zone.deleted',
+        {
+          sceneId,
+          zoneId: command.payload.zoneId,
+        },
+      );
+    }
+    case 'marker.create': {
+      const sceneId = command.payload.sceneId;
+      return applied(
+        table,
+        markerCreate(table, command.payload),
+        'marker.created',
+        {
+          sceneId,
+          marker: command.payload.marker,
+        },
+      );
+    }
+    case 'marker.update': {
+      const sceneId = command.payload.sceneId;
+      return applied(
+        table,
+        markerUpdate(table, command.payload),
+        'marker.updated',
+        {
+          sceneId,
+          markerId: command.payload.markerId,
+          updates: command.payload.updates,
+        },
+      );
+    }
+    case 'marker.delete': {
+      const sceneId = command.payload.sceneId;
+      return applied(
+        table,
+        markerDelete(table, command.payload),
+        'marker.deleted',
+        {
+          sceneId,
+          markerId: command.payload.markerId,
+        },
+      );
+    }
+    case 'background.create': {
+      const sceneId = command.payload.sceneId;
+      return applied(
+        table,
+        backgroundCreate(table, command.payload),
+        'background.created',
+        { sceneId, background: command.payload.background },
+      );
+    }
+    case 'background.update': {
+      const sceneId = command.payload.sceneId;
+      return applied(
+        table,
+        backgroundUpdate(table, command.payload),
+        'background.updated',
+        {
+          sceneId,
+          backgroundId: command.payload.backgroundId,
+          updates: command.payload.updates,
+        },
+      );
+    }
+    case 'background.delete': {
+      const sceneId = command.payload.sceneId;
+      return applied(
+        table,
+        backgroundDelete(table, command.payload),
+        'background.deleted',
+        { sceneId, backgroundId: command.payload.backgroundId },
+      );
+    }
+    case 'scene.create': {
+      return applied(
+        table,
+        sceneCreate(table, command.payload),
+        'scene.created',
+        {
+          scene: command.payload.scene,
+        },
+      );
+    }
+    case 'scene.update': {
+      return applied(
+        table,
+        sceneUpdate(table, command.payload),
+        'scene.updated',
+        {
+          sceneId: command.payload.sceneId,
+          updates: command.payload.updates,
+        },
+      );
+    }
+    case 'scene.delete': {
+      return applied(
+        table,
+        sceneDelete(table, command.payload),
+        'scene.deleted',
+        {
+          sceneId: command.payload.sceneId,
+        },
+      );
+    }
+    case 'scene.activate': {
+      return applied(
+        table,
+        sceneActivate(table, command.payload),
+        'scene.activated',
+        {
+          sceneId: command.payload.sceneId,
+        },
+      );
+    }
+    case 'initiative.update': {
+      const sceneId = command.payload.sceneId;
+      return applied(
+        table,
+        initiativeUpdate(table, command.payload),
+        'initiative.updated',
+        { sceneId, initiative: command.payload.initiative },
+      );
+    }
+    case 'round.next': {
+      const nextTable = roundNext(table, command.payload);
+      return applied(table, nextTable, 'round.advanced', {
+        round: nextTable.round,
+      });
+    }
+    case 'turn.next': {
+      const nextTable = turnNext(table, command.payload);
+      return applied(table, nextTable, 'turn.advanced', {
+        turn: nextTable.turn,
+      });
+    }
+    case 'ping': {
       return {
-        success: true,
-        state: nextState,
-        events: [{ type: 'token.removed', payload: command.payload }],
+        ok: true,
+        table,
+        events: [{ type: 'pinged', payload: ping(command.payload) }],
       };
     }
-    default:
-      return {
-        success: true,
-        state: { ...state },
-        events: [{ type: `${command.type}.applied`, payload: command.payload }],
-      };
   }
 }
