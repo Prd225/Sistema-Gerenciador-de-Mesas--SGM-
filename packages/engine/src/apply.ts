@@ -47,13 +47,22 @@ function notFound(): ApplyResult {
   return { ok: false, code: 'NOT_FOUND', message: 'Alvo não encontrado.' };
 }
 
+function conflict(): ApplyResult {
+  return {
+    ok: false,
+    code: 'CONFLICT',
+    message: 'Já existe um item com esse id.',
+  };
+}
+
 function applied(
   table: TableState,
-  nextTable: TableState | null,
+  nextTable: TableState | null | 'conflict',
   type: EventType,
   payload: unknown,
 ): ApplyResult {
   if (nextTable === null) return notFound();
+  if (nextTable === 'conflict') return conflict();
   const version = table.version + 1;
   return {
     ok: true,

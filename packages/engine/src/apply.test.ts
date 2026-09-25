@@ -37,6 +37,27 @@ describe('applyCommand — token', () => {
     expect(result.ok).toBe(true);
   });
 
+  it('token.create CONFLICT quando o id ja existe na cena', () => {
+    const token = buildToken();
+    const table = buildTable({
+      scenes: {
+        [SCENE_ID]: {
+          ...buildTable().scenes[SCENE_ID]!,
+          tokens: { [token.id]: token },
+        },
+      },
+    });
+    const result = run(table, {
+      type: 'token.create',
+      payload: { sceneId: SCENE_ID, token },
+    });
+    expect(result).toEqual({
+      ok: false,
+      code: 'CONFLICT',
+      message: expect.any(String),
+    });
+  });
+
   it('token.move NOT_FOUND quando token nao existe', () => {
     const table = buildTable();
     const result = run(table, {
@@ -204,6 +225,26 @@ describe('applyCommand — zone', () => {
     expect(deleted.table.scenes[SCENE_ID]?.zones[zone.id]).toBeUndefined();
   });
 
+  it('zone.create CONFLICT quando o id ja existe na cena', () => {
+    const table = buildTable({
+      scenes: {
+        [SCENE_ID]: {
+          ...buildTable().scenes[SCENE_ID]!,
+          zones: { [zone.id]: zone },
+        },
+      },
+    });
+    const result = run(table, {
+      type: 'zone.create',
+      payload: { sceneId: SCENE_ID, zone },
+    });
+    expect(result).toEqual({
+      ok: false,
+      code: 'CONFLICT',
+      message: expect.any(String),
+    });
+  });
+
   it('zone.update / delete NOT_FOUND', () => {
     const table = buildTable();
     expect(
@@ -257,6 +298,26 @@ describe('applyCommand — marker', () => {
     expect(deleted.ok).toBe(true);
     if (!deleted.ok) return;
     expect(deleted.table.scenes[SCENE_ID]?.markers[marker.id]).toBeUndefined();
+  });
+
+  it('marker.create CONFLICT quando o id ja existe na cena', () => {
+    const table = buildTable({
+      scenes: {
+        [SCENE_ID]: {
+          ...buildTable().scenes[SCENE_ID]!,
+          markers: { [marker.id]: marker },
+        },
+      },
+    });
+    const result = run(table, {
+      type: 'marker.create',
+      payload: { sceneId: SCENE_ID, marker },
+    });
+    expect(result).toEqual({
+      ok: false,
+      code: 'CONFLICT',
+      message: expect.any(String),
+    });
   });
 
   it('marker.update / delete NOT_FOUND', () => {
@@ -320,6 +381,26 @@ describe('applyCommand — background', () => {
     ).toBeUndefined();
   });
 
+  it('background.create CONFLICT quando o id ja existe na cena', () => {
+    const table = buildTable({
+      scenes: {
+        [SCENE_ID]: {
+          ...buildTable().scenes[SCENE_ID]!,
+          backgrounds: { [background.id]: background },
+        },
+      },
+    });
+    const result = run(table, {
+      type: 'background.create',
+      payload: { sceneId: SCENE_ID, background },
+    });
+    expect(result).toEqual({
+      ok: false,
+      code: 'CONFLICT',
+      message: expect.any(String),
+    });
+  });
+
   it('background.update / delete NOT_FOUND', () => {
     const table = buildTable();
     expect(
@@ -344,6 +425,17 @@ describe('applyCommand — scene', () => {
     const result = run(table, { type: 'scene.create', payload: { scene } });
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.table.scenes['nova-cena']).toEqual(scene);
+  });
+
+  it('scene.create CONFLICT quando o id ja existe', () => {
+    const table = buildTable();
+    const scene = { ...table.scenes[SCENE_ID]! };
+    const result = run(table, { type: 'scene.create', payload: { scene } });
+    expect(result).toEqual({
+      ok: false,
+      code: 'CONFLICT',
+      message: expect.any(String),
+    });
   });
 
   it('scene.update NOT_FOUND', () => {

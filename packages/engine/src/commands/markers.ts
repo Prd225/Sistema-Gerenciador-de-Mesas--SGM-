@@ -4,14 +4,18 @@ import type {
   MarkerUpdatePayload,
   MarkerDeletePayload,
 } from '@sgm/shared';
-import { withScene, findScene } from './shared';
+import { withScene, findScene, type HandlerResult } from './shared';
 
 export function markerCreate(
   table: TableState,
   payload: MarkerCreatePayload,
-): TableState | null {
-  return withScene(table, payload.sceneId, (scene) => {
-    scene.markers[payload.marker.id] = payload.marker;
+): HandlerResult {
+  const scene = findScene(table, payload.sceneId);
+  if (!scene) return null;
+  if (scene.markers[payload.marker.id]) return 'conflict';
+
+  return withScene(table, payload.sceneId, (draftScene) => {
+    draftScene.markers[payload.marker.id] = payload.marker;
   });
 }
 

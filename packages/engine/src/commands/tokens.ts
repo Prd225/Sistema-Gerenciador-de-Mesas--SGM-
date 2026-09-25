@@ -5,14 +5,18 @@ import type {
   TokenUpdatePayload,
   TokenDeletePayload,
 } from '@sgm/shared';
-import { withScene, findScene } from './shared';
+import { withScene, findScene, type HandlerResult } from './shared';
 
 export function tokenCreate(
   table: TableState,
   payload: TokenCreatePayload,
-): TableState | null {
-  return withScene(table, payload.sceneId, (scene) => {
-    scene.tokens[payload.token.id] = payload.token;
+): HandlerResult {
+  const scene = findScene(table, payload.sceneId);
+  if (!scene) return null;
+  if (scene.tokens[payload.token.id]) return 'conflict';
+
+  return withScene(table, payload.sceneId, (draftScene) => {
+    draftScene.tokens[payload.token.id] = payload.token;
   });
 }
 

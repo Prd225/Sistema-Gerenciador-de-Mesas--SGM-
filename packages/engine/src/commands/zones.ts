@@ -4,14 +4,18 @@ import type {
   ZoneUpdatePayload,
   ZoneDeletePayload,
 } from '@sgm/shared';
-import { withScene, findScene } from './shared';
+import { withScene, findScene, type HandlerResult } from './shared';
 
 export function zoneCreate(
   table: TableState,
   payload: ZoneCreatePayload,
-): TableState | null {
-  return withScene(table, payload.sceneId, (scene) => {
-    scene.zones[payload.zone.id] = payload.zone;
+): HandlerResult {
+  const scene = findScene(table, payload.sceneId);
+  if (!scene) return null;
+  if (scene.zones[payload.zone.id]) return 'conflict';
+
+  return withScene(table, payload.sceneId, (draftScene) => {
+    draftScene.zones[payload.zone.id] = payload.zone;
   });
 }
 

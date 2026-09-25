@@ -1,6 +1,13 @@
 import { produce } from 'immer';
 import type { Scene, TableState } from '@sgm/shared';
 
+/**
+ * Resultado de um handler de comando: a mesa atualizada, `null` quando o
+ * alvo (cena ou item) não existe, ou `'conflict'` quando um `*.create`
+ * tentou usar um id já existente.
+ */
+export type HandlerResult = TableState | null | 'conflict';
+
 /** Resolve o id da cena alvo: o informado, ou a cena ativa. */
 export function resolveSceneId(
   table: TableState,

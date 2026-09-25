@@ -10,7 +10,9 @@ import type {
 export function sceneCreate(
   table: TableState,
   payload: SceneCreatePayload,
-): TableState | null {
+): TableState | 'conflict' {
+  if (table.scenes[payload.scene.id]) return 'conflict';
+
   return produce(table, (draft) => {
     draft.scenes[payload.scene.id] = payload.scene;
   });
