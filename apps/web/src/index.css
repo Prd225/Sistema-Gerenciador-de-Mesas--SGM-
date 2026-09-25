@@ -103,7 +103,7 @@
     --popover: var(--color-surface);
     --popover-foreground: var(--color-text);
     --primary: #8257e5;
-    --primary-foreground: var(--color-text);
+    --primary-foreground: #ffffff;
     --secondary: var(--color-control);
     --secondary-foreground: var(--color-text);
     --muted: var(--color-surface-sunken);
