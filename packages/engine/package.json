@@ -9,12 +9,14 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run --coverage"
   },
   "dependencies": {
-    "@sgm/shared": "*"
+    "@sgm/shared": "*",
+    "immer": "^11.1.18"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^5.0.1",
     "typescript": "~6.0.2",
     "vitest": "^5.0.1"
   }

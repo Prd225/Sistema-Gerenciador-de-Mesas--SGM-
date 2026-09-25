@@ -1,13 +1,8 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/dialog';
 import { useTokenStore } from '@/store/useTokenStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Input } from '@/ui/input';
+import { Button } from '@/ui/button';
 import { Trash, Plus } from 'lucide-react';
 import { InitiativeToolbar } from './InitiativeToolbar';
 import {

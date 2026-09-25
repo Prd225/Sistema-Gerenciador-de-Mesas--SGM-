@@ -1,81 +1,128 @@
+@import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
-@import '@fontsource-variable/geist';
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import '@fontsource-variable/geist' layer(base);
 
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  /* SGM design tokens (docs/specs/ui-design-system.md, secao 2) */
+  --color-canvas: #0d0d0f;
+  --color-bg: #121214;
+  --color-surface: #202024;
+  --color-surface-sunken: #1a1a1e;
+  --color-control: #323238;
+  --color-text: #e1e1e6;
+  --color-text-muted: #a8a8b3;
+  --color-text-subtle: #7c7c8a;
+  --color-primary-hover: #9466ff;
+  --color-highlight: #ffd700;
+  --color-success: #04d361;
+  --color-warning: #facc15;
+  --color-danger: #ef4444;
+  --color-danger-hover: #dc2626;
+  --color-element-sangue: #ef4444;
+  --color-element-morte: #9ca3af;
+  --color-element-conhecimento: #eab308;
+  --color-element-energia: #a855f7;
+  --color-element-medo: #ffffff;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+
+  --z-map-ui: 10;
+  --z-sidebar: 20;
+  --z-header: 30;
+  --z-panel: 40;
+  --z-overlay: 50;
+  --z-dialog: 60;
+  --z-popover: 70;
+  --z-toast: 80;
+
+  --duration-fast: 150ms;
+  --duration-slow: 250ms;
+
+  /* Pontes: as variaveis shadcn/@base-ui usadas nos primitivos apontam para os tokens SGM */
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+  SGM tem só tema escuro (sem alternador). As variaveis shadcn/@base-ui
+  ficam fixas em :root, todas derivadas dos tokens SGM acima.
+*/
 @layer base {
-  .theme {
+  :root {
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
-  }
-  :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
-  }
-  .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+
+    --background: var(--color-bg);
+    --foreground: var(--color-text);
+    --card: var(--color-surface);
+    --card-foreground: var(--color-text);
+    --popover: var(--color-surface);
+    --popover-foreground: var(--color-text);
+    --primary: #8257e5;
+    --primary-foreground: var(--color-text);
+    --secondary: var(--color-control);
+    --secondary-foreground: var(--color-text);
+    --muted: var(--color-surface-sunken);
+    --muted-foreground: var(--color-text-muted);
+    --accent: var(--color-control);
+    --accent-foreground: var(--color-text);
+    --destructive: var(--color-danger);
+    --border: var(--color-control);
+    --input: var(--color-control);
+    --ring: #8257e5;
+    --radius: var(--radius-lg);
+    --sidebar: var(--color-surface);
+    --sidebar-foreground: var(--color-text);
+    --sidebar-primary: #8257e5;
+    --sidebar-primary-foreground: var(--color-text);
+    --sidebar-accent: var(--color-control);
+    --sidebar-accent-foreground: var(--color-text);
+    --sidebar-border: var(--color-control);
+    --sidebar-ring: #8257e5;
   }
   * {
     @apply border-border outline-ring;

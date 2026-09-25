@@ -8,7 +8,7 @@ import {
   ChevronUp,
   ChevronDown,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/button';
 import { useTimerStore } from '@/store/useTimerStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useEffect, useState, useRef } from 'react';
@@ -106,7 +106,7 @@ export default function Footer() {
     }
   };
   return (
-    <footer className="h-[60px] bg-[#202024] border-t border-[#323238] flex items-center justify-center gap-5 px-5 z-50 transition-colors duration-300">
+    <footer className="h-[60px] bg-[#202024] border-t border-[#323238] flex items-center justify-center-safe gap-5 px-5 z-50 overflow-x-auto [&>*]:shrink-0 transition-colors duration-300">
       {/* Timer */}
       <div
         className={`flex items-center gap-4 border rounded-lg px-3 py-1 shadow-[0_4px_15px_rgba(0,0,0,0.7)] transition-all ${
@@ -222,7 +222,7 @@ export default function Footer() {
             <ChevronUp className="h-3 w-3" />
           </button>
           <span
-            className={`font-bold text-[1.4rem] min-w-[25px] text-center leading-none my-1 ${urgencyFlashing || urgency === 0 ? 'text-red-500' : 'text-[#e55757]'}`}
+            className={`font-bold text-[1.4rem] min-w-[25px] text-center leading-none my-1 whitespace-nowrap ${urgencyFlashing || urgency === 0 ? 'text-red-500' : 'text-[#e55757]'}`}
           >
             {urgency !== null ? urgency : '---'}
           </span>

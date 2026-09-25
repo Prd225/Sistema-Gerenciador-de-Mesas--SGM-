@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { useZoneStore } from '@/store/useZoneStore';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/button';
 import {
   Move,
   MousePointer2,

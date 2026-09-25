@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { sanitizeHtml } from '@/lib/sanitize';
 import {
   Bold,
   Italic,
@@ -145,7 +146,7 @@ export default function RulesEditor({
       <div
         className="prose prose-invert max-w-none text-sm leading-relaxed text-gray-300 break-words h-full p-3.5 overflow-y-auto custom-scrollbar"
         dangerouslySetInnerHTML={{
-          __html: renderedHtml,
+          __html: sanitizeHtml(renderedHtml),
         }}
       />
     );

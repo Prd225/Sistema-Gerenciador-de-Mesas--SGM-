@@ -4,6 +4,7 @@ import {
   replaceDiceShortcodesWithHtml,
   toggleDiceFormulaSelection,
 } from '@/lib/diceEmoji';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 interface RichTextEditorProps {
   initialValue: string;
@@ -111,7 +112,7 @@ export default function RichTextEditor({
       <div
         className="prose prose-invert max-w-none text-sm leading-relaxed text-gray-300 pointer-events-auto break-words p-1 overflow-visible"
         dangerouslySetInnerHTML={{
-          __html: renderedHtml,
+          __html: sanitizeHtml(renderedHtml),
         }}
       />
     );

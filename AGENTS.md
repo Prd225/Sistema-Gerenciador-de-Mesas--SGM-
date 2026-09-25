@@ -58,6 +58,6 @@ Não edite: `dist/`, `node_modules/`, `LICENSE`.
 - **Contratos**: tipos compartilhados ficam em `@sgm/shared`. Nenhum import entre `apps/web` e `apps/server`.
 - **Dexie**: mudou o schema, incremente a versão.
 - **Código**: TypeScript estrito, sem `any` nem `@ts-ignore`. `import type` para tipos. Confira que ícones e APIs existem na versão instalada.
-- **UI**: sem hexadecimal novo, `z-[9999]`, `alert`, `confirm` ou `prompt`. Use os primitivos de `apps/web/src/components/ui/`.
+- **UI**: sem hexadecimal novo, `z-[9999]`, `alert`, `confirm` ou `prompt`. Use os primitivos de `apps/web/src/ui/`.
 - **Git** (GitHub Flow, decisão 0008): comece com `git switch next && git pull && git switch -c tipo/nome` (`feat/`, `fix/`, `refactor/`, `chore/`, `docs/`). Commits em Conventional Commits, **sem `Co-Authored-By` de IA**. **Nunca mexa na `master`**: é a versão do Pedro. Sem push nem PR sem pedido. Não altere `LICENSE` nem o campo `license`. Sem emojis em código, commits e docs.
 - **Hooks** (`.githooks/`, ativados pelo `npm install`): bloqueiam commit na `master`/`next`, mensagem fora do padrão, coautoria de IA e push com `npm run check` falhando. **Nunca use `--no-verify`**; se um hook falhar, corrija a causa.

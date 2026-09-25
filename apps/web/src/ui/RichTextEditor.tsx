@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
+import { sanitizeHtml } from '@/lib/sanitize';
 import {
   Bold,
   Italic,
@@ -262,7 +263,7 @@ export function RichTextView({
   return (
     <div
       className={`text-sm text-[#a8a8b3] leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_b]:text-[#e1e1e6] [&_strong]:text-[#e1e1e6] [&_i]:italic [&_u]:underline whitespace-pre-wrap flex-1 break-words [word-break:break-word] overflow-visible py-0.5 ${className}`}
-      dangerouslySetInnerHTML={{ __html: formattedHtml }}
+      dangerouslySetInnerHTML={{ __html: sanitizeHtml(formattedHtml) }}
     />
   );
 }
