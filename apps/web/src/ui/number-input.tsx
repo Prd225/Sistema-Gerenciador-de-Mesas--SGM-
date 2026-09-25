@@ -87,6 +87,11 @@ function NumberInput({
           const parsed = Number(event.target.value);
           if (!Number.isNaN(parsed)) commit(parsed);
         }}
+        onFocus={(event) => {
+          // Digitar substitui o valor em vez de concatenar ("0" + "2" = "02").
+          event.currentTarget.select();
+          props.onFocus?.(event);
+        }}
         className="h-full w-full min-w-0 flex-1 bg-transparent text-center text-sm tabular-nums outline-none [appearance:textfield]"
       />
       <Button

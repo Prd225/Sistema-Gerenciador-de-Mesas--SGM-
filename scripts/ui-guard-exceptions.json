@@ -23,8 +23,7 @@
     "confirm-call": 1
   },
   "apps/web/src/components/layout/Footer.tsx": {
-    "hex-color": 52,
-    "prompt-call": 1
+    "hex-color": 48
   },
   "apps/web/src/components/layout/Header.tsx": {
     "hex-color": 41,

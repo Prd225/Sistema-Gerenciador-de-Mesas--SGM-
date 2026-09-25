@@ -9,6 +9,8 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/ui/button';
+import { NumberInput } from '@/ui/number-input';
+import { TimerSetDialog } from './TimerSetDialog';
 import { useTimerStore } from '@/store/useTimerStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useEffect, useState, useRef } from 'react';
@@ -98,12 +100,10 @@ export default function Footer() {
     return `${m}:${s}`;
   };
 
-  const handleManualTimer = () => {
-    const min = prompt('Digite os minutos:');
-    if (min && !isNaN(Number(min))) {
-      setTotalSeconds(Number(min) * 60);
-      stop();
-    }
+  const [showTimerDialog, setShowTimerDialog] = useState(false);
+  const handleManualTimer = (total: number) => {
+    setTotalSeconds(total);
+    stop();
   };
   return (
     <footer className="h-[60px] bg-[#202024] border-t border-[#323238] flex items-center justify-center-safe gap-5 px-5 z-50 overflow-x-auto [&>*]:shrink-0 transition-colors duration-300">
@@ -167,7 +167,9 @@ export default function Footer() {
                 <Square className="h-3 w-3" fill="currentColor" />
               </Button>
               <Button
-                onClick={handleManualTimer}
+                onClick={() => setShowTimerDialog(true)}
+                aria-label="Definir cronômetro"
+                title="Definir cronômetro"
                 variant="outline"
                 size="icon"
                 className="h-7 w-7 bg-transparent border-[#323238] text-[#a8a8b3] hover:text-white hover:bg-white/5"
@@ -279,14 +281,19 @@ export default function Footer() {
           <StepForward className="w-4 h-4" />
         </Button>
         <div className="flex flex-col items-center">
-          <label className="text-[0.6rem] text-[#a8a8b3] m-0 leading-tight">
+          <label
+            htmlFor="turns-per-round"
+            className="text-[0.6rem] text-[#a8a8b3] m-0 leading-tight"
+          >
             T/Rodada
           </label>
-          <input
-            type="number"
+          <NumberInput
+            id="turns-per-round"
+            min={1}
+            max={99}
             value={turnsPerRound}
-            onChange={(e) => setTurnsPerRound(Number(e.target.value))}
-            className="w-10 text-center p-0.5 h-[25px] bg-[#121214] border border-[#323238] rounded text-[#e1e1e6] focus:border-[#8257e5] outline-none"
+            onValueChange={setTurnsPerRound}
+            className="h-7 w-24 bg-bg"
           />
         </div>
         <Button
@@ -298,6 +305,12 @@ export default function Footer() {
           <Film className="w-4 h-4 mr-2" /> Cena
         </Button>
       </div>
+      <TimerSetDialog
+        open={showTimerDialog}
+        onOpenChange={setShowTimerDialog}
+        currentSeconds={totalSeconds}
+        onConfirm={handleManualTimer}
+      />
     </footer>
   );
 }

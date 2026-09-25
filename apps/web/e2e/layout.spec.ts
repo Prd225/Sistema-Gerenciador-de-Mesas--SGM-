@@ -238,3 +238,29 @@ test.describe('Cabeçalho', () => {
     });
   }
 });
+
+test.describe('Cronômetro', () => {
+  test('define minutos e segundos numa janela, sem prompt do navegador', async ({
+    page,
+  }) => {
+    page.on('dialog', () => {
+      throw new Error('prompt/alert/confirm nativo não deveria abrir');
+    });
+    await open(page, 1280);
+    await page.getByRole('button', { name: 'Definir cronômetro' }).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+
+    await page.keyboard.type('2');
+    await page.getByLabel('Segundos').fill('30');
+    await page.keyboard.press('Enter');
+
+    await expect(page.getByRole('dialog')).toBeHidden();
+    await expect(page.locator('footer').getByText('02:30')).toBeVisible();
+  });
+
+  test('não deixa definir zero', async ({ page }) => {
+    await open(page, 1280);
+    await page.getByRole('button', { name: 'Definir cronômetro' }).click();
+    await expect(page.getByRole('button', { name: 'Definir' })).toBeDisabled();
+  });
+});
