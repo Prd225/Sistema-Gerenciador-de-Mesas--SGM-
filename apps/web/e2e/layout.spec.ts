@@ -4,9 +4,7 @@ import { test, expect, type Page } from '@playwright/test';
 // aberto/fechado é conferido pelo botão "Recolher", que some de verdade.
 // Regressões de layout em telas estreitas. Cada teste define a própria
 // largura, então roda só no projeto Desktop para não duplicar.
-test.beforeEach(({}, testInfo) => {
-  test.skip(testInfo.project.name !== 'Desktop Chrome', 'define o viewport');
-});
+test.skip(({ isMobile }) => isMobile, 'define o proprio viewport');
 
 const HEIGHT = 700;
 
