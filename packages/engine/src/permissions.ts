@@ -4,6 +4,7 @@ import type {
   TableState,
   Token,
   TokenStats,
+  TokenUpdatePayload,
 } from '@sgm/shared';
 
 function findToken(
@@ -22,7 +23,7 @@ const ALLOWED_PLAYER_TOKEN_UPDATE_KEYS = new Set(['stats', 'conditions']);
 const ALLOWED_PLAYER_STATS_KEYS = new Set<keyof TokenStats>(['pv']);
 
 function canPlayerUpdateToken(
-  updates: Partial<Token>,
+  updates: TokenUpdatePayload['updates'],
   token: Token,
   actor: RoomMember,
 ): boolean {

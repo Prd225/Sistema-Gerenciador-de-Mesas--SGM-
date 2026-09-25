@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Token } from '../domain/token';
+import { Token, TokenStats } from '../domain/token';
 import { Zone } from '../domain/zone';
 import { Marker } from '../domain/marker';
 import { Background } from '../domain/background';
@@ -26,7 +26,8 @@ export type TokenMovePayload = z.infer<typeof TokenMovePayload>;
 export const TokenUpdatePayload = z.object({
   sceneId: z.string().uuid().optional(),
   tokenId: z.string().uuid(),
-  updates: Token.partial(),
+  // stats parcial: mesclado campo a campo no token (ex.: jogador envia so pv).
+  updates: Token.partial().extend({ stats: TokenStats.partial().optional() }),
 });
 export type TokenUpdatePayload = z.infer<typeof TokenUpdatePayload>;
 

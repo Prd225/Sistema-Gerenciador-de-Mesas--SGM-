@@ -6,6 +6,7 @@ import type {
   TableState,
 } from '@sgm/shared';
 import { can } from './permissions';
+import type { HandlerResult } from './commands/shared';
 import {
   tokenCreate,
   tokenMove,
@@ -57,12 +58,19 @@ function conflict(): ApplyResult {
 
 function applied(
   table: TableState,
-  nextTable: TableState | null | 'conflict',
+  nextTable: HandlerResult,
   type: EventType,
   payload: unknown,
 ): ApplyResult {
   if (nextTable === null) return notFound();
   if (nextTable === 'conflict') return conflict();
+  if (nextTable === 'invalid') {
+    return {
+      ok: false,
+      code: 'INVALID_PAYLOAD',
+      message: 'Dados incompletos.',
+    };
+  }
   const version = table.version + 1;
   return {
     ok: true,

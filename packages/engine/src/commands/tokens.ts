@@ -5,6 +5,7 @@ import type {
   TokenUpdatePayload,
   TokenDeletePayload,
 } from '@sgm/shared';
+import { TokenStats } from '@sgm/shared';
 import { withScene, findScene, type HandlerResult } from './shared';
 
 export function tokenCreate(
@@ -37,13 +38,29 @@ export function tokenMove(
 export function tokenUpdate(
   table: TableState,
   payload: TokenUpdatePayload,
-): TableState | null {
+): HandlerResult {
   const scene = findScene(table, payload.sceneId);
-  if (!scene || !scene.tokens[payload.tokenId]) return null;
+  const current = scene?.tokens[payload.tokenId];
+  if (!current) return null;
+
+  // stats vem parcial e é mesclado. Token sem ficha precisa receber a ficha
+  // completa, senão o resultado seria um TokenStats inválido.
+  const { stats, ...rest } = payload.updates;
+  let nextStats: TokenStats | undefined;
+  if (stats) {
+    if (current.stats) {
+      nextStats = { ...current.stats, ...stats };
+    } else {
+      const parsed = TokenStats.safeParse(stats);
+      if (!parsed.success) return 'invalid';
+      nextStats = parsed.data;
+    }
+  }
 
   return withScene(table, payload.sceneId, (draftScene) => {
     const token = draftScene.tokens[payload.tokenId]!;
-    Object.assign(token, payload.updates);
+    Object.assign(token, rest);
+    if (nextStats) token.stats = nextStats;
   });
 }
 

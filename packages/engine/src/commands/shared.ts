@@ -3,10 +3,11 @@ import type { Scene, TableState } from '@sgm/shared';
 
 /**
  * Resultado de um handler de comando: a mesa atualizada, `null` quando o
- * alvo (cena ou item) não existe, ou `'conflict'` quando um `*.create`
- * tentou usar um id já existente.
+ * alvo (cena ou item) não existe, `'conflict'` quando um `*.create`
+ * tentou usar um id já existente, ou `'invalid'` quando o payload é válido
+ * no schema mas geraria um estado inválido.
  */
-export type HandlerResult = TableState | null | 'conflict';
+export type HandlerResult = TableState | null | 'conflict' | 'invalid';
 
 /** Resolve o id da cena alvo: o informado, ou a cena ativa. */
 export function resolveSceneId(
