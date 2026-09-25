@@ -14,6 +14,7 @@ import MapToolbar from '../toolbar/MapToolbar';
 import MasterPanelTrigger from '../master-panel/MasterPanelTrigger';
 import MasterPanelOverlay from '../master-panel/MasterPanelOverlay';
 import SoundpadEngine from '../master-panel/soundpad/SoundpadEngine';
+import { ErrorBoundary } from 'react-error-boundary';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useEffect } from 'react';
 import {
@@ -278,8 +279,10 @@ export default function AppLayout({
       <MasterPanelTrigger />
       <MasterPanelOverlay />
 
-      {/* Motor de Áudio em Background */}
-      <SoundpadEngine />
+      {/* Motor de Áudio em Background: erro da API do YouTube nao derruba o app */}
+      <ErrorBoundary fallback={null}>
+        <SoundpadEngine />
+      </ErrorBoundary>
     </div>
   );
 }
