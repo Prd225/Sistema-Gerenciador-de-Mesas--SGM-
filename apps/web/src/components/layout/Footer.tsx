@@ -106,7 +106,7 @@ export default function Footer() {
     }
   };
   return (
-    <footer className="h-[60px] bg-[#202024] border-t border-[#323238] flex items-center justify-center gap-5 px-5 z-50 transition-colors duration-300">
+    <footer className="h-[60px] bg-[#202024] border-t border-[#323238] flex items-center justify-center-safe gap-5 px-5 z-50 overflow-x-auto [&>*]:shrink-0 transition-colors duration-300">
       {/* Timer */}
       <div
         className={`flex items-center gap-4 border rounded-lg px-3 py-1 shadow-[0_4px_15px_rgba(0,0,0,0.7)] transition-all ${
