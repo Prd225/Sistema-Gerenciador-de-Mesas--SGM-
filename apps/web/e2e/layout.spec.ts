@@ -163,3 +163,32 @@ test.describe('Painel do mestre', () => {
     expect(closeBox?.width ?? 0).toBeGreaterThanOrEqual(390 - 1);
   });
 });
+
+test.describe('Subpainéis do painel do mestre', () => {
+  const titles = ['Diário do Mestre', 'Cenas', 'Página Inicial'];
+
+  async function boxesAt(page: Page, width: number) {
+    await open(page, width);
+    await page.getByRole('button', { name: 'Abrir Painel do Mestre' }).click();
+    const boxes = [];
+    for (const title of titles) {
+      const box = await page.getByText(title, { exact: true }).boundingBox();
+      if (!box) throw new Error(`sem caixa: ${title}`);
+      boxes.push(box);
+    }
+    return boxes;
+  }
+
+  test('no celular ficam empilhados, um embaixo do outro', async ({ page }) => {
+    const [a, b, c] = await boxesAt(page, 390);
+    expect(a!.y).toBeLessThan(b!.y);
+    expect(b!.y).toBeLessThan(c!.y);
+  });
+
+  test('no desktop ficam lado a lado', async ({ page }) => {
+    const [a, b, c] = await boxesAt(page, 1440);
+    expect(a!.x).toBeLessThan(b!.x);
+    expect(b!.x).toBeLessThan(c!.x);
+    expect(Math.abs(a!.y - c!.y)).toBeLessThan(20);
+  });
+});
