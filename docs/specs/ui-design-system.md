@@ -52,7 +52,7 @@ Regras: tela não define cor, borda ou raio próprio; variantes via `cva` no pri
 | Mapa | Tela cheia | Tela cheia | Centro |
 | Toolbar | Barra inferior com ações do papel | Vertical flutuante | Vertical flutuante |
 | Sidebars | `Drawer` inferior | `Sheet` sobre o mapa | Fixas |
-| Painel do mestre | Tela cheia, um subpainel com `Tabs` | Uma coluna com `Tabs` | Três colunas (duas até 1279) |
+| Painel do mestre | Tela cheia, subpainéis empilhados numa coluna com rolagem | Subpainéis empilhados numa coluna com rolagem | Três colunas (duas até 1279) |
 | Modais | `Drawer` | `Dialog` | `Dialog` |
 
 Modo TV: só mapa e iniciativa. Iniciativa sempre em faixa horizontal com rolagem.
