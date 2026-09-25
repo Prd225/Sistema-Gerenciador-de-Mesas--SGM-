@@ -45,11 +45,8 @@
     "hex-color": 24
   },
   "apps/web/src/components/master-panel/MasterPanelOverlay.tsx": {
-    "hex-color": 16,
+    "hex-color": 12,
     "z-arbitrary": 1
-  },
-  "apps/web/src/components/master-panel/MasterPanelTrigger.tsx": {
-    "hex-color": 4
   },
   "apps/web/src/components/master-panel/SubPanelErrorFallback.tsx": {
     "hex-color": 10

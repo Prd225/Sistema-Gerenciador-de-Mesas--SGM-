@@ -62,12 +62,17 @@ export default function MasterPanelOverlay() {
         </div>
 
         {/* Aba de Fechar */}
+        {/* Faixa inteira do topo fecha o painel (44 px de altura); a pilula
+            no centro mostra que a area e clicavel */}
         <button
           onClick={toggleOpen}
           aria-label="Fechar Painel do Mestre"
-          className="group flex flex-col items-center justify-center bg-[#202024] hover:bg-[#323238] border border-[#323238] border-t-0 rounded-b-full w-24 h-6 transition-all shadow-md absolute top-0 left-1/2 -translate-x-1/2"
+          className="group absolute inset-x-0 top-0 flex h-11 items-start justify-center outline-none transition-colors duration-150 hover:bg-surface/40"
         >
-          <ChevronDown className="w-4 h-4 text-[#8257e5] group-hover:translate-y-0.5 transition-transform" />
+          <span className="flex h-7 min-w-48 items-center justify-center gap-1.5 rounded-b-xl border border-t-0 border-control bg-surface px-6 text-xs font-semibold uppercase tracking-wider text-primary shadow-sm transition-[background-color,transform] duration-150 group-hover:bg-control group-active:scale-95 group-focus-visible:ring-2 group-focus-visible:ring-primary">
+            <ChevronDown className="h-4 w-4 transition-transform duration-150 group-hover:translate-y-0.5" />
+            Fechar
+          </span>
         </button>
 
         <div className="mt-2">

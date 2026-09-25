@@ -10,12 +10,16 @@ export default function MasterPanelTrigger() {
 
   return (
     <div className="absolute bottom-[60px] left-1/2 -translate-x-1/2 z-40">
+      {/* Area de toque de 44 px maior que a pilula visivel, para nao errar */}
       <button
         onClick={toggleOpen}
         aria-label="Abrir Painel do Mestre"
-        className="group flex flex-col items-center justify-center bg-[#121214]/95 hover:bg-[#202024] border border-[#323238] border-b-0 rounded-t-full w-24 h-8 transition-all shadow-[0_-4px_12px_rgba(0,0,0,0.5)]"
+        className="group flex h-11 w-44 items-end justify-center rounded-t-xl outline-none"
       >
-        <ChevronUp className="w-5 h-5 text-[#8257e5] group-hover:-translate-y-1 transition-transform" />
+        <span className="flex h-8 items-center gap-1.5 rounded-t-xl border border-b-0 border-control bg-bg/95 px-4 text-xs font-semibold uppercase tracking-wider text-primary shadow-lg transition-[background-color,transform] duration-150 group-hover:bg-surface group-active:scale-95 group-focus-visible:ring-2 group-focus-visible:ring-primary">
+          <ChevronUp className="h-4 w-4 transition-transform duration-150 group-hover:-translate-y-0.5" />
+          Painel
+        </span>
       </button>
     </div>
   );

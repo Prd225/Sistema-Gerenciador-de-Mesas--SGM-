@@ -141,3 +141,25 @@ test.describe('Página', () => {
     });
   }
 });
+
+test.describe('Painel do mestre', () => {
+  test('alças do painel têm área de toque de 44 px e a de fechar ocupa o topo', async ({
+    page,
+  }) => {
+    await open(page, 390);
+    const openHandle = page.getByRole('button', {
+      name: 'Abrir Painel do Mestre',
+    });
+    const openBox = await openHandle.boundingBox();
+    expect(openBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+    expect(openBox?.width ?? 0).toBeGreaterThanOrEqual(44);
+
+    await openHandle.click();
+    const closeBox = await page
+      .getByRole('button', { name: 'Fechar Painel do Mestre' })
+      .boundingBox();
+    expect(closeBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+    // A faixa inteira do topo fecha o painel.
+    expect(closeBox?.width ?? 0).toBeGreaterThanOrEqual(390 - 1);
+  });
+});
