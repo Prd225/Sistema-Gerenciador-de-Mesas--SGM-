@@ -163,3 +163,104 @@ test.describe('Painel do mestre', () => {
     expect(closeBox?.width ?? 0).toBeGreaterThanOrEqual(390 - 1);
   });
 });
+
+test.describe('Subpainéis do painel do mestre', () => {
+  const titles = ['Diário do Mestre', 'Cenas', 'Página Inicial'];
+
+  async function boxesAt(page: Page, width: number) {
+    await open(page, width);
+    await page.getByRole('button', { name: 'Abrir Painel do Mestre' }).click();
+    const boxes = [];
+    for (const title of titles) {
+      const box = await page.getByText(title, { exact: true }).boundingBox();
+      if (!box) throw new Error(`sem caixa: ${title}`);
+      boxes.push(box);
+    }
+    return boxes;
+  }
+
+  test('no celular ficam empilhados, um embaixo do outro', async ({ page }) => {
+    const [a, b, c] = await boxesAt(page, 390);
+    expect(a!.y).toBeLessThan(b!.y);
+    expect(b!.y).toBeLessThan(c!.y);
+  });
+
+  test('no desktop ficam lado a lado', async ({ page }) => {
+    const [a, b, c] = await boxesAt(page, 1440);
+    expect(a!.x).toBeLessThan(b!.x);
+    expect(b!.x).toBeLessThan(c!.x);
+    expect(Math.abs(a!.y - c!.y)).toBeLessThan(20);
+  });
+});
+
+test.describe('Menu de configurar painéis', () => {
+  async function openMenu(page: Page, width: number) {
+    await open(page, width);
+    await page.getByRole('button', { name: 'Abrir Painel do Mestre' }).click();
+    await page.getByRole('button', { name: /menu/i }).click();
+  }
+
+  test('no celular os slots se chamam Topo, Meio e Base', async ({ page }) => {
+    await openMenu(page, 390);
+    await expect(
+      page.getByRole('button', { name: 'Topo' }).first(),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Esq.' })).toHaveCount(0);
+  });
+
+  test('no desktop os slots se chamam Esq., Centro e Dir.', async ({
+    page,
+  }) => {
+    await openMenu(page, 1440);
+    await expect(
+      page.getByRole('button', { name: 'Esq.' }).first(),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Topo' })).toHaveCount(0);
+  });
+});
+
+test.describe('Cabeçalho', () => {
+  for (const width of [390, 800, 1440]) {
+    test(`todos os botões ficam dentro da tela (${width}px)`, async ({
+      page,
+    }) => {
+      await open(page, width);
+      for (const name of ['Arquivo', 'Ajuda', 'Novo Token', 'Entrar']) {
+        const button = page
+          .locator('header')
+          .getByRole('button', { name, exact: true });
+        await expect(button).toBeVisible();
+        const box = await button.boundingBox();
+        expect(box, name).not.toBeNull();
+        expect(box!.x, name).toBeGreaterThanOrEqual(0);
+        expect(box!.x + box!.width, name).toBeLessThanOrEqual(width);
+      }
+    });
+  }
+});
+
+test.describe('Cronômetro', () => {
+  test('define minutos e segundos numa janela, sem prompt do navegador', async ({
+    page,
+  }) => {
+    page.on('dialog', () => {
+      throw new Error('prompt/alert/confirm nativo não deveria abrir');
+    });
+    await open(page, 1280);
+    await page.getByRole('button', { name: 'Definir cronômetro' }).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+
+    await page.keyboard.type('2');
+    await page.getByLabel('Segundos').fill('30');
+    await page.keyboard.press('Enter');
+
+    await expect(page.getByRole('dialog')).toBeHidden();
+    await expect(page.locator('footer').getByText('02:30')).toBeVisible();
+  });
+
+  test('não deixa definir zero', async ({ page }) => {
+    await open(page, 1280);
+    await page.getByRole('button', { name: 'Definir cronômetro' }).click();
+    await expect(page.getByRole('button', { name: 'Definir' })).toBeDisabled();
+  });
+});

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import {
   useMasterPanelStore,
   type SubPanelId,
@@ -61,8 +62,17 @@ const AVAILABLE_PANELS: {
   },
 ];
 
+// Abaixo de 1280 px os subpaineis ficam empilhados (ver MasterPanelOverlay),
+// entao os slots viram posicoes na lista em vez de colunas.
+const SLOT_LABELS = {
+  columns: { left: 'Esq.', center: 'Centro', right: 'Dir.' },
+  stacked: { left: 'Topo', center: 'Meio', right: 'Base' },
+} as const;
+
 export default function MasterPanelMenu() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const isColumns = useMediaQuery('(min-width: 1280px)');
+  const slotLabels = isColumns ? SLOT_LABELS.columns : SLOT_LABELS.stacked;
   const layout = useMasterPanelStore((state) => state.layout);
   const setSlot = useMasterPanelStore((state) => state.setSlot);
 
@@ -135,11 +145,7 @@ export default function MasterPanelMenu() {
                                   : 'bg-[#121214] text-[#a8a8b3] hover:bg-[#323238] hover:text-[#e1e1e6] border border-[#323238]'
                             }`}
                           >
-                            {slot === 'left'
-                              ? 'Esq.'
-                              : slot === 'center'
-                                ? 'Centro'
-                                : 'Dir.'}
+                            {slotLabels[slot]}
                           </button>
                         );
                       })}

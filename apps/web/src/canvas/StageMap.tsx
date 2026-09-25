@@ -12,6 +12,9 @@ import TokenLayer from './TokenLayer';
 import MarkerLayer from './MarkerLayer';
 import DrawingLayer from './DrawingLayer';
 
+// Distancia na tela (px) em que um segundo clique conta como o mesmo ponto.
+const REPEAT_CLICK_PX = 10;
+
 const generateId = () =>
   window.crypto?.randomUUID?.() ?? Math.random().toString(36).substring(2, 11);
 
@@ -154,7 +157,128 @@ export default function StageMap() {
 
   // --- Touch & Mouse Down ---
   const lastTouchDistRef = useRef<number | null>(null);
+  // Se o ultimo clique no desenho de poligono caiu sobre o vertice anterior.
+  const lastClickRepeatedRef = useRef(false);
 
+  // Cancel drawing in progress if tool changes to non-drawing
+  useEffect(() => {
+    if (
+      activeTool !== 'draw-poly' &&
+      activeTool !== 'draw-rect' &&
+      activeTool !== 'draw-ellipse' &&
+      activeTool !== 'select'
+    ) {
+      setIsDrawing(false);
+      setNewShape(null);
+      setPolyPoints([]);
+    }
+  }, [activeTool]);
+
+  // --- Finish Polygon Creation ---
+  const finishPolygon = useCallback(
+    (pts: number[]) => {
+      // Need at least 3 vertices (6 coordinates)
+      const cleaned: number[] = [];
+      for (let i = 0; i < pts.length; i += 2) {
+        const x = pts[i];
+        const y = pts[i + 1];
+        if (cleaned.length >= 2) {
+          const lastX = cleaned[cleaned.length - 2];
+          const lastY = cleaned[cleaned.length - 1];
+          if (Math.hypot(x - lastX, y - lastY) < 3) {
+            continue;
+          }
+        }
+        cleaned.push(x, y);
+      }
+
+      // If last vertex is identical to the first, remove it since closed={true} connects them
+      if (
+        cleaned.length >= 6 &&
+        Math.hypot(
+          cleaned[cleaned.length - 2] - cleaned[0],
+          cleaned[cleaned.length - 1] - cleaned[1],
+        ) < 5
+      ) {
+        cleaned.splice(cleaned.length - 2, 2);
+      }
+
+      if (cleaned.length < 6) {
+        setIsDrawing(false);
+        setNewShape(null);
+        setPolyPoints([]);
+        return;
+      }
+
+      const xs = cleaned.filter((_, i) => i % 2 === 0);
+      const ys = cleaned.filter((_, i) => i % 2 !== 0);
+      const minX = Math.min(...xs);
+      const maxX = Math.max(...xs);
+      const minY = Math.min(...ys);
+      const maxY = Math.max(...ys);
+      const w = Math.max(10, maxX - minX);
+      const h = Math.max(10, maxY - minY);
+
+      // Local points relative to bounding box top-left (minX, minY)
+      const localPoints = cleaned.map((val, idx) =>
+        idx % 2 === 0 ? Math.round(val - minX) : Math.round(val - minY),
+      );
+
+      const id = generateId();
+      addZone({
+        id,
+        type: 'polygon',
+        x: Math.round(minX),
+        y: Math.round(minY),
+        w: Math.round(w),
+        h: Math.round(h),
+        points: localPoints,
+        data: {
+          title: 'Nova Zona Poligonal',
+          desc: '',
+          visits: 0,
+          style: {
+            borderColor: '#8257e5',
+            fillColor: '#8257e5',
+            textColor: '#ffffff',
+          },
+          customPois: [],
+          customEvents: [],
+          customHighlights: [],
+          customThreats: [],
+          customInventory: [],
+          activeMarkers: ['destaques', 'ameacas', 'inventario'],
+          markerColors: {},
+          markerTextColors: {},
+        },
+      });
+
+      selectZone(id);
+      setActiveTool('pan');
+      setIsDrawing(false);
+      setNewShape(null);
+      setPolyPoints([]);
+    },
+    [addZone, selectZone, setActiveTool],
+  );
+
+  // --- Double Click ---
+  const handleDblClick = useCallback(
+    (e: KonvaEventObject<MouseEvent>) => {
+      if (activeTool !== 'draw-poly' || polyPoints.length < 6) return;
+      // O Konva dispara dblclick para dois cliques rapidos mesmo longe um do
+      // outro. So fecha se o segundo clique caiu perto do primeiro (e por
+      // isso nao virou vertice); senao, clicar os vertices em ritmo normal
+      // fechava o poligono no 3o ponto.
+      if (!lastClickRepeatedRef.current) return;
+
+      e.evt.preventDefault();
+      finishPolygon(polyPoints);
+    },
+    [activeTool, polyPoints, finishPolygon],
+  );
+
+  // --- Mouse Down ---
   const handleMouseDown = useCallback(
     (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
       const stage = stageRef.current;
@@ -178,10 +302,16 @@ export default function StageMap() {
       if (activeTool === 'pan' || activeTool === 'edit-bg') return;
 
       if (activeTool === 'select') {
+        useZoneStore.getState().setSelectedZoneId(null);
         useZoneStore.getState().setSelectedNodeIds([]);
         setIsDrawing(true);
         drawStartRef.current = { x: pos.x, y: pos.y };
         setSelectionRect({ x: pos.x, y: pos.y, width: 0, height: 0 });
+        return;
+      }
+
+      if (activeTool === 'edit-zone') {
+        useZoneStore.getState().setSelectedZoneId(null);
         return;
       }
 
@@ -224,6 +354,7 @@ export default function StageMap() {
 
       if (activeTool === 'draw-poly') {
         if (!isDrawing) {
+          lastClickRepeatedRef.current = false;
           setIsDrawing(true);
           setPolyPoints([pos.x, pos.y]);
           setNewShape({
@@ -233,12 +364,31 @@ export default function StageMap() {
             points: [pos.x, pos.y],
           });
         } else {
-          setPolyPoints((prev) => [...prev, pos.x, pos.y]);
-          setNewShape((prev) =>
-            prev
-              ? { ...prev, points: [...(prev.points || []), pos.x, pos.y] }
-              : null,
-          );
+          // If at least 3 vertices (6 coordinates), check if clicking near start vertex to close
+          if (polyPoints.length >= 6) {
+            const startX = polyPoints[0];
+            const startY = polyPoints[1];
+            const dist = Math.hypot(pos.x - startX, pos.y - startY);
+            if (dist <= 25 / scale) {
+              finishPolygon(polyPoints);
+              return;
+            }
+          }
+
+          // Otherwise add new vertex. Clique ate REPEAT_CLICK_PX (na tela) do
+          // ultimo vertice conta como repeticao, nao como vertice novo.
+          const lastX = polyPoints[polyPoints.length - 2];
+          const lastY = polyPoints[polyPoints.length - 1];
+          const repeated =
+            Math.hypot(pos.x - lastX, pos.y - lastY) < REPEAT_CLICK_PX / scale;
+          lastClickRepeatedRef.current = repeated;
+          if (!repeated) {
+            const nextPoints = [...polyPoints, pos.x, pos.y];
+            setPolyPoints(nextPoints);
+            setNewShape((prev) =>
+              prev ? { ...prev, points: [...nextPoints, pos.x, pos.y] } : null,
+            );
+          }
         }
       }
     },
@@ -248,6 +398,9 @@ export default function StageMap() {
       getRelativePointerPosition,
       setRightSidebarOpen,
       isDrawing,
+      polyPoints,
+      scale,
+      finishPolygon,
     ],
   );
 
@@ -271,10 +424,19 @@ export default function StageMap() {
     if (!newShape) return;
 
     if (newShape.type === 'polygon' && activeTool === 'draw-poly') {
+      let targetX = pos.x;
+      let targetY = pos.y;
+      if (polyPoints.length >= 6) {
+        const startX = polyPoints[0];
+        const startY = polyPoints[1];
+        if (Math.hypot(pos.x - startX, pos.y - startY) <= 25 / scale) {
+          targetX = startX;
+          targetY = startY;
+        }
+      }
       setNewShape((prev) => {
         if (!prev || !prev.points) return prev;
-        const currentPoints = [...polyPoints, pos.x, pos.y];
-        return { ...prev, points: currentPoints };
+        return { ...prev, points: [...polyPoints, targetX, targetY] };
       });
       return;
     }
@@ -296,6 +458,7 @@ export default function StageMap() {
     polyPoints,
     activeTool,
     selectionRect,
+    scale,
   ]);
 
   // --- Mouse Up ---
@@ -558,6 +721,7 @@ export default function StageMap() {
 
       if (e.key === 'Delete' || e.key === 'Backspace') {
         const ids = useZoneStore.getState().selectedNodeIds;
+        const selectedZoneId = useZoneStore.getState().selectedZoneId;
         if (ids.length > 0) {
           const zState = useZoneStore.getState();
           const tState = useTokenStore.getState();
@@ -567,6 +731,9 @@ export default function StageMap() {
             if (zState.markers[id]) zState.removeMarker(id);
           });
           useZoneStore.getState().setSelectedNodeIds([]);
+        } else if (selectedZoneId && activeTool === 'edit-zone') {
+          useZoneStore.getState().removeZone(selectedZoneId);
+          useZoneStore.getState().setSelectedZoneId(null);
         }
       }
 
@@ -574,6 +741,8 @@ export default function StageMap() {
         setIsDrawing(false);
         setNewShape(null);
         setPolyPoints([]);
+        useZoneStore.getState().setSelectedZoneId(null);
+        useZoneStore.getState().setSelectedNodeIds([]);
         if (activeTool.startsWith('draw')) setActiveTool('pan');
       }
       if (
@@ -581,48 +750,13 @@ export default function StageMap() {
         activeTool === 'draw-poly' &&
         polyPoints.length >= 6
       ) {
-        // polyPoints has [x, y] coordinates, so length >= 6 means at least 3 points
-        const minX = Math.min(...polyPoints.filter((_, i) => i % 2 === 0));
-        const minY = Math.min(...polyPoints.filter((_, i) => i % 2 !== 0));
-        const id = generateId();
-
-        addZone({
-          id,
-          type: 'polygon',
-          x: minX,
-          y: minY,
-          w: 0,
-          h: 0,
-          points: polyPoints,
-          data: {
-            title: 'Nova Zona Poligonal',
-            desc: '',
-            visits: 0,
-            style: {
-              borderColor: '#8257e5',
-              fillColor: '#8257e5',
-              textColor: '#ffffff',
-            },
-            customPois: [],
-            customEvents: [],
-            customHighlights: [],
-            customThreats: [],
-            customInventory: [],
-            markerColors: {},
-            markerTextColors: {},
-          },
-        });
-
-        selectZone(id);
-        setActiveTool('pan');
-        setIsDrawing(false);
-        setNewShape(null);
-        setPolyPoints([]);
+        e.preventDefault();
+        finishPolygon(polyPoints);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [activeTool, polyPoints, setActiveTool, addZone, selectZone]);
+  }, [activeTool, polyPoints, setActiveTool, finishPolygon]);
 
   const cursorStyle =
     activeTool === 'pan'
@@ -660,6 +794,7 @@ export default function StageMap() {
         onTouchStart={handleMouseDown}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onDblClick={handleDblClick}
         onContextMenu={handleContextMenu}
         style={{ cursor: cursorStyle }}
       >
@@ -690,7 +825,7 @@ export default function StageMap() {
           )}
         </Layer>
         <Layer>
-          <DrawingLayer newShape={newShape} />
+          <DrawingLayer newShape={newShape} scale={scale} />
         </Layer>
       </Stage>
     </div>

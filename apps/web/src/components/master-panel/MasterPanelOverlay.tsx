@@ -80,10 +80,13 @@ export default function MasterPanelOverlay() {
         </div>
       </div>
 
-      {/* Grid de Sub-Painéis */}
-      <div className="flex-1 flex gap-4 p-4 overflow-hidden">
+      {/* Grid de Sub-Painéis: tres colunas no desktop (>= 1280 px); abaixo
+          disso, empilhados um embaixo do outro com rolagem */}
+      <div className="flex-1 flex flex-col xl:flex-row gap-4 p-4 overflow-y-auto xl:overflow-hidden">
         {/* Esquerda (40%) */}
-        <div className="flex-[4] flex flex-col h-full bg-[#121214]/40 rounded-xl overflow-hidden border border-[#323238]/50">
+        <div
+          className={`${layout.left ? 'flex' : 'hidden xl:flex'} h-[80dvh] shrink-0 xl:h-full xl:shrink xl:flex-[4] flex-col bg-[#121214]/40 rounded-xl overflow-hidden border border-[#323238]/50`}
+        >
           {layout.left ? (
             <RenderPanel panelId={layout.left} slot="left" />
           ) : (
@@ -94,7 +97,9 @@ export default function MasterPanelOverlay() {
         </div>
 
         {/* Centro (20%) */}
-        <div className="flex-[2] flex flex-col h-full bg-[#121214]/40 rounded-xl overflow-hidden border border-[#323238]/50">
+        <div
+          className={`${layout.center ? 'flex' : 'hidden xl:flex'} h-[80dvh] shrink-0 xl:h-full xl:shrink xl:flex-[2] flex-col bg-[#121214]/40 rounded-xl overflow-hidden border border-[#323238]/50`}
+        >
           {layout.center ? (
             <RenderPanel panelId={layout.center} slot="center" />
           ) : (
@@ -105,7 +110,9 @@ export default function MasterPanelOverlay() {
         </div>
 
         {/* Direita (40%) */}
-        <div className="flex-[4] flex flex-col h-full bg-[#121214]/40 rounded-xl overflow-hidden border border-[#323238]/50">
+        <div
+          className={`${layout.right ? 'flex' : 'hidden xl:flex'} h-[80dvh] shrink-0 xl:h-full xl:shrink xl:flex-[4] flex-col bg-[#121214]/40 rounded-xl overflow-hidden border border-[#323238]/50`}
+        >
           {layout.right ? (
             <RenderPanel panelId={layout.right} slot="right" />
           ) : (

@@ -51,12 +51,12 @@ Etapas na ordem, uma branch e um PR por etapa. Cada etapa termina com `npm run c
 
 ### 2e — Features e telas (paralelo por grupo)
 
-- [ ] Primeiro, sozinho: mover para `app/`, `routes/`, `features/`, `lib/` sem mudar comportamento e ligar as regras de `web/` no `dependency-cruiser`.
+- [ ] Primeiro, sozinho: mover para `app/`, `routes/`, `features/`, `lib/` sem mudar comportamento e ligar as regras de `web/` no `dependency-cruiser`. Estrutura de temas (tokens por `data-theme`, Konva lendo o tema ativo), seletor ainda escondido.
 - [ ] Grupo mapa: `features/battlemap`, `tokens`, `zones`. Dividir `StageMap.tsx`, `ZoneMarkerModal.tsx`, `TokenSheetModal.tsx`, `GeneralTab.tsx`.
 - [ ] Grupo mesa: `features/initiative`, `scenes`, `campaigns` e o layout. Menu de contexto manual vira `ContextMenu`.
 - [ ] Grupo painel: `features/panel/` diary, notes, rules, tables, roulettes.
 - [ ] Grupo som: `features/panel/soundpad`. Refazer a usabilidade mantendo playlists, login do Spotify e YouTube.
-- [ ] Final, sozinho: screenshots do Playwright em 390x844, 1024x768 e 1440x900; lista de exceções da guarda vazia; docs de arquitetura atualizados.
+- [ ] Final, sozinho: screenshots do Playwright em 390x844, 1024x768 e 1440x900 nos temas escuro e claro; lista de exceções da guarda vazia; seletor de tema visível; docs de arquitetura atualizados.
 
 Cada grupo: só primitivos e tokens, três faixas da seção 4 do spec de UI, error boundary por região, arquivos até 300 linhas, sem `alert`/`confirm`/`prompt`/`title=`, e tira seus arquivos da lista de exceções.
 

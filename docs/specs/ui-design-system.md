@@ -8,23 +8,25 @@ Tailwind v4 (tokens em `@theme`), shadcn/ui sobre `@base-ui/react` (única fonte
 
 ## 2. Tokens
 
-Proibido em código novo ou migrado: hexadecimal solto, `text-[Npx]`, `z-[N]`. Tokens em CSS (`@theme`) e em `ui/tokens.ts` (para o Konva). As variáveis do shadcn (`--background`, `--primary`...) apontam para eles.
+Proibido em código novo ou migrado: hexadecimal solto, `text-[Npx]`, `z-[N]`. Tokens em CSS (`@theme`) e em `ui/tokens.ts`. As variáveis do shadcn (`--background`, `--primary`...) apontam para eles.
 
-| Token | Valor | Uso |
-| :--- | :--- | :--- |
-| `canvas` | `#0d0d0f` | Fundo do mapa |
-| `bg` | `#121214` | Fundo do app |
-| `surface` | `#202024` | Cards, painéis, menus |
-| `surface-sunken` | `#1a1a1e` | Campos, áreas internas (também substitui `#18181b`) |
-| `border` / `control` | `#323238` | Bordas; fundo de botões secundários |
-| `text` | `#e1e1e6` | Texto principal |
-| `text-muted` | `#a8a8b3` | Secundário |
-| `text-subtle` | `#7c7c8a` | Só placeholder e legenda (contraste baixo; substitui `#7a7a80`) |
-| `primary` / `primary-hover` | `#8257e5` / `#9466ff` | Ação principal, seleção, foco |
-| `accent` | `#ffd700` | Destaque (turno atual) |
-| `success` / `warning` | `#04d361` / `#facc15` | Confirmação / alerta |
-| `danger` / `danger-hover` | `#ef4444` / `#dc2626` | Destrutivo, dano, erro |
-| `element-sangue/morte/conhecimento/energia/medo` | `#ef4444` / `#9ca3af` / `#eab308` / `#a855f7` / `#ffffff` | Via componente `ElementBadge` (texto na cor, borda 30%, fundo 10%) |
+**Temas**: `data-theme` no `<html>` com `escuro` (padrão), `claro` e `roxo` (paleta da v7). Escolha em Configurações, salva no `localStorage`; sem escolha, segue `prefers-color-scheme`. O Konva lê as cores do tema ativo (variáveis CSS), não constantes. Contraste AA (4,5:1 no texto, 3:1 no anel de foco) conferido em todos; o Roxo clareia `danger` e `energia` em relação à v7 para passar. O seletor só aparece quando nenhuma tela usa cor fixa (exceções da guarda zeradas).
+
+| Token | Escuro | Claro | Roxo (v7) | Uso |
+| :-- | :-- | :-- | :-- | :-- |
+| `canvas` | `#0d0d0f` | `#0d0d0f` | `#0d0d0f` | Fundo do mapa (escuro nos três) |
+| `bg` | `#09090b` | `#f4f4f5` | `#121214` | Fundo do app |
+| `surface` | `#18181b` | `#ffffff` | `#202024` | Cards, painéis, menus |
+| `surface-sunken` | `#111113` | `#fafafa` | `#1a1a1e` | Campos, áreas internas |
+| `border` / `control` | `#27272a` | `#e4e4e7` | `#323238` | Bordas; fundo de botões secundários |
+| `text` | `#fafafa` | `#18181b` | `#e1e1e6` | Texto principal |
+| `text-muted` | `#a1a1aa` | `#52525b` | `#a8a8b3` | Secundário |
+| `text-subtle` | `#71717a` | `#71717a` | `#7c7c8a` | Só placeholder e legenda |
+| `primary` / `primary-hover` | `#4f46e5` / `#4338ca` | `#4f46e5` / `#4338ca` | `#8257e5` / `#9466ff` | Ação principal, seleção, foco |
+| `highlight` | `#facc15` | `#a16207` | `#ffd700` | Destaque (turno atual) |
+| `success` / `warning` | `#22c55e` / `#f59e0b` | `#16a34a` / `#d97706` | `#04d361` / `#facc15` | Confirmação / alerta |
+| `danger` / `danger-hover` | `#ef4444` / `#dc2626` | `#dc2626` / `#b91c1c` | `#f87171` / `#ef4444` | Destrutivo, dano, erro |
+| `element-sangue/morte/conhecimento/energia/medo` | `#ef4444` `#9ca3af` `#eab308` `#c084fc` `#ffffff` | `#dc2626` `#6b7280` `#a16207` `#9333ea` `#3f3f46` | `#f87171` `#9ca3af` `#eab308` `#c084fc` `#ffffff` | Via `ElementBadge` (texto na cor, borda 30%, fundo 10%) |
 
 - **Tipografia**: `text-xs` 12 (mínimo do app), `sm` 14 (padrão), `base` 16 (leitura e inputs no celular), `lg` 18, `xl` 20, `2xl` 24. Pesos 400/500/600.
 - **Espaço** múltiplo de 4 px. **Raio**: sm 4 (badge), md 6 (botão, campo), lg 8 (card, menu), xl 12 (modal). **Sombra**: só `shadow-sm` e `shadow-lg`.
@@ -42,6 +44,8 @@ Só primitivos de `ui/`. Se faltar, adicione via shadcn antes de usar.
 - **Domínio**: `ElementBadge`, `StatBar` (PV, PE, SAN, PD), `ConditionChip`, `TokenAvatar`, `DiceResult`.
 
 Substituições: `alert`/`confirm`/`prompt` (28 usos) → `Toast`/`AlertDialog`/`Dialog`; `title="..."` (127) → `Tooltip`; menu de contexto manual do `AppLayout` → `ContextMenu` com alternativa por toque; overlays `fixed inset-0` → `Dialog`/`Sheet`/`Drawer`; mapas de cor de elemento duplicados → `ElementBadge`; barras de vida soltas → `StatBar`.
+
+Cor com disciplina: uma cor de ação por tela (`primary`); títulos em `text`, nunca coloridos; `highlight` só para o turno atual; cor de elemento ou categoria só em ícone ou `Badge` pequeno, nunca em título, aba, fundo ou borda grande; estado (ativo, desativar) por variante de `Badge` ou `Button`, não por cor solta.
 
 Regras: tela não define cor, borda ou raio próprio; variantes via `cva` no primitivo; todo interativo tem hover, foco visível, desabilitado e carregando; toda lista tem vazio e carregando; botão só com ícone tem `aria-label` e `Tooltip`; textos curtos, botões no infinitivo.
 

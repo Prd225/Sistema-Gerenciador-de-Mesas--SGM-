@@ -1,27 +1,57 @@
 import { Group, Rect, Ellipse, Line, Circle } from 'react-konva';
 import React from 'react';
 import type { NewShapeState } from './ZoneLayer';
+import { colorTokens } from '@/ui/tokens';
 
 /**
  * Renders the shape currently being drawn on the canvas.
  * Isolated into its own layer so it can re-render frequently
  * without causing the rest of the canvas to re-render.
  */
-function DrawingLayer({ newShape }: { newShape: NewShapeState | null }) {
+function DrawingLayer({
+  newShape,
+  scale = 1,
+}: {
+  newShape: NewShapeState | null;
+  scale?: number;
+}) {
   if (!newShape) return <Group listening={false} />;
+
+  const isPolygon =
+    newShape.type === 'polygon' &&
+    newShape.points &&
+    newShape.points.length >= 2;
+  const polyPoints = isPolygon ? newShape.points! : [];
+
+  // When polygon has >= 6 coordinates (at least 3 vertices), it can be closed
+  const canClose = isPolygon && polyPoints.length >= 6;
+  const startX = isPolygon ? polyPoints[0] : 0;
+  const startY = isPolygon ? polyPoints[1] : 0;
+  const lastX = isPolygon ? polyPoints[polyPoints.length - 2] : 0;
+  const lastY = isPolygon ? polyPoints[polyPoints.length - 1] : 0;
+  const isSnappedToStart =
+    canClose && Math.hypot(lastX - startX, lastY - startY) < 1;
 
   return (
     <Group listening={false}>
       {newShape.type === 'rect' && (
         <Rect
-          x={newShape.x}
-          y={newShape.y}
-          width={newShape.width}
-          height={newShape.height}
-          fill="rgba(255, 255, 255, 0.2)"
-          stroke="#fff"
-          strokeWidth={1}
-          dash={[4, 4]}
+          x={
+            (newShape.width || 0) < 0
+              ? newShape.x + (newShape.width || 0)
+              : newShape.x
+          }
+          y={
+            (newShape.height || 0) < 0
+              ? newShape.y + (newShape.height || 0)
+              : newShape.y
+          }
+          width={Math.abs(newShape.width || 0)}
+          height={Math.abs(newShape.height || 0)}
+          fill="rgba(130, 87, 229, 0.2)"
+          stroke={colorTokens.primary}
+          strokeWidth={2 / scale}
+          dash={[6 / scale, 4 / scale]}
         />
       )}
       {newShape.type === 'ellipse' && (
@@ -30,27 +60,73 @@ function DrawingLayer({ newShape }: { newShape: NewShapeState | null }) {
           y={newShape.y + (newShape.height || 0) / 2}
           radiusX={Math.abs((newShape.width || 0) / 2)}
           radiusY={Math.abs((newShape.height || 0) / 2)}
-          fill="rgba(255, 255, 255, 0.2)"
-          stroke="#fff"
-          strokeWidth={1}
-          dash={[4, 4]}
+          fill="rgba(130, 87, 229, 0.2)"
+          stroke={colorTokens.primary}
+          strokeWidth={2 / scale}
+          dash={[6 / scale, 4 / scale]}
         />
       )}
-      {newShape.type === 'polygon' && newShape.points && (
+      {isPolygon && (
         <Group>
+          {/* Fill preview when polygon has >= 3 vertices */}
+          {canClose && (
+            <Line
+              points={polyPoints}
+              fill="rgba(130, 87, 229, 0.15)"
+              closed={true}
+              listening={false}
+            />
+          )}
+
+          {/* Polygon line preview */}
           <Line
-            points={newShape.points}
-            stroke="#fff"
-            strokeWidth={2}
-            dash={[4, 4]}
+            points={polyPoints}
+            stroke={
+              isSnappedToStart ? colorTokens.highlight : colorTokens.primary
+            }
+            strokeWidth={2 / scale}
+            dash={[6 / scale, 4 / scale]}
             closed={false}
           />
-          {newShape.points.length >= 2 && (
+
+          {/* Intermediate vertex markers */}
+          {polyPoints.map((_, idx) => {
+            if (idx % 2 !== 0 || idx === 0 || idx >= polyPoints.length - 2)
+              return null;
+            return (
+              <Circle
+                key={idx}
+                x={polyPoints[idx]}
+                y={polyPoints[idx + 1]}
+                radius={3.5 / scale}
+                fill={colorTokens.primary}
+                stroke={colorTokens.text}
+                strokeWidth={1 / scale}
+              />
+            );
+          })}
+
+          {/* Start vertex marker (Target to close) */}
+          <Circle
+            x={startX}
+            y={startY}
+            radius={(canClose ? (isSnappedToStart ? 9 : 7) : 5) / scale}
+            fill={canClose ? colorTokens.highlight : colorTokens.primary}
+            stroke={colorTokens.text}
+            strokeWidth={(canClose ? 2 : 1) / scale}
+            shadowBlur={canClose ? 8 / scale : 0}
+            shadowColor={colorTokens.highlight}
+          />
+
+          {/* Outer target ring on start vertex when polygon can be closed */}
+          {canClose && (
             <Circle
-              x={newShape.points[0]}
-              y={newShape.points[1]}
-              radius={5}
-              fill="#ffd700"
+              x={startX}
+              y={startY}
+              radius={(isSnappedToStart ? 14 : 12) / scale}
+              stroke={colorTokens.highlight}
+              strokeWidth={1.5 / scale}
+              dash={[3 / scale, 3 / scale]}
             />
           )}
         </Group>
