@@ -3,6 +3,7 @@ import { Group, Circle, Text } from 'react-konva';
 import { useTokenStore } from '@/store/useTokenStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useZoneStore } from '@/store/useZoneStore';
+import { isPlayerMode } from '@/lib/roomRole';
 
 /**
  * Renders token circles on the map.
@@ -276,10 +277,17 @@ function TokenLayer({ scale = 1 }: { scale?: number }) {
                   });
                 }
               }}
-              onDblClick={() => setEditingTokenId(t.id)}
-              onDblTap={() => setEditingTokenId(t.id)}
+              onDblClick={() => {
+                if (isPlayerMode()) return;
+                setEditingTokenId(t.id);
+              }}
+              onDblTap={() => {
+                if (isPlayerMode()) return;
+                setEditingTokenId(t.id);
+              }}
               onContextMenu={(e) => {
                 e.evt.preventDefault();
+                if (isPlayerMode()) return;
                 if (window.confirm(`Deseja retirar ${t.fullName} do Mapa?`)) {
                   updateToken(t.id, { x: null, y: null });
                 }

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Token, InitiativeItem, InitiativeSortMode } from '@/types/game';
 import { triggerAutoSave } from '@/lib/saveHelpers';
 import { socket } from '@/lib/socket';
+import { isPlayerMode } from '@/lib/roomRole';
 
 interface TokenState {
   tokens: Token[];
@@ -25,7 +26,10 @@ interface TokenState {
   addTokenFromRemote: (token: Token) => void;
   updateTokenFromRemote: (id: string, updates: Partial<Token>) => void;
   removeTokenFromRemote: (id: string) => void;
-  setInitiativeQueueFromRemote: (queue: InitiativeItem[]) => void;
+  setInitiativeQueueFromRemote: (
+    queue: InitiativeItem[],
+    sortMode?: InitiativeSortMode,
+  ) => void;
 
   setActiveCtxTokenId: (id: string | null) => void;
   setEditingTokenId: (id: string | null) => void;
@@ -47,7 +51,11 @@ export const useTokenStore = create<TokenState>((set, get) => ({
   tokenContextMenu: null,
 
   // --- Ações Locais ---
+  // No modo jogador, toda alteração abaixo é ignorada, exceto mover um token que
+  // já está no mapa. O servidor também confere o papel; isto evita que a tela
+  // do jogador fique diferente da mesa por uma ação que será recusada.
   addToken: (token) => {
+    if (isPlayerMode()) return;
     set((state) => ({ tokens: [...state.tokens, token] }));
     triggerAutoSave();
     if (socket.connected) {
@@ -56,6 +64,25 @@ export const useTokenStore = create<TokenState>((set, get) => ({
   },
 
   updateToken: (id, updates) => {
+    if (isPlayerMode()) {
+      const { x, y, ...others } = updates;
+      const token = get().tokens.find((t) => t.id === id);
+      const isPureMove =
+        Object.keys(others).length === 0 &&
+        typeof x === 'number' &&
+        typeof y === 'number';
+      if (!token || token.x === null || token.y === null || !isPureMove) {
+        return;
+      }
+      set((state) => ({
+        tokens: state.tokens.map((t) => (t.id === id ? { ...t, x, y } : t)),
+      }));
+      if (socket.connected) {
+        socket.emit('token:move', { tokenId: id, x, y });
+      }
+      return;
+    }
+
     set((state) => ({
       tokens: state.tokens.map((token) =>
         token.id === id ? { ...token, ...updates } : token,
@@ -82,6 +109,7 @@ export const useTokenStore = create<TokenState>((set, get) => ({
   },
 
   removeToken: (id) => {
+    if (isPlayerMode()) return;
     set((state) => ({
       tokens: state.tokens.filter((token) => token.id !== id),
       initiativeQueue: state.initiativeQueue.filter(
@@ -95,23 +123,39 @@ export const useTokenStore = create<TokenState>((set, get) => ({
   },
 
   setInitiativeQueue: (initiativeQueue) => {
+    if (isPlayerMode()) return;
     set({ initiativeQueue });
     triggerAutoSave();
     if (socket.connected) {
-      socket.emit('initiative:update', { queue: initiativeQueue });
+      socket.emit('initiative:update', {
+        queue: initiativeQueue,
+        sortMode: get().initiativeSortMode,
+      });
     }
   },
 
   setInitiativeSortMode: (mode) => {
+    if (isPlayerMode()) return;
     set({ initiativeSortMode: mode });
     triggerAutoSave();
+    // O modo muda como a fila é exibida (valor x posição); repassa junto da fila.
+    if (socket.connected) {
+      socket.emit('initiative:update', {
+        queue: get().initiativeQueue,
+        sortMode: mode,
+      });
+    }
   },
 
   clearInitiative: () => {
+    if (isPlayerMode()) return;
     set({ initiativeQueue: [] });
     triggerAutoSave();
     if (socket.connected) {
-      socket.emit('initiative:update', { queue: [] });
+      socket.emit('initiative:update', {
+        queue: [],
+        sortMode: get().initiativeSortMode,
+      });
     }
   },
 
@@ -140,8 +184,8 @@ export const useTokenStore = create<TokenState>((set, get) => ({
     }));
   },
 
-  setInitiativeQueueFromRemote: (initiativeQueue) => {
-    set({ initiativeQueue });
+  setInitiativeQueueFromRemote: (initiativeQueue, sortMode) => {
+    set(sortMode ? { initiativeQueue, initiativeSortMode: sortMode } : { initiativeQueue });
   },
 
   setActiveCtxTokenId: (activeCtxTokenId) => set({ activeCtxTokenId }),

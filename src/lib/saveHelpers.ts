@@ -10,6 +10,7 @@ import { useSoundpadStore } from '@/store/useSoundpadStore';
 import { useScenesStore } from '@/store/useScenesStore';
 import { db } from '@/lib/db';
 import { generateId } from '@/lib/uuid';
+import { isPlayerMode } from '@/lib/roomRole';
 
 let isResetting = false;
 export const getIsResetting = () => isResetting;
@@ -201,6 +202,8 @@ export const applyGameState = async (data: any) => {
 };
 
 export const saveWorkingSession = async (customData?: any) => {
+  // Jogador não persiste nada: o mapa dele é só uma cópia da mesa do mestre.
+  if (isPlayerMode()) return;
   if (isResetting) return;
   try {
     if (sessionStorage.getItem('sgm_is_resetting') === 'true') return;
@@ -221,6 +224,8 @@ export const saveWorkingSession = async (customData?: any) => {
 };
 
 export const loadWorkingSession = async (): Promise<boolean> => {
+  // Jogador não carrega salvamento local (o mapa vem do mestre).
+  if (isPlayerMode()) return false;
   if (isResetting) return false;
   try {
     if (sessionStorage.getItem('sgm_is_resetting') === 'true') {
@@ -419,6 +424,8 @@ let maxWaitTimeout: ReturnType<typeof setTimeout> | null = null;
 let fadeOutTimeout: ReturnType<typeof setTimeout> | null = null;
 
 export const triggerAutoSave = (forceImmediate = false) => {
+  // Jogador não salva: nenhuma alteração local pode virar salvamento.
+  if (isPlayerMode()) return;
   if (isResetting) return;
   try {
     if (sessionStorage.getItem('sgm_is_resetting') === 'true') return;

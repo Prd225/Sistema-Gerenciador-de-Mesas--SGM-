@@ -27,6 +27,9 @@ import {
 } from '@/lib/saveHelpers';
 import { useZoneStore } from '@/store/useZoneStore';
 import { useTokenStore } from '@/store/useTokenStore';
+import { useMultiplayerStore } from '@/store/useMultiplayerStore';
+import { markLocalStateReady } from '@/lib/roomRole';
+import { startSoundpadBroadcast } from '@/lib/soundpadBroadcast';
 import { Search, Edit, Copy, IdCard, Trash2, Map } from 'lucide-react';
 
 export default function AppLayout({
@@ -48,6 +51,19 @@ export default function AppLayout({
   const getTokenById = useTokenStore((state) => state.getTokenById);
   const autoSaveSlot = useCampaignStore((state) => state.autoSaveSlot);
 
+  const multiplayerRole = useMultiplayerStore((state) => state.role);
+  const isMultiplayerConnected = useMultiplayerStore((state) => state.isConnected);
+
+  // Transmissão contínua do Soundpad quando Mestre estiver conectado
+  useEffect(() => {
+    if (multiplayerRole === 'gm' && isMultiplayerConnected) {
+      const stop = startSoundpadBroadcast();
+      return () => {
+        stop();
+      };
+    }
+  }, [multiplayerRole, isMultiplayerConnected]);
+
   // Working Session Initialization & Shortcuts Lifecycle
   useEffect(() => {
     // 1. Carregar estado da mesa salvo no cache de sessão (preservado ao dar F5)
@@ -55,6 +71,7 @@ export default function AppLayout({
       if (sessionStorage.getItem('sgm_is_resetting') === 'true') {
         sessionStorage.removeItem('sgm_is_resetting');
         await clearWorkingSession();
+        markLocalStateReady();
         return;
       }
 
@@ -62,6 +79,8 @@ export default function AppLayout({
         await loadWorkingSession();
       } catch (err) {
         console.error('[SGM] Falha ao inicializar sessão persistida:', err);
+      } finally {
+        markLocalStateReady();
       }
     };
     initSession();

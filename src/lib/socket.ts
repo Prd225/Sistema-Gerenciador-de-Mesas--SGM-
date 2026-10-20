@@ -24,7 +24,8 @@ export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
   {
     autoConnect: false,
     reconnection: true,
-    reconnectionAttempts: 5,
+    reconnectionAttempts: Infinity,
     reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
   },
 );

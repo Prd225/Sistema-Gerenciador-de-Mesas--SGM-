@@ -1,6 +1,7 @@
 import { useTokenStore } from '@/store/useTokenStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useZoneStore } from '@/store/useZoneStore';
+import { isPlayerMode } from '@/lib/roomRole';
 import { ArrowDown, Hourglass, Ban, Skull } from 'lucide-react';
 
 /**
@@ -28,7 +29,7 @@ export default function InitiativeBar() {
     gray: '#a8a8b3',
   };
 
-  const leftOffset = leftOpen ? leftWidth + 16 : 64;
+  const leftOffset = isPlayerMode() ? 16 : leftOpen ? leftWidth + 16 : 64;
 
   return (
     <div

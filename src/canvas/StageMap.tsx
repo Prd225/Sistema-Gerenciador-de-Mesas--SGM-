@@ -5,6 +5,7 @@ import { useZoneStore } from '@/store/useZoneStore';
 import { useTokenStore } from '@/store/useTokenStore';
 import { useMasterPanelStore } from '@/store/useMasterPanelStore';
 import { useMultiplayerStore } from '@/store/useMultiplayerStore';
+import { isPlayerMode } from '@/lib/roomRole';
 
 import GridLayer from './GridLayer';
 import BackgroundLayer from './BackgroundLayer';
@@ -269,6 +270,8 @@ export default function StageMap() {
   // --- Mouse Down ---
   const handleMouseDown = useCallback(
     (e: KonvaEventObject<MouseEvent>) => {
+      if (isPlayerMode()) return;
+
       const stage = stageRef.current;
       if (!stage) return;
       const pos = getRelativePointerPosition(stage);
@@ -566,6 +569,7 @@ export default function StageMap() {
   const handleDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
+      if (isPlayerMode()) return;
       const stage = stageRef.current;
       if (!stage) return;
 
@@ -608,6 +612,8 @@ export default function StageMap() {
   // --- Keyboard (Shortcuts & Polygon) ---
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (isPlayerMode()) return;
+
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement ||
