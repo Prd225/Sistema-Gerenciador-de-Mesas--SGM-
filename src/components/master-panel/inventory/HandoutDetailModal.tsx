@@ -2,12 +2,14 @@ import { useState } from 'react';
 import type { HandoutItem } from '@/types/inventory';
 import { useInventoryStore } from '@/store/useInventoryStore';
 import { useZoneStore } from '@/store/useZoneStore';
+import { replaceDiceShortcodesWithHtml } from '@/lib/diceEmoji';
 import {
   X,
   Eye,
   EyeOff,
   Tv,
-  ImagePlus,
+  MapPin,
+  MapPinOff,
   ZoomIn,
   ZoomOut,
   RotateCcw,
@@ -31,22 +33,13 @@ export default function HandoutDetailModal({
   onEdit,
 }: HandoutDetailModalProps) {
   const toggleShare = useInventoryStore((state) => state.toggleShare);
-  const addBgImage = useZoneStore((state) => state.addBgImage);
+  const toggleMapPlacement = useInventoryStore((state) => state.toggleMapPlacement);
 
   const [zoom, setZoom] = useState(1);
   const mediaSource = item.serverUrl || item.fileData || '';
-
-  const handleAddToMap = () => {
-    if (!mediaSource) return;
-    addBgImage({
-      id: window.crypto?.randomUUID?.() ?? String(Date.now()),
-      src: mediaSource,
-      x: 0,
-      y: 0,
-      scale: 1,
-      rotation: 0,
-    });
-  };
+  const isOnMap = useZoneStore((state) =>
+    state.bgImages.some((bg) => bg.src === mediaSource),
+  );
 
   const getTextThemeClasses = () => {
     switch (item.textStyle) {
@@ -133,17 +126,30 @@ export default function HandoutDetailModal({
               </Button>
             )}
 
-            {/* Se for Imagem: Adicionar ao Mapa */}
+            {/* Se for Imagem: Colocar / Remover do Mapa */}
             {item.type === 'image' && (
               <Button
                 variant="outline"
                 size="xs"
-                onClick={handleAddToMap}
-                className="bg-[#27272a] border-[#3f3f46] hover:bg-white/10 text-[#d4d4d8] gap-1.5 text-xs"
-                title="Inserir como Plano de Fundo no Mapa"
+                onClick={() => toggleMapPlacement(item.id)}
+                className={`gap-1.5 text-xs transition-all ${
+                  isOnMap
+                    ? 'bg-blue-600/30 border-blue-500/60 text-blue-300 hover:bg-red-500/20 hover:text-red-300'
+                    : 'bg-[#27272a] border-[#3f3f46] hover:bg-white/10 text-[#d4d4d8]'
+                }`}
+                title={isOnMap ? 'Remover do Mapa' : 'Colocar no Mapa'}
               >
-                <ImagePlus className="w-3.5 h-3.5" />
-                <span>Adicionar ao Mapa</span>
+                {isOnMap ? (
+                  <>
+                    <MapPinOff className="w-3.5 h-3.5 text-blue-400" />
+                    <span>Remover do Mapa</span>
+                  </>
+                ) : (
+                  <>
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span>Colocar no Mapa</span>
+                  </>
+                )}
               </Button>
             )}
 
@@ -201,9 +207,12 @@ export default function HandoutDetailModal({
                   </Button>
                 )}
               </div>
-              <div className="whitespace-pre-wrap leading-relaxed text-sm sm:text-base font-serif">
-                {item.textContent}
-              </div>
+              <div
+                className="leading-relaxed text-sm sm:text-base break-words [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mb-2 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mb-1.5 [&_hr]:my-3 [&_hr]:border-current/20 whitespace-pre-wrap font-serif"
+                dangerouslySetInnerHTML={{
+                  __html: replaceDiceShortcodesWithHtml(item.textContent || 'Sem conteúdo de texto...'),
+                }}
+              />
             </div>
           ) : (
             <div className="text-center text-[#71717a] p-12">

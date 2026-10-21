@@ -1,7 +1,6 @@
 import React from 'react';
 import type { HandoutItem, HandoutFolder } from '@/types/inventory';
 import { useInventoryStore } from '@/store/useInventoryStore';
-import { useZoneStore } from '@/store/useZoneStore';
 import {
   FileText,
   Video,
@@ -14,9 +13,9 @@ import {
   Edit2,
   FolderInput,
   Folder,
-  ImagePlus,
-  Tv,
   MapPin,
+  MapPinOff,
+  Tv,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -50,21 +49,13 @@ export default function HandoutCard({
   const toggleShare = useInventoryStore((state) => state.toggleShare);
   const deleteItem = useInventoryStore((state) => state.deleteItem);
   const updateItem = useInventoryStore((state) => state.updateItem);
-  const addBgImage = useZoneStore((state) => state.addBgImage);
+  const toggleMapPlacement = useInventoryStore((state) => state.toggleMapPlacement);
 
   const mediaSource = item.serverUrl || item.fileData || '';
 
-  const handleAddToMap = (e: React.MouseEvent) => {
+  const handleToggleMap = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!mediaSource) return;
-    addBgImage({
-      id: window.crypto?.randomUUID?.() ?? String(Date.now()),
-      src: mediaSource,
-      x: 0,
-      y: 0,
-      scale: 1,
-      rotation: 0,
-    });
+    await toggleMapPlacement(item.id);
   };
 
   return (
@@ -98,7 +89,9 @@ export default function HandoutCard({
               <span className="text-[9px] uppercase font-bold tracking-wider">Texto</span>
             </div>
             <p className="text-[10px] text-[#a1a1aa] line-clamp-3 leading-snug font-serif">
-              {item.textContent || 'Sem conteúdo de texto...'}
+              {item.textContent
+                ? item.textContent.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim()
+                : 'Sem conteúdo de texto...'}
             </p>
           </div>
         ) : (
@@ -269,11 +262,19 @@ export default function HandoutCard({
             <Button
               variant="outline"
               size="icon-xs"
-              onClick={handleAddToMap}
-              className="bg-[#202024] border-[#323238] hover:bg-white/20 text-[#a1a1aa] hover:text-white h-6 w-6 shrink-0"
-              title="Adicionar ao mapa como Plano de Fundo"
+              onClick={handleToggleMap}
+              className={`h-6 w-6 shrink-0 transition-all ${
+                isOnMap
+                  ? 'bg-blue-600/30 border-blue-500/60 text-blue-400 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/50'
+                  : 'bg-[#202024] border-[#323238] hover:bg-blue-600/20 text-[#a1a1aa] hover:text-blue-300'
+              }`}
+              title={isOnMap ? 'Remover do Mapa' : 'Colocar no Mapa'}
             >
-              <ImagePlus className="w-3 h-3" />
+              {isOnMap ? (
+                <MapPinOff className="w-3.5 h-3.5" />
+              ) : (
+                <MapPin className="w-3.5 h-3.5" />
+              )}
             </Button>
           )}
         </div>

@@ -62,6 +62,12 @@ interface ZoneState {
   updateZoneTransform: (id: string, updates: Partial<Zone>) => void;
 }
 
+const syncActiveScene = () => {
+  import('./useScenesStore')
+    .then((mod) => mod.useScenesStore.getState().saveCurrentSceneState())
+    .catch(() => {});
+};
+
 export const useZoneStore = create<ZoneState>((set) => ({
   zones: {},
   markers: {},
@@ -186,6 +192,7 @@ export const useZoneStore = create<ZoneState>((set) => ({
     set((state) => ({
       bgImages: [...state.bgImages, bg],
     }));
+    syncActiveScene();
     triggerAutoSave();
     if (socket.connected) {
       socket.emit('bg:add', { bg });
@@ -199,6 +206,7 @@ export const useZoneStore = create<ZoneState>((set) => ({
         bg.id === id ? { ...bg, ...updates } : bg,
       ),
     }));
+    syncActiveScene();
     triggerAutoSave();
     if (socket.connected) {
       socket.emit('bg:update', { bgId: id, updates });
@@ -210,6 +218,7 @@ export const useZoneStore = create<ZoneState>((set) => ({
     set((state) => ({
       bgImages: state.bgImages.filter((bg) => bg.id !== id),
     }));
+    syncActiveScene();
     triggerAutoSave();
     if (socket.connected) {
       socket.emit('bg:remove', { bgId: id });

@@ -10,6 +10,9 @@ import { db } from '@/lib/db';
 import { triggerAutoSave } from '@/lib/saveHelpers';
 import { isPlayerMode } from '@/lib/roomRole';
 import { socket } from '@/lib/socket';
+import { useZoneStore } from './useZoneStore';
+import { useTokenStore } from './useTokenStore';
+import { useScenesStore } from './useScenesStore';
 
 const generateId = () =>
   window.crypto?.randomUUID?.() ?? Math.random().toString(36).substring(2, 11);
@@ -43,6 +46,7 @@ interface InventoryState {
   updateItem: (id: string, updates: Partial<HandoutItem>) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;
   toggleShare: (id: string) => Promise<void>;
+  toggleMapPlacement: (id: string) => Promise<boolean>;
   convertMapImageToHandout: (ref: MapImageReference) => Promise<string>;
 
   // Navegação e Filtros
@@ -191,6 +195,17 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       // Limpar nome do arquivo para usar de título
       const title = file.name.replace(/\.[^/.]+$/, '');
 
+      let textContent: string | undefined;
+      let textStyle: HandoutTextStyle | undefined;
+      if (type === 'text') {
+        try {
+          textContent = await file.text();
+          textStyle = 'parchment';
+        } catch {
+          // fallback
+        }
+      }
+
       const item: HandoutItem = {
         id,
         title,
@@ -199,6 +214,8 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         filePath: file.name,
         fileData: dataUrl,
         serverUrl,
+        textContent,
+        textStyle,
         fileSize: file.size,
         mimeType: file.type,
         isSharedWithPlayers: false,
@@ -258,12 +275,111 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     triggerAutoSave();
   },
 
+  toggleMapPlacement: async (id: string) => {
+    const item = get().items.find((i) => i.id === id);
+    if (!item) return false;
+    const mediaSource = item.serverUrl || item.fileData;
+    if (!mediaSource) return false;
+
+    const zoneStore = useZoneStore.getState();
+    const existingBg = zoneStore.bgImages.find(
+      (bg) => bg.src === mediaSource || (item.serverUrl && bg.src === item.serverUrl),
+    );
+
+    if (existingBg) {
+      // Remover da cena atual
+      zoneStore.removeBgImage(existingBg.id);
+      await useScenesStore.getState().saveCurrentSceneState();
+      triggerAutoSave();
+      return false;
+    } else {
+      // Inserir na cena atual
+      const newBg = {
+        id: generateId(),
+        src: mediaSource,
+        x: 0,
+        y: 0,
+        scale: 1,
+        rotation: 0,
+      };
+      zoneStore.addBgImage(newBg);
+      await useScenesStore.getState().saveCurrentSceneState();
+      triggerAutoSave();
+      return true;
+    }
+  },
+
   deleteItem: async (id: string) => {
     const item = get().items.find((i) => i.id === id);
+    if (!item) return;
+
     await db.handouts.delete(id);
 
-    // Se houver arquivo no servidor Express, solicita exclusão
-    if (item?.serverUrl) {
+    const mediaSources = [item.serverUrl, item.fileData].filter(Boolean) as string[];
+
+    // Remoção estrita: se o item estava colocado no mapa, remove da cena atual e de todas as cenas salvas
+    if (mediaSources.length > 0) {
+      const zoneStore = useZoneStore.getState();
+      const bgsToRemove = zoneStore.bgImages.filter((bg) =>
+        mediaSources.includes(bg.src),
+      );
+      for (const bg of bgsToRemove) {
+        zoneStore.removeBgImage(bg.id);
+      }
+
+      // Remover referências em tokens da cena ativa
+      const tokenStore = useTokenStore.getState();
+      const tokensWithImage = tokenStore.tokens.filter(
+        (t) => t.imageUrl && mediaSources.includes(t.imageUrl),
+      );
+      for (const tok of tokensWithImage) {
+        tokenStore.updateToken(tok.id, { imageUrl: undefined });
+      }
+
+      // Remover de todas as cenas salvas no Dexie (bgImages e tokens)
+      try {
+        const allActiveScenes = await db.activeScenes.toArray();
+        for (const sc of allActiveScenes) {
+          let sceneModified = false;
+          let updatedBgs = sc.bgImages;
+          let updatedTokens = sc.tokens;
+
+          if (sc.bgImages?.some((bg: any) => mediaSources.includes(bg.src))) {
+            updatedBgs = sc.bgImages.filter(
+              (bg: any) => !mediaSources.includes(bg.src),
+            );
+            sceneModified = true;
+          }
+
+          if (
+            sc.tokens?.some(
+              (t: any) => t.imageUrl && mediaSources.includes(t.imageUrl),
+            )
+          ) {
+            updatedTokens = sc.tokens.map((t: any) =>
+              t.imageUrl && mediaSources.includes(t.imageUrl)
+                ? { ...t, imageUrl: undefined }
+                : t,
+            );
+            sceneModified = true;
+          }
+
+          if (sceneModified) {
+            await db.activeScenes.update(sc.id, {
+              bgImages: updatedBgs,
+              tokens: updatedTokens,
+            });
+          }
+        }
+      } catch (err) {
+        console.error('[Inventário] Erro ao sincronizar exclusão com cenas salvas:', err);
+      }
+
+      useScenesStore.getState().saveCurrentSceneState().catch(() => {});
+    }
+
+    // Se houver arquivo no servidor Express, solicita exclusão física
+    if (item.serverUrl) {
       const filename = item.serverUrl.split('/').pop();
       if (filename) {
         fetch(`/api/handouts/${filename}`, { method: 'DELETE' }).catch(() => {});

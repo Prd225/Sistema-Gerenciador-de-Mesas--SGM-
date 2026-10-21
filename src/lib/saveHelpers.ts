@@ -169,8 +169,9 @@ export const applyGameState = async (data: any) => {
 
     if (data.scenes) {
       await db.activeScenes.clear();
+      let uniqueScenes: any[] = [];
       if (data.scenes.sceneData && data.scenes.sceneData.length > 0) {
-        const uniqueScenes: any[] = Array.from(
+        uniqueScenes = Array.from(
           new Map<string, any>(data.scenes.sceneData.map((s: any) => [s.id, s])).values(),
         );
         uniqueScenes.forEach((scene: any) => {
@@ -196,6 +197,23 @@ export const applyGameState = async (data: any) => {
         scenes: data.scenes.scenes || [],
         activeSceneId: data.scenes.activeSceneId || null,
       });
+
+      if (data.scenes.activeSceneId && uniqueScenes.length > 0) {
+        const activeScene = uniqueScenes.find(
+          (s: any) => s.id === data.scenes.activeSceneId,
+        );
+        if (activeScene) {
+          useTokenStore.setState({
+            tokens: activeScene.tokens || [],
+            initiativeQueue: activeScene.initiativeQueue || [],
+          });
+          useZoneStore.setState({
+            zones: activeScene.zones || {},
+            markers: activeScene.markers || {},
+            bgImages: activeScene.bgImages || [],
+          });
+        }
+      }
     } else if (data.tokens || data.zones) {
       // Fallback para saves antigos sem gerenciador de cenas
       await useScenesStore.getState().loadLegacyData(data.tokens, data.zones);
