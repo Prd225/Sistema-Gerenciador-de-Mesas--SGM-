@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef } from 'react';
-import { Group, Rect, Circle, Line } from 'react-konva';
+import { Group, Rect, Ellipse, Line } from 'react-konva';
 import type Konva from 'konva';
 import { useFogStore } from '@/store/useFogStore';
 import { isPlayerMode } from '@/lib/roomRole';
@@ -81,11 +81,12 @@ function FogLayerComponent({ scale = 1 }: FogLayerProps) {
           const radiusX = Math.abs((area.width || 0) / 2);
           const radiusY = Math.abs((area.height || 0) / 2);
           return (
-            <Circle
+            <Ellipse
               key={area.id}
               x={area.x + radiusX}
               y={area.y + radiusY}
-              radius={Math.max(radiusX, radiusY)}
+              radiusX={radiusX}
+              radiusY={radiusY}
               fill={FOG_COLOR}
               globalCompositeOperation={composite as any}
               stroke={!isPlayer && !isReveal ? '#8257e5' : undefined}

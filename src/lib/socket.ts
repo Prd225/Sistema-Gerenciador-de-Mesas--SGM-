@@ -6,8 +6,10 @@ import type {
 
 // Determina dinamicamente a URL do servidor
 const getSocketUrl = (): string => {
-  const envServerUrl = (import.meta.env as Record<string, string | undefined>)
-    .VITE_SERVER_URL;
+  const envServerUrl =
+    typeof import.meta !== 'undefined' && import.meta.env
+      ? (import.meta.env as Record<string, string | undefined>).VITE_SERVER_URL
+      : undefined;
   if (envServerUrl) {
     return envServerUrl;
   }

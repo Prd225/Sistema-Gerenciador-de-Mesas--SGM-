@@ -271,13 +271,16 @@ export default function StageMap() {
       setNewShape(null);
       setPolyPoints([]);
     },
-    [addZone, selectZone, setActiveTool],
+    [addZone, selectZone, setActiveTool, activeTool],
   );
 
   // --- Double Click ---
   const handleDblClick = useCallback(
     (e: KonvaEventObject<MouseEvent>) => {
-      if (activeTool === 'draw-poly' && polyPoints.length >= 6) {
+      if (
+        (activeTool === 'draw-poly' || activeTool.endsWith('-poly')) &&
+        polyPoints.length >= 6
+      ) {
         e.evt.preventDefault();
         finishPolygon(polyPoints);
       }
@@ -760,7 +763,9 @@ export default function StageMap() {
         setPolyPoints([]);
         useZoneStore.getState().setSelectedZoneId(null);
         useZoneStore.getState().setSelectedNodeIds([]);
-        if (activeTool.startsWith('draw')) setActiveTool('pan');
+        if (activeTool.startsWith('draw') || activeTool.startsWith('fog-')) {
+          setActiveTool('pan');
+        }
       }
       if (
         e.key === 'Enter' &&

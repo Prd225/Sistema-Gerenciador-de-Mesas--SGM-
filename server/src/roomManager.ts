@@ -106,6 +106,7 @@ export class RoomManager {
       round: 1,
       turn: 1,
       soundpad: null,
+      fog: { enabled: false, defaultCovered: false, areas: [] },
       createdAt: Date.now(),
       cleanupTimer: null,
     };
@@ -267,9 +268,11 @@ export class RoomManager {
     room.bgImages = Array.isArray(payload.bgImages) ? payload.bgImages : [];
     room.round = Number.isFinite(payload.round) ? payload.round : 1;
     room.turn = Number.isFinite(payload.turn) ? payload.turn : 1;
-    if (payload.fog) {
-      room.fog = payload.fog;
-    }
+    room.fog = payload.fog ?? {
+      enabled: false,
+      defaultCovered: false,
+      areas: [],
+    };
   }
 
   public setFog(code: string, fog: FogState): void {

@@ -88,6 +88,12 @@ function applyPlayerView(view: PlayerStatePayload) {
   }
   if (view.fog) {
     useFogStore.getState().applyState(view.fog);
+  } else {
+    useFogStore.getState().applyState({
+      enabled: false,
+      defaultCovered: false,
+      areas: [],
+    });
   }
 }
 
