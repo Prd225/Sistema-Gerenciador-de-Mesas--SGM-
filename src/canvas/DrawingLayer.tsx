@@ -1,6 +1,7 @@
 import { Group, Rect, Ellipse, Line, Circle } from 'react-konva';
 import React from 'react';
 import type { NewShapeState } from './ZoneLayer';
+import { useZoneStore } from '@/store/useZoneStore';
 
 /**
  * Renders the shape currently being drawn on the canvas.
@@ -14,6 +15,7 @@ function DrawingLayer({
   newShape: NewShapeState | null;
   scale?: number;
 }) {
+  const activeTool = useZoneStore((state) => state.activeTool);
   if (!newShape) return <Group listening={false} />;
 
   const isPolygon =
@@ -21,6 +23,20 @@ function DrawingLayer({
     newShape.points &&
     newShape.points.length >= 2;
   const polyPoints = isPolygon ? newShape.points! : [];
+
+  // Feedback de cor contextual (Fog Reveal = Luz/Dourado; Fog Hide = Névoa/Roxo Escuro; Zonas = Roxo Claro)
+  const isFogReveal = activeTool.includes('reveal');
+  const isFogHide = activeTool.includes('hide');
+  const strokeColor = isFogReveal
+    ? '#ffd700'
+    : isFogHide
+      ? '#a855f7'
+      : '#8257e5';
+  const fillColor = isFogReveal
+    ? 'rgba(255, 215, 0, 0.25)'
+    : isFogHide
+      ? 'rgba(88, 28, 135, 0.4)'
+      : 'rgba(130, 87, 229, 0.2)';
 
   // When polygon has >= 6 coordinates (at least 3 vertices), it can be closed
   const canClose = isPolygon && polyPoints.length >= 6;
@@ -47,8 +63,8 @@ function DrawingLayer({
           }
           width={Math.abs(newShape.width || 0)}
           height={Math.abs(newShape.height || 0)}
-          fill="rgba(130, 87, 229, 0.2)"
-          stroke="#8257e5"
+          fill={fillColor}
+          stroke={strokeColor}
           strokeWidth={2 / scale}
           dash={[6 / scale, 4 / scale]}
         />
@@ -59,8 +75,8 @@ function DrawingLayer({
           y={newShape.y + (newShape.height || 0) / 2}
           radiusX={Math.abs((newShape.width || 0) / 2)}
           radiusY={Math.abs((newShape.height || 0) / 2)}
-          fill="rgba(130, 87, 229, 0.2)"
-          stroke="#8257e5"
+          fill={fillColor}
+          stroke={strokeColor}
           strokeWidth={2 / scale}
           dash={[6 / scale, 4 / scale]}
         />

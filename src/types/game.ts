@@ -267,4 +267,10 @@ export type ActiveTool =
   | 'draw-ellipse'
   | 'draw-poly'
   | 'edit-bg'
-  | 'add-marker';
+  | 'add-marker'
+  | 'fog-hide-rect'
+  | 'fog-hide-circle'
+  | 'fog-hide-poly'
+  | 'fog-reveal-rect'
+  | 'fog-reveal-circle'
+  | 'fog-reveal-poly';

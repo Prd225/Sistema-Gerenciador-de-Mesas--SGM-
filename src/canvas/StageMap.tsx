@@ -12,7 +12,9 @@ import BackgroundLayer from './BackgroundLayer';
 import ZoneLayer, { type NewShapeState } from './ZoneLayer';
 import TokenLayer from './TokenLayer';
 import MarkerLayer from './MarkerLayer';
+import FogLayer from './FogLayer';
 import DrawingLayer from './DrawingLayer';
+import { useFogStore } from '@/store/useFogStore';
 
 const generateId = () =>
   window.crypto?.randomUUID?.() ?? Math.random().toString(36).substring(2, 11);
@@ -204,6 +206,22 @@ export default function StageMap() {
         return;
       }
 
+      if (activeTool === 'fog-hide-poly' || activeTool === 'fog-reveal-poly') {
+        const mode = activeTool === 'fog-reveal-poly' ? 'reveal' : 'hide';
+        useFogStore.getState().setEnabled(true);
+        useFogStore.getState().addArea({
+          mode,
+          type: 'polygon',
+          x: 0,
+          y: 0,
+          points: cleaned,
+        });
+        setIsDrawing(false);
+        setNewShape(null);
+        setPolyPoints([]);
+        return;
+      }
+
       const xs = cleaned.filter((_, i) => i % 2 === 0);
       const ys = cleaned.filter((_, i) => i % 2 !== 0);
       const minX = Math.min(...xs);
@@ -326,6 +344,54 @@ export default function StageMap() {
         return;
       }
 
+      // Ferramentas de Fog of War
+      if (activeTool.startsWith('fog-')) {
+        if (activeTool.endsWith('-poly')) {
+          if (!isDrawing) {
+            setIsDrawing(true);
+            setPolyPoints([pos.x, pos.y]);
+            setNewShape({
+              type: 'polygon',
+              x: pos.x,
+              y: pos.y,
+              points: [pos.x, pos.y],
+            });
+          } else {
+            if (polyPoints.length >= 6) {
+              const startX = polyPoints[0];
+              const startY = polyPoints[1];
+              const dist = Math.hypot(pos.x - startX, pos.y - startY);
+              if (dist <= 25 / scale) {
+                finishPolygon(polyPoints);
+                return;
+              }
+            }
+            const lastX = polyPoints[polyPoints.length - 2];
+            const lastY = polyPoints[polyPoints.length - 1];
+            if (Math.hypot(pos.x - lastX, pos.y - lastY) >= 3) {
+              const nextPoints = [...polyPoints, pos.x, pos.y];
+              setPolyPoints(nextPoints);
+              setNewShape((prev) =>
+                prev
+                  ? { ...prev, points: [...nextPoints, pos.x, pos.y] }
+                  : null,
+              );
+            }
+          }
+        } else {
+          setIsDrawing(true);
+          drawStartRef.current = { x: pos.x, y: pos.y };
+          setNewShape({
+            type: activeTool.includes('circle') ? 'ellipse' : 'rect',
+            x: pos.x,
+            y: pos.y,
+            width: 0,
+            height: 0,
+          });
+        }
+        return;
+      }
+
       // Start drawing zone
       if (activeTool === 'draw-rect' || activeTool === 'draw-ellipse') {
         setIsDrawing(true);
@@ -407,7 +473,10 @@ export default function StageMap() {
 
     if (!newShape) return;
 
-    if (newShape.type === 'polygon' && activeTool === 'draw-poly') {
+    if (
+      newShape.type === 'polygon' &&
+      (activeTool === 'draw-poly' || activeTool.endsWith('-poly'))
+    ) {
       let targetX = pos.x;
       let targetY = pos.y;
       if (polyPoints.length >= 6) {
@@ -493,7 +562,39 @@ export default function StageMap() {
     }
 
     if (!newShape) return;
-    if (activeTool === 'draw-poly') return; // Handled by Enter key
+    if (activeTool === 'draw-poly' || activeTool.endsWith('-poly')) return; // Handled by Enter key
+
+    if (activeTool.startsWith('fog-')) {
+      setIsDrawing(false);
+      const absW = Math.abs(newShape.width || 0);
+      const absH = Math.abs(newShape.height || 0);
+
+      if (absW > 5 && absH > 5) {
+        const x =
+          (newShape.width || 0) < 0
+            ? drawStartRef.current.x + (newShape.width || 0)
+            : drawStartRef.current.x;
+        const y =
+          (newShape.height || 0) < 0
+            ? drawStartRef.current.y + (newShape.height || 0)
+            : drawStartRef.current.y;
+
+        const mode = activeTool.includes('reveal') ? 'reveal' : 'hide';
+        const type = activeTool.includes('circle') ? 'circle' : 'rect';
+
+        useFogStore.getState().setEnabled(true);
+        useFogStore.getState().addArea({
+          mode,
+          type,
+          x,
+          y,
+          width: absW,
+          height: absH,
+        });
+      }
+      setNewShape(null);
+      return;
+    }
 
     setIsDrawing(false);
 
@@ -663,7 +764,7 @@ export default function StageMap() {
       }
       if (
         e.key === 'Enter' &&
-        activeTool === 'draw-poly' &&
+        (activeTool === 'draw-poly' || activeTool.endsWith('-poly')) &&
         polyPoints.length >= 6
       ) {
         e.preventDefault();
@@ -735,6 +836,10 @@ export default function StageMap() {
               strokeWidth={1}
             />
           )}
+        </Layer>
+        {/* Camada de Névoa de Guerra (cobre mapa e tokens) */}
+        <Layer>
+          <FogLayer scale={scale} />
         </Layer>
         <Layer>
           <DrawingLayer newShape={newShape} scale={scale} />

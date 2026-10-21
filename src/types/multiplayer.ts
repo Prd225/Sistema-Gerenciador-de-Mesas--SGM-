@@ -6,6 +6,7 @@ import type {
   BgImage,
 } from './game';
 import type { SongSource } from './soundpad';
+import type { FogState } from './fog';
 
 export type UserRole = 'gm' | 'player';
 
@@ -61,6 +62,7 @@ export interface PlayerStatePayload {
   bgImages: BgImage[];
   round: number;
   turn: number;
+  fog?: FogState;
 }
 
 // ---------------------------------------------------------------------------
@@ -74,6 +76,7 @@ export interface SyncStatePayload {
   bgImages: BgImage[];
   round: number;
   turn: number;
+  fog?: FogState;
 }
 
 // ---------------------------------------------------------------------------
@@ -180,6 +183,9 @@ export interface ClientToServerEvents {
 
   // Map ping (somente mestre, por enquanto)
   'map:ping': (payload: { x: number; y: number }) => void;
+
+  // Fog of War (Névoa de Guerra - somente mestre)
+  'fog:update': (payload: FogState) => void;
 }
 
 export interface ServerToClientEvents {
@@ -189,6 +195,7 @@ export interface ServerToClientEvents {
   /** O mestre encerrou a mesa. */
   'room:closed': () => void;
   'room:state-synced': (payload: PlayerStatePayload) => void;
+  'fog:updated': (payload: FogState) => void;
 
   // Tokens (sempre na visão do jogador)
   'token:moved': (payload: {

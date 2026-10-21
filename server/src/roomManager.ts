@@ -13,6 +13,7 @@ import type {
   SyncStatePayload,
   UserRole,
 } from '../../src/types/multiplayer';
+import type { FogState } from '../../src/types/fog';
 import { toPlayerState } from './playerView';
 
 /** Dados do soundpad guardados para quem entra com a música já tocando. */
@@ -34,6 +35,7 @@ export interface ActiveRoom {
   bgImages: BgImage[];
   round: number;
   turn: number;
+  fog?: FogState;
   soundpad: SoundpadSnapshot | null;
   createdAt: number;
   /** Remoção agendada quando a sala fica vazia (permite o mestre reconectar). */
@@ -265,6 +267,15 @@ export class RoomManager {
     room.bgImages = Array.isArray(payload.bgImages) ? payload.bgImages : [];
     room.round = Number.isFinite(payload.round) ? payload.round : 1;
     room.turn = Number.isFinite(payload.turn) ? payload.turn : 1;
+    if (payload.fog) {
+      room.fog = payload.fog;
+    }
+  }
+
+  public setFog(code: string, fog: FogState): void {
+    const room = this.getRoom(code);
+    if (!room) return;
+    room.fog = fog;
   }
 
   /**

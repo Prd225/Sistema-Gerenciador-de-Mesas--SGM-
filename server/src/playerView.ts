@@ -84,5 +84,6 @@ export function toPlayerState(room: ActiveRoom): PlayerStatePayload {
     bgImages: room.bgImages,
     round: room.round,
     turn: room.turn,
+    fog: room.fog,
   };
 }

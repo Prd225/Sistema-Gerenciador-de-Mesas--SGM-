@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { useTokenStore } from './useTokenStore';
 import { useZoneStore } from './useZoneStore';
+import { useFogStore } from './useFogStore';
 import { generateId as uuidv4 } from '@/lib/uuid';
 
 import { db } from '@/lib/db';
@@ -29,6 +30,7 @@ const createEmptySceneData = (): any => ({
   zones: {},
   markers: {},
   bgImages: [],
+  fog: { enabled: false, defaultCovered: false, areas: [] },
 });
 
 export const useScenesStore = create<ScenesState>((set, get) => {
@@ -47,6 +49,7 @@ export const useScenesStore = create<ScenesState>((set, get) => {
 
       const tokenState = useTokenStore.getState();
       const zoneState = useZoneStore.getState();
+      const fogState = useFogStore.getState();
 
       await db.activeScenes.put({
         id: activeSceneId,
@@ -55,6 +58,11 @@ export const useScenesStore = create<ScenesState>((set, get) => {
         zones: zoneState.zones,
         markers: zoneState.markers,
         bgImages: zoneState.bgImages,
+        fog: {
+          enabled: fogState.enabled,
+          defaultCovered: fogState.defaultCovered,
+          areas: fogState.areas,
+        },
       });
     },
 
@@ -86,6 +94,14 @@ export const useScenesStore = create<ScenesState>((set, get) => {
           markers: targetData.markers,
           bgImages: targetData.bgImages,
         });
+
+        useFogStore.getState().applyState(
+          (targetData as any).fog || {
+            enabled: false,
+            defaultCovered: false,
+            areas: [],
+          },
+        );
 
         // Emit an event for components that need to react
         setTimeout(() => window.dispatchEvent(new Event('scene-switched')), 50);

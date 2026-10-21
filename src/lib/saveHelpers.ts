@@ -8,6 +8,7 @@ import { useTablesStore } from '@/store/useTablesStore';
 import { useRoulettesStore } from '@/store/useRoulettesStore';
 import { useSoundpadStore } from '@/store/useSoundpadStore';
 import { useScenesStore } from '@/store/useScenesStore';
+import { useFogStore } from '@/store/useFogStore';
 import { db } from '@/lib/db';
 import { generateId } from '@/lib/uuid';
 import { isPlayerMode } from '@/lib/roomRole';
@@ -63,6 +64,11 @@ export const collectGameState = async () => {
     soundpad: {
       pages: useSoundpadStore.getState().pages,
     },
+    fog: {
+      enabled: useFogStore.getState().enabled,
+      defaultCovered: useFogStore.getState().defaultCovered,
+      areas: useFogStore.getState().areas,
+    },
     scenes: {
       scenes: useScenesStore.getState().scenes,
       activeSceneId: useScenesStore.getState().activeSceneId,
@@ -75,6 +81,10 @@ export const applyGameState = async (data: any) => {
   if (!data) return;
 
   try {
+    if (data.fog) {
+      useFogStore.getState().applyState(data.fog);
+    }
+
     if (data.tokens) {
       useTokenStore.setState({
         tokens: data.tokens.tokens || [],

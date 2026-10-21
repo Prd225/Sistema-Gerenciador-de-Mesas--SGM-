@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { useZoneStore } from '@/store/useZoneStore';
+import { useFogStore } from '@/store/useFogStore';
 import { Button } from '@/components/ui/button';
 import {
   Move,
@@ -12,6 +13,9 @@ import {
   Plus,
   Pencil,
   Edit3,
+  EyeOff,
+  Eye,
+  Eraser,
 } from 'lucide-react';
 import type { ActiveTool } from '@/types/game';
 
@@ -23,6 +27,12 @@ export default function MapToolbar() {
   const setActiveTool = useZoneStore((state) => state.setActiveTool);
   const addBgImage = useZoneStore((state) => state.addBgImage);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fogEnabled = useFogStore((state) => state.enabled);
+  const toggleFogEnabled = useFogStore((state) => state.toggleEnabled);
+  const coverAllFog = useFogStore((state) => state.coverAll);
+  const revealAllFog = useFogStore((state) => state.revealAll);
+  const clearAllFog = useFogStore((state) => state.clearAll);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -87,6 +97,50 @@ export default function MapToolbar() {
       ],
     },
     {
+      id: 'fog-group',
+      icon: (
+        <div className="relative">
+          <EyeOff className="w-5 h-5" />
+          {fogEnabled && (
+            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_6px_#f59e0b]" />
+          )}
+        </div>
+      ),
+      title: 'Névoa de Guerra (Fog of War)',
+      subTools: [
+        {
+          id: 'fog-hide-rect',
+          icon: <Square className="w-4 h-4 text-purple-400" />,
+          title: 'Cobrir Retângulo (Ocultar dos Jogadores)',
+        },
+        {
+          id: 'fog-hide-circle',
+          icon: <Circle className="w-4 h-4 text-purple-400" />,
+          title: 'Cobrir Círculo (Ocultar dos Jogadores)',
+        },
+        {
+          id: 'fog-hide-poly',
+          icon: <Hexagon className="w-4 h-4 text-purple-400" />,
+          title: 'Cobrir Polígono (Ocultar dos Jogadores)',
+        },
+        {
+          id: 'fog-reveal-rect',
+          icon: <Square className="w-4 h-4 text-amber-300" />,
+          title: 'Revelar Retângulo (Abrir Visão)',
+        },
+        {
+          id: 'fog-reveal-circle',
+          icon: <Circle className="w-4 h-4 text-amber-300" />,
+          title: 'Revelar Círculo (Abrir Visão)',
+        },
+        {
+          id: 'fog-reveal-poly',
+          icon: <Hexagon className="w-4 h-4 text-amber-300" />,
+          title: 'Revelar Polígono (Abrir Visão)',
+        },
+      ],
+    },
+    {
       id: 'add-marker',
       icon: <MapPin className="w-5 h-5" />,
       title: 'Adicionar Marcador',
@@ -115,15 +169,20 @@ export default function MapToolbar() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() =>
-                tool.id === 'draw-group'
-                  ? setActiveTool('draw-rect')
-                  : setActiveTool(tool.id as ActiveTool)
-              }
+              onClick={() => {
+                if (tool.id === 'draw-group') {
+                  setActiveTool('draw-rect');
+                } else if (tool.id === 'fog-group') {
+                  setActiveTool('fog-hide-rect');
+                } else {
+                  setActiveTool(tool.id as ActiveTool);
+                }
+              }}
               className={`w-10 h-10 transition-all ${
                 activeTool === tool.id ||
                 (tool.id === 'draw-group' &&
-                  (activeTool.startsWith('draw-') || activeTool === 'edit-zone'))
+                  (activeTool.startsWith('draw-') || activeTool === 'edit-zone')) ||
+                (tool.id === 'fog-group' && activeTool.startsWith('fog-'))
                   ? 'bg-[#8257e5] text-white border-[#8257e5] hover:bg-[#9466ff]'
                   : 'bg-transparent text-[#a8a8b3] border-transparent hover:bg-white/10 hover:text-white'
               }`}
@@ -154,6 +213,96 @@ export default function MapToolbar() {
                     {sub.icon}
                   </Button>
                 ))}
+              </div>
+            )}
+
+            {/* Sub-tools for fog-group */}
+            {tool.id === 'fog-group' && (
+              <div className="absolute right-full top-0 pr-2 hidden group-hover:flex items-center gap-1.5 h-full bg-[#121214]/95 px-2 py-1 rounded-lg border border-[#323238] shadow-2xl">
+                {/* Botão de Toggle On/Off da Névoa */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFogEnabled();
+                  }}
+                  className={`w-8 h-8 rounded-md transition-all ${
+                    fogEnabled
+                      ? 'bg-purple-600/30 border-purple-500 text-purple-300 hover:bg-purple-600/40'
+                      : 'bg-[#202024] border-[#323238] text-[#71717a] hover:bg-white/10'
+                  }`}
+                  title={
+                    fogEnabled
+                      ? 'Névoa Ativa no Mapa (clique para pausar)'
+                      : 'Névoa Pausada (clique para ativar)'
+                  }
+                >
+                  {fogEnabled ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+
+                <div className="w-[1px] h-5 bg-[#323238]" />
+
+                {/* Subferramentas de desenho */}
+                {tool.subTools?.map((sub) => (
+                  <Button
+                    key={sub.id}
+                    variant="outline"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveTool(sub.id);
+                    }}
+                    className={`w-8 h-8 rounded-md transition-all shadow-[0_2px_5px_rgba(0,0,0,0.5)] ${
+                      activeTool === sub.id
+                        ? 'bg-[#9466ff] border-[#8257e5] text-white'
+                        : 'bg-[#202024] border-[#323238] text-[#a8a8b3] hover:bg-[#8257e5] hover:text-white'
+                    }`}
+                    title={sub.title}
+                  >
+                    {sub.icon}
+                  </Button>
+                ))}
+
+                <div className="w-[1px] h-5 bg-[#323238]" />
+
+                {/* Ações globais: Cobrir Tudo / Revelar Tudo / Limpar Áreas */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    coverAllFog();
+                  }}
+                  className="w-8 h-8 rounded-md bg-[#202024] border-[#323238] text-purple-400 hover:bg-purple-600/20 hover:text-purple-300"
+                  title="Cobrir todo o mapa com névoa"
+                >
+                  <EyeOff className="w-3.5 h-3.5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    revealAllFog();
+                  }}
+                  className="w-8 h-8 rounded-md bg-[#202024] border-[#323238] text-amber-300 hover:bg-amber-600/20 hover:text-amber-200"
+                  title="Revelar todo o mapa (desativar névoa)"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    clearAllFog();
+                  }}
+                  className="w-8 h-8 rounded-md bg-[#202024] border-[#323238] text-red-400 hover:bg-red-600/20 hover:text-red-300"
+                  title="Limpar recortes de névoa"
+                >
+                  <Eraser className="w-3.5 h-3.5" />
+                </Button>
               </div>
             )}
 
