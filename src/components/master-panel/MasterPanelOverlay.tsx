@@ -10,8 +10,10 @@ import MasterTables from './tables/MasterTables';
 import MasterRoulettes from './roulettes/MasterRoulettes';
 import MasterSoundpad from './soundpad/MasterSoundpad';
 import ScenesPanel from './scenes/ScenesPanel';
+import MasterInventory from './inventory/MasterInventory';
 
 function RenderPanel({ panelId }: { panelId: string }) {
+  if (panelId === 'inventory') return <MasterInventory />;
   if (panelId === 'diary') return <MasterDiary />;
   if (panelId === 'rules') return <MasterRules />;
   if (panelId === 'notes') return <MasterNotes />;

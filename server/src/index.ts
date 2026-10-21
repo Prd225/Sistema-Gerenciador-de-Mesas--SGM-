@@ -8,9 +8,74 @@ import type {
 } from '../../src/types/multiplayer';
 import { registerSocketHandlers } from './handlers/socketHandlers';
 
+import path from 'path';
+import fs from 'fs';
+
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
+
+// Cria diretório de mídia local do mestre se não existir
+const uploadsDir = path.join(process.cwd(), 'server', 'uploads', 'handouts');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Servir arquivos estáticos locais para qualquer cliente da mesa
+app.use('/uploads', express.static(path.join(process.cwd(), 'server', 'uploads')));
+
+// Upload de arquivo local de handout vindo do mestre
+app.post('/api/handouts/upload', (req, res) => {
+  try {
+    const { id, name, dataUrl } = req.body;
+    if (!id || !dataUrl) {
+      return res.status(400).json({ error: 'id e dataUrl são obrigatórios' });
+    }
+
+    const matches = dataUrl.match(/^data:([A-Za-z0-9-+\/.]+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) {
+      return res.status(400).json({ error: 'Formato dataUrl inválido' });
+    }
+
+    const mimeType = matches[1];
+    const base64Data = matches[2];
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    // Determina extensão a partir do nome original ou mimeType
+    let ext = 'bin';
+    if (name && name.includes('.')) {
+      ext = name.split('.').pop() || 'bin';
+    } else {
+      ext = mimeType.split('/')[1]?.split('+')[0] || 'bin';
+    }
+
+    const filename = `${id}.${ext}`;
+    const filePath = path.join(uploadsDir, filename);
+
+    fs.writeFileSync(filePath, buffer);
+
+    const relativeUrl = `/uploads/handouts/${filename}`;
+    res.json({ success: true, url: relativeUrl, filename });
+  } catch (err: any) {
+    console.error('[Upload Handout] Erro ao salvar arquivo:', err);
+    res.status(500).json({ error: err.message || 'Falha ao processar upload' });
+  }
+});
+
+// Exclusão de arquivo de handout do disco
+app.delete('/api/handouts/:filename', (req, res) => {
+  try {
+    const filename = path.basename(req.params.filename);
+    const filePath = path.join(uploadsDir, filename);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Falha ao excluir arquivo' });
+  }
+});
 
 // Rota de status do servidor
 app.get('/health', (_req, res) => {

@@ -8,12 +8,14 @@ import {
   Table,
   Dices,
   NotebookPen,
+  FolderArchive,
 } from 'lucide-react';
 
 const PANEL_DETAILS: Record<
   SubPanelId,
   { title: string; icon: React.ElementType }
 > = {
+  inventory: { title: 'Inventário do Mestre', icon: FolderArchive },
   diary: { title: 'Diário do Mestre', icon: BookOpen },
   rules: { title: 'Regras', icon: Scale },
   scenes: { title: 'Cenas', icon: Clapperboard },

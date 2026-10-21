@@ -14,6 +14,7 @@ import {
   Table,
   Dices,
   NotebookPen,
+  FolderArchive,
 } from 'lucide-react';
 
 const AVAILABLE_PANELS: {
@@ -22,6 +23,12 @@ const AVAILABLE_PANELS: {
   allowedSlots: SlotId[];
   icon: React.ElementType;
 }[] = [
+  {
+    id: 'inventory',
+    title: 'Inventário do Mestre',
+    allowedSlots: ['left', 'center', 'right'],
+    icon: FolderArchive,
+  },
   {
     id: 'diary',
     title: 'Diário do Mestre',

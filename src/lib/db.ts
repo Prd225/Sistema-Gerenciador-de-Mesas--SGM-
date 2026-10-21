@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
+import type { HandoutItem, HandoutFolder } from '@/types/inventory';
 
 export interface SaveSlot {
   slotNumber: number; // 1 to 50
@@ -26,6 +27,8 @@ export class SGMDatabase extends Dexie {
   campaignSlots!: EntityTable<SaveSlot, 'slotNumber'>;
   activeScenes!: EntityTable<ActiveScene, 'id'>;
   sessionState!: EntityTable<SessionState, 'key'>;
+  handouts!: EntityTable<HandoutItem, 'id'>;
+  handoutFolders!: EntityTable<HandoutFolder, 'id'>;
 
   constructor() {
     super('SGMDatabase');
@@ -50,6 +53,13 @@ export class SGMDatabase extends Dexie {
       campaignSlots: 'slotNumber',
       activeScenes: 'id',
       sessionState: 'key',
+    });
+    this.version(8).stores({
+      campaignSlots: 'slotNumber',
+      activeScenes: 'id',
+      sessionState: 'key',
+      handouts: 'id, folderId, type, isSharedWithPlayers, createdAt',
+      handoutFolders: 'id, createdAt',
     });
   }
 }

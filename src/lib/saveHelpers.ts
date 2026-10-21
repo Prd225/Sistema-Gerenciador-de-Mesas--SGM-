@@ -8,6 +8,7 @@ import { useTablesStore } from '@/store/useTablesStore';
 import { useRoulettesStore } from '@/store/useRoulettesStore';
 import { useSoundpadStore } from '@/store/useSoundpadStore';
 import { useScenesStore } from '@/store/useScenesStore';
+import { useInventoryStore } from '@/store/useInventoryStore';
 import { db } from '@/lib/db';
 import { generateId } from '@/lib/uuid';
 import { isPlayerMode } from '@/lib/roomRole';
@@ -67,6 +68,10 @@ export const collectGameState = async () => {
       scenes: useScenesStore.getState().scenes,
       activeSceneId: useScenesStore.getState().activeSceneId,
       sceneData: activeScenesData,
+    },
+    inventory: {
+      items: await db.handouts.toArray(),
+      folders: await db.handoutFolders.toArray(),
     },
   };
 };
@@ -165,7 +170,10 @@ export const applyGameState = async (data: any) => {
     if (data.scenes) {
       await db.activeScenes.clear();
       if (data.scenes.sceneData && data.scenes.sceneData.length > 0) {
-        data.scenes.sceneData.forEach((scene: any) => {
+        const uniqueScenes: any[] = Array.from(
+          new Map<string, any>(data.scenes.sceneData.map((s: any) => [s.id, s])).values(),
+        );
+        uniqueScenes.forEach((scene: any) => {
           if (scene.zones) {
             Object.values(scene.zones).forEach((zone: any) => {
               if (!zone.data) {
@@ -181,7 +189,7 @@ export const applyGameState = async (data: any) => {
             });
           }
         });
-        await db.activeScenes.bulkAdd(data.scenes.sceneData);
+        await db.activeScenes.bulkPut(uniqueScenes);
       }
 
       useScenesStore.setState({
@@ -191,6 +199,18 @@ export const applyGameState = async (data: any) => {
     } else if (data.tokens || data.zones) {
       // Fallback para saves antigos sem gerenciador de cenas
       await useScenesStore.getState().loadLegacyData(data.tokens, data.zones);
+    }
+
+    if (data.inventory) {
+      await db.handouts.clear();
+      await db.handoutFolders.clear();
+      if (data.inventory.items && data.inventory.items.length > 0) {
+        await db.handouts.bulkPut(data.inventory.items);
+      }
+      if (data.inventory.folders && data.inventory.folders.length > 0) {
+        await db.handoutFolders.bulkPut(data.inventory.folders);
+      }
+      await useInventoryStore.getState().loadFromDb();
     }
 
     // Dispara evento para componentes ouvintes atualizarem renderização/posição

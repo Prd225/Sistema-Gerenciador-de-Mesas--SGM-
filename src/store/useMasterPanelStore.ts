@@ -1,7 +1,14 @@
 import { create } from 'zustand';
 
 export type SubPanelId =
-  'diary' | 'rules' | 'scenes' | 'soundpad' | 'table' | 'roulette' | 'notes';
+  | 'diary'
+  | 'rules'
+  | 'scenes'
+  | 'soundpad'
+  | 'table'
+  | 'roulette'
+  | 'notes'
+  | 'inventory';
 export type SlotId = 'left' | 'center' | 'right';
 
 export interface MasterPanelState {
