@@ -838,7 +838,7 @@ export default function StageMap() {
           )}
         </Layer>
         {/* Camada de Névoa de Guerra (cobre mapa e tokens) */}
-        <Layer>
+        <Layer listening={false}>
           <FogLayer scale={scale} />
         </Layer>
         <Layer>

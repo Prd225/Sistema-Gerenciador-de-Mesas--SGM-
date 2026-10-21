@@ -175,7 +175,11 @@ export const applyGameState = async (data: any) => {
     if (data.scenes) {
       await db.activeScenes.clear();
       if (data.scenes.sceneData && data.scenes.sceneData.length > 0) {
-        data.scenes.sceneData.forEach((scene: any) => {
+        // Deduplica por ID para evitar conflitos de chave no banco
+        const uniqueScenes: any[] = Array.from(
+          new Map<string, any>(data.scenes.sceneData.map((s: any) => [s.id, s])).values(),
+        );
+        uniqueScenes.forEach((scene: any) => {
           if (scene.zones) {
             Object.values(scene.zones).forEach((zone: any) => {
               if (!zone.data) {
@@ -191,7 +195,7 @@ export const applyGameState = async (data: any) => {
             });
           }
         });
-        await db.activeScenes.bulkAdd(data.scenes.sceneData);
+        await db.activeScenes.bulkPut(uniqueScenes);
       }
 
       useScenesStore.setState({
