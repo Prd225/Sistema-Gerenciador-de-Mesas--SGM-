@@ -114,8 +114,8 @@ export default function HandoutCard({
           }`}
           title={
             item.isSharedWithPlayers
-              ? 'Visível para os jogadores (clique para ocultar)'
-              : 'Oculto para os jogadores (clique para revelar)'
+              ? 'Visível para jogadores'
+              : 'Oculto para jogadores'
           }
         >
           {item.isSharedWithPlayers ? (
@@ -133,7 +133,7 @@ export default function HandoutCard({
           <DropdownMenu>
             <DropdownMenuTrigger
               className="p-1 rounded-md bg-black/75 hover:bg-black border border-white/10 text-[#a1a1aa] hover:text-white transition-all outline-none cursor-pointer"
-              title="Mais opções"
+              title="Opções"
             >
               <MoreVertical className="w-3.5 h-3.5" />
             </DropdownMenuTrigger>
@@ -146,7 +146,7 @@ export default function HandoutCard({
                 className="cursor-pointer hover:bg-[#8257e5] hover:text-white text-xs gap-2 py-1.5"
               >
                 <Eye className="w-3.5 h-3.5" />
-                <span>Abrir / Visualizar</span>
+                <span>Visualizar</span>
               </DropdownMenuItem>
 
               {item.type === 'text' && (
@@ -163,14 +163,14 @@ export default function HandoutCard({
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger className="cursor-pointer hover:bg-[#8257e5] hover:text-white text-xs gap-2 py-1.5">
                   <FolderInput className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Mover para...</span>
+                  <span>Mover para</span>
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="bg-[#1c1c20] border-[#323238] text-[#e1e1e6] p-1">
                   <DropdownMenuItem
                     onClick={() => updateItem(item.id, { folderId: null })}
                     className="cursor-pointer hover:bg-[#8257e5] hover:text-white text-xs py-1.5 text-[#a1a1aa]"
                   >
-                    (Início / Sem Pasta)
+                    Início
                   </DropdownMenuItem>
                   {folders.map((f) => (
                     <DropdownMenuItem

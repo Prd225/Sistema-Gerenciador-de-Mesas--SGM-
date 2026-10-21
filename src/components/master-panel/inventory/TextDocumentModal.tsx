@@ -215,7 +215,7 @@ export default function TextDocumentModal({
           <div className="flex items-center gap-2">
             <Scroll className="w-5 h-5 text-amber-400" />
             <h3 className="text-sm font-semibold text-white">
-              {initialItem ? 'Editar Documento / Carta' : 'Criar Novo Documento de Texto'}
+              {initialItem ? 'Editar Documento' : 'Novo Documento'}
             </h3>
           </div>
 
@@ -253,7 +253,7 @@ export default function TextDocumentModal({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="sm:col-span-2 flex flex-col gap-1">
               <label className="text-xs font-medium text-[#a1a1aa]">
-                Título do Documento
+                Título
               </label>
               <input
                 type="text"
@@ -267,14 +267,14 @@ export default function TextDocumentModal({
 
             <div className="flex flex-col gap-1">
               <label className="text-xs font-medium text-[#a1a1aa]">
-                Pasta de Destino
+                Pasta
               </label>
               <select
                 value={folderId || ''}
                 onChange={(e) => setFolderId(e.target.value || null)}
                 className="w-full bg-[#121214] border border-[#3f3f46] rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-[#8257e5] transition-all cursor-pointer"
               >
-                <option value="">(Início / Sem Pasta)</option>
+                <option value="">Início</option>
                 {folders.map((f) => (
                   <option key={f.id} value={f.id}>
                     {f.name}
@@ -287,15 +287,15 @@ export default function TextDocumentModal({
           {/* Seletor de Tema Estético */}
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-[#a1a1aa]">
-              Estilo Visual de Apresentação
+              Estilo Visual
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {(
                 [
-                  { id: 'parchment', label: 'Pergaminho Antigo', icon: Scroll },
-                  { id: 'official', label: 'Documento Oficial', icon: Stamp },
-                  { id: 'dark-scroll', label: 'Grimório / Culto', icon: Moon },
-                  { id: 'modern', label: 'Moderno / Neutro', icon: FileText },
+                  { id: 'parchment', label: 'Pergaminho', icon: Scroll },
+                  { id: 'official', label: 'Oficial', icon: Stamp },
+                  { id: 'dark-scroll', label: 'Grimório', icon: Moon },
+                  { id: 'modern', label: 'Moderno', icon: FileText },
                 ] as const
               ).map((t) => {
                 const Icon = t.icon;
@@ -323,7 +323,7 @@ export default function TextDocumentModal({
             <div className="flex-1 flex flex-col gap-1.5 min-h-[280px]">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-medium text-[#a1a1aa]">
-                  Conteúdo do Documento (formate texto, cores, listas e dados)
+                  Conteúdo
                 </label>
               </div>
 
@@ -440,7 +440,7 @@ export default function TextDocumentModal({
                       ? 'bg-[#8257e5]/20 text-[#a78bfa] border border-[#8257e5]/40'
                       : 'hover:bg-[#323238] text-[#a8a8b3] hover:text-white'
                   }`}
-                  title="Listas / Marcadores (Bullets)"
+                  title="Marcadores"
                 >
                   {listState === 'ol' ? (
                     <ListOrdered className="w-3.5 h-3.5" />
@@ -451,12 +451,12 @@ export default function TextDocumentModal({
 
                 <div className="w-px h-4 bg-[#323238] mx-0.5 shrink-0" />
 
-                {/* Cor do Texto (Palette) */}
+                {/* Cor do Texto */}
                 <div className="relative group/color shrink-0">
                   <button
                     type="button"
                     className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white flex items-center gap-1"
-                    title="Pintar Texto (Cor)"
+                    title="Cor do texto"
                   >
                     <Palette className="w-3.5 h-3.5" />
                   </button>
@@ -478,12 +478,12 @@ export default function TextDocumentModal({
                   </div>
                 </div>
 
-                {/* Marca-texto / Pintar trecho (Highlighter) */}
+                {/* Marca-texto */}
                 <div className="relative group/bg shrink-0">
                   <button
                     type="button"
                     className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white flex items-center gap-1"
-                    title="Pintar Trecho (Marca-texto)"
+                    title="Marca-texto"
                   >
                     <Highlighter className="w-3.5 h-3.5" />
                   </button>
@@ -520,7 +520,7 @@ export default function TextDocumentModal({
                     exec('insertHorizontalRule');
                   }}
                   className="p-1 hover:bg-[#323238] rounded text-[#a8a8b3] hover:text-white"
-                  title="Inserir Linha Divisória"
+                  title="Linha divisória"
                 >
                   <Minus className="w-3.5 h-3.5" />
                 </button>
@@ -535,7 +535,7 @@ export default function TextDocumentModal({
                     handleToggleFormula();
                   }}
                   className="p-1 hover:bg-[#8257e5]/20 hover:text-[#a78bfa] rounded text-[#a8a8b3] hover:border hover:border-[#8257e5]/40 transition-colors shrink-0"
-                  title="Converter seleção em Fórmula de Dado RPG"
+                  title="Fórmula de dados"
                 >
                   <Sigma className="w-3.5 h-3.5 text-amber-400" />
                 </button>

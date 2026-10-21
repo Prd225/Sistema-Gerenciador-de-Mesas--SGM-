@@ -103,12 +103,12 @@ export default function HandoutDetailModal({
               {item.isSharedWithPlayers ? (
                 <>
                   <Eye className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Revelado aos Jogadores</span>
+                  <span>Revelado</span>
                 </>
               ) : (
                 <>
                   <EyeOff className="w-3.5 h-3.5" />
-                  <span>Oculto (Só o Mestre vê)</span>
+                  <span>Oculto</span>
                 </>
               )}
             </Button>
@@ -122,7 +122,7 @@ export default function HandoutDetailModal({
                 className="bg-purple-600 hover:bg-purple-500 text-white gap-1.5 text-xs shadow-md"
               >
                 <Tv className="w-3.5 h-3.5" />
-                <span>Projetar Agora</span>
+                <span>Projetar</span>
               </Button>
             )}
 
@@ -163,9 +163,9 @@ export default function HandoutDetailModal({
         </div>
 
         {/* Visualizador de Conteúdo */}
-        <div className="flex-1 overflow-auto p-6 flex items-center justify-center bg-black/40 min-h-[350px]">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-black/40 min-h-[350px]">
           {item.type === 'image' && mediaSource ? (
-            <div className="relative flex items-center justify-center w-full h-full overflow-hidden">
+            <div className="flex items-center justify-center w-full min-h-[350px] overflow-hidden">
               <img
                 src={mediaSource}
                 alt={item.title}
@@ -174,7 +174,7 @@ export default function HandoutDetailModal({
               />
             </div>
           ) : item.type === 'video' && mediaSource ? (
-            <div className="w-full max-w-3xl flex items-center justify-center">
+            <div className="w-full max-w-3xl mx-auto flex items-center justify-center min-h-[350px]">
               <video
                 src={mediaSource}
                 controls
@@ -183,36 +183,40 @@ export default function HandoutDetailModal({
               />
             </div>
           ) : item.type === 'audio' && mediaSource ? (
-            <div className="p-8 bg-[#18181b] border border-[#27272a] rounded-2xl flex flex-col items-center gap-4 shadow-2xl">
-              <h4 className="text-base font-semibold text-white">{item.title}</h4>
-              <audio src={mediaSource} controls className="w-80" autoPlay />
+            <div className="flex items-center justify-center min-h-[350px]">
+              <div className="p-8 bg-[#18181b] border border-[#27272a] rounded-2xl flex flex-col items-center gap-4 shadow-2xl">
+                <h4 className="text-base font-semibold text-white">{item.title}</h4>
+                <audio src={mediaSource} controls className="w-80" autoPlay />
+              </div>
             </div>
           ) : item.type === 'text' ? (
-            <div
-              className={`w-full max-w-2xl p-8 rounded-2xl border flex flex-col gap-5 ${getTextThemeClasses()}`}
-            >
-              <div className="flex items-center justify-between border-b border-current/20 pb-3">
-                <h2 className="text-xl font-bold tracking-wide">{item.title}</h2>
-                {onEdit && (
-                  <Button
-                    variant="outline"
-                    size="xs"
-                    onClick={() => {
-                      onClose();
-                      onEdit(item);
-                    }}
-                    className="text-xs bg-black/10 hover:bg-black/20 border-current/30 text-inherit"
-                  >
-                    Editar
-                  </Button>
-                )}
-              </div>
+            <div className="flex justify-center w-full min-h-full py-2">
               <div
-                className="leading-relaxed text-sm sm:text-base break-words [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mb-2 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mb-1.5 [&_hr]:my-3 [&_hr]:border-current/20 whitespace-pre-wrap font-serif"
-                dangerouslySetInnerHTML={{
-                  __html: replaceDiceShortcodesWithHtml(item.textContent || 'Sem conteúdo de texto...'),
-                }}
-              />
+                className={`w-full max-w-2xl p-6 sm:p-8 rounded-2xl border flex flex-col gap-5 h-fit shadow-2xl my-auto ${getTextThemeClasses()}`}
+              >
+                <div className="flex items-center justify-between border-b border-current/20 pb-3">
+                  <h2 className="text-xl font-bold tracking-wide">{item.title}</h2>
+                  {onEdit && (
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      onClick={() => {
+                        onClose();
+                        onEdit(item);
+                      }}
+                      className="text-xs bg-black/10 hover:bg-black/20 border-current/30 text-inherit"
+                    >
+                      Editar
+                    </Button>
+                  )}
+                </div>
+                <div
+                  className="leading-relaxed text-sm sm:text-base break-words [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mb-2 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mb-1.5 [&_hr]:my-3 [&_hr]:border-current/20 whitespace-pre-wrap font-serif"
+                  dangerouslySetInnerHTML={{
+                    __html: replaceDiceShortcodesWithHtml(item.textContent || 'Sem conteúdo de texto...'),
+                  }}
+                />
+              </div>
             </div>
           ) : (
             <div className="text-center text-[#71717a] p-12">

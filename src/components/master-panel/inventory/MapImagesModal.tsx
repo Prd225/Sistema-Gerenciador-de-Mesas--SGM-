@@ -51,7 +51,7 @@ export default function MapImagesModal({ onClose }: MapImagesModalProps) {
           <div className="flex items-center gap-2">
             <MapPin className="w-4 h-4 text-blue-400" />
             <h3 className="text-sm font-bold text-white">
-              Imagens em Uso no Mapa ({allMapImages.length})
+              Imagens no Mapa
             </h3>
           </div>
           <button

@@ -160,7 +160,7 @@ export default function MasterInventory() {
           <button
             onClick={() => fileInputRef.current?.click()}
             className="flex items-center gap-1 bg-[#8257e5] hover:bg-[#9466ff] text-white text-[11px] h-6 px-2 rounded font-medium shadow-sm transition-colors"
-            title="Importar imagens, vídeos, áudios ou documentos do seu PC"
+            title="Importar arquivos"
           >
             <Upload className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Arquivo</span>
@@ -172,7 +172,7 @@ export default function MasterInventory() {
               setTextModalOpen(true);
             }}
             className="flex items-center gap-1 bg-[#202024] border border-[#323238] hover:bg-white/10 text-amber-400 hover:text-amber-300 text-[11px] h-6 px-2 rounded font-medium transition-colors"
-            title="Redigir uma carta, manuscrito ou documento formatado"
+            title="Novo texto"
           >
             <FilePlus className="w-3.5 h-3.5" />
             <span className="hidden sm:inline text-[#d4d4d8]">Texto</span>
@@ -181,7 +181,7 @@ export default function MasterInventory() {
           <button
             onClick={() => setFolderModalOpen(true)}
             className="flex items-center gap-1 bg-[#202024] border border-[#323238] hover:bg-white/10 text-amber-400 hover:text-amber-300 text-[11px] h-6 px-2 rounded font-medium transition-colors"
-            title="Criar nova pasta de diretório"
+            title="Nova pasta"
           >
             <FolderPlus className="w-3.5 h-3.5" />
             <span className="hidden sm:inline text-[#d4d4d8]">Pasta</span>
@@ -190,7 +190,7 @@ export default function MasterInventory() {
           <button
             onClick={() => setMapModalOpen(true)}
             className="flex items-center gap-1 bg-[#202024] border border-[#323238] hover:bg-white/10 text-blue-400 hover:text-blue-300 text-[11px] h-6 px-2 rounded font-medium transition-colors"
-            title="Ver e importar imagens da cena atual para o inventário"
+            title="Imagens do mapa"
           >
             <MapPin className="w-3.5 h-3.5" />
             <span className="hidden sm:inline text-[#d4d4d8]">Do Mapa</span>
@@ -205,7 +205,7 @@ export default function MasterInventory() {
           <button
             onClick={() => setActiveFolderId(null)}
             className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#202024] hover:bg-[#323238] border border-[#323238] text-xs font-medium text-white transition-colors shrink-0"
-            title="Voltar ao início do inventário"
+            title="Voltar ao início"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
             <span>Início</span>
@@ -323,7 +323,7 @@ export default function MasterInventory() {
               <input
                 autoFocus
                 type="text"
-                placeholder="Nome da pasta (ex: Pistas, Cartas)..."
+                placeholder="Nome da pasta..."
                 value={newFolderName}
                 onChange={(e) => setNewFolderName(e.target.value)}
                 className="w-full bg-[#121214] border border-[#27272a] rounded px-2.5 py-1 text-xs text-white placeholder-[#71717a] outline-none focus:border-[#8257e5]"
