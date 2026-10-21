@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import type { HandoutItem, HandoutFolder } from '@/types/inventory';
 import { useInventoryStore } from '@/store/useInventoryStore';
 import { useZoneStore } from '@/store/useZoneStore';
@@ -13,14 +13,27 @@ import {
   Trash2,
   Edit2,
   FolderInput,
+  Folder,
   ImagePlus,
   Tv,
+  MapPin,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
 interface HandoutCardProps {
   item: HandoutItem;
   folders: HandoutFolder[];
+  isOnMap?: boolean;
   onOpenDetail: (item: HandoutItem) => void;
   onOpenEdit: (item: HandoutItem) => void;
   onProject?: (item: HandoutItem) => void;
@@ -29,6 +42,7 @@ interface HandoutCardProps {
 export default function HandoutCard({
   item,
   folders,
+  isOnMap = false,
   onOpenDetail,
   onOpenEdit,
   onProject,
@@ -37,9 +51,6 @@ export default function HandoutCard({
   const deleteItem = useInventoryStore((state) => state.deleteItem);
   const updateItem = useInventoryStore((state) => state.updateItem);
   const addBgImage = useZoneStore((state) => state.addBgImage);
-
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [folderMenuOpen, setFolderMenuOpen] = useState(false);
 
   const mediaSource = item.serverUrl || item.fileData || '';
 
@@ -58,12 +69,8 @@ export default function HandoutCard({
 
   return (
     <div
-      onMouseLeave={() => {
-        setMenuOpen(false);
-        setFolderMenuOpen(false);
-      }}
       onClick={() => onOpenDetail(item)}
-      className="group relative flex flex-col bg-[#18181b] hover:bg-[#202024] border border-[#27272a] hover:border-[#8257e5] rounded-lg overflow-hidden transition-all duration-150 cursor-pointer shadow-sm"
+      className="group relative flex flex-col bg-[#18181b] hover:bg-[#202024] border border-[#27272a] hover:border-[#8257e5] rounded-lg overflow-hidden transition-all duration-150 cursor-pointer shadow-sm select-none"
     >
       {/* Miniatura / Preview */}
       <div className="relative aspect-[4/3] w-full bg-[#121214] overflow-hidden flex items-center justify-center border-b border-[#27272a]">
@@ -101,7 +108,7 @@ export default function HandoutCard({
           </div>
         )}
 
-        {/* Indicador Discreto de Visibilidade no canto superior esquerdo */}
+        {/* Indicador de Visibilidade no canto superior esquerdo */}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -125,102 +132,104 @@ export default function HandoutCard({
           )}
         </button>
 
-        {/* Menu de Ações no canto superior direito */}
-        <div className="absolute top-1.5 right-1.5 z-10">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setMenuOpen(!menuOpen);
-            }}
-            className="p-1 rounded-md bg-black/75 hover:bg-black border border-white/10 text-[#a1a1aa] hover:text-white transition-all"
-            title="Mais opções"
-          >
-            <MoreVertical className="w-3.5 h-3.5" />
-          </button>
-
-          {menuOpen && (
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="absolute right-0 top-full mt-1 w-44 bg-[#18181b] border border-[#323238] rounded-lg shadow-xl p-1 z-50 flex flex-col gap-0.5 text-xs animate-in fade-in duration-100"
+        {/* Menu de Ações (3 Pontos) via Portal - Fora da caixa do card */}
+        <div
+          className="absolute top-1.5 right-1.5 z-10"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className="p-1 rounded-md bg-black/75 hover:bg-black border border-white/10 text-[#a1a1aa] hover:text-white transition-all outline-none cursor-pointer"
+              title="Mais opções"
             >
+              <MoreVertical className="w-3.5 h-3.5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="w-44 bg-[#1c1c20] border-[#323238] text-[#e1e1e6] p-1 shadow-2xl"
+            >
+              <DropdownMenuItem
+                onClick={() => onOpenDetail(item)}
+                className="cursor-pointer hover:bg-[#8257e5] hover:text-white text-xs gap-2 py-1.5"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>Abrir / Visualizar</span>
+              </DropdownMenuItem>
+
               {item.type === 'text' && (
-                <button
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onOpenEdit(item);
-                  }}
-                  className="flex items-center gap-2 px-2.5 py-1.5 rounded hover:bg-[#27272a] text-[#e4e4e7] text-left"
+                <DropdownMenuItem
+                  onClick={() => onOpenEdit(item)}
+                  className="cursor-pointer hover:bg-[#8257e5] hover:text-white text-xs gap-2 py-1.5"
                 >
                   <Edit2 className="w-3.5 h-3.5 text-[#8257e5]" />
                   <span>Editar Texto</span>
-                </button>
+                </DropdownMenuItem>
               )}
 
-              {/* Mover para Pasta */}
-              <div className="relative">
-                <button
-                  onClick={() => setFolderMenuOpen(!folderMenuOpen)}
-                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded hover:bg-[#27272a] text-[#e4e4e7] text-left"
-                >
-                  <span className="flex items-center gap-2">
-                    <FolderInput className="w-3.5 h-3.5 text-amber-400" />
-                    Mover para...
-                  </span>
-                </button>
-
-                {folderMenuOpen && (
-                  <div className="absolute right-full top-0 mr-1 w-36 bg-[#18181b] border border-[#323238] rounded-lg shadow-xl p-1 z-50 flex flex-col gap-0.5 text-xs">
-                    <button
-                      onClick={() => {
-                        updateItem(item.id, { folderId: null });
-                        setFolderMenuOpen(false);
-                        setMenuOpen(false);
-                      }}
-                      className="px-2 py-1 rounded hover:bg-[#27272a] text-left text-[#a1a1aa] truncate"
+              {/* Submenu Mover para Pasta */}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="cursor-pointer hover:bg-[#8257e5] hover:text-white text-xs gap-2 py-1.5">
+                  <FolderInput className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Mover para...</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="bg-[#1c1c20] border-[#323238] text-[#e1e1e6] p-1">
+                  <DropdownMenuItem
+                    onClick={() => updateItem(item.id, { folderId: null })}
+                    className="cursor-pointer hover:bg-[#8257e5] hover:text-white text-xs py-1.5 text-[#a1a1aa]"
+                  >
+                    (Início / Sem Pasta)
+                  </DropdownMenuItem>
+                  {folders.map((f) => (
+                    <DropdownMenuItem
+                      key={f.id}
+                      onClick={() => updateItem(item.id, { folderId: f.id })}
+                      className={`cursor-pointer hover:bg-[#8257e5] hover:text-white text-xs py-1.5 flex items-center gap-1.5 ${
+                        item.folderId === f.id
+                          ? 'text-[#8257e5] font-semibold'
+                          : ''
+                      }`}
                     >
-                      (Sem Pasta)
-                    </button>
-                    {folders.map((f) => (
-                      <button
-                        key={f.id}
-                        onClick={() => {
-                          updateItem(item.id, { folderId: f.id });
-                          setFolderMenuOpen(false);
-                          setMenuOpen(false);
-                        }}
-                        className={`px-2 py-1 rounded hover:bg-[#27272a] text-left truncate flex items-center gap-1.5 ${
-                          item.folderId === f.id
-                            ? 'text-[#8257e5] font-semibold'
-                            : 'text-[#e4e4e7]'
-                        }`}
-                      >
-                        <span className="truncate">{f.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      <Folder className="w-3 h-3 text-amber-400" />
+                      <span className="truncate">{f.name}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
 
-              <div className="h-[1px] bg-[#27272a] my-0.5" />
+              <DropdownMenuSeparator className="bg-[#27272a] my-1" />
 
-              <button
+              <DropdownMenuItem
+                variant="destructive"
                 onClick={() => {
-                  setMenuOpen(false);
                   if (confirm(`Excluir o documento "${item.title}"?`)) {
                     deleteItem(item.id);
                   }
                 }}
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded hover:bg-red-500/20 text-red-400 text-left"
+                className="cursor-pointer text-red-400 hover:bg-red-500/20 hover:text-red-300 text-xs gap-2 py-1.5"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Excluir</span>
-              </button>
-            </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Marcações no asset (canto inferior da miniatura) */}
+        <div className="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between gap-1 pointer-events-none">
+          <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-black/75 text-white/90 border border-white/10 uppercase">
+            {item.type}
+          </span>
+
+          {isOnMap && (
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-blue-600/80 text-white border border-blue-400/30 flex items-center gap-1 shadow-sm">
+              <MapPin className="w-2.5 h-2.5" />
+              <span>No Mapa</span>
+            </span>
           )}
         </div>
       </div>
 
-      {/* Informações e Ações */}
+      {/* Informações e Ações Rápidas */}
       <div className="p-2 flex flex-col gap-1.5 flex-1 justify-between">
         <div>
           <h4
@@ -230,7 +239,6 @@ export default function HandoutCard({
             {item.title}
           </h4>
           <div className="flex items-center justify-between text-[10px] text-[#71717a] mt-0.5">
-            <span className="capitalize">{item.type}</span>
             {item.isSharedWithPlayers ? (
               <span className="text-emerald-400 font-medium">Revelado</span>
             ) : (

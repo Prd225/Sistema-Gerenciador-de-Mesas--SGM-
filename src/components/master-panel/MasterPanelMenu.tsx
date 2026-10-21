@@ -26,7 +26,7 @@ const AVAILABLE_PANELS: {
   {
     id: 'inventory',
     title: 'Inventário do Mestre',
-    allowedSlots: ['left', 'center', 'right'],
+    allowedSlots: ['left', 'right'],
     icon: FolderArchive,
   },
   {

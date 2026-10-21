@@ -34,6 +34,7 @@ export const useMasterPanelStore = create<MasterPanelState>((set) => ({
   toggleOpen: () => set((state) => ({ isOpen: !state.isOpen })),
   setSlot: (slot, panel) =>
     set((state) => {
+      if (slot === 'center' && panel === 'inventory') return state;
       // Basic logic to prevent duplicate panels
       const newLayout = { ...state.layout };
       if (panel) {

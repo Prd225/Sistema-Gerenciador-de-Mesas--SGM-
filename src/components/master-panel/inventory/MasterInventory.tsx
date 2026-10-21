@@ -3,22 +3,20 @@ import { useInventoryStore } from '@/store/useInventoryStore';
 import { useZoneStore } from '@/store/useZoneStore';
 import { useTokenStore } from '@/store/useTokenStore';
 import HandoutCard from './HandoutCard';
-import MapImagesView from './MapImagesView';
+import FolderCard from './FolderCard';
+import MapImagesModal from './MapImagesModal';
 import TextDocumentModal from './TextDocumentModal';
 import HandoutDetailModal from './HandoutDetailModal';
 import type { HandoutItem } from '@/types/inventory';
 import {
   Upload,
   Search,
-  LayoutGrid,
-  List,
   FolderArchive,
   FilePlus,
   FolderPlus,
   Folder,
-  Eye,
-  Image as ImageIcon,
-  Trash2,
+  ChevronLeft,
+  MapPin,
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -30,27 +28,18 @@ export default function MasterInventory() {
   const setActiveFolderId = useInventoryStore((state) => state.setActiveFolderId);
   const searchQuery = useInventoryStore((state) => state.searchQuery);
   const setSearchQuery = useInventoryStore((state) => state.setSearchQuery);
-  const typeFilter = useInventoryStore((state) => state.typeFilter);
-  const setTypeFilter = useInventoryStore((state) => state.setTypeFilter);
-  const viewMode = useInventoryStore((state) => state.viewMode);
-  const setViewMode = useInventoryStore((state) => state.setViewMode);
   const loadFromDb = useInventoryStore((state) => state.loadFromDb);
   const addFilesFromPC = useInventoryStore((state) => state.addFilesFromPC);
   const createFolder = useInventoryStore((state) => state.createFolder);
-  const deleteFolder = useInventoryStore((state) => state.deleteFolder);
 
   const bgImages = useZoneStore((state) => state.bgImages);
   const tokens = useTokenStore((state) => state.tokens);
-  const mapImagesCount =
-    (bgImages?.length || 0) +
-    (tokens?.filter((t) => Boolean(t.imageUrl)).length || 0);
-
-  const sharedCount = items.filter((i) => i.isSharedWithPlayers).length;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [textModalOpen, setTextModalOpen] = useState(false);
   const [folderModalOpen, setFolderModalOpen] = useState(false);
+  const [mapModalOpen, setMapModalOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [editingItem, setEditingItem] = useState<HandoutItem | null>(null);
   const [detailItem, setDetailItem] = useState<HandoutItem | null>(null);
@@ -58,6 +47,13 @@ export default function MasterInventory() {
   useEffect(() => {
     loadFromDb();
   }, [loadFromDb]);
+
+  // Se o activeFolderId for uma string de tag antiga (ex: '__map__' ou '__shared__'), reseta para null
+  useEffect(() => {
+    if (activeFolderId && activeFolderId.startsWith('__')) {
+      setActiveFolderId(null);
+    }
+  }, [activeFolderId, setActiveFolderId]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -93,28 +89,40 @@ export default function MasterInventory() {
     setFolderModalOpen(false);
   };
 
+  // Verifica se o asset está colocado no mapa da cena atual
+  const isItemOnMap = (item: HandoutItem) => {
+    const src = item.serverUrl || item.fileData;
+    if (!src) return false;
+    const inBg = bgImages?.some((img) => img.src === src);
+    const inTokens = tokens?.some((t) => t.imageUrl === src);
+    return Boolean(inBg || inTokens);
+  };
+
+  const activeFolder = folders.find((f) => f.id === activeFolderId);
+
   // Filtragem dos itens exibidos
-  const filteredItems = items.filter((item) => {
-    if (activeFolderId === '__shared__') {
-      if (!item.isSharedWithPlayers) return false;
-    } else if (activeFolderId !== null && !activeFolderId.startsWith('__')) {
-      if (item.folderId !== activeFolderId) return false;
-    }
+  const isSearching = Boolean(searchQuery.trim());
+  const searchLower = searchQuery.toLowerCase();
 
-    if (typeFilter !== 'all' && item.type !== typeFilter) {
-      return false;
-    }
+  const displayedItems = isSearching
+    ? items.filter((item) => {
+        const matchTitle = item.title.toLowerCase().includes(searchLower);
+        const matchPath = item.filePath?.toLowerCase().includes(searchLower);
+        const matchText = item.textContent?.toLowerCase().includes(searchLower);
+        return matchTitle || matchPath || matchText;
+      })
+    : activeFolderId === null
+      ? items.filter((item) => !item.folderId)
+      : items.filter((item) => item.folderId === activeFolderId);
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchTitle = item.title.toLowerCase().includes(q);
-      const matchPath = item.filePath?.toLowerCase().includes(q);
-      const matchText = item.textContent?.toLowerCase().includes(q);
-      if (!matchTitle && !matchPath && !matchText) return false;
-    }
+  // No diretório raiz (quando não está buscando), mostra as pastas no centro da área
+  const displayedFolders = isSearching
+    ? folders.filter((f) => f.name.toLowerCase().includes(searchLower))
+    : activeFolderId === null
+      ? folders
+      : [];
 
-    return true;
-  });
+  const isEmpty = displayedFolders.length === 0 && displayedItems.length === 0;
 
   return (
     <div
@@ -128,17 +136,17 @@ export default function MasterInventory() {
       {/* 1. Barra Superior Principal */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-[#27272a] bg-[#1a1a1e] shrink-0 gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="p-1 bg-[#8257e5]/20 text-[#8257e5] rounded shrink-0">
+          <div className="p-1.5 bg-[#8257e5]/20 text-[#8257e5] rounded shrink-0">
             <FolderArchive className="w-4 h-4" />
           </div>
           <div className="min-w-0 truncate">
             <h2 className="text-xs sm:text-sm font-bold text-[#e1e1e6] leading-tight truncate">
-              Inventário
+              Inventário do Mestre
             </h2>
           </div>
         </div>
 
-        {/* Ações Primárias Compactas */}
+        {/* Ações Primárias */}
         <div className="flex items-center gap-1 shrink-0">
           <input
             type="file"
@@ -151,10 +159,11 @@ export default function MasterInventory() {
 
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="p-1.5 bg-[#8257e5] hover:bg-[#9466ff] text-white rounded shadow-sm transition-colors"
-            title="Importar Arquivo do PC (Imagens, Vídeos, Áudios, PDFs, Textos)"
+            className="flex items-center gap-1 bg-[#8257e5] hover:bg-[#9466ff] text-white text-[11px] h-6 px-2 rounded font-medium shadow-sm transition-colors"
+            title="Importar imagens, vídeos, áudios ou documentos do seu PC"
           >
             <Upload className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Arquivo</span>
           </button>
 
           <button
@@ -162,111 +171,66 @@ export default function MasterInventory() {
               setEditingItem(null);
               setTextModalOpen(true);
             }}
-            className="p-1.5 bg-[#202024] border border-[#323238] hover:bg-white/10 text-amber-400 hover:text-amber-300 rounded transition-colors"
-            title="Novo Documento de Texto"
+            className="flex items-center gap-1 bg-[#202024] border border-[#323238] hover:bg-white/10 text-amber-400 hover:text-amber-300 text-[11px] h-6 px-2 rounded font-medium transition-colors"
+            title="Redigir uma carta, manuscrito ou documento formatado"
           >
             <FilePlus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline text-[#d4d4d8]">Texto</span>
           </button>
 
           <button
             onClick={() => setFolderModalOpen(true)}
-            className="p-1.5 bg-[#202024] border border-[#323238] hover:bg-white/10 text-blue-400 hover:text-blue-300 rounded transition-colors"
-            title="Nova Pasta"
+            className="flex items-center gap-1 bg-[#202024] border border-[#323238] hover:bg-white/10 text-amber-400 hover:text-amber-300 text-[11px] h-6 px-2 rounded font-medium transition-colors"
+            title="Criar nova pasta de diretório"
           >
             <FolderPlus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline text-[#d4d4d8]">Pasta</span>
+          </button>
+
+          <button
+            onClick={() => setMapModalOpen(true)}
+            className="flex items-center gap-1 bg-[#202024] border border-[#323238] hover:bg-white/10 text-blue-400 hover:text-blue-300 text-[11px] h-6 px-2 rounded font-medium transition-colors"
+            title="Ver e importar imagens da cena atual para o inventário"
+          >
+            <MapPin className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline text-[#d4d4d8]">Do Mapa</span>
           </button>
         </div>
       </div>
 
-      {/* 2. Abas de Pastas e Categorias (Horizontal Scroll sem barra cinza feia) */}
-      <div className="flex items-center gap-1 px-2.5 py-1.5 bg-[#16161a] border-b border-[#27272a] overflow-x-auto shrink-0 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        <button
-          onClick={() => setActiveFolderId(null)}
-          className={`px-2 py-0.5 rounded text-[11px] font-medium shrink-0 transition-colors ${
-            activeFolderId === null
-              ? 'bg-[#8257e5] text-white'
-              : 'text-[#a1a1aa] hover:text-white hover:bg-[#202024]'
-          }`}
-        >
-          Todos ({items.length})
-        </button>
-
-        <button
-          onClick={() => setActiveFolderId('__map__')}
-          className={`px-2 py-0.5 rounded text-[11px] font-medium shrink-0 transition-colors flex items-center gap-1 ${
-            activeFolderId === '__map__'
-              ? 'bg-[#8257e5] text-white'
-              : 'text-[#a1a1aa] hover:text-white hover:bg-[#202024]'
-          }`}
-        >
-          <ImageIcon className="w-3 h-3" />
-          <span>No Mapa ({mapImagesCount})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveFolderId('__shared__')}
-          className={`px-2 py-0.5 rounded text-[11px] font-medium shrink-0 transition-colors flex items-center gap-1 ${
-            activeFolderId === '__shared__'
-              ? 'bg-[#8257e5] text-white'
-              : 'text-[#a1a1aa] hover:text-white hover:bg-[#202024]'
-          }`}
-        >
-          <Eye className="w-3 h-3 text-emerald-400" />
-          <span>Revelados ({sharedCount})</span>
-        </button>
-
-        {folders.length > 0 && (
-          <div className="h-3.5 w-[1px] bg-[#323238] mx-0.5 shrink-0" />
+      {/* 2. Barra de Busca e Navegação Breadcrumb */}
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-[#16161a] border-b border-[#27272a] shrink-0">
+        {/* Navegação Breadcrumb / Voltar quando dentro de uma pasta */}
+        {activeFolderId !== null && !isSearching && (
+          <button
+            onClick={() => setActiveFolderId(null)}
+            className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#202024] hover:bg-[#323238] border border-[#323238] text-xs font-medium text-white transition-colors shrink-0"
+            title="Voltar ao início do inventário"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+            <span>Início</span>
+          </button>
         )}
 
-        {folders.map((f) => {
-          const folderItemCount = items.filter((i) => i.folderId === f.id).length;
-          const isSelected = activeFolderId === f.id;
-          return (
-            <div key={f.id} className="flex items-center shrink-0">
-              <button
-                onClick={() => setActiveFolderId(f.id)}
-                className={`px-2 py-0.5 rounded text-[11px] font-medium flex items-center gap-1 transition-colors ${
-                  isSelected
-                    ? 'bg-[#8257e5] text-white'
-                    : 'text-[#a1a1aa] hover:text-white hover:bg-[#202024]'
-                }`}
-              >
-                <Folder className="w-3 h-3 text-amber-400" />
-                <span className="truncate max-w-[100px]">{f.name}</span>
-                <span className="text-[10px] opacity-75">({folderItemCount})</span>
-              </button>
-              {isSelected && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (
-                      confirm(
-                        `Excluir a pasta "${f.name}"? Os itens contidos nela não serão apagados.`,
-                      )
-                    ) {
-                      deleteFolder(f.id);
-                      setActiveFolderId(null);
-                    }
-                  }}
-                  className="p-0.5 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded ml-0.5"
-                  title="Excluir Pasta"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-          );
-        })}
-      </div>
+        {/* Título da Pasta Atual */}
+        {activeFolderId !== null && !isSearching && activeFolder && (
+          <div className="flex items-center gap-1.5 text-xs text-[#a1a1aa] min-w-0 shrink truncate">
+            <span>/</span>
+            <span className="text-white font-semibold flex items-center gap-1 truncate">
+              <Folder className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="truncate">{activeFolder.name}</span>
+            </span>
+          </div>
+        )}
 
-      {/* 3. Filtros Secundários Compactos */}
-      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#141417] border-b border-[#27272a] shrink-0">
-        <div className="relative flex-1 min-w-0">
+        {/* Campo de Busca */}
+        <div className="relative flex-1 min-w-0 ml-auto">
           <Search className="w-3 h-3 text-[#71717a] absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
-            placeholder="Buscar..."
+            placeholder={
+              activeFolderId ? `Buscar em ${activeFolder?.name || 'pasta'}...` : 'Buscar no inventário...'
+            }
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-[#18181b] border border-[#27272a] rounded pl-6 pr-5 py-0.5 text-[11px] text-white placeholder-[#71717a] outline-none focus:border-[#8257e5] transition-colors"
@@ -280,70 +244,46 @@ export default function MasterInventory() {
             </button>
           )}
         </div>
-
-        {/* Tipo de Mídia */}
-        <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value as any)}
-          className="bg-[#18181b] border border-[#27272a] text-[#a1a1aa] text-[11px] rounded px-1.5 py-0.5 outline-none focus:border-[#8257e5] cursor-pointer shrink-0 max-w-[85px] sm:max-w-none"
-        >
-          <option value="all">Tipos</option>
-          <option value="image">Imagens</option>
-          <option value="video">Vídeos</option>
-          <option value="text">Textos</option>
-          <option value="audio">Áudios</option>
-          <option value="pdf">PDFs</option>
-        </select>
-
-        {/* Alternador Grade / Lista Compacto */}
-        <button
-          onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-          className="p-1 rounded bg-[#18181b] border border-[#27272a] text-[#a1a1aa] hover:text-white shrink-0"
-          title={viewMode === 'grid' ? 'Mudar para lista' : 'Mudar para grade'}
-        >
-          {viewMode === 'grid' ? (
-            <LayoutGrid className="w-3.5 h-3.5 text-[#8257e5]" />
-          ) : (
-            <List className="w-3.5 h-3.5 text-[#8257e5]" />
-          )}
-        </button>
       </div>
 
-      {/* 4. Área Principal com Grid Dinâmico */}
-      <div className="flex-1 overflow-y-auto">
-        {activeFolderId === '__map__' ? (
-          <MapImagesView
-            onSelectImage={(ref) => {
-              setDetailItem({
-                id: ref.id,
-                title: ref.name,
-                type: 'image',
-                folderId: null,
-                fileData: ref.src,
-                isSharedWithPlayers: false,
-                createdAt: Date.now(),
-                updatedAt: Date.now(),
-              });
-            }}
-          />
-        ) : filteredItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-6 text-center text-[#71717a] h-full">
-            <FolderArchive className="w-8 h-8 mb-2 stroke-[1.5] text-[#323238]" />
+      {/* 3. Área Central: Diretório de Trabalho (Pastas e Arquivos lado a lado) */}
+      <div className="flex-1 overflow-y-auto p-3">
+        {isEmpty ? (
+          <div className="flex flex-col items-center justify-center p-8 text-center text-[#71717a] h-full">
+            <FolderArchive className="w-10 h-10 mb-2 stroke-[1.5] text-[#323238]" />
             <p className="text-xs font-medium text-[#a1a1aa]">
-              Nenhum documento encontrado
+              {isSearching
+                ? 'Nenhum resultado encontrado para a busca'
+                : activeFolderId
+                  ? 'Esta pasta está vazia'
+                  : 'Seu inventário está vazio'}
             </p>
             <p className="text-[11px] text-[#71717a] mt-0.5 max-w-xs">
-              Arraste arquivos do seu computador para cá, ou use o botão{' '}
-              <span className="text-[#8257e5] font-semibold">+ Arquivo</span>.
+              Arraste arquivos do seu computador para cá, crie documentos de texto ou importe imagens do mapa.
             </p>
           </div>
-        ) : viewMode === 'grid' ? (
-          <div className="p-2.5 grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-2.5">
-            {filteredItems.map((item) => (
+        ) : (
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-3">
+            {/* Pastas como Diretórios de Área de Trabalho no Centro da Área */}
+            {displayedFolders.map((folder) => {
+              const folderCount = items.filter((i) => i.folderId === folder.id).length;
+              return (
+                <FolderCard
+                  key={folder.id}
+                  folder={folder}
+                  itemCount={folderCount}
+                  onOpen={(id) => setActiveFolderId(id)}
+                />
+              );
+            })}
+
+            {/* Arquivos / Handouts */}
+            {displayedItems.map((item) => (
               <HandoutCard
                 key={item.id}
                 item={item}
                 folders={folders}
+                isOnMap={isItemOnMap(item)}
                 onOpenDetail={(i) => setDetailItem(i)}
                 onOpenEdit={(i) => {
                   setEditingItem(i);
@@ -351,53 +291,6 @@ export default function MasterInventory() {
                 }}
                 onProject={(i) => setDetailItem(i)}
               />
-            ))}
-          </div>
-        ) : (
-          /* Visualização em Lista */
-          <div className="p-2 flex flex-col gap-1">
-            <div className="grid grid-cols-12 px-2 py-1 text-[10px] font-semibold text-[#71717a] uppercase tracking-wider border-b border-[#27272a]">
-              <span className="col-span-6">Título</span>
-              <span className="col-span-2">Tipo</span>
-              <span className="col-span-2">Status</span>
-              <span className="col-span-2 text-right">Ação</span>
-            </div>
-            {filteredItems.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => setDetailItem(item)}
-                className="grid grid-cols-12 items-center px-2 py-1.5 rounded bg-[#18181b] hover:bg-[#202024] border border-[#27272a] text-xs transition-colors cursor-pointer"
-              >
-                <span className="col-span-6 text-white font-medium truncate pr-2">
-                  {item.title}
-                </span>
-
-                <span className="col-span-2 text-[#a1a1aa] capitalize text-[11px]">
-                  {item.type}
-                </span>
-
-                <span className="col-span-2">
-                  {item.isSharedWithPlayers ? (
-                    <span className="text-emerald-400 text-[10px]">Revelado</span>
-                  ) : (
-                    <span className="text-[#71717a] text-[10px]">Oculto</span>
-                  )}
-                </span>
-
-                <div
-                  onClick={(e) => e.stopPropagation()}
-                  className="col-span-2 flex items-center justify-end"
-                >
-                  <Button
-                    variant="outline"
-                    size="xs"
-                    onClick={() => setDetailItem(item)}
-                    className="bg-[#202024] border-[#323238] hover:bg-white/10 text-white text-[10px] h-5 px-1.5"
-                  >
-                    Abrir
-                  </Button>
-                </div>
-              </div>
             ))}
           </div>
         )}
@@ -415,7 +308,7 @@ export default function MasterInventory() {
           >
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
-                <FolderPlus className="w-4 h-4 text-blue-400" />
+                <FolderPlus className="w-4 h-4 text-amber-400" />
                 Nova Pasta
               </h3>
               <button
@@ -459,6 +352,11 @@ export default function MasterInventory() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Modal de Imagens do Mapa */}
+      {mapModalOpen && (
+        <MapImagesModal onClose={() => setMapModalOpen(false)} />
       )}
 
       {/* Modal de Criação / Edição de Texto */}
