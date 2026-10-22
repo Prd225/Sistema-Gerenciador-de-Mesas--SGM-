@@ -166,8 +166,12 @@ export default function AppLayout({
         {/* Main Viewport — always full width, sidebars float on top */}
         <main className="flex-1 relative overflow-hidden bg-[#0d0d0f] select-none">
           <StageMap />
-          <MapToolbar />
-          <InitiativeBar />
+          <ErrorBoundary fallback={null} silent>
+            <MapToolbar />
+          </ErrorBoundary>
+          <ErrorBoundary fallback={null} silent>
+            <InitiativeBar />
+          </ErrorBoundary>
           {children}
         </main>
 

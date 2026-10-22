@@ -108,14 +108,16 @@ function TokenLayer({ scale = 1 }: { scale?: number }) {
   >({});
 
   // Determine which token has the active turn
-  const len = initiativeQueue.length;
+  const queue = Array.isArray(initiativeQueue) ? initiativeQueue : [];
+  const tokenList = Array.isArray(tokens) ? tokens : [];
+  const len = queue.length;
   const activeTokenId =
-    len > 0 ? initiativeQueue[(((turn - 1) % len) + len) % len]?.tokenId : null;
+    len > 0 ? queue[(((turn - 1) % len) + len) % len]?.tokenId : null;
 
   return (
     <Group>
-      {tokens
-        .filter((t) => t.x !== null && t.y !== null)
+      {tokenList
+        .filter((t) => t && t.x !== null && t.y !== null)
         .map((t) => {
           const isActive = t.id === activeTokenId;
           const isSelected = selectedNodeIds.includes(t.id);

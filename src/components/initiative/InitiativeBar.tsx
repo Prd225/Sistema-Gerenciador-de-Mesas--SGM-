@@ -17,9 +17,12 @@ export default function InitiativeBar() {
   const leftOpen = useZoneStore((state) => state.leftSidebarOpen);
   const leftWidth = useZoneStore((state) => state.leftSidebarWidth);
 
-  if (queue.length === 0) return null;
+  const safeQueue = Array.isArray(queue) ? queue : [];
+  const safeTokens = Array.isArray(tokens) ? tokens : [];
 
-  const activeIndex = (turn - 1) % queue.length;
+  if (safeQueue.length === 0) return null;
+
+  const activeIndex = (turn - 1) % safeQueue.length;
 
   const colorMap: Record<string, string> = {
     red: '#e55757',
@@ -39,18 +42,19 @@ export default function InitiativeBar() {
       }}
       className="absolute bottom-5 flex gap-4 px-4 pb-4 pt-8 bg-[#202024]/95 border border-[#323238] rounded-lg shadow-[0_4px_15px_rgba(0,0,0,0.7)] overflow-x-auto z-30 items-end pointer-events-auto transition-[left,max-width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
     >
-      {queue.map((item, index) => {
-        const token = tokens.find((t) => t.id === item.tokenId);
+      {safeQueue.map((item, index) => {
+        const token = safeTokens.find((t) => t && t.id === item.tokenId);
         if (!token) return null;
 
         const isActive = index === activeIndex;
 
         // Find most relevant condition for visual effects
-        const outOfCombat = token.conditions.find(
-          (c) => c.type === 'out_of_combat',
+        const conditions = Array.isArray(token.conditions) ? token.conditions : [];
+        const outOfCombat = conditions.find(
+          (c) => c && c.type === 'out_of_combat',
         );
-        const skipTurn = token.conditions.find((c) => c.type === 'skip_turn');
-        const activeCondition = outOfCombat || skipTurn || token.conditions[0];
+        const skipTurn = conditions.find((c) => c && c.type === 'skip_turn');
+        const activeCondition = outOfCombat || skipTurn || conditions[0];
 
         let borderColor = token.colorBorder;
 

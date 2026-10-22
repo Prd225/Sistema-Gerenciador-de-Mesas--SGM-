@@ -29,16 +29,17 @@ export const usePlayerHandoutsStore = create<PlayerHandoutsState>((set, get) => 
   unreadCount: 0,
 
   setSharedHandouts: (handouts) => {
-    const current = get().sharedHandouts;
+    const list = Array.isArray(handouts) ? handouts : [];
+    const current = Array.isArray(get().sharedHandouts) ? get().sharedHandouts : [];
     const currentIds = new Set(current.map((h) => h.id));
-    const newItems = handouts.filter((h) => !currentIds.has(h.id));
+    const newItems = list.filter((h) => h && !currentIds.has(h.id));
 
     // Se o drawer já estiver aberto, não acumula unread
     const addedUnread = get().isDrawerOpen ? 0 : newItems.length;
 
     set((state) => ({
-      sharedHandouts: handouts,
-      unreadCount: state.unreadCount + addedUnread,
+      sharedHandouts: list,
+      unreadCount: (state.unreadCount || 0) + addedUnread,
     }));
   },
 

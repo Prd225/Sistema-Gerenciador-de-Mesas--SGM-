@@ -59,18 +59,18 @@ function MarkerIcon({
 
 function MarkerLayer({ scale = 1 }: { scale?: number }) {
   const markersMap = useZoneStore((state) => state.markers);
-  const markers = Object.values(markersMap);
+  const markers = Object.values(markersMap || {});
   const updateMarker = useZoneStore((state) => state.updateMarker);
   const activeTool = useZoneStore((state) => state.activeTool);
   const hideCompletedMarkers = useZoneStore(
     (state) => state.hideCompletedMarkers,
   );
-  const pings = useMultiplayerStore((state) => state.pings);
+  const pings = useMultiplayerStore((state) => state.pings) || [];
 
   return (
     <Group>
       {/* Live Multiplayer Pings */}
-      {pings.map((ping) => {
+      {(Array.isArray(pings) ? pings : []).map((ping) => {
         const dynamicFontSize = Math.max(12, 13 / scale);
         const dynamicY = -35 / scale;
         return (
@@ -108,7 +108,7 @@ function MarkerLayer({ scale = 1 }: { scale?: number }) {
           </Group>
         );
       })}
-      {markers.map((marker) => {
+      {(Array.isArray(markers) ? markers : []).map((marker) => {
         const isCompleted = !!marker.completed;
         const isHidden =
           !!marker.hidden || (isCompleted && hideCompletedMarkers);

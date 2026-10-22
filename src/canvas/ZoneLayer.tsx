@@ -13,7 +13,7 @@ export interface NewShapeState {
 }
 
 function ZoneLayer({ scale = 1 }: { scale?: number }) {
-  const zonesMap = useZoneStore((state) => state.zones);
+  const zonesMap = useZoneStore((state) => state.zones) || {};
   const zones = Object.values(zonesMap);
   const selectedZoneId = useZoneStore((state) => state.selectedZoneId);
   const selectZone = useZoneStore((state) => state.selectZone);
@@ -137,7 +137,7 @@ function ZoneLayer({ scale = 1 }: { scale?: number }) {
 
   return (
     <Group>
-      {zones.map((z) => {
+      {(Array.isArray(zones) ? zones : []).map((z) => {
         if (z.type === ('group' as any)) return null;
 
         const isActive = selectedZoneId === z.id;

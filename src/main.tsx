@@ -4,6 +4,26 @@ import './index.css';
 import App from './App.tsx';
 import { handleSpotifyAuthCallback } from './lib/spotifyAuth';
 
+import ErrorBoundary from './components/common/ErrorBoundary';
+
+// Diagnóstico detalhado de erros não capturados na janela (ex: extensões, scripts externos ou navegadores específicos)
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', (event) => {
+    // Se o erro vier de extensões de navegador ou de fora dos nossos scripts, não polui desnecessariamente
+    console.error('[SGM Uncaught Error]', {
+      message: event.message,
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+      stack: event.error?.stack,
+    });
+  });
+
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('[SGM Unhandled Rejection]', event.reason);
+  });
+}
+
 // Se esta janela foi aberta como popup de autenticação do Spotify
 if (window.opener && window.location.search.includes('code=')) {
   document.body.innerHTML = `
@@ -17,7 +37,9 @@ if (window.opener && window.location.search.includes('code=')) {
 } else {
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
-      <App />
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
     </StrictMode>,
   );
 }

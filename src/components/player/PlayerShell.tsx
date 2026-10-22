@@ -23,19 +23,29 @@ export default function PlayerShell() {
       <StageMap />
 
       {/* Barra de Iniciativa */}
-      <InitiativeBar />
+      <ErrorBoundary fallback={null} silent>
+        <InitiativeBar />
+      </ErrorBoundary>
 
       {/* HUD do Jogador */}
-      <PlayerHud />
+      <ErrorBoundary fallback={null} silent>
+        <PlayerHud />
+      </ErrorBoundary>
 
       {/* Toolbar do Jogador (Handouts e Projeção) */}
-      <PlayerToolbar />
+      <ErrorBoundary fallback={null} silent>
+        <PlayerToolbar />
+      </ErrorBoundary>
 
       {/* Painel de Handouts Revelados da Mesa */}
-      <PlayerHandoutsDrawer />
+      <ErrorBoundary fallback={null} silent>
+        <PlayerHandoutsDrawer />
+      </ErrorBoundary>
 
       {/* Projeção do Mestre em Tempo Real */}
-      <PlayerProjectionOverlay />
+      <ErrorBoundary fallback={null} silent>
+        <PlayerProjectionOverlay />
+      </ErrorBoundary>
 
       {/* Motor de Áudio Invisível */}
       <ErrorBoundary fallback={null} silent>

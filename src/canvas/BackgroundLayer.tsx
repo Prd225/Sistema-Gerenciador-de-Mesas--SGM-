@@ -59,10 +59,11 @@ function BgImageComponent({ bg }: { bg: BgImage }) {
 
 function BackgroundLayer() {
   const bgImages = useZoneStore((state) => state.bgImages);
+  const images = Array.isArray(bgImages) ? bgImages : [];
 
   return (
     <Group>
-      {bgImages.map((bg) => (
+      {images.map((bg) => (
         <BgImageComponent key={bg.id} bg={bg} />
       ))}
     </Group>
