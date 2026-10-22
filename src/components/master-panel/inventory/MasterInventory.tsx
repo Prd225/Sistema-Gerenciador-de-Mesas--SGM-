@@ -152,7 +152,7 @@ export default function MasterInventory() {
             type="file"
             ref={fileInputRef}
             multiple
-            accept="image/*,video/*,audio/*,.pdf,.txt,.md"
+            accept="image/*,video/*,audio/*,.pdf,.txt,.md,.doc,.docx,.rtf,.odt"
             onChange={handleFileChange}
             className="hidden"
           />

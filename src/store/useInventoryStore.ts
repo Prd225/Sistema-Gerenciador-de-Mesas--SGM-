@@ -72,7 +72,10 @@ function detectHandoutType(mime: string, name: string): HandoutType {
   if (mime === 'application/pdf' || lower.endsWith('.pdf')) {
     return 'pdf';
   }
-  if (mime.startsWith('text/') || /\.(txt|md|markdown)$/.test(lower)) {
+  if (
+    mime.startsWith('text/') ||
+    /\.(txt|md|markdown|docx?|odt|rtf|log|csv)$/.test(lower)
+  ) {
     return 'text';
   }
   return 'other';
@@ -198,11 +201,18 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       let textContent: string | undefined;
       let textStyle: HandoutTextStyle | undefined;
       if (type === 'text') {
-        try {
-          textContent = await file.text();
-          textStyle = 'parchment';
-        } catch {
-          // fallback
+        const lowerName = file.name.toLowerCase();
+        const isPlainText =
+          file.type.startsWith('text/') ||
+          /\.(txt|md|markdown|json|csv|log)$/.test(lowerName);
+
+        if (isPlainText) {
+          try {
+            textContent = await file.text();
+            textStyle = 'parchment';
+          } catch {
+            // fallback
+          }
         }
       }
 

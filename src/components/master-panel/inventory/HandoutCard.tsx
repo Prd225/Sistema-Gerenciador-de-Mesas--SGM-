@@ -38,6 +38,48 @@ interface HandoutCardProps {
   onProject?: (item: HandoutItem) => void;
 }
 
+function getFileExtension(item: HandoutItem): string {
+  if (item.filePath) {
+    const ext = item.filePath.split('.').pop();
+    if (ext && ext.toLowerCase() !== item.filePath.toLowerCase()) {
+      return ext.toUpperCase();
+    }
+  }
+  if (item.type === 'text') return 'TXT';
+  if (item.type === 'pdf') return 'PDF';
+  if (item.type === 'video') return 'MP4';
+  if (item.type === 'audio') return 'MP3';
+  return 'DOC';
+}
+
+function getDocumentColor(ext: string) {
+  switch (ext.toLowerCase()) {
+    case 'pdf':
+      return {
+        icon: 'text-red-400',
+        badge: 'bg-red-500/15 border-red-500/30 text-red-300',
+      };
+    case 'docx':
+    case 'doc':
+      return {
+        icon: 'text-blue-400',
+        badge: 'bg-blue-500/15 border-blue-500/30 text-blue-300',
+      };
+    case 'md':
+    case 'markdown':
+      return {
+        icon: 'text-purple-400',
+        badge: 'bg-purple-500/15 border-purple-500/30 text-purple-300',
+      };
+    case 'txt':
+    default:
+      return {
+        icon: 'text-amber-400',
+        badge: 'bg-amber-500/15 border-amber-500/30 text-amber-300',
+      };
+  }
+}
+
 export default function HandoutCard({
   item,
   folders,
@@ -58,6 +100,9 @@ export default function HandoutCard({
     await toggleMapPlacement(item.id);
   };
 
+  const ext = getFileExtension(item);
+  const docColor = getDocumentColor(ext);
+
   return (
     <div
       onClick={() => onOpenDetail(item)}
@@ -73,31 +118,34 @@ export default function HandoutCard({
             loading="lazy"
           />
         ) : item.type === 'video' ? (
-          <div className="flex flex-col items-center justify-center text-purple-400 gap-1">
+          <div className="flex flex-col items-center justify-center text-purple-400 gap-1.5">
             <Video className="w-8 h-8 stroke-[1.5]" />
-            <span className="text-[10px] text-[#a1a1aa]">Vídeo</span>
+            <span className="text-[10px] font-bold tracking-wider font-mono px-1.5 py-0.5 rounded bg-purple-500/15 border border-purple-500/30 text-purple-300 uppercase">
+              {ext}
+            </span>
           </div>
         ) : item.type === 'audio' ? (
-          <div className="flex flex-col items-center justify-center text-amber-400 gap-1">
+          <div className="flex flex-col items-center justify-center text-emerald-400 gap-1.5">
             <Music className="w-8 h-8 stroke-[1.5]" />
-            <span className="text-[10px] text-[#a1a1aa]">Áudio</span>
+            <span className="text-[10px] font-bold tracking-wider font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 uppercase">
+              {ext}
+            </span>
           </div>
-        ) : item.type === 'text' ? (
-          <div className="w-full h-full p-2.5 bg-[#1b1924]/60 flex flex-col justify-start">
-            <div className="flex items-center gap-1 text-amber-400 mb-1">
-              <FileText className="w-3 h-3" />
-              <span className="text-[9px] uppercase font-bold tracking-wider">Texto</span>
-            </div>
-            <p className="text-[10px] text-[#a1a1aa] line-clamp-3 leading-snug font-serif">
-              {item.textContent
-                ? item.textContent.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim()
-                : 'Sem conteúdo de texto...'}
-            </p>
+        ) : item.type === 'text' || item.type === 'pdf' ? (
+          <div className="flex flex-col items-center justify-center gap-1.5">
+            <FileText className={`w-8 h-8 stroke-[1.5] ${docColor.icon}`} />
+            <span
+              className={`text-[10px] font-bold tracking-wider font-mono px-1.5 py-0.5 rounded border uppercase ${docColor.badge}`}
+            >
+              {ext}
+            </span>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center text-[#71717a] gap-1">
+          <div className="flex flex-col items-center justify-center text-[#a1a1aa] gap-1.5">
             <File className="w-8 h-8 stroke-[1.5]" />
-            <span className="text-[10px]">Arquivo</span>
+            <span className="text-[10px] font-bold tracking-wider font-mono px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[#d4d4d8] uppercase">
+              {ext}
+            </span>
           </div>
         )}
 
@@ -207,19 +255,15 @@ export default function HandoutCard({
           </DropdownMenu>
         </div>
 
-        {/* Marcações no asset (canto inferior da miniatura) */}
-        <div className="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between gap-1 pointer-events-none">
-          <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-black/75 text-white/90 border border-white/10 uppercase">
-            {item.type}
-          </span>
-
-          {isOnMap && (
+        {/* Marcação no asset se estiver colocado no mapa */}
+        {isOnMap && (
+          <div className="absolute bottom-1.5 right-1.5 pointer-events-none">
             <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-blue-600/80 text-white border border-blue-400/30 flex items-center gap-1 shadow-sm">
               <MapPin className="w-2.5 h-2.5" />
               <span>No Mapa</span>
             </span>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Informações e Ações Rápidas */}
