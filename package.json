@@ -8,6 +8,8 @@
     "dev": "concurrently -n client,server -c cyan,green \"vite --host\" \"tsx watch server/src/index.ts\"",
     "dev:client": "vite --host",
     "dev:server": "tsx watch server/src/index.ts",
+    "tunnel": "node scripts/tunnel.js",
+    "dev:tunnel": "concurrently -n client,server,tunnel -c cyan,green,yellow \"vite --host\" \"tsx watch server/src/index.ts\" \"node scripts/tunnel.js\"",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --noEmit",
     "lint": "oxlint",
