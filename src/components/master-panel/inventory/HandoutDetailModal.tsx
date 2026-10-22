@@ -221,10 +221,10 @@ export default function HandoutDetailModal({
 
         {/* Visualizador de Conteúdo */}
         <div
-          className={`flex-1 bg-black/40 min-h-[350px] ${
+          className={`flex-1 min-h-[350px] ${
             item.type === 'pdf'
-              ? 'p-2 sm:p-4 flex flex-col overflow-hidden h-full'
-              : 'overflow-y-auto p-4 sm:p-6'
+              ? 'p-0 overflow-hidden flex flex-col h-full bg-[#2a2a2e]'
+              : 'overflow-y-auto p-4 sm:p-6 bg-black/40'
           }`}
         >
           {item.type === 'image' && mediaSource ? (
@@ -254,49 +254,12 @@ export default function HandoutDetailModal({
             </div>
           ) : item.type === 'pdf' ? (
             pdfBlobUrl ? (
-              <div className="w-full h-full flex flex-col bg-[#1c1c20] rounded-xl border border-[#2e2e33] overflow-hidden shadow-2xl">
-                {/* Mini Toolbar do PDF */}
-                <div className="flex items-center justify-between px-3.5 py-2 bg-[#202024] border-b border-[#2e2e33]">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-bold font-mono text-[10px] uppercase border border-red-500/30 shrink-0">
-                      PDF
-                    </span>
-                    <span className="text-xs font-medium text-white/90 truncate">
-                      {item.title}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="xs"
-                      onClick={handleOpenInNewTab}
-                      className="h-7 text-xs text-[#a1a1aa] hover:text-white hover:bg-white/10 gap-1.5"
-                      title="Abrir PDF em nova guia do navegador"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5 text-red-400" />
-                      <span>Nova Guia</span>
-                    </Button>
-                    <a
-                      href={pdfBlobUrl}
-                      download={item.filePath || `${item.title}.pdf`}
-                      className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-medium text-[#a1a1aa] hover:text-white hover:bg-white/10 transition-colors"
-                      title="Baixar arquivo PDF"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Baixar</span>
-                    </a>
-                  </div>
-                </div>
-
-                {/* Área do visualizador nativo */}
-                <div className="relative flex-1 w-full h-full min-h-[460px] bg-[#2a2a2e]">
-                  <iframe
-                    src={`${pdfBlobUrl}#toolbar=1&navpanes=0`}
-                    title={item.title}
-                    className="w-full h-full border-0"
-                  />
-                </div>
+              <div className="w-full h-full flex-1">
+                <iframe
+                  src={`${pdfBlobUrl}#toolbar=1&navpanes=0`}
+                  title={item.title}
+                  className="w-full h-full border-0 block"
+                />
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full p-8 text-center text-[#71717a]">
