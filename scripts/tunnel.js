@@ -1,5 +1,6 @@
 import { spawn, execSync } from 'child_process';
 import fs from 'fs';
+import path from 'path';
 
 const candidatePaths = [
   'cloudflared',
@@ -34,44 +35,67 @@ if (!bin) {
 
 console.log('\n🚀 Conectando ao Cloudflare Edge (Edge SP / GRU)...');
 
-const args = ['tunnel', '--protocol', 'http2', '--url', 'http://localhost:5173'];
+// Usamos 127.0.0.1 em vez de localhost para evitar tentativas em IPv6 (::1) no Windows
+const args = ['tunnel', '--protocol', 'http2', '--url', 'http://127.0.0.1:5173'];
 const child = spawn(bin, args, { stdio: ['inherit', 'pipe', 'pipe'] });
 
 let urlFound = false;
+let currentUrl = '';
+
+function isIgnorableWarning(text) {
+  return (
+    text.includes('context canceled') ||
+    text.includes('Incoming request ended abruptly') ||
+    text.includes('metrics') ||
+    text.includes('origin-ca-pool') ||
+    text.includes('connectivity pre-checks')
+  );
+}
 
 function handleOutput(data) {
   const text = data.toString();
   const match = text.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
+  
   if (match && !urlFound) {
     urlFound = true;
-    const tunnelUrl = match[0];
+    currentUrl = match[0];
+
+    // Salva o link num arquivo de texto para consulta rápida
+    try {
+      fs.writeFileSync(path.resolve(process.cwd(), 'tunnel-url.txt'), currentUrl, 'utf-8');
+    } catch {
+      // ignore
+    }
 
     // Tenta copiar para o clipboard no Windows
     try {
-      execSync(`powershell -NoProfile -Command "Set-Clipboard -Value '${tunnelUrl}'"`, {
+      execSync(`powershell -NoProfile -Command "Set-Clipboard -Value '${currentUrl}'"`, {
         stdio: 'ignore',
       });
     } catch {
       // ignore
     }
 
-    console.log('\n' + '═'.repeat(72));
-    console.log('  🌐 TÚNEL CLOUDFLARE ATIVO (SGM v7.0)');
-    console.log('═'.repeat(72));
-    console.log(`\n  🔗 Link público para os jogadores:`);
-    console.log(`     \x1b[32m\x1b[1m${tunnelUrl}\x1b[0m`);
-    console.log(`\n  📋 (O link foi copiado para sua Área de Transferência!)`);
-    console.log('\n  💡 Como funciona:');
-    console.log('     • O Vite entrega o frontend pelo túnel HTTPS.');
-    console.log('     • O Socket.io (/socket.io) e arquivos (/uploads) são repassados');
-    console.log('       automaticamente para o servidor local Node.js (porta 3001).');
-    console.log('     • Mantenha esta janela aberta enquanto a sessão estiver rolando.\n');
-    console.log('═'.repeat(72) + '\n');
+    console.log('\n' + '='.repeat(70));
+    console.log('  🌐 TÚNEL CLOUDFLARE ONLINE COM SUCESSO! (SGM v7.0)');
+    console.log('='.repeat(70));
+    console.log('');
+    console.log('  👉 LINK PARA COMPARTILHAR COM OS JOGADORES:');
+    console.log(`     ${currentUrl}`);
+    console.log('');
+    console.log('  📋 O link já foi copiado para a sua Área de Transferência!');
+    console.log('  📁 Também foi salvo no arquivo: tunnel-url.txt');
+    console.log('');
+    console.log('  ℹ️  Como funciona:');
+    console.log('     • Seus amigos entram direto pelo link acima com HTTPS.');
+    console.log('     • Não precisa de Hamachi, Radmin nem abrir portas no roteador.');
+    console.log('     • Mantenha este terminal aberto durante toda a sessão.');
+    console.log('='.repeat(70) + '\n');
   }
 
-  // Se houver erro crítico, exibe
-  if (text.includes('ERR') && !text.includes('metrics')) {
-    process.stderr.write(text);
+  // Se houver erro crítico real (ignorando desconexões normais de navegação/reload do browser)
+  if (text.includes('ERR') && !isIgnorableWarning(text)) {
+    console.error(`[Aviso do Túnel]: ${text.trim()}`);
   }
 }
 
@@ -79,6 +103,14 @@ child.stdout.on('data', handleOutput);
 child.stderr.on('data', handleOutput);
 
 child.on('exit', (code) => {
+  try {
+    const txtPath = path.resolve(process.cwd(), 'tunnel-url.txt');
+    if (fs.existsSync(txtPath)) {
+      fs.unlinkSync(txtPath);
+    }
+  } catch {
+    // ignore
+  }
   console.log(`\n🛑 Túnel encerrado (código ${code ?? 0}).`);
   process.exit(code ?? 0);
 });
