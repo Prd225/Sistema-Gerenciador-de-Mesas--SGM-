@@ -169,14 +169,17 @@ export default defineConfig({
     },
     proxy: {
       '/socket.io': {
-        target: 'http://localhost:3001',
+        target: 'http://127.0.0.1:3001',
         ws: true,
+        changeOrigin: true,
       },
       '/uploads': {
-        target: 'http://localhost:3001',
+        target: 'http://127.0.0.1:3001',
+        changeOrigin: true,
       },
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://127.0.0.1:3001',
+        changeOrigin: true,
       },
     },
   },

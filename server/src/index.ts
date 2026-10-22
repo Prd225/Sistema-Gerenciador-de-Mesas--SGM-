@@ -93,8 +93,13 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
     origin: '*',
     methods: ['GET', 'POST'],
   },
-  pingTimeout: 30000,
-  pingInterval: 10000,
+  // Aceita conexão WebSocket pura diretamente para latência ultra-baixa
+  transports: ['websocket', 'polling'],
+  // Heartbeat frequente a cada 5s para manter o túnel Cloudflare sempre aquecido e ativo
+  pingInterval: 5000,
+  pingTimeout: 15000,
+  // Desativa compressão zlib em pacotes minúsculos (tokens/dados) para eliminar overhead e delay de buffer
+  perMessageDeflate: false,
   maxHttpBufferSize: 2e7, // 20 MB para suportar imagens e mapas de batalha em alta resolução
 });
 

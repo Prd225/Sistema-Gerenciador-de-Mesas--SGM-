@@ -25,7 +25,12 @@ export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
     autoConnect: false,
     reconnection: true,
     reconnectionAttempts: Infinity,
-    reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
+    reconnectionDelay: 300,
+    reconnectionDelayMax: 1500,
+    randomizationFactor: 0.2,
+    timeout: 8000,
+    // Conecta diretamente via WebSocket sem esperar roundtrip de HTTP polling
+    transports: ['websocket', 'polling'],
+    upgrade: true,
   },
 );
