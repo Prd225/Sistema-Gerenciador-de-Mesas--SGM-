@@ -16,6 +16,7 @@ import {
   MapPin,
   MapPinOff,
   Tv,
+  ExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -77,6 +78,32 @@ function getDocumentColor(ext: string) {
         icon: 'text-amber-400',
         badge: 'bg-amber-500/15 border-amber-500/30 text-amber-300',
       };
+  }
+}
+
+function openPdfInNewTab(item: HandoutItem) {
+  if (item.serverUrl) {
+    window.open(item.serverUrl, '_blank', 'noopener,noreferrer');
+    return;
+  }
+  if (item.fileData && item.fileData.includes(';base64,')) {
+    try {
+      const base64 = item.fileData.split(';base64,')[1];
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener,noreferrer');
+      return;
+    } catch (e) {
+      console.error('Erro ao abrir PDF em nova guia:', e);
+    }
+  }
+  if (item.fileData) {
+    window.open(item.fileData, '_blank', 'noopener,noreferrer');
   }
 }
 
@@ -196,6 +223,19 @@ export default function HandoutCard({
                 <Eye className="w-3.5 h-3.5" />
                 <span>Visualizar</span>
               </DropdownMenuItem>
+
+              {item.type === 'pdf' && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openPdfInNewTab(item);
+                  }}
+                  className="cursor-pointer hover:bg-[#8257e5] hover:text-white text-xs gap-2 py-1.5"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-red-400 group-hover:text-white" />
+                  <span>Abrir em Nova Guia</span>
+                </DropdownMenuItem>
+              )}
 
               {item.type === 'text' && (
                 <DropdownMenuItem
@@ -319,6 +359,21 @@ export default function HandoutCard({
               ) : (
                 <MapPin className="w-3.5 h-3.5" />
               )}
+            </Button>
+          )}
+
+          {item.type === 'pdf' && (
+            <Button
+              variant="outline"
+              size="icon-xs"
+              onClick={(e) => {
+                e.stopPropagation();
+                openPdfInNewTab(item);
+              }}
+              className="h-6 w-6 shrink-0 bg-[#202024] border-[#323238] hover:bg-red-500/20 text-[#a1a1aa] hover:text-red-300 transition-all"
+              title="Abrir PDF em Nova Guia"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
             </Button>
           )}
         </div>

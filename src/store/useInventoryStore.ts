@@ -128,6 +128,26 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         db.handouts.toArray(),
         db.handoutFolders.toArray(),
       ]);
+
+      // Se ainda não existir nenhum documento PDF no inventário, adiciona um exemplo inicial
+      if (!items.some((i) => i.type === 'pdf')) {
+        const samplePdfItem: HandoutItem = {
+          id: 'sample-pdf-handout',
+          title: 'Regras Rápidas da Mesa',
+          type: 'pdf',
+          folderId: null,
+          filePath: 'regras_rapidas.pdf',
+          serverUrl: '/sample.pdf',
+          fileSize: 715,
+          mimeType: 'application/pdf',
+          isSharedWithPlayers: false,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+        await db.handouts.put(samplePdfItem);
+        items.push(samplePdfItem);
+      }
+
       set({ items, folders, isLoading: false });
     } catch (err) {
       console.error('[Inventário] Erro ao carregar itens do banco:', err);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { HandoutItem } from '@/types/inventory';
 import { useInventoryStore } from '@/store/useInventoryStore';
 import { useZoneStore } from '@/store/useZoneStore';
@@ -16,6 +16,7 @@ import {
   Download,
   Scroll,
   FileText,
+  ExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -41,6 +42,44 @@ export default function HandoutDetailModal({
     state.bgImages.some((bg) => bg.src === mediaSource),
   );
 
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (item.type !== 'pdf') return;
+
+    if (item.serverUrl) {
+      setPdfBlobUrl(item.serverUrl);
+      return;
+    }
+
+    if (item.fileData && item.fileData.includes(';base64,')) {
+      try {
+        const base64 = item.fileData.split(';base64,')[1];
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        setPdfBlobUrl(url);
+
+        return () => {
+          URL.revokeObjectURL(url);
+        };
+      } catch (e) {
+        console.error('Erro ao gerar URL blob de PDF:', e);
+      }
+    }
+
+    setPdfBlobUrl(item.fileData || null);
+  }, [item]);
+
+  const handleOpenInNewTab = () => {
+    if (!pdfBlobUrl) return;
+    window.open(pdfBlobUrl, '_blank', 'noopener,noreferrer');
+  };
+
   const getTextThemeClasses = () => {
     switch (item.textStyle) {
       case 'parchment':
@@ -62,7 +101,9 @@ export default function HandoutDetailModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-4xl max-h-[92vh] bg-[#121214] border border-[#323238] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
+        className={`relative w-full ${
+          item.type === 'pdf' ? 'max-w-5xl h-[90vh]' : 'max-w-4xl max-h-[92vh]'
+        } bg-[#121214] border border-[#323238] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-150`}
       >
         {/* Barra Superior */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-[#27272a] bg-[#18181b]/90">
@@ -72,6 +113,8 @@ export default function HandoutDetailModal({
                 <Eye className="w-4 h-4" />
               ) : item.type === 'text' ? (
                 <Scroll className="w-4 h-4 text-amber-400" />
+              ) : item.type === 'pdf' ? (
+                <FileText className="w-4 h-4 text-red-400" />
               ) : (
                 <FileText className="w-4 h-4" />
               )}
@@ -126,6 +169,20 @@ export default function HandoutDetailModal({
               </Button>
             )}
 
+            {/* Se for PDF: Botão para Abrir em Nova Guia */}
+            {item.type === 'pdf' && pdfBlobUrl && (
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={handleOpenInNewTab}
+                className="bg-[#27272a] text-[#e1e1e6] border-[#3f3f46] hover:bg-white/10 hover:text-white gap-1.5 text-xs transition-all"
+                title="Abrir este PDF em uma nova guia do navegador"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-red-400" />
+                <span>Nova Guia</span>
+              </Button>
+            )}
+
             {/* Se for Imagem: Colocar / Remover do Mapa */}
             {item.type === 'image' && (
               <Button
@@ -163,7 +220,13 @@ export default function HandoutDetailModal({
         </div>
 
         {/* Visualizador de Conteúdo */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-black/40 min-h-[350px]">
+        <div
+          className={`flex-1 bg-black/40 min-h-[350px] ${
+            item.type === 'pdf'
+              ? 'p-2 sm:p-4 flex flex-col overflow-hidden h-full'
+              : 'overflow-y-auto p-4 sm:p-6'
+          }`}
+        >
           {item.type === 'image' && mediaSource ? (
             <div className="flex items-center justify-center w-full min-h-[350px] overflow-hidden">
               <img
@@ -189,6 +252,59 @@ export default function HandoutDetailModal({
                 <audio src={mediaSource} controls className="w-80" autoPlay />
               </div>
             </div>
+          ) : item.type === 'pdf' ? (
+            pdfBlobUrl ? (
+              <div className="w-full h-full flex flex-col bg-[#1c1c20] rounded-xl border border-[#2e2e33] overflow-hidden shadow-2xl">
+                {/* Mini Toolbar do PDF */}
+                <div className="flex items-center justify-between px-3.5 py-2 bg-[#202024] border-b border-[#2e2e33]">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-bold font-mono text-[10px] uppercase border border-red-500/30 shrink-0">
+                      PDF
+                    </span>
+                    <span className="text-xs font-medium text-white/90 truncate">
+                      {item.title}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      onClick={handleOpenInNewTab}
+                      className="h-7 text-xs text-[#a1a1aa] hover:text-white hover:bg-white/10 gap-1.5"
+                      title="Abrir PDF em nova guia do navegador"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-red-400" />
+                      <span>Nova Guia</span>
+                    </Button>
+                    <a
+                      href={pdfBlobUrl}
+                      download={item.filePath || `${item.title}.pdf`}
+                      className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-medium text-[#a1a1aa] hover:text-white hover:bg-white/10 transition-colors"
+                      title="Baixar arquivo PDF"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Baixar</span>
+                    </a>
+                  </div>
+                </div>
+
+                {/* Área do visualizador nativo */}
+                <div className="relative flex-1 w-full h-full min-h-[460px] bg-[#2a2a2e]">
+                  <iframe
+                    src={`${pdfBlobUrl}#toolbar=1&navpanes=0`}
+                    title={item.title}
+                    className="w-full h-full border-0"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full p-8 text-center text-[#71717a]">
+                <FileText className="w-12 h-12 mb-3 text-red-400 opacity-60" />
+                <p className="text-sm font-medium text-white/80">Carregando documento PDF...</p>
+                <p className="text-xs text-[#71717a] mt-1">Aguarde um instante ou abra diretamente em uma nova guia.</p>
+              </div>
+            )
           ) : item.type === 'text' ? (
             <div className="flex justify-center w-full min-h-full py-2">
               <div
