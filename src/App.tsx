@@ -29,8 +29,18 @@ function App() {
     setInviteCode(null);
   };
 
-  // Se o usuário está em papel de jogador ou sala foi encerrada
-  if (role === 'player' || isPlayerMode() || (isRoomClosed && role === null && !inviteCode)) {
+  const [isPlayerPreview] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('mode') === 'player';
+    } catch {
+      return false;
+    }
+  });
+
+  // Se o usuário está em modo preview de jogador, em papel de jogador ou sala foi encerrada
+  if (isPlayerPreview || role === 'player' || isPlayerMode() || (isRoomClosed && role === null && !inviteCode)) {
     return <PlayerShell />;
   }
 

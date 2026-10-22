@@ -12,6 +12,8 @@ import type {
   SoundpadStatePayload,
   SyncStatePayload,
   UserRole,
+  PlayerHandoutView,
+  ProjectionPayload,
 } from '../../src/types/multiplayer';
 import { toPlayerState } from './playerView';
 
@@ -35,6 +37,8 @@ export interface ActiveRoom {
   round: number;
   turn: number;
   soundpad: SoundpadSnapshot | null;
+  sharedHandouts: Map<string, PlayerHandoutView>;
+  projection: ProjectionPayload | null;
   createdAt: number;
   /** Remoção agendada quando a sala fica vazia (permite o mestre reconectar). */
   cleanupTimer: ReturnType<typeof setTimeout> | null;
@@ -104,6 +108,8 @@ export class RoomManager {
       round: 1,
       turn: 1,
       soundpad: null,
+      sharedHandouts: new Map(),
+      projection: null,
       createdAt: Date.now(),
       cleanupTimer: null,
     };
@@ -251,6 +257,8 @@ export class RoomManager {
       members: this.membersOf(room),
       view: role === 'player' ? toPlayerState(room) : null,
       soundpad: this.getSoundpadForJoin(room),
+      sharedHandouts: Array.from(room.sharedHandouts.values()),
+      projection: room.projection,
     };
   }
 
@@ -404,6 +412,50 @@ export class RoomManager {
       positionSec = Math.min(positionSec, state.song.duration);
     }
     return { ...state, positionSec };
+  }
+
+  // Handouts & Projeção
+  public syncSharedHandouts(code: string, handouts: PlayerHandoutView[]): void {
+    const room = this.getRoom(code);
+    if (!room) return;
+    room.sharedHandouts.clear();
+    for (const h of handouts) {
+      room.sharedHandouts.set(h.id, h);
+    }
+  }
+
+  public updateSharedHandout(
+    code: string,
+    handout: PlayerHandoutView,
+    isShared: boolean,
+  ): PlayerHandoutView[] {
+    const room = this.getRoom(code);
+    if (!room) return [];
+    if (isShared) {
+      room.sharedHandouts.set(handout.id, handout);
+    } else {
+      room.sharedHandouts.delete(handout.id);
+      // Se o item projetado era esse que foi descompartilhado, encerra projeção
+      if (room.projection?.handout?.id === handout.id) {
+        room.projection = null;
+      }
+    }
+    return Array.from(room.sharedHandouts.values());
+  }
+
+  public setProjection(
+    code: string,
+    handout: PlayerHandoutView | null,
+  ): ProjectionPayload {
+    const room = this.getRoom(code);
+    const payload: ProjectionPayload = {
+      handout,
+      projectedAt: Date.now(),
+    };
+    if (room) {
+      room.projection = payload;
+    }
+    return payload;
   }
 }
 

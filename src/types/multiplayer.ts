@@ -6,8 +6,33 @@ import type {
   BgImage,
 } from './game';
 import type { SongSource } from './soundpad';
+import type { HandoutType, HandoutTextStyle } from './inventory';
 
 export type UserRole = 'gm' | 'player';
+
+// ---------------------------------------------------------------------------
+// Handouts & Projeção (visão do jogador)
+// ---------------------------------------------------------------------------
+
+export interface PlayerHandoutView {
+  id: string;
+  title: string;
+  type: HandoutType;
+  folderId?: string | null;
+  filePath?: string;
+  fileData?: string;
+  serverUrl?: string;
+  textContent?: string;
+  textStyle?: HandoutTextStyle;
+  fileSize?: number;
+  mimeType?: string;
+  createdAt: number;
+}
+
+export interface ProjectionPayload {
+  handout: PlayerHandoutView | null;
+  projectedAt: number;
+}
 
 export interface RoomMember {
   id: string; // socket.id
@@ -119,6 +144,8 @@ export interface RoomJoinState {
   /** Presente apenas para jogadores; o mestre mantém o estado localmente. */
   view: PlayerStatePayload | null;
   soundpad: SoundpadStatePayload | null;
+  sharedHandouts: PlayerHandoutView[];
+  projection: ProjectionPayload | null;
 }
 
 export interface ClientToServerEvents {
@@ -180,6 +207,14 @@ export interface ClientToServerEvents {
 
   // Map ping (somente mestre, por enquanto)
   'map:ping': (payload: { x: number; y: number }) => void;
+
+  // Handouts & Projeção (somente mestre)
+  'handout:share-toggle': (payload: {
+    handout: PlayerHandoutView;
+    isShared: boolean;
+  }) => void;
+  'handout:sync-shared': (payload: { handouts: PlayerHandoutView[] }) => void;
+  'projection:set': (payload: { handout: PlayerHandoutView | null }) => void;
 }
 
 export interface ServerToClientEvents {
@@ -226,4 +261,8 @@ export interface ServerToClientEvents {
 
   // Map ping
   'map:pinged': (payload: RoomPing) => void;
+
+  // Handouts & Projeção
+  'handout:shared-updated': (payload: { handouts: PlayerHandoutView[] }) => void;
+  'projection:updated': (payload: ProjectionPayload) => void;
 }

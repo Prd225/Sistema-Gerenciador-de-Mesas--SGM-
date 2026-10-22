@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   MapPin,
   X,
+  Tv,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -31,6 +32,9 @@ export default function MasterInventory() {
   const loadFromDb = useInventoryStore((state) => state.loadFromDb);
   const addFilesFromPC = useInventoryStore((state) => state.addFilesFromPC);
   const createFolder = useInventoryStore((state) => state.createFolder);
+  const projectedHandoutId = useInventoryStore((state) => state.projectedHandoutId);
+  const projectHandout = useInventoryStore((state) => state.projectHandout);
+  const stopProjection = useInventoryStore((state) => state.stopProjection);
 
   const bgImages = useZoneStore((state) => state.bgImages);
   const tokens = useTokenStore((state) => state.tokens);
@@ -97,6 +101,16 @@ export default function MasterInventory() {
     const inTokens = tokens?.some((t) => t.imageUrl === src);
     return Boolean(inBg || inTokens);
   };
+
+  const handleToggleProject = (item: HandoutItem) => {
+    if (projectedHandoutId === item.id) {
+      stopProjection();
+    } else {
+      projectHandout(item);
+    }
+  };
+
+  const projectedItem = items.find((i) => i.id === projectedHandoutId);
 
   const activeFolder = folders.find((f) => f.id === activeFolderId);
 
@@ -198,6 +212,36 @@ export default function MasterInventory() {
         </div>
       </div>
 
+      {/* Banner de Projeção Ativa */}
+      {projectedItem && (
+        <div className="flex items-center justify-between px-3 py-1.5 bg-purple-950/70 border-b border-purple-500/40 text-purple-200 text-xs shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="flex h-2 w-2 relative shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+            </span>
+            <Tv className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+            <span className="truncate text-[11px]">
+              Projetando ao vivo: <strong className="text-white font-semibold">{projectedItem.title}</strong>
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => setDetailItem(projectedItem)}
+              className="px-2 py-0.5 rounded bg-purple-900/60 hover:bg-purple-800 text-[11px] text-purple-200 border border-purple-500/30 transition-colors"
+            >
+              Ver
+            </button>
+            <button
+              onClick={stopProjection}
+              className="px-2 py-0.5 rounded bg-red-600/30 hover:bg-red-600/50 text-red-200 text-[11px] border border-red-500/40 font-medium transition-colors"
+            >
+              Encerrar
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 2. Barra de Busca e Navegação Breadcrumb */}
       <div className="flex items-center gap-2 px-3 py-1.5 bg-[#16161a] border-b border-[#27272a] shrink-0">
         {/* Navegação Breadcrumb / Voltar quando dentro de uma pasta */}
@@ -284,12 +328,13 @@ export default function MasterInventory() {
                 item={item}
                 folders={folders}
                 isOnMap={isItemOnMap(item)}
+                isProjected={projectedHandoutId === item.id}
                 onOpenDetail={(i) => setDetailItem(i)}
                 onOpenEdit={(i) => {
                   setEditingItem(i);
                   setTextModalOpen(true);
                 }}
-                onProject={(i) => setDetailItem(i)}
+                onProject={handleToggleProject}
               />
             ))}
           </div>
@@ -375,15 +420,14 @@ export default function MasterInventory() {
       {detailItem && (
         <HandoutDetailModal
           item={detailItem}
+          isProjected={projectedHandoutId === detailItem.id}
           onClose={() => setDetailItem(null)}
           onEdit={(item) => {
             setDetailItem(null);
             setEditingItem(item);
             setTextModalOpen(true);
           }}
-          onProject={(item) => {
-            alert(`Projetando "${item.title}" para os jogadores!`);
-          }}
+          onProject={handleToggleProject}
         />
       )}
     </div>

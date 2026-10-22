@@ -288,6 +288,44 @@ export function registerSocketHandlers(io: SgmServer, socket: SgmSocket) {
     io.to(ctx.room.code).emit('map:pinged', ping);
   });
 
+  // Handouts (mestre): revelar ou ocultar um handout
+  socket.on('handout:share-toggle', ({ handout, isShared }) => {
+    const ctx = gmContext('handout:share-toggle');
+    if (!ctx) return;
+    if (!handout || typeof handout.id !== 'string') return;
+
+    const updatedList = roomManager.updateSharedHandout(
+      ctx.room.code,
+      handout,
+      Boolean(isShared),
+    );
+    io.to(ctx.room.code).emit('handout:shared-updated', {
+      handouts: updatedList,
+    });
+  });
+
+  // Handouts (mestre): sincronizar todos os compartilhados
+  socket.on('handout:sync-shared', ({ handouts }) => {
+    const ctx = gmContext('handout:sync-shared');
+    if (!ctx) return;
+    if (!Array.isArray(handouts)) return;
+
+    roomManager.syncSharedHandouts(ctx.room.code, handouts);
+    socket.to(ctx.room.code).emit('handout:shared-updated', { handouts });
+  });
+
+  // Projeção em Tempo Real (mestre): projetar ou encerrar projeção
+  socket.on('projection:set', ({ handout }) => {
+    const ctx = gmContext('projection:set');
+    if (!ctx) return;
+
+    const payload = roomManager.setProjection(ctx.room.code, handout);
+    io.to(ctx.room.code).emit('projection:updated', payload);
+    console.log(
+      `[Projeção] ${handout ? `Projetando "${handout.title}"` : 'Projeção encerrada'} na sala ${ctx.room.code}`,
+    );
+  });
+
   // Sair da Sala (explícito)
   socket.on('room:leave', () => {
     handleLeave(true);

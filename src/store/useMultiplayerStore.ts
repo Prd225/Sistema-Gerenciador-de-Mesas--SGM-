@@ -21,6 +21,7 @@ import { useTokenStore } from './useTokenStore';
 import { useZoneStore } from './useZoneStore';
 import { useCampaignStore } from './useCampaignStore';
 import { usePlayerAudioStore } from './usePlayerAudioStore';
+import { usePlayerHandoutsStore } from './usePlayerHandoutsStore';
 import { broadcastCurrentSoundpad } from '@/lib/soundpadBroadcast';
 
 export function hydratePlayerToken(view: PlayerTokenView): Token {
@@ -158,6 +159,12 @@ function setupSocketListeners(set: any, get: any) {
               if (res.state.soundpad) {
                 usePlayerAudioStore.getState().applyState(res.state.soundpad);
               }
+              if (res.state.sharedHandouts) {
+                usePlayerHandoutsStore.getState().setSharedHandouts(res.state.sharedHandouts);
+              }
+              if (res.state.projection) {
+                usePlayerHandoutsStore.getState().setProjection(res.state.projection);
+              }
             } else if (role === 'gm') {
               if (isLocalStateReady()) {
                 get().syncStateToRoom();
@@ -194,6 +201,7 @@ function setupSocketListeners(set: any, get: any) {
     clearRoomSession();
     setCurrentRole(null);
     usePlayerAudioStore.getState().reset();
+    usePlayerHandoutsStore.getState().reset();
     set({
       isConnected: false,
       isReconnecting: false,
@@ -216,6 +224,15 @@ function setupSocketListeners(set: any, get: any) {
   socket.on('room:member-left', ({ memberId }) => {
     const members = get().members.filter((m: RoomMember) => m.id !== memberId);
     set({ members });
+  });
+
+  // Handouts & Projeção
+  socket.on('handout:shared-updated', ({ handouts }) => {
+    usePlayerHandoutsStore.getState().setSharedHandouts(handouts);
+  });
+
+  socket.on('projection:updated', (payload) => {
+    usePlayerHandoutsStore.getState().setProjection(payload);
   });
 
   // Pings no mapa

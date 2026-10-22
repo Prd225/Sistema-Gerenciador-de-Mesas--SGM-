@@ -25,6 +25,7 @@ interface HandoutDetailModalProps {
   onClose: () => void;
   onProject?: (item: HandoutItem) => void;
   onEdit?: (item: HandoutItem) => void;
+  isProjected?: boolean;
 }
 
 export default function HandoutDetailModal({
@@ -32,6 +33,7 @@ export default function HandoutDetailModal({
   onClose,
   onProject,
   onEdit,
+  isProjected = false,
 }: HandoutDetailModalProps) {
   const toggleShare = useInventoryStore((state) => state.toggleShare);
   const toggleMapPlacement = useInventoryStore((state) => state.toggleMapPlacement);
@@ -159,13 +161,22 @@ export default function HandoutDetailModal({
             {/* Projetar na Tela */}
             {onProject && (
               <Button
-                variant="default"
+                variant={isProjected ? 'destructive' : 'default'}
                 size="xs"
                 onClick={() => onProject(item)}
-                className="bg-purple-600 hover:bg-purple-500 text-white gap-1.5 text-xs shadow-md"
+                className={`gap-1.5 text-xs shadow-md ${
+                  isProjected
+                    ? 'bg-red-600 hover:bg-red-500 text-white'
+                    : 'bg-purple-600 hover:bg-purple-500 text-white'
+                }`}
+                title={
+                  isProjected
+                    ? 'Encerrar projeção deste handout'
+                    : 'Projetar este handout na tela dos jogadores em tempo real'
+                }
               >
-                <Tv className="w-3.5 h-3.5" />
-                <span>Projetar</span>
+                <Tv className={`w-3.5 h-3.5 ${isProjected ? 'animate-pulse' : ''}`} />
+                <span>{isProjected ? 'Encerrar Projeção' : 'Projetar'}</span>
               </Button>
             )}
 

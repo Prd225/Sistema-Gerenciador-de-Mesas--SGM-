@@ -2,6 +2,9 @@ import StageMap from '@/canvas/StageMap';
 import InitiativeBar from '@/components/initiative/InitiativeBar';
 import PlayerHud from './PlayerHud';
 import PlayerAudioEngine from './PlayerAudioEngine';
+import PlayerToolbar from './PlayerToolbar';
+import PlayerHandoutsDrawer from './PlayerHandoutsDrawer';
+import PlayerProjectionOverlay from './PlayerProjectionOverlay';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import { useMultiplayerStore } from '@/store/useMultiplayerStore';
 import { WifiOff, AlertCircle } from 'lucide-react';
@@ -24,6 +27,15 @@ export default function PlayerShell() {
 
       {/* HUD do Jogador */}
       <PlayerHud />
+
+      {/* Toolbar do Jogador (Handouts e Projeção) */}
+      <PlayerToolbar />
+
+      {/* Painel de Handouts Revelados da Mesa */}
+      <PlayerHandoutsDrawer />
+
+      {/* Projeção do Mestre em Tempo Real */}
+      <PlayerProjectionOverlay />
 
       {/* Motor de Áudio Invisível */}
       <ErrorBoundary fallback={null} silent>

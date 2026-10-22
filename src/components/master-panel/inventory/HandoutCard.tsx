@@ -34,6 +34,7 @@ interface HandoutCardProps {
   item: HandoutItem;
   folders: HandoutFolder[];
   isOnMap?: boolean;
+  isProjected?: boolean;
   onOpenDetail: (item: HandoutItem) => void;
   onOpenEdit: (item: HandoutItem) => void;
   onProject?: (item: HandoutItem) => void;
@@ -111,6 +112,7 @@ export default function HandoutCard({
   item,
   folders,
   isOnMap = false,
+  isProjected = false,
   onOpenDetail,
   onOpenEdit,
   onProject,
@@ -133,7 +135,11 @@ export default function HandoutCard({
   return (
     <div
       onClick={() => onOpenDetail(item)}
-      className="group relative flex flex-col bg-[#18181b] hover:bg-[#202024] border border-[#27272a] hover:border-[#8257e5] rounded-lg overflow-hidden transition-all duration-150 cursor-pointer shadow-sm select-none"
+      className={`group relative flex flex-col bg-[#18181b] hover:bg-[#202024] rounded-lg overflow-hidden transition-all duration-150 cursor-pointer shadow-sm select-none ${
+        isProjected
+          ? 'border-2 border-purple-500 shadow-[0_0_12px_rgba(168,85,247,0.3)]'
+          : 'border border-[#27272a] hover:border-[#8257e5]'
+      }`}
     >
       {/* Miniatura / Preview */}
       <div className="relative aspect-[4/3] w-full bg-[#121214] overflow-hidden flex items-center justify-center border-b border-[#27272a]">
@@ -200,6 +206,16 @@ export default function HandoutCard({
           )}
         </button>
 
+        {/* Indicador de Projeção Ativa */}
+        {isProjected && (
+          <div className="absolute top-1.5 left-8 z-10">
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-600 text-white border border-purple-400/40 flex items-center gap-1 shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+              <span>Ao Vivo</span>
+            </span>
+          </div>
+        )}
+
         {/* Menu de Ações (3 Pontos) via Portal - Fora da caixa do card */}
         <div
           className="absolute top-1.5 right-1.5 z-10"
@@ -223,6 +239,18 @@ export default function HandoutCard({
                 <Eye className="w-3.5 h-3.5" />
                 <span>Visualizar</span>
               </DropdownMenuItem>
+
+              {onProject && (
+                <DropdownMenuItem
+                  onClick={() => onProject(item)}
+                  className={`cursor-pointer hover:bg-[#8257e5] hover:text-white text-xs gap-2 py-1.5 ${
+                    isProjected ? 'text-purple-300 font-medium' : ''
+                  }`}
+                >
+                  <Tv className="w-3.5 h-3.5 text-purple-400" />
+                  <span>{isProjected ? 'Encerrar Projeção' : 'Projetar para Jogadores'}</span>
+                </DropdownMenuItem>
+              )}
 
               {item.type === 'pdf' && (
                 <DropdownMenuItem
@@ -334,11 +362,19 @@ export default function HandoutCard({
                 e.stopPropagation();
                 onProject(item);
               }}
-              className="flex-1 bg-[#202024] border-[#323238] hover:bg-[#8257e5] hover:text-white text-[#d4d4d8] text-[11px] h-6 px-1.5 gap-1 transition-all"
-              title="Projetar este handout na tela dos jogadores em tempo real"
+              className={`flex-1 text-[11px] h-6 px-1.5 gap-1 transition-all ${
+                isProjected
+                  ? 'bg-purple-600/40 border-purple-500 text-purple-200 hover:bg-purple-600/60 font-semibold'
+                  : 'bg-[#202024] border-[#323238] hover:bg-[#8257e5] hover:text-white text-[#d4d4d8]'
+              }`}
+              title={
+                isProjected
+                  ? 'Projeção ativa nos jogadores. Clique para encerrar.'
+                  : 'Projetar este handout na tela dos jogadores em tempo real'
+              }
             >
-              <Tv className="w-3 h-3 text-[#8257e5] group-hover:text-white" />
-              <span>Projetar</span>
+              <Tv className={`w-3 h-3 ${isProjected ? 'text-purple-300 animate-pulse' : 'text-[#8257e5]'}`} />
+              <span>{isProjected ? 'Projetando' : 'Projetar'}</span>
             </Button>
           )}
 

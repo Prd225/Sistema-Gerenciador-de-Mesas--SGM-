@@ -6,6 +6,7 @@ import type {
   HandoutTextStyle,
   MapImageReference,
 } from '@/types/inventory';
+import type { PlayerHandoutView } from '@/types/multiplayer';
 import { db } from '@/lib/db';
 import { triggerAutoSave } from '@/lib/saveHelpers';
 import { isPlayerMode } from '@/lib/roomRole';
@@ -13,6 +14,23 @@ import { socket } from '@/lib/socket';
 import { useZoneStore } from './useZoneStore';
 import { useTokenStore } from './useTokenStore';
 import { useScenesStore } from './useScenesStore';
+
+export function toPlayerHandoutView(item: HandoutItem): PlayerHandoutView {
+  return {
+    id: item.id,
+    title: item.title,
+    type: item.type,
+    folderId: item.folderId,
+    filePath: item.filePath,
+    fileData: item.fileData,
+    serverUrl: item.serverUrl,
+    textContent: item.textContent,
+    textStyle: item.textStyle,
+    fileSize: item.fileSize,
+    mimeType: item.mimeType,
+    createdAt: item.createdAt,
+  };
+}
 
 const generateId = () =>
   window.crypto?.randomUUID?.() ?? Math.random().toString(36).substring(2, 11);
@@ -22,13 +40,17 @@ interface InventoryState {
   folders: HandoutFolder[];
   activeFolderId: string | null; // null = Todos, '__map__' = Mapa, '__shared__' = Compartilhados
   selectedItemId: string | null;
+  projectedHandoutId: string | null;
   searchQuery: string;
   typeFilter: HandoutType | 'all';
   viewMode: 'grid' | 'list';
   isLoading: boolean;
 
-  // Ações de Carregamento
+  // Ações de Carregamento e Sincronização
   loadFromDb: () => Promise<void>;
+  syncSharedHandoutsToRoom: () => void;
+  projectHandout: (item: HandoutItem) => void;
+  stopProjection: () => void;
 
   // Pastas
   createFolder: (name: string, color?: string) => Promise<string>;
@@ -116,6 +138,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   folders: [],
   activeFolderId: null,
   selectedItemId: null,
+  projectedHandoutId: null,
   searchQuery: '',
   typeFilter: 'all',
   viewMode: 'grid',
@@ -151,6 +174,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       }
 
       set({ items, folders, isLoading: false });
+      get().syncSharedHandoutsToRoom();
     } catch (err) {
       console.error('[Inventário] Erro ao carregar itens do banco:', err);
       set({ isLoading: false });
@@ -418,6 +442,19 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       }
     }
 
+    // Se o item deletado estava sendo projetado, encerra a projeção
+    if (get().projectedHandoutId === id) {
+      get().stopProjection();
+    }
+
+    // Se o item deletado estava revelado aos jogadores, avisa a sala
+    if (item.isSharedWithPlayers && !isPlayerMode() && socket.connected) {
+      socket.emit('handout:share-toggle', {
+        handout: toPlayerHandoutView(item),
+        isShared: false,
+      });
+    }
+
     set((state) => ({
       items: state.items.filter((i) => i.id !== id),
       selectedItemId: state.selectedItemId === id ? null : state.selectedItemId,
@@ -443,15 +480,41 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       ),
     }));
 
-    // Se estiver conectado em sala multiplayer e for GM, notifica
+    // Se estiver conectado em sala multiplayer e for GM, notifica a sala com o objeto sanitizado
     if (!isPlayerMode() && socket.connected) {
-      socket.emit('handout:share-toggle' as any, {
-        handoutId: id,
+      socket.emit('handout:share-toggle', {
+        handout: toPlayerHandoutView({ ...item, isSharedWithPlayers: nextShare }),
         isShared: nextShare,
       });
     }
 
     triggerAutoSave();
+  },
+
+  projectHandout: (item: HandoutItem) => {
+    set({ projectedHandoutId: item.id });
+    if (!isPlayerMode() && socket.connected) {
+      socket.emit('projection:set', {
+        handout: toPlayerHandoutView(item),
+      });
+    }
+  },
+
+  stopProjection: () => {
+    set({ projectedHandoutId: null });
+    if (!isPlayerMode() && socket.connected) {
+      socket.emit('projection:set', {
+        handout: null,
+      });
+    }
+  },
+
+  syncSharedHandoutsToRoom: () => {
+    if (isPlayerMode() || !socket.connected) return;
+    const shared = get()
+      .items.filter((i) => i.isSharedWithPlayers)
+      .map(toPlayerHandoutView);
+    socket.emit('handout:sync-shared', { handouts: shared });
   },
 
   convertMapImageToHandout: async (ref: MapImageReference) => {
