@@ -40,11 +40,11 @@ export default function MapImagesModal({ onClose }: MapImagesModalProps) {
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
+      className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/80"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-xl bg-[#18181b] border border-[#323238] rounded-xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden"
+        className="w-full max-w-xl bg-[#18181b] border border-[#27272a] rounded-xl shadow-xl flex flex-col max-h-[85vh] overflow-hidden"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#27272a] bg-[#121214]">

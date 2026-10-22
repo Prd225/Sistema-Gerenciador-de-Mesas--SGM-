@@ -83,11 +83,11 @@ export default function HandoutDetailModal({
   const getTextThemeClasses = () => {
     switch (item.textStyle) {
       case 'parchment':
-        return 'bg-[#d8c39d] text-[#2c1d11] font-serif border-[#b89f76] shadow-2xl';
+        return 'bg-[#d8c39d] text-[#2c1d11] font-serif border-[#b89f76] shadow-lg';
       case 'official':
-        return 'bg-[#f4f4f5] text-[#18181b] font-sans border-[#e4e4e7] shadow-xl';
+        return 'bg-[#f4f4f5] text-[#18181b] font-sans border-[#e4e4e7] shadow-md';
       case 'dark-scroll':
-        return 'bg-[#0f0c1b] text-[#d4c6f5] font-serif border-[#3b2d60] shadow-2xl shadow-purple-950/60';
+        return 'bg-[#0f0c1b] text-[#d4c6f5] font-serif border-[#3b2d60] shadow-lg';
       case 'modern':
       default:
         return 'bg-[#18181b] text-[#f4f4f5] font-sans border-[#27272a]';
@@ -97,16 +97,16 @@ export default function HandoutDetailModal({
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[350] flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-[350] flex items-center justify-center p-4 sm:p-6 bg-black/85"
     >
       <div
         onClick={(e) => e.stopPropagation()}
         className={`relative w-full ${
           item.type === 'pdf' ? 'max-w-5xl h-[90vh]' : 'max-w-4xl max-h-[92vh]'
-        } bg-[#121214] border border-[#323238] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-150`}
+        } bg-[#121214] border border-[#323238] rounded-xl shadow-xl flex flex-col overflow-hidden`}
       >
         {/* Barra Superior */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-[#27272a] bg-[#18181b]/90">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-[#27272a] bg-[#18181b]">
           <div className="flex items-center gap-3">
             <span className="p-1.5 rounded-lg bg-[#27272a] text-[#8257e5]">
               {item.type === 'image' ? (
@@ -224,7 +224,7 @@ export default function HandoutDetailModal({
           className={`flex-1 min-h-[350px] ${
             item.type === 'pdf'
               ? 'p-0 overflow-hidden flex flex-col h-full bg-[#2a2a2e]'
-              : 'overflow-y-auto p-4 sm:p-6 bg-black/40'
+              : 'overflow-y-auto p-4 sm:p-6 bg-[#121214]'
           }`}
         >
           {item.type === 'image' && mediaSource ? (
@@ -233,7 +233,7 @@ export default function HandoutDetailModal({
                 src={mediaSource}
                 alt={item.title}
                 style={{ transform: `scale(${zoom})` }}
-                className="max-h-[68vh] max-w-full object-contain rounded-lg transition-transform duration-150 select-none shadow-2xl"
+                className="max-h-[68vh] max-w-full object-contain rounded-lg transition-transform duration-150 select-none shadow-lg"
               />
             </div>
           ) : item.type === 'video' && mediaSource ? (
@@ -242,12 +242,12 @@ export default function HandoutDetailModal({
                 src={mediaSource}
                 controls
                 autoPlay
-                className="max-h-[68vh] w-full rounded-xl shadow-2xl bg-black"
+                className="max-h-[68vh] w-full rounded-xl shadow-lg bg-black"
               />
             </div>
           ) : item.type === 'audio' && mediaSource ? (
             <div className="flex items-center justify-center min-h-[350px]">
-              <div className="p-8 bg-[#18181b] border border-[#27272a] rounded-2xl flex flex-col items-center gap-4 shadow-2xl">
+              <div className="p-8 bg-[#18181b] border border-[#27272a] rounded-xl flex flex-col items-center gap-4 shadow-lg">
                 <h4 className="text-base font-semibold text-white">{item.title}</h4>
                 <audio src={mediaSource} controls className="w-80" autoPlay />
               </div>
@@ -271,7 +271,7 @@ export default function HandoutDetailModal({
           ) : item.type === 'text' ? (
             <div className="flex justify-center w-full min-h-full py-2">
               <div
-                className={`w-full max-w-2xl p-6 sm:p-8 rounded-2xl border flex flex-col gap-5 h-fit shadow-2xl my-auto ${getTextThemeClasses()}`}
+                className={`w-full max-w-2xl p-6 sm:p-8 rounded-xl border flex flex-col gap-5 h-fit shadow-lg my-auto ${getTextThemeClasses()}`}
               >
                 <div className="flex items-center justify-between border-b border-current/20 pb-3">
                   <h2 className="text-xl font-bold tracking-wide">{item.title}</h2>

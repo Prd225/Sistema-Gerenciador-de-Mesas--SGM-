@@ -129,8 +129,10 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         db.handoutFolders.toArray(),
       ]);
 
-      // Se ainda não existir nenhum documento PDF no inventário, adiciona um exemplo inicial
-      if (!items.some((i) => i.type === 'pdf')) {
+      // Se ainda não existir nenhum documento PDF e nunca tiver sido inicializado, adiciona exemplo inicial
+      const alreadySeeded = typeof window !== 'undefined' ? localStorage.getItem('sgm_sample_pdf_seeded') : 'true';
+      if (!alreadySeeded && !items.some((i) => i.type === 'pdf')) {
+        localStorage.setItem('sgm_sample_pdf_seeded', 'true');
         const samplePdfItem: HandoutItem = {
           id: 'sample-pdf-handout',
           title: 'Regras Rápidas da Mesa',

@@ -214,7 +214,7 @@ export default function HandoutCard({
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="w-44 bg-[#1c1c20] border-[#323238] text-[#e1e1e6] p-1 shadow-2xl"
+              className="w-44 bg-[#1c1c20] border-[#27272a] text-[#e1e1e6] p-1 shadow-lg"
             >
               <DropdownMenuItem
                 onClick={() => onOpenDetail(item)}

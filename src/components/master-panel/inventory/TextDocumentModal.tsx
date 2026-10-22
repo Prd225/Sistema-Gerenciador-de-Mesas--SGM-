@@ -200,7 +200,7 @@ export default function TextDocumentModal({
       case 'official':
         return 'bg-[#f4f4f5] text-[#18181b] font-sans border-[#e4e4e7] shadow-lg selection:bg-blue-600/20';
       case 'dark-scroll':
-        return 'bg-[#0f0c1b] text-[#d4c6f5] font-serif border-[#3b2d60] shadow-2xl shadow-purple-950/50';
+        return 'bg-[#0f0c1b] text-[#d4c6f5] font-serif border-[#3b2d60] shadow-lg';
       case 'modern':
       default:
         return 'bg-[#18181b] text-[#f4f4f5] font-sans border-[#27272a]';
@@ -208,8 +208,8 @@ export default function TextDocumentModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="relative w-full max-w-3xl bg-[#18181b] border border-[#323238] rounded-xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/80">
+      <div className="relative w-full max-w-3xl bg-[#18181b] border border-[#27272a] rounded-xl shadow-xl flex flex-col max-h-[92vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-[#27272a] bg-[#121214]">
           <div className="flex items-center gap-2">

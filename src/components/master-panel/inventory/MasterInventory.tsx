@@ -300,11 +300,11 @@ export default function MasterInventory() {
       {folderModalOpen && (
         <div
           onClick={() => setFolderModalOpen(false)}
-          className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/80"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-xs bg-[#18181b] border border-[#323238] rounded-xl shadow-2xl p-4 flex flex-col gap-3"
+            className="w-full max-w-xs bg-[#18181b] border border-[#27272a] rounded-xl shadow-xl p-4 flex flex-col gap-3"
           >
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
