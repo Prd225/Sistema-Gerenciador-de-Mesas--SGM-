@@ -43,17 +43,25 @@ export default function InitiativeBar() {
         left: `${leftOffset}px`,
         maxWidth: `calc(100vw - ${leftOffset + 24}px - 80px)`,
       }}
-      className="absolute bottom-5 flex flex-col bg-[#202024]/95 border border-[#323238] rounded-lg shadow-[0_4px_15px_rgba(0,0,0,0.7)] z-30 pointer-events-auto transition-[left,max-width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+      className="absolute bottom-5 flex flex-col bg-[#202024]/95 border border-[#323238] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.6)] backdrop-blur-sm z-30 pointer-events-auto transition-[left,max-width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] select-none"
     >
-      {/* Header discreto apagadinho em tons de cinza */}
-      <div className="px-3.5 pt-2 pb-0 text-[11px] font-medium text-[#888892] tracking-wide select-none">
-        Cena {scene} -- Rodada {round} -- Turno {activeIndex + 1}/{safeQueue.length}
+      {/* Header elegante, discreto e centralizado */}
+      <div className="flex items-center justify-center gap-2.5 px-4 pt-2.5 pb-1.5 text-[11px] tracking-wide border-b border-[#323238]/40">
+        <span className="font-medium text-[#a1a1aa]">Cena {scene}</span>
+        <span className="text-[#52525b] select-none text-xs">—</span>
+        <span className="font-medium text-[#a1a1aa]">Rodada {round}</span>
+        <span className="text-[#52525b] select-none text-xs">—</span>
+        <span className="font-medium text-[#a1a1aa] flex items-center gap-1">
+          <span>Turno</span>
+          <span className="font-semibold text-[#f4f4f5]">{activeIndex + 1}</span>
+          <span className="text-[#71717a]">/{safeQueue.length}</span>
+        </span>
       </div>
 
-      {/* Fila de tokens da iniciativa */}
-      <div className="flex gap-4 px-3.5 pb-3.5 pt-8 overflow-x-auto custom-scrollbar items-end">
-
-      {safeQueue.map((item, index) => {
+      {/* Fila de tokens centralizada */}
+      <div className="overflow-x-auto custom-scrollbar px-4 pb-3.5 pt-8">
+        <div className="flex items-end justify-center gap-4 min-w-full w-fit">
+          {safeQueue.map((item, index) => {
         const token = safeTokens.find((t) => t && t.id === item.tokenId);
         if (!token) return null;
 
@@ -147,6 +155,7 @@ export default function InitiativeBar() {
           </div>
         );
       })}
+        </div>
       </div>
     </div>
   );
