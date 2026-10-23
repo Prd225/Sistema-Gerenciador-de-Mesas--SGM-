@@ -25,7 +25,46 @@ if (!fs.existsSync(uploadsDir)) {
 // Servir arquivos estáticos locais para qualquer cliente da mesa
 app.use('/uploads', express.static(path.join(process.cwd(), 'server', 'uploads')));
 
-// Upload de arquivo local de handout vindo do mestre
+// Upload binário via stream direto para disco (sem limite de JSON, sem base64, zero consumo de RAM)
+app.post('/api/handouts/upload-raw', (req, res) => {
+  try {
+    const id = (req.query.id as string) || (req.headers['x-file-id'] as string) || `${Date.now()}`;
+    const rawName = (req.query.name as string) || (req.headers['x-file-name'] as string) || '';
+    const name = decodeURIComponent(rawName);
+
+    let ext = 'bin';
+    if (name && name.includes('.')) {
+      ext = name.split('.').pop() || 'bin';
+    } else {
+      const mime = req.headers['content-type'] || '';
+      ext = mime.split('/')[1]?.split('+')[0] || 'bin';
+    }
+
+    // Sanitiza extensão contra caracteres inválidos
+    ext = ext.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'bin';
+
+    const filename = `${id}.${ext}`;
+    const filePath = path.join(uploadsDir, filename);
+    const writeStream = fs.createWriteStream(filePath);
+
+    req.pipe(writeStream);
+
+    writeStream.on('finish', () => {
+      const relativeUrl = `/uploads/handouts/${filename}`;
+      res.json({ success: true, url: relativeUrl, filename });
+    });
+
+    writeStream.on('error', (err) => {
+      console.error('[Upload Handout Raw] Erro na gravação:', err);
+      res.status(500).json({ error: 'Erro ao gravar arquivo no disco' });
+    });
+  } catch (err: any) {
+    console.error('[Upload Handout Raw] Erro geral:', err);
+    res.status(500).json({ error: err.message || 'Falha ao processar upload' });
+  }
+});
+
+// Upload de arquivo local de handout vindo do mestre (legado/fallback)
 app.post('/api/handouts/upload', (req, res) => {
   try {
     const { id, name, dataUrl } = req.body;
@@ -49,6 +88,8 @@ app.post('/api/handouts/upload', (req, res) => {
     } else {
       ext = mimeType.split('/')[1]?.split('+')[0] || 'bin';
     }
+
+    ext = ext.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'bin';
 
     const filename = `${id}.${ext}`;
     const filePath = path.join(uploadsDir, filename);

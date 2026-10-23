@@ -18,6 +18,8 @@ import {
   Tv,
   ExternalLink,
   Users,
+  Image as ImageIcon,
+  FolderArchive,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -110,6 +112,15 @@ function openPdfInNewTab(item: HandoutItem) {
   }
 }
 
+function formatBytes(bytes?: number, decimals = 1): string {
+  if (!bytes || bytes === 0) return '';
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+}
+
 export default function HandoutCard({
   item,
   folders,
@@ -125,15 +136,13 @@ export default function HandoutCard({
   const updateItem = useInventoryStore((state) => state.updateItem);
   const toggleMapPlacement = useInventoryStore((state) => state.toggleMapPlacement);
 
-  const mediaSource = item.serverUrl || item.fileData || '';
+  const ext = getFileExtension(item);
+  const docColor = getDocumentColor(ext);
 
   const handleToggleMap = async (e: React.MouseEvent) => {
     e.stopPropagation();
     await toggleMapPlacement(item.id);
   };
-
-  const ext = getFileExtension(item);
-  const docColor = getDocumentColor(ext);
 
   return (
     <div
@@ -144,44 +153,89 @@ export default function HandoutCard({
           : 'border border-[#27272a] hover:border-[#8257e5]'
       }`}
     >
-      {/* Miniatura / Preview */}
-      <div className="relative aspect-[4/3] w-full bg-[#121214] overflow-hidden flex items-center justify-center border-b border-[#27272a]">
-        {item.type === 'image' && mediaSource ? (
-          <img
-            src={mediaSource}
-            alt={item.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-            loading="lazy"
-          />
+      {/* Miniatura / Identificador visual rápido do arquivo */}
+      <div className="relative aspect-[4/3] w-full bg-[#121214] overflow-hidden flex items-center justify-center border-b border-[#27272a] group-hover:bg-[#161619] transition-colors">
+        {item.type === 'image' ? (
+          <div className="flex flex-col items-center justify-center text-sky-400 gap-1.5 p-2 text-center">
+            <div className="p-2.5 rounded-lg bg-sky-500/10 border border-sky-500/25 group-hover:scale-110 group-hover:bg-sky-500/20 group-hover:border-sky-500/40 transition-all shadow-sm">
+              <ImageIcon className="w-7 h-7 stroke-[1.5]" />
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] font-bold tracking-wider font-mono px-1.5 py-0.5 rounded bg-sky-500/15 border border-sky-500/30 text-sky-300 uppercase">
+                {ext}
+              </span>
+              {item.fileSize ? (
+                <span className="text-[9px] text-[#71717a] font-mono">
+                  {formatBytes(item.fileSize)}
+                </span>
+              ) : null}
+            </div>
+          </div>
         ) : item.type === 'video' ? (
-          <div className="flex flex-col items-center justify-center text-purple-400 gap-1.5">
-            <Video className="w-8 h-8 stroke-[1.5]" />
-            <span className="text-[10px] font-bold tracking-wider font-mono px-1.5 py-0.5 rounded bg-purple-500/15 border border-purple-500/30 text-purple-300 uppercase">
-              {ext}
-            </span>
+          <div className="flex flex-col items-center justify-center text-purple-400 gap-1.5 p-2 text-center">
+            <div className="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/25 group-hover:scale-110 group-hover:bg-purple-500/20 transition-all shadow-sm">
+              <Video className="w-7 h-7 stroke-[1.5]" />
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] font-bold tracking-wider font-mono px-1.5 py-0.5 rounded bg-purple-500/15 border border-purple-500/30 text-purple-300 uppercase">
+                {ext}
+              </span>
+              {item.fileSize ? (
+                <span className="text-[9px] text-[#71717a] font-mono">
+                  {formatBytes(item.fileSize)}
+                </span>
+              ) : null}
+            </div>
           </div>
         ) : item.type === 'audio' ? (
-          <div className="flex flex-col items-center justify-center text-emerald-400 gap-1.5">
-            <Music className="w-8 h-8 stroke-[1.5]" />
-            <span className="text-[10px] font-bold tracking-wider font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 uppercase">
-              {ext}
-            </span>
+          <div className="flex flex-col items-center justify-center text-emerald-400 gap-1.5 p-2 text-center">
+            <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 group-hover:scale-110 group-hover:bg-emerald-500/20 transition-all shadow-sm">
+              <Music className="w-7 h-7 stroke-[1.5]" />
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] font-bold tracking-wider font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 uppercase">
+                {ext}
+              </span>
+              {item.fileSize ? (
+                <span className="text-[9px] text-[#71717a] font-mono">
+                  {formatBytes(item.fileSize)}
+                </span>
+              ) : null}
+            </div>
           </div>
         ) : item.type === 'text' || item.type === 'pdf' ? (
-          <div className="flex flex-col items-center justify-center gap-1.5">
-            <FileText className={`w-8 h-8 stroke-[1.5] ${docColor.icon}`} />
-            <span
-              className={`text-[10px] font-bold tracking-wider font-mono px-1.5 py-0.5 rounded border uppercase ${docColor.badge}`}
-            >
-              {ext}
-            </span>
+          <div className="flex flex-col items-center justify-center gap-1.5 p-2 text-center">
+            <div className={`p-2.5 rounded-lg bg-white/5 border border-white/10 group-hover:scale-110 transition-all shadow-sm ${docColor.icon}`}>
+              <FileText className="w-7 h-7 stroke-[1.5]" />
+            </div>
+            <div className="flex items-center gap-1">
+              <span
+                className={`text-[10px] font-bold tracking-wider font-mono px-1.5 py-0.5 rounded border uppercase ${docColor.badge}`}
+              >
+                {ext}
+              </span>
+              {item.fileSize ? (
+                <span className="text-[9px] text-[#71717a] font-mono">
+                  {formatBytes(item.fileSize)}
+                </span>
+              ) : null}
+            </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center text-[#a1a1aa] gap-1.5">
-            <File className="w-8 h-8 stroke-[1.5]" />
-            <span className="text-[10px] font-bold tracking-wider font-mono px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[#d4d4d8] uppercase">
-              {ext}
-            </span>
+          <div className="flex flex-col items-center justify-center text-[#a1a1aa] gap-1.5 p-2 text-center">
+            <div className="p-2.5 rounded-lg bg-white/5 border border-white/10 group-hover:scale-110 transition-all shadow-sm">
+              <File className="w-7 h-7 stroke-[1.5]" />
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] font-bold tracking-wider font-mono px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[#d4d4d8] uppercase">
+                {ext}
+              </span>
+              {item.fileSize ? (
+                <span className="text-[9px] text-[#71717a] font-mono">
+                  {formatBytes(item.fileSize)}
+                </span>
+              ) : null}
+            </div>
           </div>
         )}
 
@@ -371,14 +425,24 @@ export default function HandoutCard({
 
       {/* Informações e Ações Rápidas */}
       <div className="p-2 flex flex-col gap-1.5 flex-1 justify-between">
-        <div>
+        <div className="min-w-0">
           <h4
             className="text-xs font-semibold text-[#f4f4f5] truncate"
             title={item.title}
           >
             {item.title}
           </h4>
-          <div className="flex items-center justify-between text-[10px] text-[#71717a] mt-0.5">
+
+          {/* Nome ou caminho original do arquivo no computador */}
+          <div
+            className="flex items-center gap-1 text-[10px] text-[#71717a] truncate mt-0.5 font-mono"
+            title={item.filePath || item.title}
+          >
+            <FolderArchive className="w-2.5 h-2.5 shrink-0 text-[#8257e5]/70" />
+            <span className="truncate">{item.filePath || item.title}</span>
+          </div>
+
+          <div className="flex items-center justify-between text-[10px] text-[#71717a] mt-1">
             {item.isSharedWithPlayers ? (
               <span className="text-emerald-400 font-medium flex items-center gap-1">
                 {item.sharedWithPlayerNames && item.sharedWithPlayerNames.length > 0 ? (
@@ -392,6 +456,11 @@ export default function HandoutCard({
               </span>
             ) : (
               <span>Oculto</span>
+            )}
+            {item.fileSize && item.type !== 'image' && (
+              <span className="text-[9px] text-[#71717a] font-mono">
+                {formatBytes(item.fileSize)}
+              </span>
             )}
           </div>
         </div>

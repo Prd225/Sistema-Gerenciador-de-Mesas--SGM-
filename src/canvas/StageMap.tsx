@@ -15,6 +15,7 @@ import MarkerLayer from './MarkerLayer';
 import FogLayer from './FogLayer';
 import DrawingLayer from './DrawingLayer';
 import { useFogStore } from '@/store/useFogStore';
+import { uploadMediaFile } from '@/lib/mediaUpload';
 
 const generateId = () =>
   window.crypto?.randomUUID?.() ?? Math.random().toString(36).substring(2, 11);
@@ -752,18 +753,20 @@ export default function StageMap() {
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         const file = e.dataTransfer.files[0];
         if (file.type.startsWith('image/')) {
-          const reader = new FileReader();
-          reader.onload = (evt) => {
-            addBgImage({
-              id: generateId(),
-              src: evt.target?.result as string,
-              x: worldX,
-              y: worldY,
-              scale: 1,
-              rotation: 0,
+          uploadMediaFile(file)
+            .then(({ url }) => {
+              addBgImage({
+                id: generateId(),
+                src: url,
+                x: worldX,
+                y: worldY,
+                scale: 1,
+                rotation: 0,
+              });
+            })
+            .catch((err) => {
+              console.error('[StageMap] Erro ao carregar imagem arrastada:', err);
             });
-          };
-          reader.readAsDataURL(file);
           return;
         }
       }

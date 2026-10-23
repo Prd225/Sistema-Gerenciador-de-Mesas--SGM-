@@ -76,7 +76,10 @@ export const collectGameState = async () => {
       sceneData: activeScenesData,
     },
     inventory: {
-      items: await db.handouts.toArray(),
+      items: (await db.handouts.toArray()).map((item) => {
+        const { fileData, ...cleanItem } = item;
+        return cleanItem;
+      }),
       folders: await db.handoutFolders.toArray(),
     },
   };
@@ -234,7 +237,11 @@ export const applyGameState = async (data: any) => {
       await db.handouts.clear();
       await db.handoutFolders.clear();
       if (data.inventory.items && data.inventory.items.length > 0) {
-        await db.handouts.bulkPut(data.inventory.items);
+        const cleanItems = data.inventory.items.map((item: any) => {
+          const { fileData, ...clean } = item;
+          return clean;
+        });
+        await db.handouts.bulkPut(cleanItems);
       }
       if (data.inventory.folders && data.inventory.folders.length > 0) {
         await db.handoutFolders.bulkPut(data.inventory.folders);
@@ -247,6 +254,75 @@ export const applyGameState = async (data: any) => {
   } catch (error) {
     console.error('[SGM] Erro ao aplicar estado da mesa:', error);
     throw error;
+  }
+};
+
+/**
+ * Higienização de emergência e auto-recuperação do IndexedDB:
+ * Remove payloads brutos em base64 (fileData) que superam os limites do IndexedDB
+ * (ex: erro 'The structured clone is too large') e provocam gargalos/congelamentos.
+ */
+export const sanitizeDatabaseMedia = async () => {
+  try {
+    // 1. Limpa fileData de db.handouts
+    const allHandouts = await db.handouts.toArray();
+    const heavyHandouts = allHandouts.filter((h) => h.fileData);
+    if (heavyHandouts.length > 0) {
+      console.warn(
+        `[SGM Higienização] Removendo base64 pesado de ${heavyHandouts.length} itens do inventário para restaurar desempenho...`,
+      );
+      for (const h of heavyHandouts) {
+        await db.handouts.update(h.id, { fileData: undefined });
+      }
+    }
+
+    // 2. Limpa fileData de db.sessionState ('currentSession')
+    const session = await db.sessionState.get('currentSession');
+    if (session?.data?.inventory?.items) {
+      let cleaned = false;
+      session.data.inventory.items = session.data.inventory.items.map(
+        (item: any) => {
+          if (item.fileData) {
+            cleaned = true;
+            const { fileData, ...rest } = item;
+            return rest;
+          }
+          return item;
+        },
+      );
+      if (cleaned) {
+        await db.sessionState.put(session);
+        console.warn(
+          '[SGM Higienização] Sessão de trabalho limpa de mídias brutas com sucesso.',
+        );
+      }
+    }
+
+    // 3. Limpa fileData de db.campaignSlots
+    const slots = await db.campaignSlots.toArray();
+    for (const slot of slots) {
+      if (slot.data?.inventory?.items) {
+        let slotCleaned = false;
+        slot.data.inventory.items = slot.data.inventory.items.map(
+          (item: any) => {
+            if (item.fileData) {
+              slotCleaned = true;
+              const { fileData, ...rest } = item;
+              return rest;
+            }
+            return item;
+          },
+        );
+        if (slotCleaned) {
+          await db.campaignSlots.put(slot);
+          console.warn(
+            `[SGM Higienização] Slot ${slot.slotNumber} higienizado com sucesso.`,
+          );
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[SGM Higienização] Erro ao sanitizar mídias pesadas:', err);
   }
 };
 
@@ -285,6 +361,9 @@ export const loadWorkingSession = async (): Promise<boolean> => {
   } catch {
     // ignore
   }
+
+  // Executa auto-higienização para eliminar qualquer 1GB de base64 que bloqueie o IndexedDB
+  await sanitizeDatabaseMedia();
 
   try {
     const session = await db.sessionState.get('currentSession');

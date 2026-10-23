@@ -10,6 +10,7 @@ import {
   ExternalLink,
   Eye,
   Inbox,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePlayerHandoutsStore } from '@/store/usePlayerHandoutsStore';
@@ -221,7 +222,6 @@ export default function PlayerHandoutsDrawer() {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {filteredItems.map((item) => {
-                  const mediaSource = item.serverUrl || item.fileData || '';
                   const ext = getFileExtension(item);
                   const docColor = getDocumentColor(ext);
 
@@ -232,14 +232,16 @@ export default function PlayerHandoutsDrawer() {
                       className="group flex flex-col bg-[#18181b] hover:bg-[#202024] border border-[#27272a] hover:border-[#8257e5] rounded-lg overflow-hidden transition-all duration-150 cursor-pointer shadow-sm select-none"
                     >
                       {/* Preview / Thumbnail */}
-                      <div className="relative aspect-[4/3] w-full bg-[#121214] overflow-hidden flex items-center justify-center border-b border-[#27272a]">
-                        {item.type === 'image' && mediaSource ? (
-                          <img
-                            src={mediaSource}
-                            alt={item.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                            loading="lazy"
-                          />
+                      <div className="relative aspect-[4/3] w-full bg-[#121214] overflow-hidden flex items-center justify-center border-b border-[#27272a] group-hover:bg-[#161619] transition-colors">
+                        {item.type === 'image' ? (
+                          <div className="flex flex-col items-center justify-center text-sky-400 gap-1.5 p-2 text-center">
+                            <div className="p-2 rounded-lg bg-sky-500/10 border border-sky-500/25 group-hover:scale-110 group-hover:bg-sky-500/20 transition-all shadow-sm">
+                              <ImageIcon className="w-7 h-7 stroke-[1.5]" />
+                            </div>
+                            <span className="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-sky-500/15 border border-sky-500/30 text-sky-300 uppercase">
+                              {ext}
+                            </span>
+                          </div>
                         ) : item.type === 'video' ? (
                           <div className="flex flex-col items-center justify-center text-purple-400 gap-1">
                             <Video className="w-7 h-7 stroke-[1.5]" />

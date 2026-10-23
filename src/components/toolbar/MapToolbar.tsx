@@ -19,6 +19,7 @@ import {
   Paintbrush,
 } from 'lucide-react';
 import type { ActiveTool } from '@/types/game';
+import { uploadMediaFile } from '@/lib/mediaUpload';
 
 const generateId = () =>
   window.crypto?.randomUUID?.() ?? Math.random().toString(36).substring(2, 11);
@@ -58,22 +59,23 @@ export default function MapToolbar() {
   const isFogActive = activeTool.startsWith('fog-');
   const isBrushActive = activeTool.endsWith('-brush');
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
+    try {
+      const { url } = await uploadMediaFile(file);
       addBgImage({
         id: generateId(),
-        src: evt.target?.result as string,
+        src: url,
         x: 100,
         y: 100,
         scale: 1,
         rotation: 0,
       });
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('[MapToolbar] Erro ao adicionar imagem de fundo:', err);
+    }
     e.target.value = ''; // Reset input
   };
 

@@ -18,8 +18,8 @@ export interface HandoutItem {
   type: HandoutType;
   folderId: string | null; // null = raiz
   filePath?: string; // Nome ou caminho do arquivo no PC do mestre
-  fileData?: string; // DataURL / base64 para preview instantâneo e offline
-  serverUrl?: string; // URL local fornecida pelo backend Express para transmissão em rede
+  fileData?: string; // Legado: omitido na persistência para máxima performance
+  serverUrl?: string; // URL local servida sob demanda pelo backend Express (/uploads/handouts/...)
   textContent?: string; // Conteúdo de texto / carta / documento
   textStyle?: HandoutTextStyle;
   fileSize?: number; // Tamanho em bytes

@@ -8,9 +8,10 @@ import type {
 } from '@/types/inventory';
 import type { PlayerHandoutView } from '@/types/multiplayer';
 import { db } from '@/lib/db';
-import { triggerAutoSave } from '@/lib/saveHelpers';
+import { triggerAutoSave, sanitizeDatabaseMedia } from '@/lib/saveHelpers';
 import { isPlayerMode } from '@/lib/roomRole';
 import { socket } from '@/lib/socket';
+import { uploadMediaFile } from '@/lib/mediaUpload';
 import { useZoneStore } from './useZoneStore';
 import { useTokenStore } from './useTokenStore';
 import { useScenesStore } from './useScenesStore';
@@ -22,7 +23,6 @@ export function toPlayerHandoutView(item: HandoutItem): PlayerHandoutView {
     type: item.type,
     folderId: item.folderId,
     filePath: item.filePath,
-    fileData: item.fileData,
     serverUrl: item.serverUrl,
     textContent: item.textContent,
     textStyle: item.textStyle,
@@ -113,36 +113,6 @@ function detectHandoutType(mime: string, name: string): HandoutType {
   return 'other';
 }
 
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = (err) => reject(err);
-    reader.readAsDataURL(file);
-  });
-}
-
-async function uploadToLocalServer(
-  id: string,
-  name: string,
-  dataUrl: string,
-): Promise<string | undefined> {
-  try {
-    const res = await fetch('/api/handouts/upload', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, name, dataUrl }),
-    });
-    if (res.ok) {
-      const json = await res.json();
-      return json.url;
-    }
-  } catch {
-    // Se o backend Express não estiver respondendo, o dataUrl local no IndexedDB mantém o funcionamento offline
-  }
-  return undefined;
-}
-
 export const useInventoryStore = create<InventoryState>((set, get) => ({
   items: [],
   folders: [],
@@ -158,10 +128,14 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   loadFromDb: async () => {
     try {
       set({ isLoading: true });
-      const [items, folders] = await Promise.all([
+      await sanitizeDatabaseMedia();
+      const [rawItems, folders] = await Promise.all([
         db.handouts.toArray(),
         db.handoutFolders.toArray(),
       ]);
+
+      // Remove fileData de qualquer item legado carregado em memória
+      const items = rawItems.map(({ fileData, ...rest }) => rest as HandoutItem);
 
       // Se ainda não existir nenhum documento PDF e nunca tiver sido inicializado, adiciona exemplo inicial
       const alreadySeeded = typeof window !== 'undefined' ? localStorage.getItem('sgm_sample_pdf_seeded') : 'true';
@@ -249,8 +223,6 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     for (const file of files) {
       const id = generateId();
       const type = detectHandoutType(file.type, file.name);
-      const dataUrl = await readFileAsDataUrl(file);
-      const serverUrl = await uploadToLocalServer(id, file.name, dataUrl);
 
       // Limpar nome do arquivo para usar de título
       const title = file.name.replace(/\.[^/.]+$/, '');
@@ -273,14 +245,18 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         }
       }
 
+      // Transmite via stream HTTP binário diretamente para o disco do backend local
+      // ZERO consumo de RAM em base64 e sem limites de tamanho
+      const { url: serverUrl } = await uploadMediaFile(file, id);
+
       const item: HandoutItem = {
         id,
         title,
         type,
         folderId: currentFolder,
         filePath: file.name,
-        fileData: dataUrl,
         serverUrl,
+        fileData: undefined, // NUNCA persiste dados brutos no estado ou IndexedDB
         textContent,
         textStyle,
         fileSize: file.size,
@@ -555,12 +531,19 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
 
   convertMapImageToHandout: async (ref: MapImageReference) => {
     const id = generateId();
+    const isUrl =
+      ref.src.startsWith('http') ||
+      ref.src.startsWith('/') ||
+      ref.src.startsWith('blob:');
+
     const item: HandoutItem = {
       id,
       title: ref.name || 'Imagem do Mapa',
       type: 'image',
       folderId: null,
-      fileData: ref.src,
+      filePath: ref.name || 'Mapa',
+      serverUrl: isUrl ? ref.src : undefined,
+      fileData: undefined,
       isSharedWithPlayers: false,
       createdAt: Date.now(),
       updatedAt: Date.now(),
