@@ -3,15 +3,24 @@ import { Scroll, Sparkles, X, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePlayerHandoutsStore } from '@/store/usePlayerHandoutsStore';
 
+let sharedAudioCtx: AudioContext | null = null;
+
 const playNotificationChime = () => {
   try {
     const AudioCtx =
       window.AudioContext ||
       (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    const now = ctx.currentTime;
 
+    if (!sharedAudioCtx) {
+      sharedAudioCtx = new AudioCtx();
+    }
+    const ctx = sharedAudioCtx;
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
+    const now = ctx.currentTime;
     const osc1 = ctx.createOscillator();
     const osc2 = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -53,7 +62,7 @@ export default function PlayerHandoutNotification() {
     }, 6500);
 
     return () => clearTimeout(timer);
-  }, [notification, dismiss]);
+  }, [notification?.id, dismiss]);
 
   if (!notification) return null;
 
