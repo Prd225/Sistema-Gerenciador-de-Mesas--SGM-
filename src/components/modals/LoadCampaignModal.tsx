@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useCampaignStore } from '@/store/useCampaignStore';
-import { applyGameState, saveWorkingSession } from '@/lib/saveHelpers';
+import { applyGameState, saveWorkingSession, exportStateToFile } from '@/lib/saveHelpers';
 import { db } from '@/lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
@@ -17,6 +17,8 @@ import {
   ChevronRight,
   FolderOpen,
   AlertTriangle,
+  Upload,
+  Download,
 } from 'lucide-react';
 import { timeAgo } from '@/lib/utils';
 
@@ -45,6 +47,36 @@ export default function LoadCampaignModal() {
 
   const filledSlotsCount =
     useLiveQuery(() => db.campaignSlots.count(), []) || 0;
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+
+      if (!data || typeof data !== 'object') {
+        throw new Error('Formato inválido');
+      }
+
+      if (
+        window.confirm(
+          `Deseja carregar a mesa a partir do arquivo "${file.name}"? Todos os dados atuais da mesa serão atualizados.`,
+        )
+      ) {
+        await handleLoad(data);
+      }
+    } catch (err) {
+      console.error('[Import Save] Erro ao carregar arquivo de save:', err);
+      alert(
+        'Arquivo inválido ou corrompido. Selecione um arquivo .sgm ou .json exportado pelo SGM.',
+      );
+    }
+    e.target.value = '';
+  };
 
   const handleLoad = async (data: any) => {
     try {
@@ -103,7 +135,19 @@ export default function LoadCampaignModal() {
           </div>
 
           {existingSave && (
-            <div className="flex gap-2">
+            <div className="flex gap-1.5 items-center">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-[#323238] bg-[#121214] text-[#c4b5fd] hover:text-white hover:bg-[#8257e5]/30 h-8 px-2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  exportStateToFile(existingSave.data, existingSave.name || `Slot_${i}`);
+                }}
+                title="Baixar este save como arquivo (.sgm)"
+              >
+                <Download className="w-3.5 h-3.5" />
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -125,10 +169,31 @@ export default function LoadCampaignModal() {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-[#202024] border-[#323238] text-[#e1e1e6] sm:max-w-[600px] h-[85vh] flex flex-col">
-        <DialogHeader>
+        <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pr-6">
           <DialogTitle className="text-[#ffd700] text-xl font-bold flex items-center gap-2">
             <FolderOpen className="w-5 h-5" /> Carregar Salvamento
           </DialogTitle>
+          <div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept=".sgm,.json"
+              className="hidden"
+              onChange={handleImportFile}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={autoSaveSlot !== null}
+              onClick={() => fileInputRef.current?.click()}
+              className="border-[#8257e5]/50 bg-[#8257e5]/10 hover:bg-[#8257e5]/25 text-[#c4b5fd] text-xs h-7 px-2.5 gap-1.5 disabled:opacity-50"
+              title="Carregar mesa a partir de um arquivo .sgm baixado"
+            >
+              <Upload className="w-3.5 h-3.5 text-[#a78bfa]" />
+              <span className="hidden sm:inline">Importar Arquivo</span>
+              <span>(.sgm)</span>
+            </Button>
+          </div>
         </DialogHeader>
 
         {autoSaveSlot !== null && (

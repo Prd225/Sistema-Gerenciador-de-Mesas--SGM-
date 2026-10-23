@@ -20,6 +20,24 @@ export const setIsResetting = (val: boolean) => {
   isResetting = val;
 };
 
+/**
+ * Exporta o estado da mesa para download como arquivo físico (.sgm / .json).
+ * Permite transferir o save via WhatsApp, Discord, Pen Drive ou Drive.
+ */
+export function exportStateToFile(data: any, filename = 'Campanha_SGM') {
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const safeName = filename.replace(/[^a-zA-Z0-9_-]/g, '_');
+  a.download = `${safeName}.sgm`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export const collectGameState = async () => {
   const tokenState = useTokenStore.getState();
   const zoneState = useZoneStore.getState();
