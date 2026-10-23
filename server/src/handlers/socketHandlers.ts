@@ -375,6 +375,8 @@ export function registerSocketHandlers(io: SgmServer, socket: SgmSocket) {
         payload.targetPlayerNames ? ` para: ${payload.targetPlayerNames.join(', ')}` : ' (para todos)'
       }`,
     );
+  });
+
   // Névoa de Guerra (somente mestre)
   socket.on('fog:update', (payload) => {
     const ctx = gmContext('fog:update');

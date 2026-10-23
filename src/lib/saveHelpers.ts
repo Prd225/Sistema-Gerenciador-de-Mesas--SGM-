@@ -181,12 +181,8 @@ export const applyGameState = async (data: any) => {
       await db.activeScenes.clear();
       let uniqueScenes: any[] = [];
       if (data.scenes.sceneData && data.scenes.sceneData.length > 0) {
-<<<<<<< HEAD
-        uniqueScenes = Array.from(
-=======
         // Deduplica por ID para evitar conflitos de chave no banco
-        const uniqueScenes: any[] = Array.from(
->>>>>>> feat/fog-of-war
+        uniqueScenes = Array.from(
           new Map<string, any>(data.scenes.sceneData.map((s: any) => [s.id, s])).values(),
         );
         uniqueScenes.forEach((scene: any) => {
