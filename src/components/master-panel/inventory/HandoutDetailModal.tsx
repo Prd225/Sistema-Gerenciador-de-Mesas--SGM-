@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { HandoutItem } from '@/types/inventory';
 import { useInventoryStore } from '@/store/useInventoryStore';
 import { useZoneStore } from '@/store/useZoneStore';
@@ -20,6 +20,7 @@ import {
   Users,
   Maximize2,
   Minimize2,
+  Volume2,
 } from 'lucide-react';
 import { isPlayerMode } from '@/lib/roomRole';
 import { Button } from '@/components/ui/button';
@@ -47,12 +48,20 @@ export default function HandoutDetailModal({
   const toggleShare = useInventoryStore((state) => state.toggleShare);
   const toggleMapPlacement = useInventoryStore((state) => state.toggleMapPlacement);
 
-  const isImage = item.type === 'image';
-  const [isCinemaMode, setIsCinemaMode] = useState<boolean>(isImage);
+  const isMultimedia = item.type === 'image' || item.type === 'video' || item.type === 'audio';
+  const [isCinemaMode, setIsCinemaMode] = useState<boolean>(isMultimedia);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const mediaStateRef = useRef<{ currentTime: number; volume: number; paused: boolean }>({
+    currentTime: 0,
+    volume: 1,
+    paused: false,
+  });
 
   const mediaSource = item.serverUrl || item.fileData || '';
   const isOnMap = useZoneStore((state) =>
@@ -66,18 +75,53 @@ export default function HandoutDetailModal({
     setPan({ x: 0, y: 0 });
   };
 
+  const saveMediaState = () => {
+    const el = videoRef.current || audioRef.current;
+    if (el) {
+      mediaStateRef.current = {
+        currentTime: el.currentTime,
+        volume: el.volume,
+        paused: el.paused,
+      };
+    }
+  };
+
+  const handleToggleCinemaMode = (targetMode?: boolean) => {
+    saveMediaState();
+    setIsCinemaMode((prev) => (targetMode !== undefined ? targetMode : !prev));
+    handleResetZoom();
+  };
+
   useEffect(() => {
-    setIsCinemaMode(item.type === 'image');
+    const el = videoRef.current || audioRef.current;
+    if (!el) return;
+
+    const { currentTime, volume, paused } = mediaStateRef.current;
+    if (currentTime > 0) {
+      try {
+        el.currentTime = currentTime;
+      } catch {
+        // Ignora se mídia ainda não estiver carregada
+      }
+    }
+    el.volume = volume;
+    if (!paused && currentTime > 0) {
+      el.play().catch(() => {});
+    }
+  }, [isCinemaMode]);
+
+  useEffect(() => {
+    setIsCinemaMode(item.type === 'image' || item.type === 'video' || item.type === 'audio');
     setZoom(1);
     setPan({ x: 0, y: 0 });
+    mediaStateRef.current = { currentTime: 0, volume: 1, paused: false };
   }, [item.id, item.type]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (isCinemaMode && isImage) {
-          setIsCinemaMode(false);
-          handleResetZoom();
+        if (isCinemaMode && isMultimedia) {
+          handleToggleCinemaMode(false);
         } else {
           onClose();
         }
@@ -85,10 +129,10 @@ export default function HandoutDetailModal({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isCinemaMode, isImage, onClose]);
+  }, [isCinemaMode, isMultimedia, onClose]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || item.type !== 'image') return;
     setIsDragging(true);
     setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
   };
@@ -116,6 +160,7 @@ export default function HandoutDetailModal({
   }, [isDragging, dragStart]);
 
   const handleWheel = (e: React.WheelEvent) => {
+    if (item.type !== 'image') return;
     e.preventDefault();
     const delta = e.deltaY < 0 ? 0.2 : -0.2;
     setZoom((prev) => {
@@ -176,8 +221,8 @@ export default function HandoutDetailModal({
     }
   };
 
-  // Modo Cinema / Tela Cheia: Exclusivo para imagens
-  if (isCinemaMode && isImage && mediaSource) {
+  // Modo Cinema / Tela Cheia: Para todos os arquivos multimídia (imagem, vídeo, áudio)
+  if (isCinemaMode && isMultimedia && mediaSource) {
     return (
       <div
         onClick={onClose}
@@ -200,10 +245,7 @@ export default function HandoutDetailModal({
           <div className="flex items-center gap-2 pointer-events-auto">
             <button
               type="button"
-              onClick={() => {
-                setIsCinemaMode(false);
-                handleResetZoom();
-              }}
+              onClick={() => handleToggleCinemaMode(false)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md text-xs font-medium transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
               title="Modo Janela"
             >
@@ -211,14 +253,16 @@ export default function HandoutDetailModal({
               <span className="hidden sm:inline">Janela</span>
             </button>
 
-            <button
-              type="button"
-              onClick={handleOpenInNewTab}
-              className="p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
-              title="Nova Guia"
-            >
-              <ExternalLink className="w-3.5 h-3.5 text-red-400" />
-            </button>
+            {(item.type === 'image' || item.type === 'video') && (
+              <button
+                type="button"
+                onClick={handleOpenInNewTab}
+                className="p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
+                title="Nova Guia"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-red-400" />
+              </button>
+            )}
 
             <button
               type="button"
@@ -231,94 +275,125 @@ export default function HandoutDetailModal({
           </div>
         </div>
 
-        {/* Área Central Interativa: Arrastar e Zoom para Investigar */}
-        <div
-          onClick={(e) => e.stopPropagation()}
-          onWheel={handleWheel}
-          onMouseDown={handleMouseDown}
-          className={`relative group max-w-[95vw] max-h-[88vh] flex items-center justify-center select-none ${
-            isDragging ? 'cursor-grabbing' : 'cursor-grab'
-          }`}
-          title="Role para zoom ou arraste para investigar detalhes"
-        >
-          <img
-            src={mediaSource}
-            alt={item.title}
-            draggable={false}
-            onDragStart={(e) => e.preventDefault()}
-            style={{
-              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-              transition: isDragging ? 'none' : 'transform 100ms ease-out',
-            }}
-            className="max-h-[88vh] max-w-[92vw] object-contain rounded-md shadow-[0_20px_60px_rgba(0,0,0,0.95)] ring-1 ring-white/10 select-none pointer-events-none"
-          />
-
-          {/* Botão Central de Desexpandir ao passar o mouse (Estilo Roll20) */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsCinemaMode(false);
-                handleResetZoom();
+        {/* Área Central de Conteúdo Multimídia (Sem botões invasivos no centro) */}
+        {item.type === 'image' ? (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            onWheel={handleWheel}
+            onMouseDown={handleMouseDown}
+            className={`relative max-w-[95vw] max-h-[88vh] flex items-center justify-center select-none ${
+              isDragging ? 'cursor-grabbing' : 'cursor-grab'
+            }`}
+            title="Role para zoom ou arraste para investigar detalhes"
+          >
+            <img
+              src={mediaSource}
+              alt={item.title}
+              draggable={false}
+              onDragStart={(e) => e.preventDefault()}
+              style={{
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                transition: isDragging ? 'none' : 'transform 100ms ease-out',
               }}
-              className="pointer-events-auto p-3.5 rounded-full bg-black/80 hover:bg-black/95 text-white border border-white/25 shadow-[0_10px_30px_rgba(0,0,0,0.8)] backdrop-blur-md flex items-center gap-2 hover:scale-105 active:scale-95 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
-              title="Modo Janela"
-            >
-              <Minimize2 className="w-5 h-5 text-purple-300" />
-              <span className="text-xs font-semibold pr-1">Modo Janela</span>
-            </button>
+              className="max-h-[88vh] max-w-[92vw] object-contain rounded-md shadow-[0_20px_60px_rgba(0,0,0,0.95)] ring-1 ring-white/10 select-none pointer-events-none"
+            />
           </div>
-        </div>
+        ) : item.type === 'video' ? (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-[94vw] max-h-[88vh] flex items-center justify-center select-none"
+          >
+            <video
+              ref={videoRef}
+              src={mediaSource}
+              controls
+              autoPlay
+              onVolumeChange={(e) => {
+                mediaStateRef.current.volume = e.currentTarget.volume;
+              }}
+              onTimeUpdate={(e) => {
+                mediaStateRef.current.currentTime = e.currentTarget.currentTime;
+              }}
+              className="max-h-[85vh] max-w-[92vw] w-auto h-auto rounded-xl shadow-2xl bg-black border border-white/10"
+            />
+          </div>
+        ) : (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="p-8 bg-[#18181b]/95 border border-[#27272a] rounded-2xl shadow-2xl backdrop-blur-md flex flex-col items-center gap-4 min-w-[320px] max-w-md select-none"
+          >
+            <div className="w-20 h-20 rounded-full bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-purple-300 shadow-inner">
+              <Volume2 className="w-10 h-10 animate-pulse" />
+            </div>
+            <h3 className="text-base font-semibold text-white text-center truncate max-w-full">
+              {item.title}
+            </h3>
+            <audio
+              ref={audioRef}
+              src={mediaSource}
+              controls
+              autoPlay
+              onVolumeChange={(e) => {
+                mediaStateRef.current.volume = e.currentTarget.volume;
+              }}
+              onTimeUpdate={(e) => {
+                mediaStateRef.current.currentTime = e.currentTarget.currentTime;
+              }}
+              className="w-full mt-2"
+            />
+          </div>
+        )}
 
-        {/* Barra Flutuante Inferior de Zoom / Ferramentas */}
-        <div
-          onClick={(e) => e.stopPropagation()}
-          className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/75 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 text-white shadow-xl z-30"
-        >
-          <Button
-            variant="outline"
-            size="icon-xs"
-            onClick={() => setZoom((z) => Math.max(0.4, Number((z - 0.2).toFixed(2))))}
-            className="bg-white/10 hover:bg-white/20 border-white/20 text-white h-7 w-7 rounded-full"
-            title="Diminuir Zoom"
+        {/* Barra Flutuante Inferior de Zoom (Apenas para Imagens) */}
+        {item.type === 'image' && (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/75 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 text-white shadow-xl z-30"
           >
-            <ZoomOut className="w-3.5 h-3.5" />
-          </Button>
-          <span className="font-mono text-xs min-w-10 text-center select-none">
-            {Math.round(zoom * 100)}%
-          </span>
-          <Button
-            variant="outline"
-            size="icon-xs"
-            onClick={() => setZoom((z) => Math.min(4, Number((z + 0.2).toFixed(2))))}
-            className="bg-white/10 hover:bg-white/20 border-white/20 text-white h-7 w-7 rounded-full"
-            title="Aumentar Zoom"
-          >
-            <ZoomIn className="w-3.5 h-3.5" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon-xs"
-            onClick={handleResetZoom}
-            className="bg-white/10 hover:bg-white/20 border-white/20 text-white h-7 w-7 rounded-full"
-            title="Resetar Zoom e Posição"
-          >
-            <RotateCcw className="w-3 h-3" />
-          </Button>
+            <Button
+              variant="outline"
+              size="icon-xs"
+              onClick={() => setZoom((z) => Math.max(0.4, Number((z - 0.2).toFixed(2))))}
+              className="bg-white/10 hover:bg-white/20 border-white/20 text-white h-7 w-7 rounded-full"
+              title="Diminuir Zoom"
+            >
+              <ZoomOut className="w-3.5 h-3.5" />
+            </Button>
+            <span className="font-mono text-xs min-w-10 text-center select-none">
+              {Math.round(zoom * 100)}%
+            </span>
+            <Button
+              variant="outline"
+              size="icon-xs"
+              onClick={() => setZoom((z) => Math.min(4, Number((z + 0.2).toFixed(2))))}
+              className="bg-white/10 hover:bg-white/20 border-white/20 text-white h-7 w-7 rounded-full"
+              title="Aumentar Zoom"
+            >
+              <ZoomIn className="w-3.5 h-3.5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon-xs"
+              onClick={handleResetZoom}
+              className="bg-white/10 hover:bg-white/20 border-white/20 text-white h-7 w-7 rounded-full"
+              title="Resetar Zoom e Posição"
+            >
+              <RotateCcw className="w-3 h-3" />
+            </Button>
 
-          <div className="w-px h-4 bg-white/20 mx-1" />
+            <div className="w-px h-4 bg-white/20 mx-1" />
 
-          <a
-            href={mediaSource}
-            download={item.filePath || `${item.title}.png`}
-            className="flex items-center gap-1.5 text-xs text-white/80 hover:text-white px-2 py-1 rounded-full hover:bg-white/10 transition-colors"
-            title="Salvar Imagem"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Salvar</span>
-          </a>
-        </div>
+            <a
+              href={mediaSource}
+              download={item.filePath || `${item.title}.png`}
+              className="flex items-center gap-1.5 text-xs text-white/80 hover:text-white px-2 py-1 rounded-full hover:bg-white/10 transition-colors"
+              title="Salvar Imagem"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Salvar</span>
+            </a>
+          </div>
+        )}
       </div>
     );
   }
@@ -471,15 +546,12 @@ export default function HandoutDetailModal({
               </>
             )}
 
-            {/* Alternar para Tela Cheia (Apenas Imagem) */}
-            {item.type === 'image' && (
+            {/* Alternar para Tela Cheia (Arquivos Multimídia) */}
+            {isMultimedia && (
               <Button
                 variant="outline"
                 size="xs"
-                onClick={() => {
-                  setIsCinemaMode(true);
-                  handleResetZoom();
-                }}
+                onClick={() => handleToggleCinemaMode(true)}
                 className="bg-[#27272a] text-[#e1e1e6] border-[#3f3f46] hover:bg-white/10 hover:text-white gap-1.5 text-xs transition-all"
                 title="Expandir em tela cheia"
               >
@@ -488,8 +560,8 @@ export default function HandoutDetailModal({
               </Button>
             )}
 
-            {/* Abrir em Nova Guia (PDF ou Imagem) */}
-            {(item.type === 'pdf' || item.type === 'image') && (pdfBlobUrl || mediaSource) && (
+            {/* Abrir em Nova Guia (PDF, Imagem ou Vídeo) */}
+            {(item.type === 'pdf' || item.type === 'image' || item.type === 'video') && (pdfBlobUrl || mediaSource) && (
               <Button
                 variant="outline"
                 size="xs"
@@ -524,7 +596,7 @@ export default function HandoutDetailModal({
             <div
               onWheel={handleWheel}
               onMouseDown={handleMouseDown}
-              className={`relative group flex items-center justify-center w-full min-h-[350px] overflow-hidden select-none ${
+              className={`relative flex items-center justify-center w-full min-h-[350px] overflow-hidden select-none ${
                 isDragging ? 'cursor-grabbing' : 'cursor-grab'
               }`}
               title="Role para zoom ou arraste para mover"
@@ -540,38 +612,43 @@ export default function HandoutDetailModal({
                 }}
                 className="max-h-[68vh] max-w-full object-contain rounded-lg shadow-lg select-none pointer-events-none"
               />
-
-              {/* Botão Central de Expandir ao passar o mouse (Estilo Roll20) */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsCinemaMode(true);
-                    handleResetZoom();
-                  }}
-                  className="pointer-events-auto p-3 rounded-full bg-black/80 hover:bg-black/95 text-white border border-white/25 shadow-[0_10px_25px_rgba(0,0,0,0.8)] backdrop-blur-md flex items-center gap-2 hover:scale-105 active:scale-95 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
-                  title="Tela Cheia"
-                >
-                  <Maximize2 className="w-4 h-4 text-purple-300" />
-                  <span className="text-xs font-semibold pr-1">Tela Cheia</span>
-                </button>
-              </div>
             </div>
           ) : item.type === 'video' && mediaSource ? (
             <div className="w-full max-w-3xl mx-auto flex items-center justify-center min-h-[350px]">
               <video
+                ref={videoRef}
                 src={mediaSource}
                 controls
                 autoPlay
+                onVolumeChange={(e) => {
+                  mediaStateRef.current.volume = e.currentTarget.volume;
+                }}
+                onTimeUpdate={(e) => {
+                  mediaStateRef.current.currentTime = e.currentTarget.currentTime;
+                }}
                 className="max-h-[68vh] w-full rounded-xl shadow-lg bg-black"
               />
             </div>
           ) : item.type === 'audio' && mediaSource ? (
             <div className="flex items-center justify-center min-h-[350px]">
               <div className="p-8 bg-[#18181b] border border-[#27272a] rounded-xl flex flex-col items-center gap-4 shadow-lg">
+                <div className="w-16 h-16 rounded-full bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-purple-300">
+                  <Volume2 className="w-8 h-8" />
+                </div>
                 <h4 className="text-base font-semibold text-white">{item.title}</h4>
-                <audio src={mediaSource} controls className="w-80" autoPlay />
+                <audio
+                  ref={audioRef}
+                  src={mediaSource}
+                  controls
+                  autoPlay
+                  onVolumeChange={(e) => {
+                    mediaStateRef.current.volume = e.currentTarget.volume;
+                  }}
+                  onTimeUpdate={(e) => {
+                    mediaStateRef.current.currentTime = e.currentTarget.currentTime;
+                  }}
+                  className="w-80"
+                />
               </div>
             </div>
           ) : item.type === 'pdf' ? (
