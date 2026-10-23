@@ -39,10 +39,12 @@ export default function InitiativeBar() {
     }
   });
 
-  const [hasGlow, setHasGlow] = useState(false);
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [spinKey, setSpinKey] = useState(0);
   const prevTurnRef = useRef<number | null>(null);
   const prevRoundRef = useRef<number | null>(null);
   const prevQueueLenRef = useRef(safeQueue.length);
+  const spinTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Se uma nova batalha começar (fila vai de 0 para >0), expande automaticamente
   useEffect(() => {
@@ -55,7 +57,7 @@ export default function InitiativeBar() {
     prevQueueLenRef.current = safeQueue.length;
   }, [safeQueue.length]);
 
-  // Efeito de brilho pulsante quando o turno é passado
+  // Efeito de borda orbitando 3 vezes a partir do centro-topo ao passar o turno
   useEffect(() => {
     if (prevTurnRef.current === null || prevRoundRef.current === null) {
       prevTurnRef.current = turn;
@@ -67,13 +69,24 @@ export default function InitiativeBar() {
       prevTurnRef.current = turn;
       prevRoundRef.current = round;
 
-      setHasGlow(true);
-      const timer = setTimeout(() => {
-        setHasGlow(false);
-      }, 3500);
-      return () => clearTimeout(timer);
+      setSpinKey((k) => k + 1);
+      setIsSpinning(true);
+
+      if (spinTimerRef.current) {
+        clearTimeout(spinTimerRef.current);
+      }
+      // 3 voltas a 1.5s cada = 4.5s
+      spinTimerRef.current = setTimeout(() => {
+        setIsSpinning(false);
+      }, 4500);
     }
   }, [turn, round]);
+
+  useEffect(() => {
+    return () => {
+      if (spinTimerRef.current) clearTimeout(spinTimerRef.current);
+    };
+  }, []);
 
   const handleMinimize = () => {
     setIsMinimized(true);
@@ -84,7 +97,7 @@ export default function InitiativeBar() {
 
   const handleExpand = () => {
     setIsMinimized(false);
-    setHasGlow(false);
+    setIsSpinning(false);
     try {
       localStorage.setItem('sgm:initiative:minimized', 'false');
     } catch {}
@@ -122,62 +135,62 @@ export default function InitiativeBar() {
         <button
           type="button"
           onClick={handleExpand}
-          className="group relative flex items-center gap-2.5 px-3 py-1.5 bg-[#202024]/95 hover:bg-[#28282e] border rounded-full shadow-[0_8px_24px_rgba(0,0,0,0.6)] backdrop-blur-md cursor-pointer transition-all duration-300"
-          style={{
-            borderColor: hasGlow ? activeBorderColor : '#323238',
-            boxShadow: hasGlow
-              ? `0 0 20px ${activeBorderColor}88, 0 8px 24px rgba(0,0,0,0.7)`
-              : '0 4px 15px rgba(0,0,0,0.5)',
-          }}
+          className="group relative p-[1.5px] rounded-full overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.6)] cursor-pointer select-none transition-transform hover:scale-[1.02] active:scale-[0.98]"
           title="Restaurar barra de iniciativa"
         >
-          {/* Pulso / Glow dinâmico ao passar o turno */}
-          {hasGlow && (
-            <span
-              className="absolute -inset-1 rounded-full animate-ping pointer-events-none opacity-50 duration-1000"
-              style={{ backgroundColor: activeBorderColor }}
-            />
+          {/* Base da borda sutil quando estático */}
+          <div className="absolute inset-0 bg-[#323238] rounded-full" />
+
+          {/* Borda animada que dá a volta completa a partir do centro-topo */}
+          {isSpinning && (
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+              <div
+                key={spinKey}
+                className="w-[360px] h-[360px] animate-[spin_1.5s_linear_3]"
+                style={{
+                  background: `conic-gradient(from 0deg, transparent 0deg, transparent 270deg, ${activeBorderColor}44 320deg, ${activeBorderColor} 360deg)`,
+                }}
+              />
+            </div>
           )}
 
-          {/* Ícone de iniciativa que brilha na cor da borda do token ativo */}
-          <div
-            className={`relative flex items-center justify-center w-6 h-6 rounded-full border transition-all duration-300 ${
-              hasGlow ? 'scale-110 shadow-lg' : ''
-            }`}
-            style={{
-              borderColor: activeBorderColor,
-              backgroundColor: `${activeBorderColor}22`,
-              color: activeBorderColor,
-              boxShadow: hasGlow
-                ? `0 0 14px ${activeBorderColor}, 0 0 24px ${activeBorderColor}aa`
-                : `0 0 6px ${activeBorderColor}40`,
-            }}
-          >
-            <Swords className="w-3.5 h-3.5" />
-          </div>
+          {/* Conteúdo interno do mini-card */}
+          <div className="relative flex items-center gap-2 px-3 py-1.5 bg-[#202024]/95 hover:bg-[#28282e] rounded-full backdrop-blur-md transition-colors">
+            {/* Ícone de iniciativa na cor da borda do token ativo */}
+            <div
+              className="relative flex items-center justify-center w-6 h-6 rounded-full border transition-colors shrink-0"
+              style={{
+                borderColor: activeBorderColor,
+                backgroundColor: `${activeBorderColor}22`,
+                color: activeBorderColor,
+              }}
+            >
+              <Swords className="w-3.5 h-3.5" />
+            </div>
 
-          {/* Informações resumidas */}
-          <div className="flex items-center gap-1.5 text-[11px] font-medium text-[#a1a1aa] pr-0.5">
-            <span className="font-semibold text-[#f4f4f5]">R{round}</span>
-            <span className="text-[#52525b] select-none text-xs">—</span>
-            <span>
-              T{activeIndex + 1}/{safeQueue.length}
-            </span>
-            {activeToken && (
-              <>
-                <span className="text-[#52525b] select-none text-xs">•</span>
-                <span
-                  className="max-w-[85px] truncate font-semibold"
-                  style={{ color: activeBorderColor }}
-                  title={activeToken.fullName || activeToken.name}
-                >
-                  {activeToken.name}
-                </span>
-              </>
-            )}
-          </div>
+            {/* Números diretos (sem R ou T) */}
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-[#a1a1aa] pr-0.5">
+              <span className="font-semibold text-[#f4f4f5]">{round}</span>
+              <span className="text-[#52525b] select-none text-xs">—</span>
+              <span className="font-semibold text-[#e1e1e6]">
+                {activeIndex + 1}/{safeQueue.length}
+              </span>
+              {activeToken && (
+                <>
+                  <span className="text-[#52525b] select-none text-xs">•</span>
+                  <span
+                    className="max-w-[85px] truncate font-semibold"
+                    style={{ color: activeBorderColor }}
+                    title={activeToken.fullName || activeToken.name}
+                  >
+                    {activeToken.name}
+                  </span>
+                </>
+              )}
+            </div>
 
-          <ChevronUp className="w-3.5 h-3.5 text-[#71717a] group-hover:text-white transition-colors" />
+            <ChevronUp className="w-3.5 h-3.5 text-[#71717a] group-hover:text-white transition-colors shrink-0" />
+          </div>
         </button>
       </div>
     );
@@ -200,16 +213,7 @@ export default function InitiativeBar() {
           <span className="text-[#52525b] select-none text-xs">—</span>
           <span className="font-medium text-[#a1a1aa] flex items-center gap-1">
             <span>Turno</span>
-            <span
-              className={`font-semibold transition-colors duration-500 ${
-                hasGlow ? 'text-white' : 'text-[#f4f4f5]'
-              }`}
-              style={{
-                textShadow: hasGlow ? `0 0 10px ${activeBorderColor}` : undefined,
-              }}
-            >
-              {activeIndex + 1}
-            </span>
+            <span className="font-semibold text-[#f4f4f5]">{activeIndex + 1}</span>
             <span className="text-[#71717a]">/{safeQueue.length}</span>
           </span>
         </div>
