@@ -268,9 +268,11 @@ export type ActiveTool =
   | 'draw-poly'
   | 'edit-bg'
   | 'add-marker'
+  | 'fog-hide-brush'
   | 'fog-hide-rect'
   | 'fog-hide-circle'
   | 'fog-hide-poly'
+  | 'fog-reveal-brush'
   | 'fog-reveal-rect'
   | 'fog-reveal-circle'
   | 'fog-reveal-poly';

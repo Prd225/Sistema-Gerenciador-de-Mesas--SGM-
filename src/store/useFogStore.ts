@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { FogArea, FogState } from '@/types/fog';
+import type { FogArea, FogState, FogBrushShape } from '@/types/fog';
 import { triggerAutoSave } from '@/lib/saveHelpers';
 import { isPlayerMode } from '@/lib/roomRole';
 import { socket } from '@/lib/socket';
@@ -8,6 +8,10 @@ const generateId = () =>
   window.crypto?.randomUUID?.() ?? Math.random().toString(36).substring(2, 11);
 
 interface FogStoreState extends FogState {
+  brushSize: number;
+  brushShape: FogBrushShape;
+  setBrushSize: (size: number) => void;
+  setBrushShape: (shape: FogBrushShape) => void;
   toggleEnabled: () => void;
   setEnabled: (enabled: boolean) => void;
   setDefaultCovered: (covered: boolean) => void;
@@ -34,6 +38,11 @@ export const useFogStore = create<FogStoreState>((set, get) => ({
   enabled: false,
   defaultCovered: false,
   areas: [],
+  brushSize: 50,
+  brushShape: 'round',
+
+  setBrushSize: (brushSize: number) => set({ brushSize }),
+  setBrushShape: (brushShape: FogBrushShape) => set({ brushShape }),
 
   toggleEnabled: () => {
     if (isPlayerMode()) return;

@@ -1,5 +1,6 @@
-export type FogShapeType = 'rect' | 'circle' | 'polygon';
+export type FogShapeType = 'rect' | 'circle' | 'polygon' | 'brush';
 export type FogMode = 'hide' | 'reveal';
+export type FogBrushShape = 'round' | 'square';
 
 export interface FogArea {
   id: string;
@@ -10,6 +11,8 @@ export interface FogArea {
   width?: number;
   height?: number;
   points?: number[];
+  brushSize?: number;
+  brushShape?: FogBrushShape;
   createdAt: number;
 }
 

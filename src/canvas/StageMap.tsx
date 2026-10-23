@@ -93,6 +93,11 @@ export default function StageMap() {
     height: number;
   } | null>(null);
 
+  // Live mouse pos for brush cursor preview
+  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(
+    null,
+  );
+
   // --- Resize Observer ---
   useEffect(() => {
     const el = containerRef.current;
@@ -162,7 +167,8 @@ export default function StageMap() {
       activeTool !== 'draw-poly' &&
       activeTool !== 'draw-rect' &&
       activeTool !== 'draw-ellipse' &&
-      activeTool !== 'select'
+      activeTool !== 'select' &&
+      !activeTool.startsWith('fog-')
     ) {
       setIsDrawing(false);
       setNewShape(null);
@@ -349,6 +355,22 @@ export default function StageMap() {
 
       // Ferramentas de Fog of War
       if (activeTool.startsWith('fog-')) {
+        if (activeTool.endsWith('-brush')) {
+          const fogState = useFogStore.getState();
+          setIsDrawing(true);
+          const brushSize = fogState.brushSize;
+          const brushShape = fogState.brushShape;
+          setNewShape({
+            type: 'brush',
+            x: pos.x,
+            y: pos.y,
+            points: [pos.x, pos.y, pos.x + 0.01, pos.y + 0.01],
+            brushSize,
+            brushShape,
+          });
+          return;
+        }
+
         if (activeTool.endsWith('-poly')) {
           if (!isDrawing) {
             setIsDrawing(true);
@@ -459,11 +481,17 @@ export default function StageMap() {
 
   // --- Mouse Move ---
   const handleMouseMove = useCallback(() => {
-    if (!isDrawing) return;
-
     const stage = stageRef.current;
     if (!stage) return;
     const pos = getRelativePointerPosition(stage);
+
+    if (activeTool.endsWith('-brush')) {
+      setMousePos(pos);
+    } else if (mousePos !== null) {
+      setMousePos(null);
+    }
+
+    if (!isDrawing) return;
 
     if (activeTool === 'select' && selectionRect) {
       setSelectionRect({
@@ -475,6 +503,22 @@ export default function StageMap() {
     }
 
     if (!newShape) return;
+
+    if (newShape.type === 'brush' && activeTool.endsWith('-brush')) {
+      const currentPoints = newShape.points || [];
+      if (currentPoints.length >= 2) {
+        const lastX = currentPoints[currentPoints.length - 2];
+        const lastY = currentPoints[currentPoints.length - 1];
+        if (Math.hypot(pos.x - lastX, pos.y - lastY) >= 2) {
+          setNewShape((prev) =>
+            prev
+              ? { ...prev, points: [...(prev.points || []), pos.x, pos.y] }
+              : null,
+          );
+        }
+      }
+      return;
+    }
 
     if (
       newShape.type === 'polygon' &&
@@ -515,6 +559,7 @@ export default function StageMap() {
     activeTool,
     selectionRect,
     scale,
+    mousePos,
   ]);
 
   // --- Mouse Up ---
@@ -569,6 +614,25 @@ export default function StageMap() {
 
     if (activeTool.startsWith('fog-')) {
       setIsDrawing(false);
+
+      if (activeTool.endsWith('-brush')) {
+        if (newShape && newShape.points && newShape.points.length >= 2) {
+          const mode = activeTool.includes('reveal') ? 'reveal' : 'hide';
+          useFogStore.getState().setEnabled(true);
+          useFogStore.getState().addArea({
+            mode,
+            type: 'brush',
+            x: 0,
+            y: 0,
+            points: newShape.points,
+            brushSize: newShape.brushSize || useFogStore.getState().brushSize,
+            brushShape: newShape.brushShape || useFogStore.getState().brushShape,
+          });
+        }
+        setNewShape(null);
+        return;
+      }
+
       const absW = Math.abs(newShape.width || 0);
       const absH = Math.abs(newShape.height || 0);
 
@@ -767,6 +831,12 @@ export default function StageMap() {
           setActiveTool('pan');
         }
       }
+      if (e.key === '[' || e.key === ']') {
+        const curSize = useFogStore.getState().brushSize;
+        const delta = e.key === ']' ? 10 : -10;
+        const nextSize = Math.max(10, Math.min(300, curSize + delta));
+        useFogStore.getState().setBrushSize(nextSize);
+      }
       if (
         e.key === 'Enter' &&
         (activeTool === 'draw-poly' || activeTool.endsWith('-poly')) &&
@@ -811,6 +881,7 @@ export default function StageMap() {
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
+        onMouseLeave={() => setMousePos(null)}
         onMouseUp={handleMouseUp}
         onDblClick={handleDblClick}
         onContextMenu={handleContextMenu}
@@ -847,7 +918,11 @@ export default function StageMap() {
           <FogLayer scale={scale} />
         </Layer>
         <Layer>
-          <DrawingLayer newShape={newShape} scale={scale} />
+          <DrawingLayer
+            newShape={newShape}
+            mousePos={mousePos}
+            scale={scale}
+          />
         </Layer>
       </Stage>
     </div>

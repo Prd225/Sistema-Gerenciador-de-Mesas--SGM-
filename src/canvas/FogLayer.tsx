@@ -113,6 +113,23 @@ function FogLayerComponent({ scale = 1 }: FogLayerProps) {
           );
         }
 
+        if (area.type === 'brush' && area.points && area.points.length >= 2) {
+          const isSquare = area.brushShape === 'square';
+          return (
+            <Line
+              key={area.id}
+              points={area.points}
+              stroke={FOG_COLOR}
+              strokeWidth={area.brushSize || 50}
+              lineCap={isSquare ? 'square' : 'round'}
+              lineJoin={isSquare ? 'miter' : 'round'}
+              closed={false}
+              globalCompositeOperation={composite as any}
+              listening={false}
+            />
+          );
+        }
+
         return null;
       })}
     </Group>
