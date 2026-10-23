@@ -214,15 +214,15 @@ export function registerSocketHandlers(io: SgmServer, socket: SgmSocket) {
     socket.to(ctx.room.code).emit('initiative:updated', { queue, sortMode });
   });
 
-  // Atualização de Rodada / Turno da Campanha (mestre)
-  socket.on('campaign:update-round-turn', ({ round, turn }) => {
+  // Atualização de Rodada / Turno / Cena da Campanha (mestre)
+  socket.on('campaign:update-round-turn', ({ round, turn, scene }) => {
     const ctx = gmContext('campaign:update-round-turn');
     if (!ctx) return;
 
-    roomManager.updateRoundTurn(ctx.room.code, round, turn);
+    roomManager.updateRoundTurn(ctx.room.code, round, turn, scene);
     socket
       .to(ctx.room.code)
-      .emit('campaign:round-turn-updated', { round, turn });
+      .emit('campaign:round-turn-updated', { round, turn, scene });
   });
 
   // Imagens de Fundo (mestre)

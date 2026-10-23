@@ -36,6 +36,7 @@ export interface ActiveRoom {
   bgImages: BgImage[];
   round: number;
   turn: number;
+  scene: number;
   soundpad: SoundpadSnapshot | null;
   sharedHandouts: Map<string, PlayerHandoutView>;
   projection: ProjectionPayload | null;
@@ -107,6 +108,7 @@ export class RoomManager {
       bgImages: [],
       round: 1,
       turn: 1,
+      scene: 1,
       soundpad: null,
       sharedHandouts: new Map(),
       projection: null,
@@ -304,6 +306,9 @@ export class RoomManager {
     room.bgImages = Array.isArray(payload.bgImages) ? payload.bgImages : [];
     room.round = Number.isFinite(payload.round) ? payload.round : 1;
     room.turn = Number.isFinite(payload.turn) ? payload.turn : 1;
+    if (payload.scene !== undefined && Number.isFinite(payload.scene)) {
+      room.scene = payload.scene;
+    }
   }
 
   /**
@@ -395,12 +400,20 @@ export class RoomManager {
     room.bgImages = room.bgImages.filter((b) => b.id !== bgId);
   }
 
-  // Campaign Round / Turn
-  public updateRoundTurn(code: string, round: number, turn: number): void {
+  // Campaign Round / Turn / Scene
+  public updateRoundTurn(
+    code: string,
+    round: number,
+    turn: number,
+    scene?: number,
+  ): void {
     const room = this.getRoom(code);
     if (!room) return;
     room.round = round;
     room.turn = turn;
+    if (scene !== undefined && Number.isFinite(scene)) {
+      room.scene = scene;
+    }
   }
 
   // Soundpad

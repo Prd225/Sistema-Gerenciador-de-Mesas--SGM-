@@ -14,6 +14,8 @@ interface CampaignState {
   showSaveModal: boolean;
   autoSaveSlot: number | null;
   autoSaveStatus: 'idle' | 'saving' | 'success';
+  sceneNotification: number | null;
+  hasRemoteInitialized: boolean;
 
   setScene: (scene: number) => void;
   nextScene: () => void;
@@ -21,7 +23,9 @@ interface CampaignState {
   nextRound: () => void;
   setTurn: (turn: number) => void;
   addTurn: () => void;
-  setRoundTurnFromRemote: (round: number, turn: number) => void;
+  setRoundTurnFromRemote: (round: number, turn: number, scene?: number) => void;
+  dismissSceneNotification: () => void;
+  triggerSceneNotification: (sceneNumber: number) => void;
 
   setUrgency: (urgency: number | null) => void;
   changeUrgency: (amount: number) => void;
@@ -46,16 +50,25 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
     ? parseInt(localStorage.getItem('sgm_autoSaveSlot') as string, 10)
     : null,
   autoSaveStatus: 'idle',
+  sceneNotification: null,
+  hasRemoteInitialized: false,
+
+  dismissSceneNotification: () => set({ sceneNotification: null }),
+  triggerSceneNotification: (sceneNumber) => set({ sceneNotification: sceneNumber }),
 
   setScene: (scene) => {
     set({ scene });
     triggerAutoSave();
+    if (socket.connected) {
+      socket.emit('campaign:update-round-turn', { round: get().round, turn: get().turn, scene });
+    }
   },
   nextScene: () => {
-    set((state) => ({ scene: state.scene + 1, round: 1, turn: 1 }));
+    const nextS = get().scene + 1;
+    set({ scene: nextS, round: 1, turn: 1 });
     triggerAutoSave();
     if (socket.connected) {
-      socket.emit('campaign:update-round-turn', { round: 1, turn: 1 });
+      socket.emit('campaign:update-round-turn', { round: 1, turn: 1, scene: nextS });
     }
   },
 
@@ -63,7 +76,7 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
     set({ round });
     triggerAutoSave();
     if (socket.connected) {
-      socket.emit('campaign:update-round-turn', { round, turn: get().turn });
+      socket.emit('campaign:update-round-turn', { round, turn: get().turn, scene: get().scene });
     }
   },
   nextRound: () => {
@@ -74,6 +87,7 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
       socket.emit('campaign:update-round-turn', {
         round: nextR,
         turn: get().turn,
+        scene: get().scene,
       });
     }
   },
@@ -82,7 +96,7 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
     set({ turn });
     triggerAutoSave();
     if (socket.connected) {
-      socket.emit('campaign:update-round-turn', { round: get().round, turn });
+      socket.emit('campaign:update-round-turn', { round: get().round, turn, scene: get().scene });
     }
   },
 
@@ -106,6 +120,7 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
         socket.emit('campaign:update-round-turn', {
           round: nextRound,
           turn: nextTurn,
+          scene: get().scene,
         });
       }
       return;
@@ -177,11 +192,25 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
       socket.emit('campaign:update-round-turn', {
         round: currentRound,
         turn: currentTurn,
+        scene: get().scene,
       });
     }
   },
 
-  setRoundTurnFromRemote: (round, turn) => set({ round, turn }),
+  setRoundTurnFromRemote: (round, turn, scene) => {
+    const currentScene = get().scene;
+    const hasInit = get().hasRemoteInitialized;
+    const updates: Partial<CampaignState> = { round, turn };
+
+    if (scene !== undefined && scene > 0) {
+      updates.scene = scene;
+      if (hasInit && scene !== currentScene) {
+        updates.sceneNotification = scene;
+      }
+      updates.hasRemoteInitialized = true;
+    }
+    set(updates);
+  },
 
   setUrgency: (urgency) => {
     set({ urgency });

@@ -84,7 +84,7 @@ function applyPlayerView(view: PlayerStatePayload) {
   if (view.round !== undefined && view.turn !== undefined) {
     useCampaignStore
       .getState()
-      .setRoundTurnFromRemote(view.round, view.turn);
+      .setRoundTurnFromRemote(view.round, view.turn, view.scene);
   }
 }
 
@@ -298,9 +298,9 @@ function setupSocketListeners(set: any, get: any) {
     useTokenStore.getState().setInitiativeQueueFromRemote(queue, sortMode);
   });
 
-  // Rodada e Turno
-  socket.on('campaign:round-turn-updated', ({ round, turn }) => {
-    useCampaignStore.getState().setRoundTurnFromRemote(round, turn);
+  // Rodada, Turno e Cena
+  socket.on('campaign:round-turn-updated', ({ round, turn, scene }) => {
+    useCampaignStore.getState().setRoundTurnFromRemote(round, turn, scene);
   });
 
   // Background Images
@@ -548,7 +548,7 @@ export const useMultiplayerStore = create<MultiplayerState>((set, get) => {
       const initiativeQueue = useTokenStore.getState().initiativeQueue;
       const initiativeSortMode = useTokenStore.getState().initiativeSortMode;
       const { bgImages } = useZoneStore.getState();
-      const { round, turn } = useCampaignStore.getState();
+      const { round, turn, scene } = useCampaignStore.getState();
 
       socket.emit('room:sync-state', {
         tokens,
@@ -557,6 +557,7 @@ export const useMultiplayerStore = create<MultiplayerState>((set, get) => {
         bgImages,
         round,
         turn,
+        scene,
       });
     },
   };

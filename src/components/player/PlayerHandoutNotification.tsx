@@ -62,7 +62,7 @@ export default function PlayerHandoutNotification() {
     }, 6500);
 
     return () => clearTimeout(timer);
-  }, [notification?.id, dismiss]);
+  }, [notification, dismiss]);
 
   if (!notification) return null;
 
@@ -71,7 +71,7 @@ export default function PlayerHandoutNotification() {
     count > 1 ? `${count} documentos foram Revelados!` : 'Um documento foi Revelado!';
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-auto select-none animate-in slide-in-from-bottom-8 fade-in duration-300 ease-out max-w-[92vw] sm:max-w-md">
+    <div className="pointer-events-auto select-none animate-in slide-in-from-bottom-8 fade-in duration-300 ease-out max-w-[92vw] sm:max-w-md">
       <div
         onClick={() => openRevealedHandout(notification.handout)}
         className="group relative flex items-center gap-3.5 px-4 py-3 bg-[#18181b]/95 hover:bg-[#1f1f23] border border-amber-500/50 hover:border-amber-400 shadow-[0_12px_40px_rgba(0,0,0,0.85)] backdrop-blur-md rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"

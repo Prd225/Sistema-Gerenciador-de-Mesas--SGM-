@@ -89,6 +89,7 @@ export interface PlayerStatePayload {
   bgImages: BgImage[];
   round: number;
   turn: number;
+  scene?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -102,6 +103,7 @@ export interface SyncStatePayload {
   bgImages: BgImage[];
   round: number;
   turn: number;
+  scene?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -193,10 +195,11 @@ export interface ClientToServerEvents {
     sortMode?: InitiativeSortMode;
   }) => void;
 
-  // Campaign Round / Turn
+  // Campaign Round / Turn / Scene
   'campaign:update-round-turn': (payload: {
     round: number;
     turn: number;
+    scene?: number;
   }) => void;
 
   // Background images
@@ -252,10 +255,11 @@ export interface ServerToClientEvents {
     sortMode?: InitiativeSortMode;
   }) => void;
 
-  // Campaign Round / Turn
+  // Campaign Round / Turn / Scene
   'campaign:round-turn-updated': (payload: {
     round: number;
     turn: number;
+    scene?: number;
   }) => void;
 
   // Background images
