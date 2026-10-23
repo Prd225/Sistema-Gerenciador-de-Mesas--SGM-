@@ -197,7 +197,7 @@ export default function HandoutCard({
               }
             }}
             className="absolute top-1.5 left-1.5 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-black/85 hover:bg-black border border-emerald-500/60 text-emerald-400 text-[10px] font-semibold transition-all shadow-sm"
-            title={`Revelado para ${item.sharedWithPlayerNames.length} jogador(es): ${item.sharedWithPlayerNames.join(', ')}. Clique para configurar.`}
+            title={`Revelado para ${item.sharedWithPlayerNames.join(', ')}`}
           >
             <Eye className="w-3 h-3" />
             <span>{item.sharedWithPlayerNames.length}</span>
@@ -213,11 +213,7 @@ export default function HandoutCard({
                 ? 'text-emerald-400 border-emerald-500/50'
                 : 'text-[#71717a] border-white/10 hover:text-white'
             }`}
-            title={
-              item.isSharedWithPlayers
-                ? 'Visível para todos os jogadores. Clique para ocultar.'
-                : 'Oculto para jogadores. Clique para revelar para todos.'
-            }
+            title={item.isSharedWithPlayers ? 'Revelado para todos' : 'Oculto'}
           >
             {item.isSharedWithPlayers ? (
               <Eye className="w-3.5 h-3.5" />
@@ -277,7 +273,7 @@ export default function HandoutCard({
                   }`}
                 >
                   <Tv className="w-3.5 h-3.5 text-purple-400" />
-                  <span>{isProjected ? 'Encerrar Projeção' : 'Projetar para Jogadores...'}</span>
+                  <span>{isProjected ? 'Encerrar' : 'Projetar'}</span>
                 </DropdownMenuItem>
               )}
 
@@ -287,7 +283,7 @@ export default function HandoutCard({
                   className="cursor-pointer hover:bg-[#8257e5] hover:text-white text-xs gap-2 py-1.5"
                 >
                   <Users className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Revelar / Audiência...</span>
+                  <span>Audiência</span>
                 </DropdownMenuItem>
               )}
 
@@ -388,10 +384,10 @@ export default function HandoutCard({
                 {item.sharedWithPlayerNames && item.sharedWithPlayerNames.length > 0 ? (
                   <>
                     <Users className="w-3 h-3" />
-                    <span>{item.sharedWithPlayerNames.length} jogador(es)</span>
+                    <span>{item.sharedWithPlayerNames.length} jogadores</span>
                   </>
                 ) : (
-                  <span>Revelado (Todos)</span>
+                  <span>Revelado</span>
                 )}
               </span>
             ) : (
@@ -421,14 +417,10 @@ export default function HandoutCard({
                   ? 'bg-purple-600/40 border-purple-500 text-purple-200 hover:bg-purple-600/60 font-semibold'
                   : 'bg-[#202024] border-[#323238] hover:bg-[#8257e5] hover:text-white text-[#d4d4d8]'
               }`}
-              title={
-                isProjected
-                  ? 'Projeção ativa nos jogadores. Clique para encerrar.'
-                  : 'Projetar este handout na tela dos jogadores em tempo real'
-              }
+              title={isProjected ? 'Encerrar projeção' : 'Projetar na tela'}
             >
               <Tv className={`w-3 h-3 ${isProjected ? 'text-purple-300 animate-pulse' : 'text-[#8257e5]'}`} />
-              <span>{isProjected ? 'Projetando' : 'Projetar...'}</span>
+              <span>{isProjected ? 'Ao Vivo' : 'Projetar'}</span>
             </Button>
           )}
 

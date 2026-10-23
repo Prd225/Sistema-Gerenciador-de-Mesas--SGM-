@@ -158,11 +158,11 @@ export default function HandoutAudienceModal({
             <div>
               {isProjectMode ? (
                 <p>
-                  Transmita este handout <strong>ao vivo</strong> na tela dos jogadores. Você pode transmitir para todos ou apenas para jogadores selecionados que estão investigando uma cena específica.
+                  Transmita este handout na tela dos jogadores selecionados.
                 </p>
               ) : (
                 <p>
-                  Disponibilize este handout no <strong>inventário/handouts</strong> dos jogadores. Eles poderão visualizar o documento a qualquer momento.
+                  Disponibilize este handout na visualização dos jogadores selecionados.
                 </p>
               )}
             </div>
@@ -171,7 +171,7 @@ export default function HandoutAudienceModal({
           {/* Opções de Audiência: Todos vs Selecionados */}
           <div className="flex flex-col gap-2">
             <label className="text-xs font-semibold text-[#a1a1aa] uppercase tracking-wider">
-              Quem deve receber?
+              Destinatários
             </label>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -201,7 +201,7 @@ export default function HandoutAudienceModal({
                 <div>
                   <h4 className="text-xs font-semibold text-white">Todos os Jogadores</h4>
                   <p className="text-[11px] text-[#a1a1aa] mt-0.5 leading-snug">
-                    Toda a mesa verá o documento
+                    Toda a mesa
                   </p>
                 </div>
               </button>
@@ -230,23 +230,23 @@ export default function HandoutAudienceModal({
                   <UserCheck className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-semibold text-white">Grupo / Jogadores Seletos</h4>
+                  <h4 className="text-xs font-semibold text-white">Jogadores Selecionados</h4>
                   <p className="text-[11px] text-[#a1a1aa] mt-0.5 leading-snug">
-                    Apenas para pessoas ou alvos específicos
+                    Pessoas selecionadas
                   </p>
                 </div>
               </button>
             </div>
           </div>
 
-          {/* Lista de Seleção de Jogadores (se custom) */}
+          {/* Lista de Seleção de Jogadores */}
           {audienceType === 'custom' && (
             <div className="flex flex-col gap-2.5 pt-2 border-t border-[#27272a] animate-in fade-in duration-200">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-white flex items-center gap-1.5">
                   <span>Selecione os participantes</span>
                   <span className="px-1.5 py-0.2 rounded text-[10px] bg-[#27272a] text-[#8257e5] font-mono">
-                    {selectedNames.length} selecionado(s)
+                    {selectedNames.length} selecionados
                   </span>
                 </span>
 
@@ -419,7 +419,7 @@ export default function HandoutAudienceModal({
                   <span>
                     {audienceType === 'all'
                       ? 'Projetar para Todos'
-                      : `Projetar (${selectedNames.length})`}
+                      : 'Projetar Selecionados'}
                   </span>
                 </>
               ) : (
@@ -428,7 +428,7 @@ export default function HandoutAudienceModal({
                   <span>
                     {audienceType === 'all'
                       ? 'Revelar para Todos'
-                      : `Revelar (${selectedNames.length})`}
+                      : 'Revelar Selecionados'}
                   </span>
                 </>
               )}

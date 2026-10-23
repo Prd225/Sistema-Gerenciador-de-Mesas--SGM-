@@ -251,7 +251,7 @@ export default function MasterInventory() {
             <span className="truncate text-[11px]">
               Projetando ao vivo: <strong className="text-white font-semibold">{projectedItem.title}</strong>
               <span className="text-purple-300/80 ml-1.5 text-[10px]">
-                ({!projectedTargetNames || projectedTargetNames.length === 0 ? 'Para todos' : `Para: ${projectedTargetNames.join(', ')}`})
+                • {!projectedTargetNames || projectedTargetNames.length === 0 ? 'Todos' : projectedTargetNames.join(', ')}
               </span>
             </span>
           </div>
@@ -259,7 +259,7 @@ export default function MasterInventory() {
             <button
               onClick={() => handleOpenAudience(projectedItem, 'project')}
               className="px-2 py-0.5 rounded bg-purple-900/60 hover:bg-purple-800 text-[11px] text-purple-200 border border-purple-500/30 transition-colors"
-              title="Alterar público que está assistindo"
+              title="Alterar público"
             >
               Audiência
             </button>

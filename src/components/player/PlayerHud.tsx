@@ -46,7 +46,7 @@ export default function PlayerHud() {
         <button
           onClick={() => setIsCollapsed(false)}
           className="pointer-events-auto flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#202024]/90 hover:bg-[#202024] border border-[#323238] hover:border-[#8257e5] text-[#e1e1e6] shadow-xl backdrop-blur-md transition-all group cursor-pointer"
-          title={`Sala: ${roomId ?? '----'} • ${members.length} jogador(es) online • Clique para expandir`}
+          title={`Sala ${roomId ?? '----'} • ${members.length} jogadores`}
         >
           {/* Status Dot */}
           <span
@@ -118,7 +118,7 @@ export default function PlayerHud() {
             <button
               onClick={() => setIsCollapsed(true)}
               className="p-1 text-[#a8a8b3] hover:text-white hover:bg-[#323238] rounded transition-colors"
-              title="Minimizar HUD"
+              title="Minimizar"
             >
               <ChevronUp className="w-3.5 h-3.5" />
             </button>
@@ -126,7 +126,7 @@ export default function PlayerHud() {
             <button
               onClick={leaveRoom}
               className="p-1 text-[#a8a8b3] hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
-              title="Sair da Mesa"
+              title="Sair da mesa"
             >
               <LogOut className="w-3.5 h-3.5" />
             </button>

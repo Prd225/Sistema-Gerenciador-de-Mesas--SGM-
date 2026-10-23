@@ -135,13 +135,13 @@ export default function PlayerHandoutsDrawer() {
               </span>
               <div>
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <span>Handouts da Mesa</span>
+                  <span>Handouts</span>
                   <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-full bg-[#27272a] text-[#a1a1aa]">
                     {sharedHandouts.length}
                   </span>
                 </h3>
                 <p className="text-[11px] text-[#71717a]">
-                  Documentos, pistas e cartas reveladas pelo Mestre
+                  Documentos e pistas revelados
                 </p>
               </div>
             </div>
@@ -201,12 +201,12 @@ export default function PlayerHandoutsDrawer() {
               <div className="flex flex-col items-center justify-center h-full min-h-[260px] text-center text-[#71717a] p-8">
                 <Inbox className="w-12 h-12 mb-2 opacity-40 text-amber-400" />
                 <h4 className="text-sm font-semibold text-white/80">
-                  {search ? 'Nenhum handout encontrado' : 'Nenhum handout revelado'}
+                  {search ? 'Nenhum documento encontrado' : 'Nenhum documento revelado'}
                 </h4>
                 <p className="text-xs text-[#71717a] max-w-sm mt-1">
                   {search
-                    ? 'Tente buscar com outro termo ou limpe os filtros de categoria.'
-                    : 'Assim que o Mestre compartilhar pistas, mapas, cartas ou fichas, eles aparecerão aqui para você consultar a qualquer momento.'}
+                    ? 'Tente buscar com outro termo ou categoria.'
+                    : 'Nenhum documento compartilhado no momento.'}
                 </p>
               </div>
             ) : (
@@ -323,6 +323,7 @@ export default function PlayerHandoutsDrawer() {
               isSharedWithPlayers: true,
             } as HandoutItem
           }
+          isPlayerView={true}
           onClose={() => setInspectItem(null)}
         />
       )}

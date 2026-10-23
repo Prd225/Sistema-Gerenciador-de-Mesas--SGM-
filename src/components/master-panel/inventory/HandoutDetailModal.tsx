@@ -19,6 +19,7 @@ import {
   ExternalLink,
   Users,
 } from 'lucide-react';
+import { isPlayerMode } from '@/lib/roomRole';
 import { Button } from '@/components/ui/button';
 
 interface HandoutDetailModalProps {
@@ -28,6 +29,7 @@ interface HandoutDetailModalProps {
   onEdit?: (item: HandoutItem) => void;
   isProjected?: boolean;
   onRequestAudience?: (item: HandoutItem, mode: 'project' | 'share') => void;
+  isPlayerView?: boolean;
 }
 
 export default function HandoutDetailModal({
@@ -37,7 +39,9 @@ export default function HandoutDetailModal({
   onEdit,
   isProjected = false,
   onRequestAudience,
+  isPlayerView,
 }: HandoutDetailModalProps) {
+  const isPlayer = isPlayerView ?? isPlayerMode();
   const toggleShare = useInventoryStore((state) => state.toggleShare);
   const toggleMapPlacement = useInventoryStore((state) => state.toggleMapPlacement);
 
@@ -128,7 +132,7 @@ export default function HandoutDetailModal({
               <h3 className="text-sm font-semibold text-white truncate max-w-md">
                 {item.title}
               </h3>
-              {item.filePath && (
+              {!isPlayer && item.filePath && (
                 <p className="text-[10px] text-[#71717a] font-mono truncate">
                   {item.filePath}
                 </p>
@@ -137,137 +141,134 @@ export default function HandoutDetailModal({
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Toggle de Compartilhamento com Audiência */}
-            <div className="flex items-center">
-              <Button
-                variant="outline"
-                size="xs"
-                onClick={() => {
-                  if (item.isSharedWithPlayers) {
-                    toggleShare(item.id);
-                  } else if (onRequestAudience) {
-                    onRequestAudience(item, 'share');
-                  } else {
-                    toggleShare(item.id);
-                  }
-                }}
-                className={`text-xs gap-1.5 transition-all ${
-                  item.isSharedWithPlayers
-                    ? onRequestAudience
-                      ? 'rounded-r-none border-r-0 bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
-                      : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
-                    : 'bg-[#27272a] text-[#a1a1aa] border-[#3f3f46] hover:bg-white/10 hover:text-white'
-                }`}
-                title={
-                  item.isSharedWithPlayers
-                    ? 'Clique para ocultar este documento'
-                    : 'Clique para revelar e selecionar o público-alvo'
-                }
-              >
-                {item.isSharedWithPlayers ? (
-                  <>
-                    <Eye className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>
-                      {item.sharedWithPlayerNames && item.sharedWithPlayerNames.length > 0
-                        ? `Revelado (${item.sharedWithPlayerNames.length})`
-                        : 'Revelado (Todos)'}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <EyeOff className="w-3.5 h-3.5" />
-                    <span>Oculto</span>
-                  </>
+            {!isPlayer && (
+              <>
+                {/* Toggle de Compartilhamento com Audiência */}
+                <div className="flex items-center">
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    onClick={() => {
+                      if (item.isSharedWithPlayers) {
+                        toggleShare(item.id);
+                      } else if (onRequestAudience) {
+                        onRequestAudience(item, 'share');
+                      } else {
+                        toggleShare(item.id);
+                      }
+                    }}
+                    className={`text-xs gap-1.5 transition-all ${
+                      item.isSharedWithPlayers
+                        ? onRequestAudience
+                          ? 'rounded-r-none border-r-0 bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
+                          : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
+                        : 'bg-[#27272a] text-[#a1a1aa] border-[#3f3f46] hover:bg-white/10 hover:text-white'
+                    }`}
+                    title={item.isSharedWithPlayers ? 'Ocultar documento' : 'Revelar documento'}
+                  >
+                    {item.isSharedWithPlayers ? (
+                      <>
+                        <Eye className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>
+                          {item.sharedWithPlayerNames && item.sharedWithPlayerNames.length > 0
+                            ? `Revelado: ${item.sharedWithPlayerNames.length}`
+                            : 'Revelado'}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff className="w-3.5 h-3.5" />
+                        <span>Oculto</span>
+                      </>
+                    )}
+                  </Button>
+
+                  {item.isSharedWithPlayers && onRequestAudience && (
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      onClick={() => onRequestAudience(item, 'share')}
+                      className="rounded-l-none bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/40 px-2 h-7"
+                      title="Audiência"
+                    >
+                      <Users className="w-3 h-3" />
+                    </Button>
+                  )}
+                </div>
+
+                {/* Projetar na Tela */}
+                {onProject && (
+                  <Button
+                    variant={isProjected ? 'destructive' : 'default'}
+                    size="xs"
+                    onClick={() => {
+                      if (isProjected) {
+                        onProject(item);
+                      } else if (onRequestAudience) {
+                        onRequestAudience(item, 'project');
+                      } else {
+                        onProject(item);
+                      }
+                    }}
+                    className={`gap-1.5 text-xs shadow-md ${
+                      isProjected
+                        ? 'bg-red-600 hover:bg-red-500 text-white'
+                        : 'bg-purple-600 hover:bg-purple-500 text-white'
+                    }`}
+                    title={isProjected ? 'Encerrar' : 'Projetar'}
+                  >
+                    <Tv className={`w-3.5 h-3.5 ${isProjected ? 'animate-pulse' : ''}`} />
+                    <span>{isProjected ? 'Encerrar' : 'Projetar'}</span>
+                  </Button>
                 )}
-              </Button>
 
-              {item.isSharedWithPlayers && onRequestAudience && (
-                <Button
-                  variant="outline"
-                  size="xs"
-                  onClick={() => onRequestAudience(item, 'share')}
-                  className="rounded-l-none bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/40 px-2 h-7"
-                  title="Configurar quais jogadores podem ver este documento"
-                >
-                  <Users className="w-3 h-3" />
-                </Button>
-              )}
-            </div>
-
-            {/* Projetar na Tela */}
-            {onProject && (
-              <Button
-                variant={isProjected ? 'destructive' : 'default'}
-                size="xs"
-                onClick={() => {
-                  if (isProjected) {
-                    onProject(item);
-                  } else if (onRequestAudience) {
-                    onRequestAudience(item, 'project');
-                  } else {
-                    onProject(item);
-                  }
-                }}
-                className={`gap-1.5 text-xs shadow-md ${
-                  isProjected
-                    ? 'bg-red-600 hover:bg-red-500 text-white'
-                    : 'bg-purple-600 hover:bg-purple-500 text-white'
-                }`}
-                title={
-                  isProjected
-                    ? 'Encerrar projeção deste handout'
-                    : 'Projetar este handout na tela dos jogadores em tempo real'
-                }
-              >
-                <Tv className={`w-3.5 h-3.5 ${isProjected ? 'animate-pulse' : ''}`} />
-                <span>{isProjected ? 'Encerrar Projeção' : 'Projetar...'}</span>
-              </Button>
+                {/* Se for Imagem: Colocar / Remover do Mapa */}
+                {item.type === 'image' && (
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    onClick={() => toggleMapPlacement(item.id)}
+                    className={`gap-1.5 text-xs transition-all ${
+                      isOnMap
+                        ? 'bg-blue-600/30 border-blue-500/60 text-blue-300 hover:bg-red-500/20 hover:text-red-300'
+                        : 'bg-[#27272a] border-[#3f3f46] hover:bg-white/10 text-[#d4d4d8]'
+                    }`}
+                    title={isOnMap ? 'Remover do mapa' : 'Colocar no mapa'}
+                  >
+                    {isOnMap ? (
+                      <>
+                        <MapPinOff className="w-3.5 h-3.5 text-blue-400" />
+                        <span>Remover do Mapa</span>
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="w-3.5 h-3.5" />
+                        <span>Colocar no Mapa</span>
+                      </>
+                    )}
+                  </Button>
+                )}
+              </>
             )}
 
-            {/* Se for PDF: Botão para Abrir em Nova Guia */}
-            {item.type === 'pdf' && pdfBlobUrl && (
+            {/* Abrir em Nova Guia (PDF ou Imagem) */}
+            {(item.type === 'pdf' || item.type === 'image') && (pdfBlobUrl || mediaSource) && (
               <Button
                 variant="outline"
                 size="xs"
                 onClick={handleOpenInNewTab}
                 className="bg-[#27272a] text-[#e1e1e6] border-[#3f3f46] hover:bg-white/10 hover:text-white gap-1.5 text-xs transition-all"
-                title="Abrir este PDF em uma nova guia do navegador"
+                title="Abrir em nova guia"
               >
                 <ExternalLink className="w-3.5 h-3.5 text-red-400" />
                 <span>Nova Guia</span>
               </Button>
             )}
 
-            {/* Se for Imagem: Colocar / Remover do Mapa */}
-            {item.type === 'image' && (
-              <Button
-                variant="outline"
-                size="xs"
-                onClick={() => toggleMapPlacement(item.id)}
-                className={`gap-1.5 text-xs transition-all ${
-                  isOnMap
-                    ? 'bg-blue-600/30 border-blue-500/60 text-blue-300 hover:bg-red-500/20 hover:text-red-300'
-                    : 'bg-[#27272a] border-[#3f3f46] hover:bg-white/10 text-[#d4d4d8]'
-                }`}
-                title={isOnMap ? 'Remover do Mapa' : 'Colocar no Mapa'}
-              >
-                {isOnMap ? (
-                  <>
-                    <MapPinOff className="w-3.5 h-3.5 text-blue-400" />
-                    <span>Remover do Mapa</span>
-                  </>
-                ) : (
-                  <>
-                    <MapPin className="w-3.5 h-3.5" />
-                    <span>Colocar no Mapa</span>
-                  </>
-                )}
-              </Button>
-            )}
-
             <button
               onClick={onClose}
               className="p-1.5 text-[#a1a1aa] hover:text-white rounded-lg hover:bg-white/10 transition-all ml-2"
+              title="Fechar"
             >
               <X className="w-4 h-4" />
             </button>

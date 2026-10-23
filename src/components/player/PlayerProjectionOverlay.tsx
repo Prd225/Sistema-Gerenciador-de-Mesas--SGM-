@@ -94,7 +94,7 @@ export default function PlayerProjectionOverlay() {
             <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-purple-600/30 text-purple-300 border border-purple-500/50 text-[11px] font-bold tracking-wider uppercase shrink-0">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
               <Tv className="w-3.5 h-3.5" />
-              <span>Projeção do Mestre</span>
+              <span>Projeção</span>
             </span>
 
             <h3 className="text-sm font-semibold text-white truncate max-w-md">
@@ -110,7 +110,7 @@ export default function PlayerProjectionOverlay() {
                 size="xs"
                 onClick={handleOpenInNewTab}
                 className="bg-[#27272a] text-[#e1e1e6] border-[#3f3f46] hover:bg-white/10 hover:text-white gap-1.5 text-xs transition-all"
-                title="Abrir em tela cheia numa nova guia"
+                title="Nova guia"
               >
                 <ExternalLink className="w-3.5 h-3.5 text-red-400" />
                 <span className="hidden sm:inline">Nova Guia</span>
@@ -123,7 +123,7 @@ export default function PlayerProjectionOverlay() {
               size="xs"
               onClick={() => setIsProjectionOpen(false)}
               className="bg-[#27272a] text-[#a1a1aa] border-[#3f3f46] hover:text-white hover:bg-white/10 gap-1 text-xs"
-              title="Minimizar projeção para a barra"
+              title="Minimizar"
             >
               <Minimize2 className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Minimizar</span>
