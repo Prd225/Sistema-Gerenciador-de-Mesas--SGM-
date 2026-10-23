@@ -47,9 +47,13 @@ export default function HandoutDetailModal({
   const toggleShare = useInventoryStore((state) => state.toggleShare);
   const toggleMapPlacement = useInventoryStore((state) => state.toggleMapPlacement);
 
-  const isMedia = item.type === 'image' || item.type === 'video';
-  const [isCinemaMode, setIsCinemaMode] = useState<boolean>(isMedia);
+  const isImage = item.type === 'image';
+  const [isCinemaMode, setIsCinemaMode] = useState<boolean>(isImage);
   const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
   const mediaSource = item.serverUrl || item.fileData || '';
   const isOnMap = useZoneStore((state) =>
     state.bgImages.some((bg) => bg.src === mediaSource),
@@ -57,16 +61,23 @@ export default function HandoutDetailModal({
 
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    setIsCinemaMode(item.type === 'image' || item.type === 'video');
+  const handleResetZoom = () => {
     setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+
+  useEffect(() => {
+    setIsCinemaMode(item.type === 'image');
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
   }, [item.id, item.type]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (isCinemaMode && isMedia) {
+        if (isCinemaMode && isImage) {
           setIsCinemaMode(false);
+          handleResetZoom();
         } else {
           onClose();
         }
@@ -74,7 +85,45 @@ export default function HandoutDetailModal({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isCinemaMode, isMedia, onClose]);
+  }, [isCinemaMode, isImage, onClose]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+  };
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      setPan({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y,
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, dragStart]);
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.2 : -0.2;
+    setZoom((prev) => {
+      const next = Math.min(4, Math.max(0.4, Number((prev + delta).toFixed(2))));
+      if (next === 1) setPan({ x: 0, y: 0 });
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (item.type !== 'pdf') return;
@@ -127,8 +176,8 @@ export default function HandoutDetailModal({
     }
   };
 
-  // Modo Cinema / Tela Cheia: Inicia por padrão para mídias (imagens/vídeos)
-  if (isCinemaMode && isMedia) {
+  // Modo Cinema / Tela Cheia: Exclusivo para imagens
+  if (isCinemaMode && isImage && mediaSource) {
     return (
       <div
         onClick={onClose}
@@ -137,7 +186,7 @@ export default function HandoutDetailModal({
         {/* Barra Flutuante Superior */}
         <div
           onClick={(e) => e.stopPropagation()}
-          className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none z-10"
+          className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none z-30"
         >
           {/* Tag de Título */}
           <div className="flex items-center gap-2 pointer-events-auto bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10 text-white shadow-lg">
@@ -150,27 +199,31 @@ export default function HandoutDetailModal({
           {/* Botões de Ação na Direita */}
           <div className="flex items-center gap-2 pointer-events-auto">
             <button
-              onClick={() => setIsCinemaMode(false)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md text-xs font-medium transition-all shadow-lg hover:scale-105 active:scale-95"
+              type="button"
+              onClick={() => {
+                setIsCinemaMode(false);
+                handleResetZoom();
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md text-xs font-medium transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
               title="Modo Janela"
             >
               <Minimize2 className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Janela</span>
             </button>
 
-            {mediaSource && (
-              <button
-                onClick={handleOpenInNewTab}
-                className="p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md transition-all shadow-lg hover:scale-105 active:scale-95"
-                title="Nova Guia"
-              >
-                <ExternalLink className="w-3.5 h-3.5 text-red-400" />
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleOpenInNewTab}
+              className="p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
+              title="Nova Guia"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-red-400" />
+            </button>
 
             <button
+              type="button"
               onClick={onClose}
-              className="p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md transition-all shadow-lg hover:scale-105 active:scale-95 ml-1"
+              className="p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md transition-all shadow-lg hover:scale-105 active:scale-95 ml-1 cursor-pointer"
               title="Fechar"
             >
               <X className="w-4 h-4" />
@@ -178,40 +231,93 @@ export default function HandoutDetailModal({
           </div>
         </div>
 
-        {/* Imagem / Vídeo Central com Ícone de Alternar (Estilo Roll20) */}
+        {/* Área Central Interativa: Arrastar e Zoom para Investigar */}
         <div
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsCinemaMode(false);
-          }}
-          className="relative group max-w-[95vw] max-h-[92vh] flex items-center justify-center cursor-pointer"
-          title="Clique para alternar para modo janela"
+          onClick={(e) => e.stopPropagation()}
+          onWheel={handleWheel}
+          onMouseDown={handleMouseDown}
+          className={`relative group max-w-[95vw] max-h-[88vh] flex items-center justify-center select-none ${
+            isDragging ? 'cursor-grabbing' : 'cursor-grab'
+          }`}
+          title="Role para zoom ou arraste para investigar detalhes"
         >
-          {item.type === 'image' && mediaSource ? (
-            <img
-              src={mediaSource}
-              alt={item.title}
-              className="max-h-[90vh] max-w-[94vw] object-contain rounded-md shadow-[0_20px_60px_rgba(0,0,0,0.95)] ring-1 ring-white/10 transition-all duration-200 select-none group-hover:brightness-95"
-            />
-          ) : (
-            <video
-              src={mediaSource}
-              controls
-              autoPlay
-              className="max-h-[90vh] max-w-[94vw] rounded-md shadow-2xl bg-black"
-              onClick={(e) => e.stopPropagation()}
-            />
-          )}
+          <img
+            src={mediaSource}
+            alt={item.title}
+            draggable={false}
+            onDragStart={(e) => e.preventDefault()}
+            style={{
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+              transition: isDragging ? 'none' : 'transform 100ms ease-out',
+            }}
+            className="max-h-[88vh] max-w-[92vw] object-contain rounded-md shadow-[0_20px_60px_rgba(0,0,0,0.95)] ring-1 ring-white/10 select-none pointer-events-none"
+          />
 
-          {/* Ícone Central de Desexpandir ao passar o mouse (Estilo Roll20) */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="opacity-0 group-hover:opacity-100 transition-all duration-200 transform scale-90 group-hover:scale-100 flex items-center justify-center">
-              <div className="p-3.5 rounded-full bg-black/80 hover:bg-black/95 text-white border border-white/25 shadow-[0_10px_30px_rgba(0,0,0,0.8)] backdrop-blur-md flex items-center gap-2">
-                <Minimize2 className="w-5 h-5 text-purple-300" />
-                <span className="text-xs font-semibold pr-1">Modo Janela</span>
-              </div>
-            </div>
+          {/* Botão Central de Desexpandir ao passar o mouse (Estilo Roll20) */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsCinemaMode(false);
+                handleResetZoom();
+              }}
+              className="pointer-events-auto p-3.5 rounded-full bg-black/80 hover:bg-black/95 text-white border border-white/25 shadow-[0_10px_30px_rgba(0,0,0,0.8)] backdrop-blur-md flex items-center gap-2 hover:scale-105 active:scale-95 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+              title="Modo Janela"
+            >
+              <Minimize2 className="w-5 h-5 text-purple-300" />
+              <span className="text-xs font-semibold pr-1">Modo Janela</span>
+            </button>
           </div>
+        </div>
+
+        {/* Barra Flutuante Inferior de Zoom / Ferramentas */}
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/75 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 text-white shadow-xl z-30"
+        >
+          <Button
+            variant="outline"
+            size="icon-xs"
+            onClick={() => setZoom((z) => Math.max(0.4, Number((z - 0.2).toFixed(2))))}
+            className="bg-white/10 hover:bg-white/20 border-white/20 text-white h-7 w-7 rounded-full"
+            title="Diminuir Zoom"
+          >
+            <ZoomOut className="w-3.5 h-3.5" />
+          </Button>
+          <span className="font-mono text-xs min-w-10 text-center select-none">
+            {Math.round(zoom * 100)}%
+          </span>
+          <Button
+            variant="outline"
+            size="icon-xs"
+            onClick={() => setZoom((z) => Math.min(4, Number((z + 0.2).toFixed(2))))}
+            className="bg-white/10 hover:bg-white/20 border-white/20 text-white h-7 w-7 rounded-full"
+            title="Aumentar Zoom"
+          >
+            <ZoomIn className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon-xs"
+            onClick={handleResetZoom}
+            className="bg-white/10 hover:bg-white/20 border-white/20 text-white h-7 w-7 rounded-full"
+            title="Resetar Zoom e Posição"
+          >
+            <RotateCcw className="w-3 h-3" />
+          </Button>
+
+          <div className="w-px h-4 bg-white/20 mx-1" />
+
+          <a
+            href={mediaSource}
+            download={item.filePath || `${item.title}.png`}
+            className="flex items-center gap-1.5 text-xs text-white/80 hover:text-white px-2 py-1 rounded-full hover:bg-white/10 transition-colors"
+            title="Salvar Imagem"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Salvar</span>
+          </a>
         </div>
       </div>
     );
@@ -365,12 +471,15 @@ export default function HandoutDetailModal({
               </>
             )}
 
-            {/* Alternar para Tela Cheia (Imagem ou Vídeo) */}
-            {(item.type === 'image' || item.type === 'video') && (
+            {/* Alternar para Tela Cheia (Apenas Imagem) */}
+            {item.type === 'image' && (
               <Button
                 variant="outline"
                 size="xs"
-                onClick={() => setIsCinemaMode(true)}
+                onClick={() => {
+                  setIsCinemaMode(true);
+                  handleResetZoom();
+                }}
                 className="bg-[#27272a] text-[#e1e1e6] border-[#3f3f46] hover:bg-white/10 hover:text-white gap-1.5 text-xs transition-all"
                 title="Expandir em tela cheia"
               >
@@ -413,25 +522,40 @@ export default function HandoutDetailModal({
         >
           {item.type === 'image' && mediaSource ? (
             <div
-              onClick={() => setIsCinemaMode(true)}
-              className="relative group flex items-center justify-center w-full min-h-[350px] overflow-hidden cursor-pointer"
-              title="Clique para expandir em tela cheia"
+              onWheel={handleWheel}
+              onMouseDown={handleMouseDown}
+              className={`relative group flex items-center justify-center w-full min-h-[350px] overflow-hidden select-none ${
+                isDragging ? 'cursor-grabbing' : 'cursor-grab'
+              }`}
+              title="Role para zoom ou arraste para mover"
             >
               <img
                 src={mediaSource}
                 alt={item.title}
-                style={{ transform: `scale(${zoom})` }}
-                className="max-h-[68vh] max-w-full object-contain rounded-lg transition-transform duration-150 select-none shadow-lg group-hover:brightness-95"
+                draggable={false}
+                onDragStart={(e) => e.preventDefault()}
+                style={{
+                  transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                  transition: isDragging ? 'none' : 'transform 100ms ease-out',
+                }}
+                className="max-h-[68vh] max-w-full object-contain rounded-lg shadow-lg select-none pointer-events-none"
               />
 
-              {/* Ícone Central de Expandir ao passar o mouse (Estilo Roll20) */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="opacity-0 group-hover:opacity-100 transition-all duration-200 transform scale-90 group-hover:scale-100 flex items-center justify-center">
-                  <div className="p-3 rounded-full bg-black/80 hover:bg-black/95 text-white border border-white/25 shadow-[0_10px_25px_rgba(0,0,0,0.8)] backdrop-blur-md flex items-center gap-2">
-                    <Maximize2 className="w-4 h-4 text-purple-300" />
-                    <span className="text-xs font-semibold pr-1">Tela Cheia</span>
-                  </div>
-                </div>
+              {/* Botão Central de Expandir ao passar o mouse (Estilo Roll20) */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsCinemaMode(true);
+                    handleResetZoom();
+                  }}
+                  className="pointer-events-auto p-3 rounded-full bg-black/80 hover:bg-black/95 text-white border border-white/25 shadow-[0_10px_25px_rgba(0,0,0,0.8)] backdrop-blur-md flex items-center gap-2 hover:scale-105 active:scale-95 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+                  title="Tela Cheia"
+                >
+                  <Maximize2 className="w-4 h-4 text-purple-300" />
+                  <span className="text-xs font-semibold pr-1">Tela Cheia</span>
+                </button>
               </div>
             </div>
           ) : item.type === 'video' && mediaSource ? (
@@ -541,9 +665,9 @@ export default function HandoutDetailModal({
               <Button
                 variant="outline"
                 size="icon-xs"
-                onClick={() => setZoom(1)}
+                onClick={handleResetZoom}
                 className="bg-[#27272a] border-[#3f3f46] hover:bg-white/10 text-white ml-1"
-                title="Resetar Zoom"
+                title="Resetar Zoom e Posição"
               >
                 <RotateCcw className="w-3 h-3" />
               </Button>
