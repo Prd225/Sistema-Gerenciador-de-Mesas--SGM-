@@ -40,6 +40,44 @@ export default function PlayerHud() {
     }
   };
 
+  if (isCollapsed) {
+    return (
+      <div className="fixed top-4 right-4 z-40 flex items-center pointer-events-none select-none">
+        <button
+          onClick={() => setIsCollapsed(false)}
+          className="pointer-events-auto flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#202024]/90 hover:bg-[#202024] border border-[#323238] hover:border-[#8257e5] text-[#e1e1e6] shadow-xl backdrop-blur-md transition-all group cursor-pointer"
+          title={`Sala: ${roomId ?? '----'} • ${members.length} jogador(es) online • Clique para expandir`}
+        >
+          {/* Status Dot */}
+          <span
+            className={`w-2 h-2 rounded-full ${
+              isConnected
+                ? 'bg-emerald-500 shadow-[0_0_6px_#10b981]'
+                : isReconnecting
+                  ? 'bg-amber-500 animate-pulse'
+                  : 'bg-red-500'
+            }`}
+          />
+
+          {/* Ícone de pessoinha e quantidade de jogadores */}
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-[#a8a8b3] group-hover:text-white transition-colors">
+            <Users className="w-3.5 h-3.5 text-[#8257e5]" />
+            <span>{members.length}</span>
+          </div>
+
+          {/* Indicador se houver áudio tocando */}
+          {isPlaying && (
+            <div className="flex items-center text-purple-400 pl-1 border-l border-[#323238]">
+              <Music className="w-3 h-3 animate-pulse text-purple-400" />
+            </div>
+          )}
+
+          <ChevronDown className="w-3 h-3 text-[#71717a] group-hover:text-white transition-colors ml-0.5" />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed top-4 right-4 z-40 flex flex-col items-end gap-2 pointer-events-none select-none max-w-sm">
       {/* Barra principal do HUD */}
@@ -78,15 +116,11 @@ export default function PlayerHud() {
             </div>
 
             <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
+              onClick={() => setIsCollapsed(true)}
               className="p-1 text-[#a8a8b3] hover:text-white hover:bg-[#323238] rounded transition-colors"
-              title={isCollapsed ? 'Expandir HUD' : 'Recolher HUD'}
+              title="Minimizar HUD"
             >
-              {isCollapsed ? (
-                <ChevronDown className="w-3.5 h-3.5" />
-              ) : (
-                <ChevronUp className="w-3.5 h-3.5" />
-              )}
+              <ChevronUp className="w-3.5 h-3.5" />
             </button>
 
             <button
@@ -99,9 +133,8 @@ export default function PlayerHud() {
           </div>
         </div>
 
-        {/* Conteúdo Expansível: Soundpad / Áudio */}
-        {!isCollapsed && (
-          <div className="flex flex-col gap-2">
+        {/* Conteúdo: Soundpad / Áudio */}
+        <div className="flex flex-col gap-2">
             {/* Bloco de Música */}
             <div className="flex items-start gap-2 bg-[#121214]/80 p-2 rounded-lg border border-[#323238]/40">
               <div className="p-1.5 rounded bg-[#8257e5]/20 text-[#8257e5] shrink-0 mt-0.5">
@@ -183,8 +216,7 @@ export default function PlayerHud() {
               </span>
             </div>
           </div>
-        )}
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }

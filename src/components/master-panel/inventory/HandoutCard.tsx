@@ -17,6 +17,7 @@ import {
   MapPinOff,
   Tv,
   ExternalLink,
+  Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -38,6 +39,7 @@ interface HandoutCardProps {
   onOpenDetail: (item: HandoutItem) => void;
   onOpenEdit: (item: HandoutItem) => void;
   onProject?: (item: HandoutItem) => void;
+  onRequestAudience?: (item: HandoutItem, mode: 'project' | 'share') => void;
 }
 
 function getFileExtension(item: HandoutItem): string {
@@ -116,6 +118,7 @@ export default function HandoutCard({
   onOpenDetail,
   onOpenEdit,
   onProject,
+  onRequestAudience,
 }: HandoutCardProps) {
   const toggleShare = useInventoryStore((state) => state.toggleShare);
   const deleteItem = useInventoryStore((state) => state.deleteItem);
@@ -183,28 +186,46 @@ export default function HandoutCard({
         )}
 
         {/* Indicador de Visibilidade no canto superior esquerdo */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleShare(item.id);
-          }}
-          className={`absolute top-1.5 left-1.5 z-10 p-1 rounded-md bg-black/75 hover:bg-black border transition-all ${
-            item.isSharedWithPlayers
-              ? 'text-emerald-400 border-emerald-500/50'
-              : 'text-[#71717a] border-white/10 hover:text-white'
-          }`}
-          title={
-            item.isSharedWithPlayers
-              ? 'Visível para jogadores'
-              : 'Oculto para jogadores'
-          }
-        >
-          {item.isSharedWithPlayers ? (
-            <Eye className="w-3.5 h-3.5" />
-          ) : (
-            <EyeOff className="w-3.5 h-3.5" />
-          )}
-        </button>
+        {item.isSharedWithPlayers && item.sharedWithPlayerNames && item.sharedWithPlayerNames.length > 0 ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onRequestAudience) {
+                onRequestAudience(item, 'share');
+              } else {
+                toggleShare(item.id);
+              }
+            }}
+            className="absolute top-1.5 left-1.5 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-black/85 hover:bg-black border border-emerald-500/60 text-emerald-400 text-[10px] font-semibold transition-all shadow-sm"
+            title={`Revelado para ${item.sharedWithPlayerNames.length} jogador(es): ${item.sharedWithPlayerNames.join(', ')}. Clique para configurar.`}
+          >
+            <Eye className="w-3 h-3" />
+            <span>{item.sharedWithPlayerNames.length}</span>
+          </button>
+        ) : (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleShare(item.id);
+            }}
+            className={`absolute top-1.5 left-1.5 z-10 p-1 rounded-md bg-black/75 hover:bg-black border transition-all ${
+              item.isSharedWithPlayers
+                ? 'text-emerald-400 border-emerald-500/50'
+                : 'text-[#71717a] border-white/10 hover:text-white'
+            }`}
+            title={
+              item.isSharedWithPlayers
+                ? 'Visível para todos os jogadores. Clique para ocultar.'
+                : 'Oculto para jogadores. Clique para revelar para todos.'
+            }
+          >
+            {item.isSharedWithPlayers ? (
+              <Eye className="w-3.5 h-3.5" />
+            ) : (
+              <EyeOff className="w-3.5 h-3.5" />
+            )}
+          </button>
+        )}
 
         {/* Indicador de Projeção Ativa */}
         {isProjected && (
@@ -230,7 +251,7 @@ export default function HandoutCard({
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="w-44 bg-[#1c1c20] border-[#27272a] text-[#e1e1e6] p-1 shadow-lg"
+              className="w-48 bg-[#1c1c20] border-[#27272a] text-[#e1e1e6] p-1 shadow-lg"
             >
               <DropdownMenuItem
                 onClick={() => onOpenDetail(item)}
@@ -242,13 +263,31 @@ export default function HandoutCard({
 
               {onProject && (
                 <DropdownMenuItem
-                  onClick={() => onProject(item)}
+                  onClick={() => {
+                    if (isProjected) {
+                      onProject(item);
+                    } else if (onRequestAudience) {
+                      onRequestAudience(item, 'project');
+                    } else {
+                      onProject(item);
+                    }
+                  }}
                   className={`cursor-pointer hover:bg-[#8257e5] hover:text-white text-xs gap-2 py-1.5 ${
                     isProjected ? 'text-purple-300 font-medium' : ''
                   }`}
                 >
                   <Tv className="w-3.5 h-3.5 text-purple-400" />
-                  <span>{isProjected ? 'Encerrar Projeção' : 'Projetar para Jogadores'}</span>
+                  <span>{isProjected ? 'Encerrar Projeção' : 'Projetar para Jogadores...'}</span>
+                </DropdownMenuItem>
+              )}
+
+              {onRequestAudience && (
+                <DropdownMenuItem
+                  onClick={() => onRequestAudience(item, 'share')}
+                  className="cursor-pointer hover:bg-[#8257e5] hover:text-white text-xs gap-2 py-1.5"
+                >
+                  <Users className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Revelar / Audiência...</span>
                 </DropdownMenuItem>
               )}
 
@@ -345,7 +384,16 @@ export default function HandoutCard({
           </h4>
           <div className="flex items-center justify-between text-[10px] text-[#71717a] mt-0.5">
             {item.isSharedWithPlayers ? (
-              <span className="text-emerald-400 font-medium">Revelado</span>
+              <span className="text-emerald-400 font-medium flex items-center gap-1">
+                {item.sharedWithPlayerNames && item.sharedWithPlayerNames.length > 0 ? (
+                  <>
+                    <Users className="w-3 h-3" />
+                    <span>{item.sharedWithPlayerNames.length} jogador(es)</span>
+                  </>
+                ) : (
+                  <span>Revelado (Todos)</span>
+                )}
+              </span>
             ) : (
               <span>Oculto</span>
             )}
@@ -360,7 +408,13 @@ export default function HandoutCard({
               size="xs"
               onClick={(e) => {
                 e.stopPropagation();
-                onProject(item);
+                if (isProjected) {
+                  onProject(item);
+                } else if (onRequestAudience) {
+                  onRequestAudience(item, 'project');
+                } else {
+                  onProject(item);
+                }
               }}
               className={`flex-1 text-[11px] h-6 px-1.5 gap-1 transition-all ${
                 isProjected
@@ -374,7 +428,7 @@ export default function HandoutCard({
               }
             >
               <Tv className={`w-3 h-3 ${isProjected ? 'text-purple-300 animate-pulse' : 'text-[#8257e5]'}`} />
-              <span>{isProjected ? 'Projetando' : 'Projetar'}</span>
+              <span>{isProjected ? 'Projetando' : 'Projetar...'}</span>
             </Button>
           )}
 

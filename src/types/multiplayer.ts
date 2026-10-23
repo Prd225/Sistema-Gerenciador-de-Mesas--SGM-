@@ -27,11 +27,14 @@ export interface PlayerHandoutView {
   fileSize?: number;
   mimeType?: string;
   createdAt: number;
+  sharedWithPlayerNames?: string[]; // Se vazio = todos os jogadores
 }
 
 export interface ProjectionPayload {
   handout: PlayerHandoutView | null;
   projectedAt: number;
+  targetPlayerNames?: string[] | null; // se vazio/null = todos os jogadores
+  targetMemberIds?: string[] | null;
 }
 
 export interface RoomMember {
@@ -212,9 +215,14 @@ export interface ClientToServerEvents {
   'handout:share-toggle': (payload: {
     handout: PlayerHandoutView;
     isShared: boolean;
+    sharedWithPlayerNames?: string[];
   }) => void;
   'handout:sync-shared': (payload: { handouts: PlayerHandoutView[] }) => void;
-  'projection:set': (payload: { handout: PlayerHandoutView | null }) => void;
+  'projection:set': (payload: {
+    handout: PlayerHandoutView | null;
+    targetPlayerNames?: string[] | null;
+    targetMemberIds?: string[] | null;
+  }) => void;
 }
 
 export interface ServerToClientEvents {

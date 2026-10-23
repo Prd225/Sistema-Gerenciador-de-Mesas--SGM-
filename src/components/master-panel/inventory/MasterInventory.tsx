@@ -7,6 +7,7 @@ import FolderCard from './FolderCard';
 import MapImagesModal from './MapImagesModal';
 import TextDocumentModal from './TextDocumentModal';
 import HandoutDetailModal from './HandoutDetailModal';
+import HandoutAudienceModal from './HandoutAudienceModal';
 import type { HandoutItem } from '@/types/inventory';
 import {
   Upload,
@@ -33,8 +34,10 @@ export default function MasterInventory() {
   const addFilesFromPC = useInventoryStore((state) => state.addFilesFromPC);
   const createFolder = useInventoryStore((state) => state.createFolder);
   const projectedHandoutId = useInventoryStore((state) => state.projectedHandoutId);
+  const projectedTargetNames = useInventoryStore((state) => state.projectedTargetNames);
   const projectHandout = useInventoryStore((state) => state.projectHandout);
   const stopProjection = useInventoryStore((state) => state.stopProjection);
+  const toggleShare = useInventoryStore((state) => state.toggleShare);
 
   const bgImages = useZoneStore((state) => state.bgImages);
   const tokens = useTokenStore((state) => state.tokens);
@@ -47,6 +50,10 @@ export default function MasterInventory() {
   const [newFolderName, setNewFolderName] = useState('');
   const [editingItem, setEditingItem] = useState<HandoutItem | null>(null);
   const [detailItem, setDetailItem] = useState<HandoutItem | null>(null);
+  const [audienceModal, setAudienceModal] = useState<{
+    item: HandoutItem;
+    mode: 'project' | 'share';
+  } | null>(null);
 
   useEffect(() => {
     loadFromDb();
@@ -102,11 +109,31 @@ export default function MasterInventory() {
     return Boolean(inBg || inTokens);
   };
 
+  const handleOpenAudience = (item: HandoutItem, mode: 'project' | 'share') => {
+    setAudienceModal({ item, mode });
+  };
+
+  const handleAudienceConfirm = (targetPlayerNames: string[] | null) => {
+    if (!audienceModal) return;
+    const { item, mode } = audienceModal;
+
+    if (mode === 'project') {
+      projectHandout(item, targetPlayerNames);
+    } else {
+      toggleShare(item.id, targetPlayerNames || [], true);
+    }
+  };
+
+  const handleAudienceUnshare = () => {
+    if (!audienceModal) return;
+    toggleShare(audienceModal.item.id, [], false);
+  };
+
   const handleToggleProject = (item: HandoutItem) => {
     if (projectedHandoutId === item.id) {
       stopProjection();
     } else {
-      projectHandout(item);
+      handleOpenAudience(item, 'project');
     }
   };
 
@@ -223,9 +250,19 @@ export default function MasterInventory() {
             <Tv className="w-3.5 h-3.5 text-purple-400 shrink-0" />
             <span className="truncate text-[11px]">
               Projetando ao vivo: <strong className="text-white font-semibold">{projectedItem.title}</strong>
+              <span className="text-purple-300/80 ml-1.5 text-[10px]">
+                ({!projectedTargetNames || projectedTargetNames.length === 0 ? 'Para todos' : `Para: ${projectedTargetNames.join(', ')}`})
+              </span>
             </span>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => handleOpenAudience(projectedItem, 'project')}
+              className="px-2 py-0.5 rounded bg-purple-900/60 hover:bg-purple-800 text-[11px] text-purple-200 border border-purple-500/30 transition-colors"
+              title="Alterar público que está assistindo"
+            >
+              Audiência
+            </button>
             <button
               onClick={() => setDetailItem(projectedItem)}
               className="px-2 py-0.5 rounded bg-purple-900/60 hover:bg-purple-800 text-[11px] text-purple-200 border border-purple-500/30 transition-colors"
@@ -335,6 +372,7 @@ export default function MasterInventory() {
                   setTextModalOpen(true);
                 }}
                 onProject={handleToggleProject}
+                onRequestAudience={handleOpenAudience}
               />
             ))}
           </div>
@@ -428,6 +466,19 @@ export default function MasterInventory() {
             setTextModalOpen(true);
           }}
           onProject={handleToggleProject}
+          onRequestAudience={handleOpenAudience}
+        />
+      )}
+
+      {/* Modal de Seleção de Audiência (Projetar / Revelar para seletos ou todos) */}
+      {audienceModal && (
+        <HandoutAudienceModal
+          isOpen={Boolean(audienceModal)}
+          onClose={() => setAudienceModal(null)}
+          item={audienceModal.item}
+          mode={audienceModal.mode}
+          onConfirm={handleAudienceConfirm}
+          onUnshare={handleAudienceUnshare}
         />
       )}
     </div>

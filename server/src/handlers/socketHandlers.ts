@@ -124,7 +124,7 @@ export function registerSocketHandlers(io: SgmServer, socket: SgmSocket) {
       callback({
         success: true,
         role: member.role,
-        state: roomManager.toJoinState(room, member.role),
+        state: roomManager.toJoinState(room, member.role, member.name, socket.id),
       });
       console.log(
         `[Entrou] ${member.name} (${member.role}) na sala ${room.code}`,
@@ -288,20 +288,31 @@ export function registerSocketHandlers(io: SgmServer, socket: SgmSocket) {
     io.to(ctx.room.code).emit('map:pinged', ping);
   });
 
-  // Handouts (mestre): revelar ou ocultar um handout
-  socket.on('handout:share-toggle', ({ handout, isShared }) => {
+  // Handouts (mestre): revelar ou ocultar um handout (com público-alvo opcional)
+  socket.on('handout:share-toggle', ({ handout, isShared, sharedWithPlayerNames }) => {
     const ctx = gmContext('handout:share-toggle');
     if (!ctx) return;
     if (!handout || typeof handout.id !== 'string') return;
 
-    const updatedList = roomManager.updateSharedHandout(
+    const allShared = roomManager.updateSharedHandout(
       ctx.room.code,
       handout,
       Boolean(isShared),
+      sharedWithPlayerNames,
     );
-    io.to(ctx.room.code).emit('handout:shared-updated', {
-      handouts: updatedList,
-    });
+
+    // Mestre recebe a lista completa
+    socket.emit('handout:shared-updated', { handouts: allShared });
+
+    // Cada jogador recebe apenas os handouts compartilhados com todos ou direcionados a ele
+    for (const [socketId, member] of ctx.room.members) {
+      if (member.role === 'gm') continue;
+      const filtered = allShared.filter((h) => {
+        if (!h.sharedWithPlayerNames || h.sharedWithPlayerNames.length === 0) return true;
+        return h.sharedWithPlayerNames.includes(member.name);
+      });
+      io.to(socketId).emit('handout:shared-updated', { handouts: filtered });
+    }
   });
 
   // Handouts (mestre): sincronizar todos os compartilhados
@@ -311,18 +322,58 @@ export function registerSocketHandlers(io: SgmServer, socket: SgmSocket) {
     if (!Array.isArray(handouts)) return;
 
     roomManager.syncSharedHandouts(ctx.room.code, handouts);
-    socket.to(ctx.room.code).emit('handout:shared-updated', { handouts });
+
+    // Envia aos jogadores apenas o que cada um tem permissão de ver
+    for (const [socketId, member] of ctx.room.members) {
+      if (member.role === 'gm') continue;
+      const filtered = handouts.filter((h) => {
+        if (!h.sharedWithPlayerNames || h.sharedWithPlayerNames.length === 0) return true;
+        return h.sharedWithPlayerNames.includes(member.name);
+      });
+      io.to(socketId).emit('handout:shared-updated', { handouts: filtered });
+    }
   });
 
-  // Projeção em Tempo Real (mestre): projetar ou encerrar projeção
-  socket.on('projection:set', ({ handout }) => {
+  // Projeção em Tempo Real (mestre): projetar ou encerrar projeção para todos ou seletos
+  socket.on('projection:set', ({ handout, targetPlayerNames, targetMemberIds }) => {
     const ctx = gmContext('projection:set');
     if (!ctx) return;
 
-    const payload = roomManager.setProjection(ctx.room.code, handout);
-    io.to(ctx.room.code).emit('projection:updated', payload);
+    const payload = roomManager.setProjection(
+      ctx.room.code,
+      handout,
+      targetPlayerNames,
+      targetMemberIds,
+    );
+
+    // Mestre sempre recebe o payload completo com dados do alvo
+    socket.emit('projection:updated', payload);
+
+    // Jogadores recebem conforme público-alvo selecionado
+    for (const [socketId, member] of ctx.room.members) {
+      if (member.role === 'gm') continue;
+
+      const isTarget =
+        !payload.targetPlayerNames ||
+        payload.targetPlayerNames.length === 0 ||
+        payload.targetPlayerNames.includes(member.name) ||
+        (payload.targetMemberIds && payload.targetMemberIds.includes(socketId));
+
+      if (isTarget) {
+        io.to(socketId).emit('projection:updated', payload);
+      } else {
+        // Se este jogador não é alvo, limpa qualquer projeção ativa nele
+        io.to(socketId).emit('projection:updated', {
+          handout: null,
+          projectedAt: 0,
+        });
+      }
+    }
+
     console.log(
-      `[Projeção] ${handout ? `Projetando "${handout.title}"` : 'Projeção encerrada'} na sala ${ctx.room.code}`,
+      `[Projeção] ${handout ? `Projetando "${handout.title}"` : 'Projeção encerrada'} na sala ${ctx.room.code}${
+        payload.targetPlayerNames ? ` para: ${payload.targetPlayerNames.join(', ')}` : ' (para todos)'
+      }`,
     );
   });
 

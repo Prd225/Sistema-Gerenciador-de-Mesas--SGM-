@@ -251,14 +251,45 @@ export class RoomManager {
   }
 
   /** Estado entregue a quem acabou de entrar, conforme o papel dele. */
-  public toJoinState(room: ActiveRoom, role: UserRole): RoomJoinState {
+  public toJoinState(
+    room: ActiveRoom,
+    role: UserRole,
+    memberName?: string,
+    socketId?: string,
+  ): RoomJoinState {
+    let playerHandouts = Array.from(room.sharedHandouts.values());
+    let playerProjection = room.projection;
+
+    if (role === 'player') {
+      const cleanMemberName = memberName?.trim();
+      playerHandouts = playerHandouts.filter((h) => {
+        if (!h.sharedWithPlayerNames || h.sharedWithPlayerNames.length === 0) return true;
+        return cleanMemberName && h.sharedWithPlayerNames.includes(cleanMemberName);
+      });
+
+      if (playerProjection?.handout) {
+        const targetNames = playerProjection.targetPlayerNames;
+        const targetIds = playerProjection.targetMemberIds;
+        const hasNameRestriction = Array.isArray(targetNames) && targetNames.length > 0;
+        const hasIdRestriction = Array.isArray(targetIds) && targetIds.length > 0;
+
+        if (hasNameRestriction || hasIdRestriction) {
+          const matchName = cleanMemberName && hasNameRestriction && targetNames.includes(cleanMemberName);
+          const matchId = socketId && hasIdRestriction && targetIds.includes(socketId);
+          if (!matchName && !matchId) {
+            playerProjection = null;
+          }
+        }
+      }
+    }
+
     return {
       code: room.code,
       members: this.membersOf(room),
       view: role === 'player' ? toPlayerState(room) : null,
       soundpad: this.getSoundpadForJoin(room),
-      sharedHandouts: Array.from(room.sharedHandouts.values()),
-      projection: room.projection,
+      sharedHandouts: playerHandouts,
+      projection: playerProjection,
     };
   }
 
@@ -428,11 +459,19 @@ export class RoomManager {
     code: string,
     handout: PlayerHandoutView,
     isShared: boolean,
+    sharedWithPlayerNames?: string[],
   ): PlayerHandoutView[] {
     const room = this.getRoom(code);
     if (!room) return [];
     if (isShared) {
-      room.sharedHandouts.set(handout.id, handout);
+      const finalHandout = {
+        ...handout,
+        sharedWithPlayerNames:
+          sharedWithPlayerNames !== undefined
+            ? sharedWithPlayerNames
+            : handout.sharedWithPlayerNames || [],
+      };
+      room.sharedHandouts.set(finalHandout.id, finalHandout);
     } else {
       room.sharedHandouts.delete(handout.id);
       // Se o item projetado era esse que foi descompartilhado, encerra projeção
@@ -446,11 +485,21 @@ export class RoomManager {
   public setProjection(
     code: string,
     handout: PlayerHandoutView | null,
+    targetPlayerNames?: string[] | null,
+    targetMemberIds?: string[] | null,
   ): ProjectionPayload {
     const room = this.getRoom(code);
     const payload: ProjectionPayload = {
       handout,
       projectedAt: Date.now(),
+      targetPlayerNames:
+        targetPlayerNames && targetPlayerNames.length > 0
+          ? targetPlayerNames
+          : null,
+      targetMemberIds:
+        targetMemberIds && targetMemberIds.length > 0
+          ? targetMemberIds
+          : null,
     };
     if (room) {
       room.projection = payload;

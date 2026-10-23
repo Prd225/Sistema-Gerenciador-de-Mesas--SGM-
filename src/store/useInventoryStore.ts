@@ -29,6 +29,7 @@ export function toPlayerHandoutView(item: HandoutItem): PlayerHandoutView {
     fileSize: item.fileSize,
     mimeType: item.mimeType,
     createdAt: item.createdAt,
+    sharedWithPlayerNames: item.sharedWithPlayerNames,
   };
 }
 
@@ -41,6 +42,7 @@ interface InventoryState {
   activeFolderId: string | null; // null = Todos, '__map__' = Mapa, '__shared__' = Compartilhados
   selectedItemId: string | null;
   projectedHandoutId: string | null;
+  projectedTargetNames: string[] | null;
   searchQuery: string;
   typeFilter: HandoutType | 'all';
   viewMode: 'grid' | 'list';
@@ -49,7 +51,11 @@ interface InventoryState {
   // Ações de Carregamento e Sincronização
   loadFromDb: () => Promise<void>;
   syncSharedHandoutsToRoom: () => void;
-  projectHandout: (item: HandoutItem) => void;
+  projectHandout: (
+    item: HandoutItem,
+    targetPlayerNames?: string[] | null,
+    targetMemberIds?: string[] | null,
+  ) => void;
   stopProjection: () => void;
 
   // Pastas
@@ -67,7 +73,11 @@ interface InventoryState {
   ) => Promise<string>;
   updateItem: (id: string, updates: Partial<HandoutItem>) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;
-  toggleShare: (id: string) => Promise<void>;
+  toggleShare: (
+    id: string,
+    sharedWithPlayerNames?: string[],
+    forceState?: boolean,
+  ) => Promise<void>;
   toggleMapPlacement: (id: string) => Promise<boolean>;
   convertMapImageToHandout: (ref: MapImageReference) => Promise<string>;
 
@@ -139,6 +149,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   activeFolderId: null,
   selectedItemId: null,
   projectedHandoutId: null,
+  projectedTargetNames: null,
   searchQuery: '',
   typeFilter: 'all',
   viewMode: 'grid',
@@ -462,20 +473,28 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     triggerAutoSave();
   },
 
-  toggleShare: async (id: string) => {
+  toggleShare: async (id: string, sharedWithPlayerNames?: string[], forceState?: boolean) => {
     const item = get().items.find((i) => i.id === id);
     if (!item) return;
 
-    const nextShare = !item.isSharedWithPlayers;
+    const nextShare = forceState !== undefined ? forceState : !item.isSharedWithPlayers;
+    const targetNames = sharedWithPlayerNames !== undefined ? sharedWithPlayerNames : (item.sharedWithPlayerNames || []);
+
     await db.handouts.update(id, {
       isSharedWithPlayers: nextShare,
+      sharedWithPlayerNames: targetNames,
       updatedAt: Date.now(),
     });
 
     set((state) => ({
       items: state.items.map((i) =>
         i.id === id
-          ? { ...i, isSharedWithPlayers: nextShare, updatedAt: Date.now() }
+          ? {
+              ...i,
+              isSharedWithPlayers: nextShare,
+              sharedWithPlayerNames: targetNames,
+              updatedAt: Date.now(),
+            }
           : i,
       ),
     }));
@@ -483,28 +502,45 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     // Se estiver conectado em sala multiplayer e for GM, notifica a sala com o objeto sanitizado
     if (!isPlayerMode() && socket.connected) {
       socket.emit('handout:share-toggle', {
-        handout: toPlayerHandoutView({ ...item, isSharedWithPlayers: nextShare }),
+        handout: toPlayerHandoutView({
+          ...item,
+          isSharedWithPlayers: nextShare,
+          sharedWithPlayerNames: targetNames,
+        }),
         isShared: nextShare,
+        sharedWithPlayerNames: targetNames,
       });
     }
 
     triggerAutoSave();
   },
 
-  projectHandout: (item: HandoutItem) => {
-    set({ projectedHandoutId: item.id });
+  projectHandout: (
+    item: HandoutItem,
+    targetPlayerNames?: string[] | null,
+    targetMemberIds?: string[] | null,
+  ) => {
+    const cleanTargets = targetPlayerNames && targetPlayerNames.length > 0 ? targetPlayerNames : null;
+    set({
+      projectedHandoutId: item.id,
+      projectedTargetNames: cleanTargets,
+    });
     if (!isPlayerMode() && socket.connected) {
       socket.emit('projection:set', {
         handout: toPlayerHandoutView(item),
+        targetPlayerNames: cleanTargets,
+        targetMemberIds: targetMemberIds && targetMemberIds.length > 0 ? targetMemberIds : null,
       });
     }
   },
 
   stopProjection: () => {
-    set({ projectedHandoutId: null });
+    set({ projectedHandoutId: null, projectedTargetNames: null });
     if (!isPlayerMode() && socket.connected) {
       socket.emit('projection:set', {
         handout: null,
+        targetPlayerNames: null,
+        targetMemberIds: null,
       });
     }
   },

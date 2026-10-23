@@ -25,6 +25,7 @@ export interface HandoutItem {
   fileSize?: number; // Tamanho em bytes
   mimeType?: string;
   isSharedWithPlayers: boolean; // Se está visível para os jogadores
+  sharedWithPlayerNames?: string[]; // Se vazio/undefined = visível para todos os jogadores. Se preenchido = apenas jogadores listados
   tags?: string[];
   createdAt: number;
   updatedAt: number;

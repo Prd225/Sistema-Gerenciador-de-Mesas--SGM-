@@ -17,6 +17,7 @@ import {
   Scroll,
   FileText,
   ExternalLink,
+  Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -26,6 +27,7 @@ interface HandoutDetailModalProps {
   onProject?: (item: HandoutItem) => void;
   onEdit?: (item: HandoutItem) => void;
   isProjected?: boolean;
+  onRequestAudience?: (item: HandoutItem, mode: 'project' | 'share') => void;
 }
 
 export default function HandoutDetailModal({
@@ -34,6 +36,7 @@ export default function HandoutDetailModal({
   onProject,
   onEdit,
   isProjected = false,
+  onRequestAudience,
 }: HandoutDetailModalProps) {
   const toggleShare = useInventoryStore((state) => state.toggleShare);
   const toggleMapPlacement = useInventoryStore((state) => state.toggleMapPlacement);
@@ -134,36 +137,77 @@ export default function HandoutDetailModal({
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Toggle de Compartilhamento */}
-            <Button
-              variant="outline"
-              size="xs"
-              onClick={() => toggleShare(item.id)}
-              className={`text-xs gap-1.5 transition-all ${
-                item.isSharedWithPlayers
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
-                  : 'bg-[#27272a] text-[#a1a1aa] border-[#3f3f46] hover:bg-white/10 hover:text-white'
-              }`}
-            >
-              {item.isSharedWithPlayers ? (
-                <>
-                  <Eye className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Revelado</span>
-                </>
-              ) : (
-                <>
-                  <EyeOff className="w-3.5 h-3.5" />
-                  <span>Oculto</span>
-                </>
+            {/* Toggle de Compartilhamento com Audiência */}
+            <div className="flex items-center">
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={() => {
+                  if (item.isSharedWithPlayers) {
+                    toggleShare(item.id);
+                  } else if (onRequestAudience) {
+                    onRequestAudience(item, 'share');
+                  } else {
+                    toggleShare(item.id);
+                  }
+                }}
+                className={`text-xs gap-1.5 transition-all ${
+                  item.isSharedWithPlayers
+                    ? onRequestAudience
+                      ? 'rounded-r-none border-r-0 bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
+                      : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
+                    : 'bg-[#27272a] text-[#a1a1aa] border-[#3f3f46] hover:bg-white/10 hover:text-white'
+                }`}
+                title={
+                  item.isSharedWithPlayers
+                    ? 'Clique para ocultar este documento'
+                    : 'Clique para revelar e selecionar o público-alvo'
+                }
+              >
+                {item.isSharedWithPlayers ? (
+                  <>
+                    <Eye className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>
+                      {item.sharedWithPlayerNames && item.sharedWithPlayerNames.length > 0
+                        ? `Revelado (${item.sharedWithPlayerNames.length})`
+                        : 'Revelado (Todos)'}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <EyeOff className="w-3.5 h-3.5" />
+                    <span>Oculto</span>
+                  </>
+                )}
+              </Button>
+
+              {item.isSharedWithPlayers && onRequestAudience && (
+                <Button
+                  variant="outline"
+                  size="xs"
+                  onClick={() => onRequestAudience(item, 'share')}
+                  className="rounded-l-none bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/40 px-2 h-7"
+                  title="Configurar quais jogadores podem ver este documento"
+                >
+                  <Users className="w-3 h-3" />
+                </Button>
               )}
-            </Button>
+            </div>
 
             {/* Projetar na Tela */}
             {onProject && (
               <Button
                 variant={isProjected ? 'destructive' : 'default'}
                 size="xs"
-                onClick={() => onProject(item)}
+                onClick={() => {
+                  if (isProjected) {
+                    onProject(item);
+                  } else if (onRequestAudience) {
+                    onRequestAudience(item, 'project');
+                  } else {
+                    onProject(item);
+                  }
+                }}
                 className={`gap-1.5 text-xs shadow-md ${
                   isProjected
                     ? 'bg-red-600 hover:bg-red-500 text-white'
@@ -176,7 +220,7 @@ export default function HandoutDetailModal({
                 }
               >
                 <Tv className={`w-3.5 h-3.5 ${isProjected ? 'animate-pulse' : ''}`} />
-                <span>{isProjected ? 'Encerrar Projeção' : 'Projetar'}</span>
+                <span>{isProjected ? 'Encerrar Projeção' : 'Projetar...'}</span>
               </Button>
             )}
 
