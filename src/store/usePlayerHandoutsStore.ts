@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 import type { PlayerHandoutView, ProjectionPayload } from '@/types/multiplayer';
 
+export interface HandoutRevealNotification {
+  id: string;
+  title: string;
+  type?: string;
+  count: number;
+  handout?: PlayerHandoutView;
+}
+
 interface PlayerHandoutsState {
   sharedHandouts: PlayerHandoutView[];
   projectedHandout: PlayerHandoutView | null;
@@ -9,12 +17,16 @@ interface PlayerHandoutsState {
   isDrawerOpen: boolean;
   selectedHandout: PlayerHandoutView | null;
   unreadCount: number;
+  hasInitialized: boolean;
+  revealNotification: HandoutRevealNotification | null;
 
-  setSharedHandouts: (handouts: PlayerHandoutView[]) => void;
+  setSharedHandouts: (handouts: PlayerHandoutView[], isInitial?: boolean) => void;
   setProjection: (payload: ProjectionPayload) => void;
   setIsProjectionOpen: (open: boolean) => void;
   setIsDrawerOpen: (open: boolean) => void;
   setSelectedHandout: (handout: PlayerHandoutView | null) => void;
+  dismissRevealNotification: () => void;
+  openRevealedHandout: (handout?: PlayerHandoutView) => void;
   markAllRead: () => void;
   reset: () => void;
 }
@@ -27,8 +39,10 @@ export const usePlayerHandoutsStore = create<PlayerHandoutsState>((set, get) => 
   isDrawerOpen: false,
   selectedHandout: null,
   unreadCount: 0,
+  hasInitialized: false,
+  revealNotification: null,
 
-  setSharedHandouts: (handouts) => {
+  setSharedHandouts: (handouts, isInitial = false) => {
     const list = Array.isArray(handouts) ? handouts : [];
     const current = Array.isArray(get().sharedHandouts) ? get().sharedHandouts : [];
     const currentIds = new Set(current.map((h) => h.id));
@@ -37,9 +51,26 @@ export const usePlayerHandoutsStore = create<PlayerHandoutsState>((set, get) => 
     // Se o drawer já estiver aberto, não acumula unread
     const addedUnread = get().isDrawerOpen ? 0 : newItems.length;
 
+    const wasInitialized = get().hasInitialized;
+    let nextNotification = get().revealNotification;
+
+    // Dispara a notificação de revelação somente se NÃO for a carga inicial e houver novos itens
+    if (wasInitialized && !isInitial && newItems.length > 0) {
+      const latest = newItems[newItems.length - 1];
+      nextNotification = {
+        id: `${latest.id}-${Date.now()}`,
+        title: latest.title || 'Documento',
+        type: latest.type,
+        count: newItems.length,
+        handout: latest,
+      };
+    }
+
     set((state) => ({
       sharedHandouts: list,
+      hasInitialized: true,
       unreadCount: (state.unreadCount || 0) + addedUnread,
+      revealNotification: nextNotification,
     }));
   },
 
@@ -70,6 +101,17 @@ export const usePlayerHandoutsStore = create<PlayerHandoutsState>((set, get) => 
 
   setSelectedHandout: (handout) => set({ selectedHandout: handout }),
 
+  dismissRevealNotification: () => set({ revealNotification: null }),
+
+  openRevealedHandout: (handout) => {
+    set({
+      revealNotification: null,
+      unreadCount: 0,
+      isDrawerOpen: true,
+      selectedHandout: handout || null,
+    });
+  },
+
   markAllRead: () => set({ unreadCount: 0 }),
 
   reset: () =>
@@ -81,5 +123,7 @@ export const usePlayerHandoutsStore = create<PlayerHandoutsState>((set, get) => 
       isDrawerOpen: false,
       selectedHandout: null,
       unreadCount: 0,
+      hasInitialized: false,
+      revealNotification: null,
     }),
 }));

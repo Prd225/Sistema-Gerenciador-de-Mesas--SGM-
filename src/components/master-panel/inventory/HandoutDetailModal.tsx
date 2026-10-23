@@ -4,7 +4,8 @@ import { useInventoryStore } from '@/store/useInventoryStore';
 import { useZoneStore } from '@/store/useZoneStore';
 import { replaceDiceShortcodesWithHtml } from '@/lib/diceEmoji';
 import {
-  X,
+  Minus,
+  Copy,
   Eye,
   EyeOff,
   Tv,
@@ -18,8 +19,6 @@ import {
   FileText,
   ExternalLink,
   Users,
-  Maximize2,
-  Minimize2,
   Volume2,
 } from 'lucide-react';
 import { isPlayerMode } from '@/lib/roomRole';
@@ -242,17 +241,7 @@ export default function HandoutDetailModal({
           </div>
 
           {/* Botões de Ação na Direita */}
-          <div className="flex items-center gap-2 pointer-events-auto">
-            <button
-              type="button"
-              onClick={() => handleToggleCinemaMode(false)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md text-xs font-medium transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
-              title="Modo Janela"
-            >
-              <Minimize2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Janela</span>
-            </button>
-
+          <div className="flex items-center gap-1.5 pointer-events-auto">
             {(item.type === 'image' || item.type === 'video') && (
               <button
                 type="button"
@@ -264,13 +253,24 @@ export default function HandoutDetailModal({
               </button>
             )}
 
+            {/* Alternar Janela (2 quadrados / restaurar) */}
+            <button
+              type="button"
+              onClick={() => handleToggleCinemaMode(false)}
+              className="p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
+              title="Janela"
+            >
+              <Copy className="w-3.5 h-3.5 text-purple-300" />
+            </button>
+
+            {/* Minimizar (traço clássico) */}
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md transition-all shadow-lg hover:scale-105 active:scale-95 ml-1 cursor-pointer"
-              title="Fechar"
+              className="p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
+              title="Minimizar"
             >
-              <X className="w-4 h-4" />
+              <Minus className="w-4 h-4 text-[#e1e1e6]" />
             </button>
           </div>
         </div>
@@ -546,40 +546,38 @@ export default function HandoutDetailModal({
               </>
             )}
 
-            {/* Alternar para Tela Cheia (Arquivos Multimídia) */}
-            {isMultimedia && (
-              <Button
-                variant="outline"
-                size="xs"
-                onClick={() => handleToggleCinemaMode(true)}
-                className="bg-[#27272a] text-[#e1e1e6] border-[#3f3f46] hover:bg-white/10 hover:text-white gap-1.5 text-xs transition-all"
-                title="Expandir em tela cheia"
-              >
-                <Maximize2 className="w-3.5 h-3.5 text-purple-400" />
-                <span>Tela Cheia</span>
-              </Button>
-            )}
-
             {/* Abrir em Nova Guia (PDF, Imagem ou Vídeo) */}
             {(item.type === 'pdf' || item.type === 'image' || item.type === 'video') && (pdfBlobUrl || mediaSource) && (
-              <Button
-                variant="outline"
-                size="xs"
+              <button
+                type="button"
                 onClick={handleOpenInNewTab}
-                className="bg-[#27272a] text-[#e1e1e6] border-[#3f3f46] hover:bg-white/10 hover:text-white gap-1.5 text-xs transition-all"
-                title="Abrir em nova guia"
+                className="p-1.5 text-[#a1a1aa] hover:text-white rounded-lg hover:bg-white/10 transition-all cursor-pointer"
+                title="Nova Guia"
               >
                 <ExternalLink className="w-3.5 h-3.5 text-red-400" />
-                <span>Nova Guia</span>
-              </Button>
+              </button>
             )}
 
+            {/* Maximizar em Tela Cheia (2 quadrados) */}
+            {isMultimedia && (
+              <button
+                type="button"
+                onClick={() => handleToggleCinemaMode(true)}
+                className="p-1.5 text-[#a1a1aa] hover:text-white rounded-lg hover:bg-white/10 transition-all cursor-pointer"
+                title="Maximizar"
+              >
+                <Copy className="w-3.5 h-3.5 text-purple-400" />
+              </button>
+            )}
+
+            {/* Minimizar (traço clássico) */}
             <button
+              type="button"
               onClick={onClose}
-              className="p-1.5 text-[#a1a1aa] hover:text-white rounded-lg hover:bg-white/10 transition-all ml-2"
-              title="Fechar"
+              className="p-1.5 text-[#a1a1aa] hover:text-white rounded-lg hover:bg-white/10 transition-all cursor-pointer"
+              title="Minimizar"
             >
-              <X className="w-4 h-4" />
+              <Minus className="w-4 h-4" />
             </button>
           </div>
         </div>

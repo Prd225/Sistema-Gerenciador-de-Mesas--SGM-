@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
-  X,
+  Minus,
   Scroll,
   Search,
   FileText,
@@ -89,10 +89,19 @@ export default function PlayerHandoutsDrawer() {
   const sharedHandouts = usePlayerHandoutsStore((state) => state.sharedHandouts);
   const isDrawerOpen = usePlayerHandoutsStore((state) => state.isDrawerOpen);
   const setIsDrawerOpen = usePlayerHandoutsStore((state) => state.setIsDrawerOpen);
+  const selectedHandout = usePlayerHandoutsStore((state) => state.selectedHandout);
+  const setSelectedHandout = usePlayerHandoutsStore((state) => state.setSelectedHandout);
 
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'text' | 'image' | 'pdf' | 'media'>('all');
   const [inspectItem, setInspectItem] = useState<PlayerHandoutView | null>(null);
+
+  useEffect(() => {
+    if (selectedHandout) {
+      setInspectItem(selectedHandout);
+      setSelectedHandout(null);
+    }
+  }, [selectedHandout, setSelectedHandout]);
 
   const filteredItems = useMemo(() => {
     return sharedHandouts.filter((item) => {
@@ -149,9 +158,9 @@ export default function PlayerHandoutsDrawer() {
             <button
               onClick={() => setIsDrawerOpen(false)}
               className="p-1.5 text-[#a1a1aa] hover:text-white rounded-lg hover:bg-white/10 transition-colors"
-              title="Fechar"
+              title="Minimizar"
             >
-              <X className="w-4 h-4" />
+              <Minus className="w-4 h-4" />
             </button>
           </div>
 

@@ -5,6 +5,7 @@ import PlayerAudioEngine from './PlayerAudioEngine';
 import PlayerToolbar from './PlayerToolbar';
 import PlayerHandoutsDrawer from './PlayerHandoutsDrawer';
 import PlayerProjectionOverlay from './PlayerProjectionOverlay';
+import PlayerHandoutNotification from './PlayerHandoutNotification';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import { useMultiplayerStore } from '@/store/useMultiplayerStore';
 import { WifiOff, AlertCircle } from 'lucide-react';
@@ -35,6 +36,11 @@ export default function PlayerShell() {
       {/* Toolbar do Jogador (Handouts e Projeção) */}
       <ErrorBoundary fallback={null} silent>
         <PlayerToolbar />
+      </ErrorBoundary>
+
+      {/* Notificação Flutuante de Handout Revelado */}
+      <ErrorBoundary fallback={null} silent>
+        <PlayerHandoutNotification />
       </ErrorBoundary>
 
       {/* Painel de Handouts Revelados da Mesa */}

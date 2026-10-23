@@ -160,7 +160,7 @@ function setupSocketListeners(set: any, get: any) {
                 usePlayerAudioStore.getState().applyState(res.state.soundpad);
               }
               if (res.state.sharedHandouts) {
-                usePlayerHandoutsStore.getState().setSharedHandouts(res.state.sharedHandouts);
+                usePlayerHandoutsStore.getState().setSharedHandouts(res.state.sharedHandouts, true);
               }
               if (res.state.projection) {
                 usePlayerHandoutsStore.getState().setProjection(res.state.projection);
