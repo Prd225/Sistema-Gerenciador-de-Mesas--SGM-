@@ -2,7 +2,7 @@ import { useTokenStore } from '@/store/useTokenStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useZoneStore } from '@/store/useZoneStore';
 import { isPlayerMode } from '@/lib/roomRole';
-import { ArrowDown, Hourglass, Ban, Skull, Swords } from 'lucide-react';
+import { ArrowDown, Hourglass, Ban, Skull } from 'lucide-react';
 
 /**
  * Initiative bar displayed at the bottom of the viewport.
@@ -14,6 +14,7 @@ export default function InitiativeBar() {
   const sortMode = useTokenStore((state) => state.initiativeSortMode);
   const turn = useCampaignStore((state) => state.turn);
   const round = useCampaignStore((state) => state.round);
+  const scene = useCampaignStore((state) => state.scene) || 1;
 
   const leftOpen = useZoneStore((state) => state.leftSidebarOpen);
   const leftWidth = useZoneStore((state) => state.leftSidebarWidth);
@@ -23,7 +24,8 @@ export default function InitiativeBar() {
 
   if (safeQueue.length === 0) return null;
 
-  const activeIndex = (turn - 1) % safeQueue.length;
+  const safeTurn = Math.max(1, turn);
+  const activeIndex = (safeTurn - 1) % safeQueue.length;
 
   const colorMap: Record<string, string> = {
     red: '#e55757',
@@ -41,30 +43,15 @@ export default function InitiativeBar() {
         left: `${leftOffset}px`,
         maxWidth: `calc(100vw - ${leftOffset + 24}px - 80px)`,
       }}
-      className="absolute bottom-5 flex gap-4 px-4 pb-4 pt-8 bg-[#202024]/95 border border-[#323238] rounded-lg shadow-[0_4px_15px_rgba(0,0,0,0.7)] overflow-x-auto z-30 items-end pointer-events-auto transition-[left,max-width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+      className="absolute bottom-5 flex flex-col bg-[#202024]/95 border border-[#323238] rounded-lg shadow-[0_4px_15px_rgba(0,0,0,0.7)] z-30 pointer-events-auto transition-[left,max-width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
     >
-      {/* Indicador de Rodada e Turnos da Iniciativa */}
-      <div className="flex flex-col justify-center gap-1 px-3.5 py-2 bg-[#18181b] border border-[#3f3f46] rounded-xl shrink-0 select-none shadow-md mb-0.5">
-        <div className="flex items-center gap-1.5 text-amber-400 font-bold uppercase tracking-wider text-[10px]">
-          <Swords className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-          <span>Iniciativa</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-amber-300">
-            Rodada {round}
-          </span>
-          <span className="text-[#52525b]">•</span>
-          <span
-            className="text-xs font-semibold text-[#e1e1e6]"
-            title={`${activeIndex} turnos concluídos nesta rodada`}
-          >
-            Turno {activeIndex + 1}/{safeQueue.length}
-          </span>
-        </div>
-        <div className="text-[10px] text-[#a1a1aa] font-mono">
-          {activeIndex} {activeIndex === 1 ? 'turno passado' : 'turnos passados'}
-        </div>
+      {/* Header discreto apagadinho em tons de cinza */}
+      <div className="px-3.5 pt-2 pb-0 text-[11px] font-medium text-[#888892] tracking-wide select-none">
+        Cena {scene} -- Rodada {round} -- Turno {activeIndex + 1}/{safeQueue.length}
       </div>
+
+      {/* Fila de tokens da iniciativa */}
+      <div className="flex gap-4 px-3.5 pb-3.5 pt-8 overflow-x-auto custom-scrollbar items-end">
 
       {safeQueue.map((item, index) => {
         const token = safeTokens.find((t) => t && t.id === item.tokenId);
@@ -160,6 +147,7 @@ export default function InitiativeBar() {
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
