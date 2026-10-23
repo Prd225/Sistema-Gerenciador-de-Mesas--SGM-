@@ -7,6 +7,7 @@ import type {
 } from './game';
 import type { SongSource } from './soundpad';
 import type { HandoutType, HandoutTextStyle } from './inventory';
+import type { FogState } from './fog';
 
 export type UserRole = 'gm' | 'player';
 
@@ -90,6 +91,7 @@ export interface PlayerStatePayload {
   round: number;
   turn: number;
   scene?: number;
+  fog?: FogState;
 }
 
 // ---------------------------------------------------------------------------
@@ -104,6 +106,7 @@ export interface SyncStatePayload {
   round: number;
   turn: number;
   scene?: number;
+  fog?: FogState;
 }
 
 // ---------------------------------------------------------------------------
@@ -226,6 +229,9 @@ export interface ClientToServerEvents {
     targetPlayerNames?: string[] | null;
     targetMemberIds?: string[] | null;
   }) => void;
+
+  // Fog of War (Névoa de Guerra - somente mestre)
+  'fog:update': (payload: FogState) => void;
 }
 
 export interface ServerToClientEvents {
@@ -235,6 +241,7 @@ export interface ServerToClientEvents {
   /** O mestre encerrou a mesa. */
   'room:closed': () => void;
   'room:state-synced': (payload: PlayerStatePayload) => void;
+  'fog:updated': (payload: FogState) => void;
 
   // Tokens (sempre na visão do jogador)
   'token:moved': (payload: {

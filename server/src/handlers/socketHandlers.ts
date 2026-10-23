@@ -375,6 +375,12 @@ export function registerSocketHandlers(io: SgmServer, socket: SgmSocket) {
         payload.targetPlayerNames ? ` para: ${payload.targetPlayerNames.join(', ')}` : ' (para todos)'
       }`,
     );
+  // Névoa de Guerra (somente mestre)
+  socket.on('fog:update', (payload) => {
+    const ctx = gmContext('fog:update');
+    if (!ctx) return;
+    roomManager.setFog(ctx.room.code, payload);
+    socket.to(ctx.room.code).emit('fog:updated', payload);
   });
 
   // Sair da Sala (explícito)

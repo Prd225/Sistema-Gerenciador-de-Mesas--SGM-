@@ -12,7 +12,9 @@ import BackgroundLayer from './BackgroundLayer';
 import ZoneLayer, { type NewShapeState } from './ZoneLayer';
 import TokenLayer from './TokenLayer';
 import MarkerLayer from './MarkerLayer';
+import FogLayer from './FogLayer';
 import DrawingLayer from './DrawingLayer';
+import { useFogStore } from '@/store/useFogStore';
 
 const generateId = () =>
   window.crypto?.randomUUID?.() ?? Math.random().toString(36).substring(2, 11);
@@ -91,6 +93,11 @@ export default function StageMap() {
     height: number;
   } | null>(null);
 
+  // Live mouse pos for brush cursor preview
+  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(
+    null,
+  );
+
   // --- Resize Observer ---
   useEffect(() => {
     const el = containerRef.current;
@@ -160,7 +167,8 @@ export default function StageMap() {
       activeTool !== 'draw-poly' &&
       activeTool !== 'draw-rect' &&
       activeTool !== 'draw-ellipse' &&
-      activeTool !== 'select'
+      activeTool !== 'select' &&
+      !activeTool.startsWith('fog-')
     ) {
       setIsDrawing(false);
       setNewShape(null);
@@ -198,6 +206,22 @@ export default function StageMap() {
       }
 
       if (cleaned.length < 6) {
+        setIsDrawing(false);
+        setNewShape(null);
+        setPolyPoints([]);
+        return;
+      }
+
+      if (activeTool === 'fog-hide-poly' || activeTool === 'fog-reveal-poly') {
+        const mode = activeTool === 'fog-reveal-poly' ? 'reveal' : 'hide';
+        useFogStore.getState().setEnabled(true);
+        useFogStore.getState().addArea({
+          mode,
+          type: 'polygon',
+          x: 0,
+          y: 0,
+          points: cleaned,
+        });
         setIsDrawing(false);
         setNewShape(null);
         setPolyPoints([]);
@@ -253,13 +277,16 @@ export default function StageMap() {
       setNewShape(null);
       setPolyPoints([]);
     },
-    [addZone, selectZone, setActiveTool],
+    [addZone, selectZone, setActiveTool, activeTool],
   );
 
   // --- Double Click ---
   const handleDblClick = useCallback(
     (e: KonvaEventObject<MouseEvent>) => {
-      if (activeTool === 'draw-poly' && polyPoints.length >= 6) {
+      if (
+        (activeTool === 'draw-poly' || activeTool.endsWith('-poly')) &&
+        polyPoints.length >= 6
+      ) {
         e.evt.preventDefault();
         finishPolygon(polyPoints);
       }
@@ -323,6 +350,70 @@ export default function StageMap() {
           text: 'Novo Marcador',
         });
         setRightSidebarOpen(true);
+        return;
+      }
+
+      // Ferramentas de Fog of War
+      if (activeTool.startsWith('fog-')) {
+        if (activeTool.endsWith('-brush')) {
+          const fogState = useFogStore.getState();
+          setIsDrawing(true);
+          const brushSize = fogState.brushSize;
+          const brushShape = fogState.brushShape;
+          setNewShape({
+            type: 'brush',
+            x: pos.x,
+            y: pos.y,
+            points: [pos.x, pos.y, pos.x + 0.01, pos.y + 0.01],
+            brushSize,
+            brushShape,
+          });
+          return;
+        }
+
+        if (activeTool.endsWith('-poly')) {
+          if (!isDrawing) {
+            setIsDrawing(true);
+            setPolyPoints([pos.x, pos.y]);
+            setNewShape({
+              type: 'polygon',
+              x: pos.x,
+              y: pos.y,
+              points: [pos.x, pos.y],
+            });
+          } else {
+            if (polyPoints.length >= 6) {
+              const startX = polyPoints[0];
+              const startY = polyPoints[1];
+              const dist = Math.hypot(pos.x - startX, pos.y - startY);
+              if (dist <= 25 / scale) {
+                finishPolygon(polyPoints);
+                return;
+              }
+            }
+            const lastX = polyPoints[polyPoints.length - 2];
+            const lastY = polyPoints[polyPoints.length - 1];
+            if (Math.hypot(pos.x - lastX, pos.y - lastY) >= 3) {
+              const nextPoints = [...polyPoints, pos.x, pos.y];
+              setPolyPoints(nextPoints);
+              setNewShape((prev) =>
+                prev
+                  ? { ...prev, points: [...nextPoints, pos.x, pos.y] }
+                  : null,
+              );
+            }
+          }
+        } else {
+          setIsDrawing(true);
+          drawStartRef.current = { x: pos.x, y: pos.y };
+          setNewShape({
+            type: activeTool.includes('circle') ? 'ellipse' : 'rect',
+            x: pos.x,
+            y: pos.y,
+            width: 0,
+            height: 0,
+          });
+        }
         return;
       }
 
@@ -390,11 +481,17 @@ export default function StageMap() {
 
   // --- Mouse Move ---
   const handleMouseMove = useCallback(() => {
-    if (!isDrawing) return;
-
     const stage = stageRef.current;
     if (!stage) return;
     const pos = getRelativePointerPosition(stage);
+
+    if (activeTool.endsWith('-brush')) {
+      setMousePos(pos);
+    } else if (mousePos !== null) {
+      setMousePos(null);
+    }
+
+    if (!isDrawing) return;
 
     if (activeTool === 'select' && selectionRect) {
       setSelectionRect({
@@ -407,7 +504,26 @@ export default function StageMap() {
 
     if (!newShape) return;
 
-    if (newShape.type === 'polygon' && activeTool === 'draw-poly') {
+    if (newShape.type === 'brush' && activeTool.endsWith('-brush')) {
+      const currentPoints = newShape.points || [];
+      if (currentPoints.length >= 2) {
+        const lastX = currentPoints[currentPoints.length - 2];
+        const lastY = currentPoints[currentPoints.length - 1];
+        if (Math.hypot(pos.x - lastX, pos.y - lastY) >= 3) {
+          setNewShape((prev) =>
+            prev
+              ? { ...prev, points: [...(prev.points || []), pos.x, pos.y] }
+              : null,
+          );
+        }
+      }
+      return;
+    }
+
+    if (
+      newShape.type === 'polygon' &&
+      (activeTool === 'draw-poly' || activeTool.endsWith('-poly'))
+    ) {
       let targetX = pos.x;
       let targetY = pos.y;
       if (polyPoints.length >= 6) {
@@ -443,6 +559,7 @@ export default function StageMap() {
     activeTool,
     selectionRect,
     scale,
+    mousePos,
   ]);
 
   // --- Mouse Up ---
@@ -493,7 +610,58 @@ export default function StageMap() {
     }
 
     if (!newShape) return;
-    if (activeTool === 'draw-poly') return; // Handled by Enter key
+    if (activeTool === 'draw-poly' || activeTool.endsWith('-poly')) return; // Handled by Enter key
+
+    if (activeTool.startsWith('fog-')) {
+      setIsDrawing(false);
+
+      if (activeTool.endsWith('-brush')) {
+        if (newShape && newShape.points && newShape.points.length >= 2) {
+          const mode = activeTool.includes('reveal') ? 'reveal' : 'hide';
+          useFogStore.getState().setEnabled(true);
+          useFogStore.getState().addArea({
+            mode,
+            type: 'brush',
+            x: 0,
+            y: 0,
+            points: newShape.points,
+            brushSize: newShape.brushSize || useFogStore.getState().brushSize,
+            brushShape: newShape.brushShape || useFogStore.getState().brushShape,
+          });
+        }
+        setNewShape(null);
+        return;
+      }
+
+      const absW = Math.abs(newShape.width || 0);
+      const absH = Math.abs(newShape.height || 0);
+
+      if (absW > 5 && absH > 5) {
+        const x =
+          (newShape.width || 0) < 0
+            ? drawStartRef.current.x + (newShape.width || 0)
+            : drawStartRef.current.x;
+        const y =
+          (newShape.height || 0) < 0
+            ? drawStartRef.current.y + (newShape.height || 0)
+            : drawStartRef.current.y;
+
+        const mode = activeTool.includes('reveal') ? 'reveal' : 'hide';
+        const type = activeTool.includes('circle') ? 'circle' : 'rect';
+
+        useFogStore.getState().setEnabled(true);
+        useFogStore.getState().addArea({
+          mode,
+          type,
+          x,
+          y,
+          width: absW,
+          height: absH,
+        });
+      }
+      setNewShape(null);
+      return;
+    }
 
     setIsDrawing(false);
 
@@ -659,11 +827,19 @@ export default function StageMap() {
         setPolyPoints([]);
         useZoneStore.getState().setSelectedZoneId(null);
         useZoneStore.getState().setSelectedNodeIds([]);
-        if (activeTool.startsWith('draw')) setActiveTool('pan');
+        if (activeTool.startsWith('draw') || activeTool.startsWith('fog-')) {
+          setActiveTool('pan');
+        }
+      }
+      if (e.key === '[' || e.key === ']') {
+        const curSize = useFogStore.getState().brushSize;
+        const delta = e.key === ']' ? 10 : -10;
+        const nextSize = Math.max(10, Math.min(300, curSize + delta));
+        useFogStore.getState().setBrushSize(nextSize);
       }
       if (
         e.key === 'Enter' &&
-        activeTool === 'draw-poly' &&
+        (activeTool === 'draw-poly' || activeTool.endsWith('-poly')) &&
         polyPoints.length >= 6
       ) {
         e.preventDefault();
@@ -705,6 +881,7 @@ export default function StageMap() {
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
+        onMouseLeave={() => setMousePos(null)}
         onMouseUp={handleMouseUp}
         onDblClick={handleDblClick}
         onContextMenu={handleContextMenu}
@@ -736,8 +913,16 @@ export default function StageMap() {
             />
           )}
         </Layer>
+        {/* Camada de Névoa de Guerra (cobre mapa e tokens) */}
+        <Layer listening={false}>
+          <FogLayer scale={scale} />
+        </Layer>
         <Layer>
-          <DrawingLayer newShape={newShape} scale={scale} />
+          <DrawingLayer
+            newShape={newShape}
+            mousePos={mousePos}
+            scale={scale}
+          />
         </Layer>
       </Stage>
     </div>

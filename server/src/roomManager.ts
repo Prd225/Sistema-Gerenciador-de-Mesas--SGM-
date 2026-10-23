@@ -15,6 +15,7 @@ import type {
   PlayerHandoutView,
   ProjectionPayload,
 } from '../../src/types/multiplayer';
+import type { FogState } from '../../src/types/fog';
 import { toPlayerState } from './playerView';
 
 /** Dados do soundpad guardados para quem entra com a música já tocando. */
@@ -37,6 +38,7 @@ export interface ActiveRoom {
   round: number;
   turn: number;
   scene: number;
+  fog?: FogState;
   soundpad: SoundpadSnapshot | null;
   sharedHandouts: Map<string, PlayerHandoutView>;
   projection: ProjectionPayload | null;
@@ -112,6 +114,7 @@ export class RoomManager {
       soundpad: null,
       sharedHandouts: new Map(),
       projection: null,
+      fog: { enabled: false, defaultCovered: false, areas: [] },
       createdAt: Date.now(),
       cleanupTimer: null,
     };
@@ -309,6 +312,17 @@ export class RoomManager {
     if (payload.scene !== undefined && Number.isFinite(payload.scene)) {
       room.scene = payload.scene;
     }
+    room.fog = payload.fog ?? {
+      enabled: false,
+      defaultCovered: false,
+      areas: [],
+    };
+  }
+
+  public setFog(code: string, fog: FogState): void {
+    const room = this.getRoom(code);
+    if (!room) return;
+    room.fog = fog;
   }
 
   /**

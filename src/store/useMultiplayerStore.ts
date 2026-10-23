@@ -22,6 +22,7 @@ import { useZoneStore } from './useZoneStore';
 import { useCampaignStore } from './useCampaignStore';
 import { usePlayerAudioStore } from './usePlayerAudioStore';
 import { usePlayerHandoutsStore } from './usePlayerHandoutsStore';
+import { useFogStore } from './useFogStore';
 import { broadcastCurrentSoundpad } from '@/lib/soundpadBroadcast';
 
 export function hydratePlayerToken(view: PlayerTokenView): Token {
@@ -85,6 +86,15 @@ function applyPlayerView(view: PlayerStatePayload) {
     useCampaignStore
       .getState()
       .setRoundTurnFromRemote(view.round, view.turn, view.scene);
+  }
+  if (view.fog) {
+    useFogStore.getState().applyState(view.fog);
+  } else {
+    useFogStore.getState().applyState({
+      enabled: false,
+      defaultCovered: false,
+      areas: [],
+    });
   }
 }
 
@@ -252,6 +262,12 @@ function setupSocketListeners(set: any, get: any) {
   socket.on('room:state-synced', (payload) => {
     if (isPlayerMode()) {
       applyPlayerView(payload);
+    }
+  });
+
+  socket.on('fog:updated', (payload) => {
+    if (isPlayerMode()) {
+      useFogStore.getState().applyState(payload);
     }
   });
 
@@ -549,6 +565,12 @@ export const useMultiplayerStore = create<MultiplayerState>((set, get) => {
       const initiativeSortMode = useTokenStore.getState().initiativeSortMode;
       const { bgImages } = useZoneStore.getState();
       const { round, turn, scene } = useCampaignStore.getState();
+      const fogStore = useFogStore.getState();
+      const fog = {
+        enabled: fogStore.enabled,
+        defaultCovered: fogStore.defaultCovered,
+        areas: fogStore.areas,
+      };
 
       socket.emit('room:sync-state', {
         tokens,
@@ -558,6 +580,7 @@ export const useMultiplayerStore = create<MultiplayerState>((set, get) => {
         round,
         turn,
         scene,
+        fog,
       });
     },
   };

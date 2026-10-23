@@ -15,6 +15,7 @@ export interface ActiveScene {
   zones: Record<string, any>;
   markers: Record<string, any>;
   bgImages: any[];
+  fog?: any;
 }
 
 export interface SessionState {

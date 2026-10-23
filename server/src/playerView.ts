@@ -85,5 +85,6 @@ export function toPlayerState(room: ActiveRoom): PlayerStatePayload {
     round: room.round,
     turn: room.turn,
     scene: room.scene || 1,
+    fog: room.fog,
   };
 }

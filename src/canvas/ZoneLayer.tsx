@@ -4,12 +4,14 @@ import { useZoneStore } from '@/store/useZoneStore';
 import type { Zone } from '@/types/game';
 
 export interface NewShapeState {
-  type: 'rect' | 'ellipse' | 'polygon';
+  type: 'rect' | 'ellipse' | 'polygon' | 'brush';
   x: number;
   y: number;
   width?: number;
   height?: number;
   points?: number[]; // [x1, y1, x2, y2, ...]
+  brushSize?: number;
+  brushShape?: 'round' | 'square';
 }
 
 function ZoneLayer({ scale = 1 }: { scale?: number }) {
