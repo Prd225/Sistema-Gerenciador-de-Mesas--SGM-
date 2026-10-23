@@ -18,6 +18,8 @@ import {
   FileText,
   ExternalLink,
   Users,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import { isPlayerMode } from '@/lib/roomRole';
 import { Button } from '@/components/ui/button';
@@ -45,6 +47,8 @@ export default function HandoutDetailModal({
   const toggleShare = useInventoryStore((state) => state.toggleShare);
   const toggleMapPlacement = useInventoryStore((state) => state.toggleMapPlacement);
 
+  const isMedia = item.type === 'image' || item.type === 'video';
+  const [isCinemaMode, setIsCinemaMode] = useState<boolean>(isMedia);
   const [zoom, setZoom] = useState(1);
   const mediaSource = item.serverUrl || item.fileData || '';
   const isOnMap = useZoneStore((state) =>
@@ -52,6 +56,25 @@ export default function HandoutDetailModal({
   );
 
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    setIsCinemaMode(item.type === 'image' || item.type === 'video');
+    setZoom(1);
+  }, [item.id, item.type]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isCinemaMode && isMedia) {
+          setIsCinemaMode(false);
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isCinemaMode, isMedia, onClose]);
 
   useEffect(() => {
     if (item.type !== 'pdf') return;
@@ -85,8 +108,9 @@ export default function HandoutDetailModal({
   }, [item]);
 
   const handleOpenInNewTab = () => {
-    if (!pdfBlobUrl) return;
-    window.open(pdfBlobUrl, '_blank', 'noopener,noreferrer');
+    const url = pdfBlobUrl || mediaSource;
+    if (!url) return;
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const getTextThemeClasses = () => {
@@ -102,6 +126,96 @@ export default function HandoutDetailModal({
         return 'bg-[#18181b] text-[#f4f4f5] font-sans border-[#27272a]';
     }
   };
+
+  // Modo Cinema / Tela Cheia: Inicia por padrão para mídias (imagens/vídeos)
+  if (isCinemaMode && isMedia) {
+    return (
+      <div
+        onClick={onClose}
+        className="fixed inset-0 z-[350] flex items-center justify-center p-3 sm:p-8 bg-black/95 backdrop-blur-sm select-none overflow-hidden animate-in fade-in duration-200"
+      >
+        {/* Barra Flutuante Superior */}
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none z-10"
+        >
+          {/* Tag de Título */}
+          <div className="flex items-center gap-2 pointer-events-auto bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10 text-white shadow-lg">
+            <span className="w-2 h-2 rounded-full bg-purple-400" />
+            <span className="text-xs font-semibold truncate max-w-xs sm:max-w-md">
+              {item.title}
+            </span>
+          </div>
+
+          {/* Botões de Ação na Direita */}
+          <div className="flex items-center gap-2 pointer-events-auto">
+            <button
+              onClick={() => setIsCinemaMode(false)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md text-xs font-medium transition-all shadow-lg hover:scale-105 active:scale-95"
+              title="Modo Janela"
+            >
+              <Minimize2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Janela</span>
+            </button>
+
+            {mediaSource && (
+              <button
+                onClick={handleOpenInNewTab}
+                className="p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md transition-all shadow-lg hover:scale-105 active:scale-95"
+                title="Nova Guia"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-red-400" />
+              </button>
+            )}
+
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md transition-all shadow-lg hover:scale-105 active:scale-95 ml-1"
+              title="Fechar"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Imagem / Vídeo Central com Ícone de Alternar (Estilo Roll20) */}
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsCinemaMode(false);
+          }}
+          className="relative group max-w-[95vw] max-h-[92vh] flex items-center justify-center cursor-pointer"
+          title="Clique para alternar para modo janela"
+        >
+          {item.type === 'image' && mediaSource ? (
+            <img
+              src={mediaSource}
+              alt={item.title}
+              className="max-h-[90vh] max-w-[94vw] object-contain rounded-md shadow-[0_20px_60px_rgba(0,0,0,0.95)] ring-1 ring-white/10 transition-all duration-200 select-none group-hover:brightness-95"
+            />
+          ) : (
+            <video
+              src={mediaSource}
+              controls
+              autoPlay
+              className="max-h-[90vh] max-w-[94vw] rounded-md shadow-2xl bg-black"
+              onClick={(e) => e.stopPropagation()}
+            />
+          )}
+
+          {/* Ícone Central de Desexpandir ao passar o mouse (Estilo Roll20) */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="opacity-0 group-hover:opacity-100 transition-all duration-200 transform scale-90 group-hover:scale-100 flex items-center justify-center">
+              <div className="p-3.5 rounded-full bg-black/80 hover:bg-black/95 text-white border border-white/25 shadow-[0_10px_30px_rgba(0,0,0,0.8)] backdrop-blur-md flex items-center gap-2">
+                <Minimize2 className="w-5 h-5 text-purple-300" />
+                <span className="text-xs font-semibold pr-1">Modo Janela</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -251,6 +365,20 @@ export default function HandoutDetailModal({
               </>
             )}
 
+            {/* Alternar para Tela Cheia (Imagem ou Vídeo) */}
+            {(item.type === 'image' || item.type === 'video') && (
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={() => setIsCinemaMode(true)}
+                className="bg-[#27272a] text-[#e1e1e6] border-[#3f3f46] hover:bg-white/10 hover:text-white gap-1.5 text-xs transition-all"
+                title="Expandir em tela cheia"
+              >
+                <Maximize2 className="w-3.5 h-3.5 text-purple-400" />
+                <span>Tela Cheia</span>
+              </Button>
+            )}
+
             {/* Abrir em Nova Guia (PDF ou Imagem) */}
             {(item.type === 'pdf' || item.type === 'image') && (pdfBlobUrl || mediaSource) && (
               <Button
@@ -284,13 +412,27 @@ export default function HandoutDetailModal({
           }`}
         >
           {item.type === 'image' && mediaSource ? (
-            <div className="flex items-center justify-center w-full min-h-[350px] overflow-hidden">
+            <div
+              onClick={() => setIsCinemaMode(true)}
+              className="relative group flex items-center justify-center w-full min-h-[350px] overflow-hidden cursor-pointer"
+              title="Clique para expandir em tela cheia"
+            >
               <img
                 src={mediaSource}
                 alt={item.title}
                 style={{ transform: `scale(${zoom})` }}
-                className="max-h-[68vh] max-w-full object-contain rounded-lg transition-transform duration-150 select-none shadow-lg"
+                className="max-h-[68vh] max-w-full object-contain rounded-lg transition-transform duration-150 select-none shadow-lg group-hover:brightness-95"
               />
+
+              {/* Ícone Central de Expandir ao passar o mouse (Estilo Roll20) */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="opacity-0 group-hover:opacity-100 transition-all duration-200 transform scale-90 group-hover:scale-100 flex items-center justify-center">
+                  <div className="p-3 rounded-full bg-black/80 hover:bg-black/95 text-white border border-white/25 shadow-[0_10px_25px_rgba(0,0,0,0.8)] backdrop-blur-md flex items-center gap-2">
+                    <Maximize2 className="w-4 h-4 text-purple-300" />
+                    <span className="text-xs font-semibold pr-1">Tela Cheia</span>
+                  </div>
+                </div>
+              </div>
             </div>
           ) : item.type === 'video' && mediaSource ? (
             <div className="w-full max-w-3xl mx-auto flex items-center justify-center min-h-[350px]">
