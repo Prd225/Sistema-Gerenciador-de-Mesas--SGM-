@@ -509,7 +509,7 @@ export default function StageMap() {
       if (currentPoints.length >= 2) {
         const lastX = currentPoints[currentPoints.length - 2];
         const lastY = currentPoints[currentPoints.length - 1];
-        if (Math.hypot(pos.x - lastX, pos.y - lastY) >= 2) {
+        if (Math.hypot(pos.x - lastX, pos.y - lastY) >= 3) {
           setNewShape((prev) =>
             prev
               ? { ...prev, points: [...(prev.points || []), pos.x, pos.y] }
