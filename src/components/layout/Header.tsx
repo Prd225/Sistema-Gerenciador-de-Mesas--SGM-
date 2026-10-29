@@ -149,7 +149,9 @@ export default function Header() {
 
       {/* Token Roster */}
       <div className="flex-1 px-5 mx-5 border-x border-[#323238] h-full flex items-center overflow-x-auto gap-3">
-        {tokens.map((t) => {
+        {(Array.isArray(tokens) ? tokens : [])
+          .filter((t, idx, self) => t && t.id && self.findIndex((x) => x?.id === t.id) === idx)
+          .map((t) => {
           const isOnMap = t.x !== null;
           return (
             <div

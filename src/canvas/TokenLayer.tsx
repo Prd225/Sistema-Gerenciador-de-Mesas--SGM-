@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Group, Circle, Text } from 'react-konva';
 import { useTokenStore } from '@/store/useTokenStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
@@ -11,6 +11,8 @@ import { isPlayerMode } from '@/lib/roomRole';
  * Matches the .token-map styling from DM_tool_6v.html.
  */
 
+const tokenImageCache = new Map<string, HTMLImageElement>();
+
 function TokenFace({
   t,
   isActive,
@@ -20,14 +22,28 @@ function TokenFace({
   isActive: boolean;
   scale?: number;
 }) {
-  const [image, setImage] = React.useState<HTMLImageElement | null>(null);
+  const [image, setImage] = React.useState<HTMLImageElement | null>(() => {
+    if (t.imageUrl && tokenImageCache.has(t.imageUrl)) {
+      return tokenImageCache.get(t.imageUrl)!;
+    }
+    return null;
+  });
 
   React.useEffect(() => {
-    if (t.imageUrl) {
-      const img = new window.Image();
-      img.src = t.imageUrl;
-      img.onload = () => setImage(img);
+    if (!t.imageUrl) {
+      setImage(null);
+      return;
     }
+    if (tokenImageCache.has(t.imageUrl)) {
+      setImage(tokenImageCache.get(t.imageUrl)!);
+      return;
+    }
+    const img = new window.Image();
+    img.src = t.imageUrl;
+    img.onload = () => {
+      tokenImageCache.set(t.imageUrl, img);
+      setImage(img);
+    };
   }, [t.imageUrl]);
 
   return (
@@ -48,8 +64,8 @@ function TokenFace({
         }
         stroke={isActive ? '#ffd700' : t.colorBorder}
         strokeWidth={3}
-        shadowBlur={isActive ? 15 : 6}
-        shadowColor={isActive ? '#ffd700' : 'rgba(0,0,0,0.7)'}
+        shadowBlur={isActive ? 8 : 4}
+        shadowColor={isActive ? '#ffd700' : 'rgba(0,0,0,0.6)'}
         perfectDrawEnabled={false}
         shadowForStrokeEnabled={false}
       />
@@ -66,7 +82,9 @@ function TokenFace({
           width={54}
           height={54}
           shadowColor="black"
-          shadowBlur={2}
+          shadowBlur={0}
+          shadowOffset={{ x: 1, y: 1 }}
+          shadowOpacity={0.9}
           listening={false}
           perfectDrawEnabled={false}
         />
@@ -84,15 +102,29 @@ function TokenFace({
         y={27 + Math.max(5, 5 / scale)}
         width={150 / scale}
         shadowColor="black"
-        shadowBlur={4}
+        shadowBlur={0}
         shadowOffset={{ x: 1, y: 1 }}
-        shadowOpacity={1}
+        shadowOpacity={0.9}
         listening={false}
         perfectDrawEnabled={false}
       />
     </>
   );
 }
+
+const MemoizedTokenFace = React.memo(TokenFace, (prev, next) => {
+  return (
+    prev.t.id === next.t.id &&
+    prev.t.imageUrl === next.t.imageUrl &&
+    prev.t.colorFill === next.t.colorFill &&
+    prev.t.colorBorder === next.t.colorBorder &&
+    prev.t.colorText === next.t.colorText &&
+    prev.t.name === next.t.name &&
+    prev.t.fullName === next.t.fullName &&
+    prev.isActive === next.isActive &&
+    Math.round((prev.scale ?? 1) * 4) === Math.round((next.scale ?? 1) * 4)
+  );
+});
 
 function TokenLayer({ scale = 1 }: { scale?: number }) {
   const tokens = useTokenStore((state) => state.tokens);
@@ -109,16 +141,23 @@ function TokenLayer({ scale = 1 }: { scale?: number }) {
 
   // Determine which token has the active turn
   const queue = Array.isArray(initiativeQueue) ? initiativeQueue : [];
-  const tokenList = Array.isArray(tokens) ? tokens : [];
+  const tokenList = useMemo(() => {
+    const list = Array.isArray(tokens) ? tokens : [];
+    const seen = new Set<string>();
+    return list.filter((t) => {
+      if (!t || !t.id || t.x === null || t.y === null) return false;
+      if (seen.has(t.id)) return false;
+      seen.add(t.id);
+      return true;
+    });
+  }, [tokens]);
   const len = queue.length;
   const activeTokenId =
     len > 0 ? queue[(((turn - 1) % len) + len) % len]?.tokenId : null;
 
   return (
     <Group>
-      {tokenList
-        .filter((t) => t && t.x !== null && t.y !== null)
-        .map((t) => {
+      {tokenList.map((t) => {
           const isActive = t.id === activeTokenId;
           const isSelected = selectedNodeIds.includes(t.id);
           return (
@@ -300,7 +339,7 @@ function TokenLayer({ scale = 1 }: { scale?: number }) {
                 <Circle
                   radius={35}
                   fill="rgba(255, 215, 0, 0.2)"
-                  shadowBlur={25}
+                  shadowBlur={12}
                   shadowColor="#ffd700"
                   perfectDrawEnabled={false}
                   shadowForStrokeEnabled={false}
@@ -317,7 +356,7 @@ function TokenLayer({ scale = 1 }: { scale?: number }) {
                 />
               )}
               {/* Token body and initials */}
-              <TokenFace t={t} isActive={isActive} scale={scale} />
+              <MemoizedTokenFace t={t} isActive={isActive} scale={scale} />
             </Group>
           );
         })}

@@ -20,6 +20,7 @@ import {
   MapPin,
   X,
   Tv,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -32,6 +33,8 @@ export default function MasterInventory() {
   const setSearchQuery = useInventoryStore((state) => state.setSearchQuery);
   const loadFromDb = useInventoryStore((state) => state.loadFromDb);
   const addFilesFromPC = useInventoryStore((state) => state.addFilesFromPC);
+  const isLoading = useInventoryStore((state) => state.isLoading);
+  const uploadStatus = useInventoryStore((state) => state.uploadStatus);
   const createFolder = useInventoryStore((state) => state.createFolder);
   const projectedHandoutId = useInventoryStore((state) => state.projectedHandoutId);
   const projectedTargetNames = useInventoryStore((state) => state.projectedTargetNames);
@@ -185,6 +188,17 @@ export default function MasterInventory() {
               Inventário do Mestre
             </h2>
           </div>
+
+          {/* Aviso discreto de carregamento assíncrono no topo */}
+          {isLoading && (
+            <div
+              className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#8257e5]/15 border border-[#8257e5]/30 text-[#a78bfa] text-[10px] shrink-0 animate-pulse"
+              title="Sincronizando acervo em segundo plano"
+            >
+              <Loader2 className="w-3 h-3 animate-spin text-[#8257e5]" />
+              <span className="hidden xs:inline sm:inline font-medium">Carregando acervo...</span>
+            </div>
+          )}
         </div>
 
         {/* Ações Primárias */}
@@ -238,6 +252,26 @@ export default function MasterInventory() {
           </button>
         </div>
       </div>
+
+      {/* Linha discreta de carregamento assíncrono no topo */}
+      {isLoading && (
+        <div className="w-full h-[2px] bg-[#27272a] overflow-hidden shrink-0">
+          <div className="h-full bg-gradient-to-r from-transparent via-[#8257e5] to-[#ffd700] animate-indeterminate-bar w-full" />
+        </div>
+      )}
+
+      {/* Banner discreto durante importação de arquivos do PC */}
+      {uploadStatus?.isUploading && (
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-[#1a1625] border-b border-[#8257e5]/30 text-xs text-[#e1e1e6] shrink-0">
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-[#8257e5] shrink-0" />
+          <span className="text-[11px] font-medium truncate flex-1">
+            Importando {uploadStatus.current} de {uploadStatus.total}: <span className="text-[#a78bfa]">{uploadStatus.filename}</span>
+          </span>
+          <span className="text-[10px] text-[#ffd700] font-mono shrink-0 font-bold">
+            {Math.round((uploadStatus.current / uploadStatus.total) * 100)}%
+          </span>
+        </div>
+      )}
 
       {/* Banner de Projeção Ativa */}
       {projectedItem && (

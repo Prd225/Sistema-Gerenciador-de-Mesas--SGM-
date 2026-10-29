@@ -47,6 +47,12 @@ interface InventoryState {
   typeFilter: HandoutType | 'all';
   viewMode: 'grid' | 'list';
   isLoading: boolean;
+  uploadStatus: {
+    isUploading: boolean;
+    current: number;
+    total: number;
+    filename?: string;
+  } | null;
 
   // Ações de Carregamento e Sincronização
   loadFromDb: () => Promise<void>;
@@ -124,6 +130,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   typeFilter: 'all',
   viewMode: 'grid',
   isLoading: false,
+  uploadStatus: null,
 
   loadFromDb: async () => {
     try {
@@ -220,58 +227,81 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
 
     const newItems: HandoutItem[] = [];
 
-    for (const file of files) {
-      const id = generateId();
-      const type = detectHandoutType(file.type, file.name);
+    set({
+      uploadStatus: {
+        isUploading: true,
+        current: 0,
+        total: files.length,
+        filename: files[0]?.name,
+      },
+    });
 
-      // Limpar nome do arquivo para usar de título
-      const title = file.name.replace(/\.[^/.]+$/, '');
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        set({
+          uploadStatus: {
+            isUploading: true,
+            current: i + 1,
+            total: files.length,
+            filename: file.name,
+          },
+        });
 
-      let textContent: string | undefined;
-      let textStyle: HandoutTextStyle | undefined;
-      if (type === 'text') {
-        const lowerName = file.name.toLowerCase();
-        const isPlainText =
-          file.type.startsWith('text/') ||
-          /\.(txt|md|markdown|json|csv|log)$/.test(lowerName);
+        const id = generateId();
+        const type = detectHandoutType(file.type, file.name);
 
-        if (isPlainText) {
-          try {
-            textContent = await file.text();
-            textStyle = 'parchment';
-          } catch {
-            // fallback
+        // Limpar nome do arquivo para usar de título
+        const title = file.name.replace(/\.[^/.]+$/, '');
+
+        let textContent: string | undefined;
+        let textStyle: HandoutTextStyle | undefined;
+        if (type === 'text') {
+          const lowerName = file.name.toLowerCase();
+          const isPlainText =
+            file.type.startsWith('text/') ||
+            /\.(txt|md|markdown|json|csv|log)$/.test(lowerName);
+
+          if (isPlainText) {
+            try {
+              textContent = await file.text();
+              textStyle = 'parchment';
+            } catch {
+              // fallback
+            }
           }
         }
+
+        // Transmite via stream HTTP binário diretamente para o disco do backend local
+        // ZERO consumo de RAM em base64 e sem limites de tamanho
+        const { url: serverUrl } = await uploadMediaFile(file, id);
+
+        const item: HandoutItem = {
+          id,
+          title,
+          type,
+          folderId: currentFolder,
+          filePath: file.name,
+          serverUrl,
+          fileData: undefined, // NUNCA persiste dados brutos no estado ou IndexedDB
+          textContent,
+          textStyle,
+          fileSize: file.size,
+          mimeType: file.type,
+          isSharedWithPlayers: false,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+
+        await db.handouts.put(item);
+        newItems.push(item);
       }
 
-      // Transmite via stream HTTP binário diretamente para o disco do backend local
-      // ZERO consumo de RAM em base64 e sem limites de tamanho
-      const { url: serverUrl } = await uploadMediaFile(file, id);
-
-      const item: HandoutItem = {
-        id,
-        title,
-        type,
-        folderId: currentFolder,
-        filePath: file.name,
-        serverUrl,
-        fileData: undefined, // NUNCA persiste dados brutos no estado ou IndexedDB
-        textContent,
-        textStyle,
-        fileSize: file.size,
-        mimeType: file.type,
-        isSharedWithPlayers: false,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
-
-      await db.handouts.put(item);
-      newItems.push(item);
+      set((state) => ({ items: [...state.items, ...newItems] }));
+      triggerAutoSave();
+    } finally {
+      set({ uploadStatus: null });
     }
-
-    set((state) => ({ items: [...state.items, ...newItems] }));
-    triggerAutoSave();
   },
 
   createTextDocument: async (

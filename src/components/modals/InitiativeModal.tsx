@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -106,13 +107,35 @@ export default function InitiativeModal({
   open,
   onOpenChange,
 }: InitiativeModalProps) {
-  const tokens = useTokenStore((state) => state.tokens);
-  const queue = useTokenStore((state) => state.initiativeQueue);
+  const rawTokens = useTokenStore((state) => state.tokens);
+  const rawQueue = useTokenStore((state) => state.initiativeQueue);
   const setInitiativeQueue = useTokenStore((state) => state.setInitiativeQueue);
   const clearInitiative = useTokenStore((state) => state.clearInitiative);
   const sortMode = useTokenStore((state) => state.initiativeSortMode);
   const setSortMode = useTokenStore((state) => state.setInitiativeSortMode);
   const setTurnsPerRound = useCampaignStore((state) => state.setTurnsPerRound);
+
+  const tokens = useMemo(() => {
+    const list = Array.isArray(rawTokens) ? rawTokens : [];
+    const seen = new Set<string>();
+    return list.filter((t) => {
+      if (!t || !t.id) return false;
+      if (seen.has(t.id)) return false;
+      seen.add(t.id);
+      return true;
+    });
+  }, [rawTokens]);
+
+  const queue = useMemo(() => {
+    const list = Array.isArray(rawQueue) ? rawQueue : [];
+    const seen = new Set<string>();
+    return list.filter((item) => {
+      if (!item || !item.tokenId) return false;
+      if (seen.has(item.tokenId)) return false;
+      seen.add(item.tokenId);
+      return true;
+    });
+  }, [rawQueue]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),

@@ -10,7 +10,7 @@ interface FogLayerProps {
 }
 
 // Bounding box amplo para cobrir o mapa sem consumo excessivo de memória
-const MAP_BOUNDS = 40000;
+const MAP_BOUNDS = 10000;
 const FOG_COLOR = '#000000';
 
 function FogLayerComponent({ scale = 1 }: FogLayerProps) {
@@ -54,7 +54,8 @@ function FogLayerComponent({ scale = 1 }: FogLayerProps) {
       )}
 
       {/* 2. Áreas dinâmicas de Ocultação (hide) e Revelação (reveal) */}
-      {areas.map((area: FogArea) => {
+      {(Array.isArray(areas) ? areas : []).map((area: FogArea) => {
+        if (!area || !area.id) return null;
         const isReveal = area.mode === 'reveal';
         // 'destination-out' recorta a névoa com 100% de alpha, tornando a área totalmente transparente
         const composite = isReveal ? 'destination-out' : 'source-over';
@@ -97,7 +98,7 @@ function FogLayerComponent({ scale = 1 }: FogLayerProps) {
           );
         }
 
-        if (area.type === 'polygon' && area.points && area.points.length >= 6) {
+        if (area.type === 'polygon' && Array.isArray(area.points) && area.points.length >= 6) {
           return (
             <Line
               key={area.id}
@@ -113,7 +114,7 @@ function FogLayerComponent({ scale = 1 }: FogLayerProps) {
           );
         }
 
-        if (area.type === 'brush' && area.points && area.points.length >= 2) {
+        if (area.type === 'brush' && Array.isArray(area.points) && area.points.length >= 2) {
           const isSquare = area.brushShape === 'square';
           return (
             <Line
@@ -136,5 +137,11 @@ function FogLayerComponent({ scale = 1 }: FogLayerProps) {
   );
 }
 
-export const FogLayer = memo(FogLayerComponent);
+export const FogLayer = memo(FogLayerComponent, (prev, next) => {
+  if (isPlayerMode()) {
+    // In player mode, scale does not affect fog strokes or appearance
+    return true;
+  }
+  return prev.scale === next.scale;
+});
 export default FogLayer;

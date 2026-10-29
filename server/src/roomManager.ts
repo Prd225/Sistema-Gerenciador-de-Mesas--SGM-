@@ -301,10 +301,24 @@ export class RoomManager {
   public syncFullState(code: string, payload: SyncStatePayload): void {
     const room = this.getRoom(code);
     if (!room) return;
-    room.tokens = Array.isArray(payload.tokens) ? payload.tokens : [];
-    room.initiativeQueue = Array.isArray(payload.initiativeQueue)
+    const rawTokens = Array.isArray(payload.tokens) ? payload.tokens : [];
+    const seenTokens = new Set<string>();
+    room.tokens = rawTokens.filter((t) => {
+      if (!t || !t.id) return false;
+      if (seenTokens.has(t.id)) return false;
+      seenTokens.add(t.id);
+      return true;
+    });
+    const rawQueue = Array.isArray(payload.initiativeQueue)
       ? payload.initiativeQueue
       : [];
+    const seenQueue = new Set<string>();
+    room.initiativeQueue = rawQueue.filter((i) => {
+      if (!i || !i.tokenId) return false;
+      if (seenQueue.has(i.tokenId)) return false;
+      seenQueue.add(i.tokenId);
+      return true;
+    });
     room.initiativeSortMode = payload.initiativeSortMode ?? 'descending';
     room.bgImages = Array.isArray(payload.bgImages) ? payload.bgImages : [];
     room.round = Number.isFinite(payload.round) ? payload.round : 1;
@@ -383,7 +397,14 @@ export class RoomManager {
   ): void {
     const room = this.getRoom(code);
     if (!room) return;
-    room.initiativeQueue = queue;
+    const rawQueue = Array.isArray(queue) ? queue : [];
+    const seenQueue = new Set<string>();
+    room.initiativeQueue = rawQueue.filter((i) => {
+      if (!i || !i.tokenId) return false;
+      if (seenQueue.has(i.tokenId)) return false;
+      seenQueue.add(i.tokenId);
+      return true;
+    });
     if (sortMode) room.initiativeSortMode = sortMode;
   }
 

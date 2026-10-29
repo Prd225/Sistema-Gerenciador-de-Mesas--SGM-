@@ -25,4 +25,6 @@ dist-ssr
 test_desempenho/
 *.tsbuildinfo
 server/uploads/
-
+
+tunnel-url.txt
+

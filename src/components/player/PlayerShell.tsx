@@ -9,18 +9,29 @@ import PlayerHandoutNotification from './PlayerHandoutNotification';
 import PlayerSceneNotification from './PlayerSceneNotification';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import { useMultiplayerStore } from '@/store/useMultiplayerStore';
+import LoadingScreen from '@/components/common/LoadingScreen';
 import { WifiOff, AlertCircle } from 'lucide-react';
 
 export default function PlayerShell() {
   const isRoomClosed = useMultiplayerStore((state) => state.isRoomClosed);
   const isReconnecting = useMultiplayerStore((state) => state.isReconnecting);
+  const hasSyncedInitialView = useMultiplayerStore((state) => state.hasSyncedInitialView);
   const members = useMultiplayerStore((state) => state.members);
   const leaveRoom = useMultiplayerStore((state) => state.leaveRoom);
 
   const gmOnline = members.some((m) => m.role === 'gm' && m.isOnline);
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#121214] select-none">
+    <div className="relative w-full h-dvh max-h-dvh overflow-hidden bg-[#121214] select-none touch-none">
+      {/* Tela de Carregamento Inicial do Jogador (com oclusão do fundo até sincronizar com a mesa) */}
+      {!isRoomClosed && (!hasSyncedInitialView || isReconnecting) && (
+        <LoadingScreen
+          title={isReconnecting ? 'Reconectando à Mesa...' : 'Conectando à Mesa...'}
+          subtitle="Sincronizando mapa, tokens e fichas com o Mestre..."
+          fullscreen={true}
+        />
+      )}
+
       {/* Mapa do Jogo (Canvas) */}
       <StageMap />
 
@@ -40,7 +51,7 @@ export default function PlayerShell() {
       </ErrorBoundary>
 
       {/* Notificações Flutuantes do Jogador (Cena e Handouts) */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none flex flex-col items-center gap-2 max-w-[92vw] sm:max-w-md">
+      <div className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 z-50 pointer-events-none flex flex-col items-center gap-2 max-w-[92vw] sm:max-w-md">
         <ErrorBoundary fallback={null} silent>
           <PlayerSceneNotification />
         </ErrorBoundary>
@@ -66,15 +77,15 @@ export default function PlayerShell() {
 
       {/* Alerta discreto quando o Mestre cair/estiver desconectado */}
       {!gmOnline && !isRoomClosed && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-medium backdrop-blur-md shadow-lg pointer-events-none">
-          <AlertCircle className="w-4 h-4 text-amber-400" />
-          <span>O Mestre está desconectado. Aguardando retorno...</span>
+        <div className="fixed top-[calc(1rem+env(safe-area-inset-top,0px))] left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-medium backdrop-blur-md shadow-lg pointer-events-none text-center">
+          <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+          <span className="truncate max-w-[80vw]">O Mestre está desconectado. Aguardando retorno...</span>
         </div>
       )}
 
       {/* Indicador flutuante de reconexão */}
       {isReconnecting && !isRoomClosed && (
-        <div className="fixed bottom-4 right-4 z-40 flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#202024]/90 border border-[#323238] text-white text-xs font-medium backdrop-blur-md shadow-lg pointer-events-none animate-pulse">
+        <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] right-[calc(1rem+env(safe-area-inset-right,0px))] z-40 flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#202024]/90 border border-[#323238] text-white text-xs font-medium backdrop-blur-md shadow-lg pointer-events-none animate-pulse">
           <WifiOff className="w-4 h-4 text-amber-400" />
           <span>Reconectando à sala...</span>
         </div>

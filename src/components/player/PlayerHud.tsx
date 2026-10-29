@@ -13,8 +13,10 @@ import {
 } from 'lucide-react';
 import { useMultiplayerStore } from '@/store/useMultiplayerStore';
 import { usePlayerAudioStore } from '@/store/usePlayerAudioStore';
+import { useDeviceProfile } from '@/hooks/useDeviceProfile';
 
 export default function PlayerHud() {
+  const { isMobile } = useDeviceProfile();
   const roomId = useMultiplayerStore((state) => state.roomId);
   const isConnected = useMultiplayerStore((state) => state.isConnected);
   const isReconnecting = useMultiplayerStore((state) => state.isReconnecting);
@@ -30,7 +32,7 @@ export default function PlayerHud() {
   const blocked = usePlayerAudioStore((state) => state.blocked);
   const audioError = usePlayerAudioStore((state) => state.error);
 
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => isMobile);
 
   const isSpotify = song?.sourceType === 'spotify';
 
@@ -42,15 +44,15 @@ export default function PlayerHud() {
 
   if (isCollapsed) {
     return (
-      <div className="fixed top-4 right-4 z-40 flex items-center pointer-events-none select-none">
+      <div className="fixed top-[calc(1rem+env(safe-area-inset-top,0px))] right-[calc(1rem+env(safe-area-inset-right,0px))] z-40 flex items-center pointer-events-none select-none">
         <button
           onClick={() => setIsCollapsed(false)}
-          className="pointer-events-auto flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#202024]/90 hover:bg-[#202024] border border-[#323238] hover:border-[#8257e5] text-[#e1e1e6] shadow-xl backdrop-blur-md transition-all group cursor-pointer"
+          className="pointer-events-auto flex items-center gap-2 px-3.5 py-2 rounded-full bg-[#202024]/90 hover:bg-[#202024] border border-[#323238] hover:border-[#8257e5] text-[#e1e1e6] shadow-xl backdrop-blur-md transition-all group cursor-pointer active:scale-95"
           title={`Sala ${roomId ?? '----'} • ${members.length} jogadores`}
         >
           {/* Status Dot */}
           <span
-            className={`w-2 h-2 rounded-full ${
+            className={`w-2.5 h-2.5 rounded-full ${
               isConnected
                 ? 'bg-emerald-500 shadow-[0_0_6px_#10b981]'
                 : isReconnecting
@@ -68,20 +70,20 @@ export default function PlayerHud() {
           {/* Indicador se houver áudio tocando */}
           {isPlaying && (
             <div className="flex items-center text-purple-400 pl-1 border-l border-[#323238]">
-              <Music className="w-3 h-3 animate-pulse text-purple-400" />
+              <Music className="w-3.5 h-3.5 animate-pulse text-purple-400" />
             </div>
           )}
 
-          <ChevronDown className="w-3 h-3 text-[#71717a] group-hover:text-white transition-colors ml-0.5" />
+          <ChevronDown className="w-3.5 h-3.5 text-[#71717a] group-hover:text-white transition-colors ml-0.5" />
         </button>
       </div>
     );
   }
 
   return (
-    <div className="fixed top-4 right-4 z-40 flex flex-col items-end gap-2 pointer-events-none select-none max-w-sm">
+    <div className="fixed top-[calc(1rem+env(safe-area-inset-top,0px))] right-[calc(1rem+env(safe-area-inset-right,0px))] z-40 flex flex-col items-end gap-2 pointer-events-none select-none max-w-[calc(100vw-2rem)] sm:max-w-sm">
       {/* Barra principal do HUD */}
-      <div className="pointer-events-auto bg-[#202024]/95 backdrop-blur-md border border-[#323238] rounded-xl shadow-2xl p-3 text-[#e1e1e6] flex flex-col gap-2.5 transition-all w-80">
+      <div className="pointer-events-auto bg-[#202024]/95 backdrop-blur-md border border-[#323238] rounded-xl shadow-2xl p-3 text-[#e1e1e6] flex flex-col gap-2.5 transition-all w-[calc(100vw-2rem)] max-w-xs sm:w-80">
         {/* Cabeçalho: Status da Sala + Membros + Botão Minimizar + Sair */}
         <div className="flex items-center justify-between gap-2 border-b border-[#323238]/60 pb-2">
           <div className="flex items-center gap-2">
@@ -117,18 +119,18 @@ export default function PlayerHud() {
 
             <button
               onClick={() => setIsCollapsed(true)}
-              className="p-1 text-[#a8a8b3] hover:text-white hover:bg-[#323238] rounded transition-colors"
+              className="p-1.5 text-[#a8a8b3] hover:text-white hover:bg-[#323238] rounded-lg transition-colors cursor-pointer"
               title="Minimizar"
             >
-              <ChevronUp className="w-3.5 h-3.5" />
+              <ChevronUp className="w-4 h-4" />
             </button>
 
             <button
               onClick={leaveRoom}
-              className="p-1 text-[#a8a8b3] hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+              className="p-1.5 text-[#a8a8b3] hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
               title="Sair da mesa"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -189,7 +191,7 @@ export default function PlayerHud() {
             <div className="flex items-center gap-2 pt-1 border-t border-[#323238]/40">
               <button
                 onClick={toggleMute}
-                className="text-[#a8a8b3] hover:text-white transition-colors shrink-0"
+                className="p-1 rounded-md text-[#a8a8b3] hover:text-white transition-colors shrink-0 cursor-pointer"
                 title={isMuted ? 'Desmutar som' : 'Mutar som'}
               >
                 {isMuted || volume === 0 ? (
@@ -207,7 +209,7 @@ export default function PlayerHud() {
                 max="100"
                 value={isMuted ? 0 : volume}
                 onChange={(e) => setVolume(Number(e.target.value))}
-                className="w-full h-1.5 bg-[#323238] rounded-lg appearance-none cursor-pointer accent-[#8257e5]"
+                className="w-full h-2 bg-[#323238] rounded-lg appearance-none cursor-pointer accent-[#8257e5] touch-pan-x"
                 title={`Seu volume: ${isMuted ? 0 : volume}%`}
               />
 

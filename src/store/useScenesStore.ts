@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { useTokenStore } from './useTokenStore';
 import { useZoneStore } from './useZoneStore';
 import { useFogStore } from './useFogStore';
+import { useLoadingStore } from './useLoadingStore';
 import { generateId as uuidv4 } from '@/lib/uuid';
 
 import { db } from '@/lib/db';
@@ -71,6 +72,10 @@ export const useScenesStore = create<ScenesState>((set, get) => {
       if (activeSceneId === id || isSwitching) return;
 
       set({ isSwitching: true });
+      useLoadingStore.getState().show(
+        'Alternando Cena...',
+        'Carregando elementos do mapa, tokens e camadas em memória...',
+      );
 
       try {
         // 1. Salvar o estado atual no Dexie antes de trocar
@@ -107,6 +112,7 @@ export const useScenesStore = create<ScenesState>((set, get) => {
         setTimeout(() => window.dispatchEvent(new Event('scene-switched')), 50);
       } finally {
         set({ isSwitching: false });
+        setTimeout(() => useLoadingStore.getState().hide(), 250);
       }
     },
 

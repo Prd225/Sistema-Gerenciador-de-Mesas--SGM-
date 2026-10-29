@@ -12,7 +12,7 @@ export default function PlayerToolbar() {
   const unreadCount = usePlayerHandoutsStore((state) => state.unreadCount);
 
   return (
-    <div className="fixed right-5 bottom-5 z-30 flex flex-col items-end gap-2 pointer-events-none select-none">
+    <div className="fixed right-[calc(1.25rem+env(safe-area-inset-right,0px))] bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] z-30 flex flex-col items-end gap-2 pointer-events-none select-none">
       {/* Botão de Projeção Ativa (se o mestre estiver projetando algo e o jogador minimizou) */}
       {projectedHandout && !isProjectionOpen && (
         <div className="pointer-events-auto animate-in fade-in slide-in-from-bottom-2 duration-200">
@@ -20,7 +20,7 @@ export default function PlayerToolbar() {
             variant="default"
             size="sm"
             onClick={() => setIsProjectionOpen(true)}
-            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-950/50 text-xs px-3 py-2 rounded-xl border border-purple-400/40"
+            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-950/50 text-xs px-3.5 py-2.5 rounded-xl border border-purple-400/40 active:scale-95 transition-transform"
             title={`Ver projeção do mestre: ${projectedHandout.title}`}
           >
             <span className="relative flex h-2 w-2">
@@ -28,7 +28,7 @@ export default function PlayerToolbar() {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
             </span>
             <Tv className="w-4 h-4" />
-            <span className="font-semibold truncate max-w-[140px]">
+            <span className="font-semibold truncate max-w-[140px] sm:max-w-xs">
               {projectedHandout.title}
             </span>
             <Eye className="w-3.5 h-3.5 opacity-80" />
@@ -44,7 +44,7 @@ export default function PlayerToolbar() {
             variant="outline"
             size="icon"
             onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-            className={`w-10 h-10 rounded-lg transition-all ${
+            className={`w-11 h-11 sm:w-10 sm:h-10 rounded-lg transition-all active:scale-95 ${
               isDrawerOpen
                 ? 'bg-[#8257e5] text-white border-[#8257e5] hover:bg-[#9466ff]'
                 : 'bg-transparent text-[#a8a8b3] border-transparent hover:bg-white/10 hover:text-white'

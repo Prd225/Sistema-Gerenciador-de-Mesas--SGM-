@@ -137,7 +137,7 @@ export const useFogStore = create<FogStoreState>((set, get) => ({
     set({
       enabled: Boolean(state.enabled),
       defaultCovered: Boolean(state.defaultCovered),
-      areas: state.areas || [],
+      areas: Array.isArray(state.areas) ? state.areas : [],
     });
   },
 }));

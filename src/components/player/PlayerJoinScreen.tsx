@@ -36,7 +36,7 @@ export default function PlayerJoinScreen({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#121214] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-[#121214] flex items-center justify-center p-4 pt-safe pb-safe overflow-y-auto">
       <div className="w-full max-w-md bg-[#202024] border border-[#323238] rounded-2xl shadow-2xl p-6 sm:p-8 flex flex-col gap-6 text-[#e1e1e6]">
         {/* Topo com ícone */}
         <div className="flex flex-col items-center text-center gap-2">
@@ -71,7 +71,7 @@ export default function PlayerJoinScreen({
               onChange={(e) => setName(e.target.value)}
               placeholder="Ex: Pedro, Arqueiro Elfo..."
               disabled={loading}
-              className="w-full px-4 py-3 rounded-xl bg-[#121214] border border-[#323238] text-white placeholder-gray-500 focus:outline-none focus:border-[#8257e5] transition-colors"
+              className="w-full px-4 py-3 rounded-xl bg-[#121214] border border-[#323238] text-white text-base sm:text-sm placeholder-gray-500 focus:outline-none focus:border-[#8257e5] transition-colors"
             />
           </div>
 

@@ -144,6 +144,150 @@ export default function PlayerProjectionOverlay() {
     });
   };
 
+  const touchStateRef = useRef<{
+    lastDist: number;
+    lastCenter: { x: number; y: number } | null;
+    startPan: { x: number; y: number };
+    isPinching: boolean;
+    isPanning: boolean;
+    lastTapTime: number;
+  }>({
+    lastDist: 0,
+    lastCenter: null,
+    startPan: { x: 0, y: 0 },
+    isPinching: false,
+    isPanning: false,
+    lastTapTime: 0,
+  });
+
+  const touchRafRef = useRef<number | null>(null);
+  const pendingTouchPan = useRef<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (touchRafRef.current) cancelAnimationFrame(touchRafRef.current);
+    };
+  }, []);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (projectedHandout?.type !== 'image') return;
+    const touches = e.touches;
+
+    if (touches.length === 2) {
+      e.preventDefault();
+      const dist = Math.hypot(
+        touches[0].clientX - touches[1].clientX,
+        touches[0].clientY - touches[1].clientY,
+      );
+      const center = {
+        x: (touches[0].clientX + touches[1].clientX) / 2,
+        y: (touches[0].clientY + touches[1].clientY) / 2,
+      };
+      touchStateRef.current.lastDist = dist;
+      touchStateRef.current.lastCenter = center;
+      touchStateRef.current.isPinching = true;
+      touchStateRef.current.isPanning = false;
+      setIsDragging(false);
+    } else if (touches.length === 1) {
+      const now = Date.now();
+      if (now - touchStateRef.current.lastTapTime < 300) {
+        // Double-tap: alterna entre 1x e 2x
+        setZoom((prev) => {
+          if (prev > 1) {
+            setPan({ x: 0, y: 0 });
+            return 1;
+          }
+          return 2;
+        });
+        touchStateRef.current.lastTapTime = 0;
+        return;
+      }
+      touchStateRef.current.lastTapTime = now;
+
+      const touch = touches[0];
+      touchStateRef.current.startPan = {
+        x: touch.clientX - pan.x,
+        y: touch.clientY - pan.y,
+      };
+      touchStateRef.current.isPanning = true;
+      touchStateRef.current.isPinching = false;
+      setIsDragging(true);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (projectedHandout?.type !== 'image') return;
+    const touches = e.touches;
+
+    if (touches.length === 2 && touchStateRef.current.isPinching) {
+      e.preventDefault();
+      const dist = Math.hypot(
+        touches[0].clientX - touches[1].clientX,
+        touches[0].clientY - touches[1].clientY,
+      );
+      const center = {
+        x: (touches[0].clientX + touches[1].clientX) / 2,
+        y: (touches[0].clientY + touches[1].clientY) / 2,
+      };
+
+      const { lastDist, lastCenter } = touchStateRef.current;
+      if (lastDist > 0 && lastCenter) {
+        const factor = dist / lastDist;
+        setZoom((prev) => {
+          const next = Math.min(4, Math.max(0.4, Number((prev * factor).toFixed(2))));
+          return next;
+        });
+        const dx = center.x - lastCenter.x;
+        const dy = center.y - lastCenter.y;
+        setPan((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
+      }
+      touchStateRef.current.lastDist = dist;
+      touchStateRef.current.lastCenter = center;
+    } else if (touches.length === 1 && touchStateRef.current.isPanning) {
+      const touch = touches[0];
+      const nextX = touch.clientX - touchStateRef.current.startPan.x;
+      const nextY = touch.clientY - touchStateRef.current.startPan.y;
+      pendingTouchPan.current = { x: nextX, y: nextY };
+      if (!touchRafRef.current) {
+        touchRafRef.current = requestAnimationFrame(() => {
+          if (pendingTouchPan.current) {
+            setPan(pendingTouchPan.current);
+            pendingTouchPan.current = null;
+          }
+          touchRafRef.current = null;
+        });
+      }
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchRafRef.current) {
+      cancelAnimationFrame(touchRafRef.current);
+      touchRafRef.current = null;
+      if (pendingTouchPan.current) {
+        setPan(pendingTouchPan.current);
+        pendingTouchPan.current = null;
+      }
+    }
+    const touches = e.touches;
+    if (touches.length === 0) {
+      touchStateRef.current.isPinching = false;
+      touchStateRef.current.isPanning = false;
+      touchStateRef.current.lastDist = 0;
+      touchStateRef.current.lastCenter = null;
+      setIsDragging(false);
+    } else if (touches.length === 1) {
+      touchStateRef.current.isPinching = false;
+      const touch = touches[0];
+      touchStateRef.current.startPan = {
+        x: touch.clientX - pan.x,
+        y: touch.clientY - pan.y,
+      };
+      touchStateRef.current.isPanning = true;
+      setIsDragging(true);
+    }
+  };
+
   useEffect(() => {
     if (!projectedHandout || projectedHandout.type !== 'pdf') {
       setPdfBlobUrl(null);
@@ -212,7 +356,7 @@ export default function PlayerProjectionOverlay() {
         {/* Barra Flutuante Superior */}
         <div
           onClick={(e) => e.stopPropagation()}
-          className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none z-30"
+          className="absolute top-[calc(1rem+env(safe-area-inset-top,0px))] left-[calc(1rem+env(safe-area-inset-left,0px))] right-[calc(1rem+env(safe-area-inset-right,0px))] flex items-center justify-between pointer-events-none z-30"
         >
           {/* Badge de Projeção */}
           <div className="flex items-center gap-2 pointer-events-auto bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-purple-500/40 text-white shadow-lg">
@@ -225,7 +369,7 @@ export default function PlayerProjectionOverlay() {
               Projeção
             </span>
             <span className="text-white/40">|</span>
-            <span className="text-xs font-semibold truncate max-w-xs sm:max-w-md">
+            <span className="text-xs font-semibold truncate max-w-[120px] sm:max-w-md">
               {projectedHandout.title}
             </span>
           </div>
@@ -236,7 +380,7 @@ export default function PlayerProjectionOverlay() {
               <button
                 type="button"
                 onClick={handleOpenInNewTab}
-                className="p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
+                className="p-2 sm:p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
                 title="Nova Guia"
               >
                 <ExternalLink className="w-3.5 h-3.5 text-red-400" />
@@ -247,7 +391,7 @@ export default function PlayerProjectionOverlay() {
             <button
               type="button"
               onClick={() => handleToggleCinemaMode(false)}
-              className="p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
+              className="p-2 sm:p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
               title="Janela"
             >
               <Copy className="w-3.5 h-3.5 text-purple-300" />
@@ -257,7 +401,7 @@ export default function PlayerProjectionOverlay() {
             <button
               type="button"
               onClick={() => setIsProjectionOpen(false)}
-              className="p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
+              className="p-2 sm:p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
               title="Minimizar"
             >
               <Minus className="w-4 h-4 text-[#e1e1e6]" />
@@ -271,10 +415,13 @@ export default function PlayerProjectionOverlay() {
             onClick={(e) => e.stopPropagation()}
             onWheel={handleWheel}
             onMouseDown={handleMouseDown}
-            className={`relative max-w-[95vw] max-h-[88vh] flex items-center justify-center select-none ${
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            className={`relative max-w-[95vw] max-h-[88vh] flex items-center justify-center select-none touch-none ${
               isDragging ? 'cursor-grabbing' : 'cursor-grab'
             }`}
-            title="Role para zoom ou arraste para investigar detalhes"
+            title="Role ou use pinça para zoom, arraste para investigar detalhes"
           >
             <img
               src={mediaSource}
@@ -282,8 +429,9 @@ export default function PlayerProjectionOverlay() {
               draggable={false}
               onDragStart={(e) => e.preventDefault()}
               style={{
-                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
                 transition: isDragging ? 'none' : 'transform 100ms ease-out',
+                willChange: isDragging ? 'transform' : 'auto',
               }}
               className="max-h-[88vh] max-w-[92vw] object-contain rounded-md shadow-[0_20px_60px_rgba(0,0,0,0.95)] ring-1 ring-white/10 select-none pointer-events-none"
             />
@@ -338,13 +486,13 @@ export default function PlayerProjectionOverlay() {
         {projectedHandout.type === 'image' && (
           <div
             onClick={(e) => e.stopPropagation()}
-            className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/75 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 text-white shadow-xl z-30"
+            className="absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/75 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 text-white shadow-xl z-30"
           >
             <Button
               variant="outline"
               size="icon-xs"
               onClick={() => setZoom((z) => Math.max(0.4, Number((z - 0.2).toFixed(2))))}
-              className="bg-white/10 hover:bg-white/20 border-white/20 text-white h-7 w-7 rounded-full"
+              className="bg-white/10 hover:bg-white/20 border-white/20 text-white h-7 w-7 rounded-full active:scale-95"
               title="Diminuir Zoom"
             >
               <ZoomOut className="w-3.5 h-3.5" />
@@ -356,7 +504,7 @@ export default function PlayerProjectionOverlay() {
               variant="outline"
               size="icon-xs"
               onClick={() => setZoom((z) => Math.min(4, Number((z + 0.2).toFixed(2))))}
-              className="bg-white/10 hover:bg-white/20 border-white/20 text-white h-7 w-7 rounded-full"
+              className="bg-white/10 hover:bg-white/20 border-white/20 text-white h-7 w-7 rounded-full active:scale-95"
               title="Aumentar Zoom"
             >
               <ZoomIn className="w-3.5 h-3.5" />
@@ -365,7 +513,7 @@ export default function PlayerProjectionOverlay() {
               variant="outline"
               size="icon-xs"
               onClick={handleResetZoom}
-              className="bg-white/10 hover:bg-white/20 border-white/20 text-white h-7 w-7 rounded-full"
+              className="bg-white/10 hover:bg-white/20 border-white/20 text-white h-7 w-7 rounded-full active:scale-95"
               title="Resetar Zoom e Posição"
             >
               <RotateCcw className="w-3 h-3" />
@@ -377,13 +525,13 @@ export default function PlayerProjectionOverlay() {
   }
 
   return (
-    <div className="fixed inset-0 z-[360] flex items-center justify-center p-3 sm:p-6 bg-black/85 select-none animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[360] flex items-center justify-center p-2 sm:p-6 bg-black/85 select-none animate-in fade-in duration-200">
       <div
         className={`relative w-full ${
           projectedHandout.type === 'pdf'
-            ? 'max-w-5xl h-[90vh]'
-            : 'max-w-4xl max-h-[92vh]'
-        } bg-[#121214] border border-[#323238] rounded-xl shadow-xl flex flex-col overflow-hidden`}
+            ? 'max-w-5xl h-[88dvh]'
+            : 'max-w-4xl max-h-[92dvh]'
+        } bg-[#121214] border border-[#323238] rounded-xl shadow-xl flex flex-col overflow-hidden pb-safe`}
       >
         {/* Cabeçalho de Projeção Ativa */}
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#27272a] bg-[#18181b]">
@@ -405,7 +553,7 @@ export default function PlayerProjectionOverlay() {
               <button
                 type="button"
                 onClick={handleOpenInNewTab}
-                className="p-1.5 text-[#a1a1aa] hover:text-white rounded-lg hover:bg-white/10 transition-all cursor-pointer"
+                className="p-2 sm:p-1.5 text-[#a1a1aa] hover:text-white rounded-lg hover:bg-white/10 transition-all cursor-pointer active:scale-95"
                 title="Nova Guia"
               >
                 <ExternalLink className="w-3.5 h-3.5 text-red-400" />
@@ -417,7 +565,7 @@ export default function PlayerProjectionOverlay() {
               <button
                 type="button"
                 onClick={() => handleToggleCinemaMode(true)}
-                className="p-1.5 text-[#a1a1aa] hover:text-white rounded-lg hover:bg-white/10 transition-all cursor-pointer"
+                className="p-2 sm:p-1.5 text-[#a1a1aa] hover:text-white rounded-lg hover:bg-white/10 transition-all cursor-pointer active:scale-95"
                 title="Maximizar"
               >
                 <Copy className="w-3.5 h-3.5 text-purple-400" />
@@ -428,7 +576,7 @@ export default function PlayerProjectionOverlay() {
             <button
               type="button"
               onClick={() => setIsProjectionOpen(false)}
-              className="p-1.5 text-[#a1a1aa] hover:text-white rounded-lg hover:bg-white/10 transition-all cursor-pointer"
+              className="p-2 sm:p-1.5 text-[#a1a1aa] hover:text-white rounded-lg hover:bg-white/10 transition-all cursor-pointer active:scale-95"
               title="Minimizar"
             >
               <Minus className="w-4 h-4" />
@@ -448,10 +596,13 @@ export default function PlayerProjectionOverlay() {
             <div
               onWheel={handleWheel}
               onMouseDown={handleMouseDown}
-              className={`relative flex items-center justify-center w-full min-h-[350px] overflow-hidden select-none ${
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              className={`relative flex items-center justify-center w-full min-h-[350px] overflow-hidden select-none touch-none ${
                 isDragging ? 'cursor-grabbing' : 'cursor-grab'
               }`}
-              title="Role para zoom ou arraste para mover"
+              title="Role ou use pinça para zoom, arraste para mover"
             >
               <img
                 src={mediaSource}
@@ -459,8 +610,9 @@ export default function PlayerProjectionOverlay() {
                 draggable={false}
                 onDragStart={(e) => e.preventDefault()}
                 style={{
-                  transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                  transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
                   transition: isDragging ? 'none' : 'transform 100ms ease-out',
+                  willChange: isDragging ? 'transform' : 'auto',
                 }}
                 className="max-h-[68vh] max-w-full object-contain rounded-lg shadow-lg select-none pointer-events-none"
               />

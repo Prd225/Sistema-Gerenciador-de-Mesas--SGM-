@@ -57,14 +57,17 @@ export default function StageMap() {
   });
 
   useEffect(() => {
-    try {
-      sessionStorage.setItem(
-        'sgm_viewport',
-        JSON.stringify({ scale, position }),
-      );
-    } catch {
-      // ignore
-    }
+    const timer = setTimeout(() => {
+      try {
+        sessionStorage.setItem(
+          'sgm_viewport',
+          JSON.stringify({ scale, position }),
+        );
+      } catch {
+        // ignore
+      }
+    }, 250);
+    return () => clearTimeout(timer);
   }, [scale, position]);
 
   const activeTool = useZoneStore((state) => state.activeTool);
@@ -135,31 +138,191 @@ export default function StageMap() {
     return transform.point(pos);
   }, []);
 
-  // --- Zoom (Wheel) ---
-  const handleWheel = useCallback((e: KonvaEventObject<WheelEvent>) => {
-    e.evt.preventDefault();
-    const stage = stageRef.current;
-    if (!stage) return;
+  // --- High-Performance Viewport Synchronization (rAF Throttling) ---
+  const rafId = useRef<number | null>(null);
+  const pendingTransform = useRef<{
+    scale: number;
+    position: { x: number; y: number };
+  } | null>(null);
 
-    const pointer = stage.getPointerPosition();
-    if (!pointer) return;
+  const scheduleStateSync = useCallback(
+    (newScale: number, newPos: { x: number; y: number }) => {
+      pendingTransform.current = { scale: newScale, position: newPos };
+      if (!rafId.current) {
+        rafId.current = requestAnimationFrame(() => {
+          if (pendingTransform.current) {
+            setScale(pendingTransform.current.scale);
+            setPosition(pendingTransform.current.position);
+            pendingTransform.current = null;
+          }
+          rafId.current = null;
+        });
+      }
+    },
+    [],
+  );
 
-    const oldScale = stage.scaleX();
-    const scaleBy = 1.1;
-    const direction = e.evt.deltaY < 0 ? 1 : -1;
-    let newScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
-    newScale = Math.min(Math.max(0.1, newScale), 8);
-
-    const mousePointTo = {
-      x: (pointer.x - stage.x()) / oldScale,
-      y: (pointer.y - stage.y()) / oldScale,
+  useEffect(() => {
+    return () => {
+      if (rafId.current) {
+        cancelAnimationFrame(rafId.current);
+      }
     };
+  }, []);
 
-    setScale(newScale);
-    setPosition({
-      x: pointer.x - mousePointTo.x * newScale,
-      y: pointer.y - mousePointTo.y * newScale,
-    });
+  // --- Zoom (Wheel) ---
+  const handleWheel = useCallback(
+    (e: KonvaEventObject<WheelEvent>) => {
+      e.evt.preventDefault();
+      const stage = stageRef.current;
+      if (!stage) return;
+
+      const pointer = stage.getPointerPosition();
+      if (!pointer) return;
+
+      const oldScale = stage.scaleX();
+      const scaleBy = 1.1;
+      const direction = e.evt.deltaY < 0 ? 1 : -1;
+      let newScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
+      newScale = Math.min(Math.max(0.1, newScale), 8);
+
+      const mousePointTo = {
+        x: (pointer.x - stage.x()) / oldScale,
+        y: (pointer.y - stage.y()) / oldScale,
+      };
+
+      const nextPos = {
+        x: pointer.x - mousePointTo.x * newScale,
+        y: pointer.y - mousePointTo.y * newScale,
+      };
+
+      // Native immediate transform for 60/120Hz responsiveness
+      stage.scale({ x: newScale, y: newScale });
+      stage.position(nextPos);
+      stage.batchDraw();
+
+      scheduleStateSync(newScale, nextPos);
+    },
+    [scheduleStateSync],
+  );
+
+  // --- Multi-touch Gestures (Pinch-to-zoom & Touch Pan) ---
+  const touchRef = useRef<{
+    lastDist: number;
+    lastCenter: { x: number; y: number } | null;
+    isPinching: boolean;
+  }>({
+    lastDist: 0,
+    lastCenter: null,
+    isPinching: false,
+  });
+
+  const handleTouchStart = useCallback((e: KonvaEventObject<TouchEvent>) => {
+    const touches = e.evt.touches;
+    if (touches.length === 2) {
+      e.evt.preventDefault();
+      const stage = stageRef.current;
+      if (stage && stage.isDragging()) {
+        stage.stopDrag();
+      }
+      const touch1 = touches[0];
+      const touch2 = touches[1];
+      const dist = Math.hypot(
+        touch1.clientX - touch2.clientX,
+        touch1.clientY - touch2.clientY,
+      );
+      const center = {
+        x: (touch1.clientX + touch2.clientX) / 2,
+        y: (touch1.clientY + touch2.clientY) / 2,
+      };
+      touchRef.current = {
+        lastDist: dist,
+        lastCenter: center,
+        isPinching: true,
+      };
+    } else {
+      touchRef.current.isPinching = false;
+      touchRef.current.lastDist = 0;
+      touchRef.current.lastCenter = null;
+    }
+  }, []);
+
+  const handleTouchMove = useCallback(
+    (e: KonvaEventObject<TouchEvent>) => {
+      const touches = e.evt.touches;
+      if (touches.length === 2 && touchRef.current.isPinching) {
+        e.evt.preventDefault();
+        const stage = stageRef.current;
+        if (!stage) return;
+
+        const touch1 = touches[0];
+        const touch2 = touches[1];
+        const dist = Math.hypot(
+          touch1.clientX - touch2.clientX,
+          touch1.clientY - touch2.clientY,
+        );
+        const center = {
+          x: (touch1.clientX + touch2.clientX) / 2,
+          y: (touch1.clientY + touch2.clientY) / 2,
+        };
+
+        const { lastDist, lastCenter } = touchRef.current;
+        if (lastDist > 0 && lastCenter) {
+          const stageBox = stage.container().getBoundingClientRect();
+          const stageCenterX = center.x - stageBox.left;
+          const stageCenterY = center.y - stageBox.top;
+
+          const oldScale = stage.scaleX();
+          const scaleBy = dist / lastDist;
+          let newScale = oldScale * scaleBy;
+          newScale = Math.min(Math.max(0.1, newScale), 8);
+
+          const pointTo = {
+            x: (stageCenterX - stage.x()) / oldScale,
+            y: (stageCenterY - stage.y()) / oldScale,
+          };
+
+          const dx = center.x - lastCenter.x;
+          const dy = center.y - lastCenter.y;
+
+          const newPos = {
+            x: stageCenterX - pointTo.x * newScale + dx,
+            y: stageCenterY - pointTo.y * newScale + dy,
+          };
+
+          // Native immediate GPU transform for 0ms gesture response
+          stage.scale({ x: newScale, y: newScale });
+          stage.position(newPos);
+          stage.batchDraw();
+
+          scheduleStateSync(newScale, newPos);
+        }
+
+        touchRef.current.lastDist = dist;
+        touchRef.current.lastCenter = center;
+      }
+    },
+    [scheduleStateSync],
+  );
+
+  const handleTouchEnd = useCallback((e: KonvaEventObject<TouchEvent>) => {
+    const touches = e.evt.touches;
+    if (touches.length < 2) {
+      touchRef.current.isPinching = false;
+      touchRef.current.lastDist = 0;
+      touchRef.current.lastCenter = null;
+    }
+    if (rafId.current) {
+      cancelAnimationFrame(rafId.current);
+      rafId.current = null;
+    }
+    const stage = stageRef.current;
+    if (stage) {
+      const finalScale = stage.scaleX();
+      const finalPos = { x: stage.x(), y: stage.y() };
+      setScale(finalScale);
+      setPosition(finalPos);
+    }
   }, []);
 
   // Cancel drawing in progress if tool changes to non-drawing
@@ -863,7 +1026,7 @@ export default function StageMap() {
   return (
     <div
       ref={containerRef}
-      className="absolute inset-0"
+      className="absolute inset-0 select-none touch-none overflow-hidden"
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
@@ -875,18 +1038,27 @@ export default function StageMap() {
         scaleY={scale}
         x={position.x}
         y={position.y}
-        draggable={activeTool === 'pan'}
+        pixelRatio={
+          typeof window !== 'undefined'
+            ? Math.min(window.devicePixelRatio || 1, 2)
+            : 1
+        }
+        draggable={activeTool === 'pan' && !touchRef.current.isPinching}
         onDragEnd={(e) => {
           if (e.target === stageRef.current) {
             setPosition({ x: e.target.x(), y: e.target.y() });
           }
         }}
         onWheel={handleWheel}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseLeave={() => setMousePos(null)}
         onMouseUp={handleMouseUp}
         onDblClick={handleDblClick}
+        onDblTap={handleDblClick as any}
         onContextMenu={handleContextMenu}
         style={{ cursor: cursorStyle }}
       >
@@ -920,13 +1092,15 @@ export default function StageMap() {
         <Layer listening={false}>
           <FogLayer scale={scale} />
         </Layer>
-        <Layer>
-          <DrawingLayer
-            newShape={newShape}
-            mousePos={mousePos}
-            scale={scale}
-          />
-        </Layer>
+        {!isPlayerMode() && (newShape || mousePos) && (
+          <Layer>
+            <DrawingLayer
+              newShape={newShape}
+              mousePos={mousePos}
+              scale={scale}
+            />
+          </Layer>
+        )}
       </Stage>
     </div>
   );

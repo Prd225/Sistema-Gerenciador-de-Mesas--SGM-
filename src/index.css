@@ -189,4 +189,76 @@ input[type='number'] {
   overflow: visible !important;
 }
 
+/* Safe Area Utilities (iOS Notch, Home Indicator, Dynamic Island) */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pl-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+.pr-safe {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+.top-safe {
+  top: env(safe-area-inset-top, 0px);
+}
+.bottom-safe {
+  bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Touch friendly momentum scrolling & scrollbar hiding */
+.touch-momentum {
+  -webkit-overflow-scrolling: touch;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Loading Bar Animations */
+@keyframes loading-indeterminate {
+  0% {
+    left: -40%;
+    width: 40%;
+  }
+  50% {
+    left: 25%;
+    width: 60%;
+  }
+  100% {
+    left: 100%;
+    width: 40%;
+  }
+}
+
+.animate-indeterminate-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 9999px;
+  animation: loading-indeterminate 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(0.97);
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2.5s ease-in-out infinite;
+}
+
 

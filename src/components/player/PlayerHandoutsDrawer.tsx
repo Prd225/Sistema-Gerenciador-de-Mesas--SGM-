@@ -131,14 +131,19 @@ export default function PlayerHandoutsDrawer() {
     <>
       <div
         onClick={() => setIsDrawerOpen(false)}
-        className="fixed inset-0 z-[340] bg-black/80 flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-150"
+        className="fixed inset-0 z-[340] bg-black/80 flex items-end sm:items-center justify-center p-0 sm:p-6 animate-in fade-in duration-150"
       >
         <div
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-3xl bg-[#121214] border border-[#27272a] rounded-xl shadow-xl flex flex-col max-h-[88vh] overflow-hidden"
+          className="relative w-full sm:max-w-3xl bg-[#121214] border-t sm:border border-[#27272a] rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col max-h-[90dvh] sm:max-h-[88vh] pb-safe overflow-hidden animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 duration-200"
         >
+          {/* Pull handle indicador para mobile */}
+          <div className="sm:hidden pt-2.5 pb-1 flex justify-center bg-[#18181b]">
+            <div className="w-10 h-1 bg-[#3f3f46] rounded-full" />
+          </div>
+
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#27272a] bg-[#18181b]">
+          <div className="flex items-center justify-between px-4 py-2.5 sm:py-3 border-b border-[#27272a] bg-[#18181b]">
             <div className="flex items-center gap-2.5">
               <span className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400">
                 <Scroll className="w-5 h-5" />
@@ -158,8 +163,8 @@ export default function PlayerHandoutsDrawer() {
 
             <button
               onClick={() => setIsDrawerOpen(false)}
-              className="p-1.5 text-[#a1a1aa] hover:text-white rounded-lg hover:bg-white/10 transition-colors"
-              title="Minimizar"
+              className="p-2 text-[#a1a1aa] hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+              title="Fechar"
             >
               <Minus className="w-4 h-4" />
             </button>
@@ -179,8 +184,8 @@ export default function PlayerHandoutsDrawer() {
               />
             </div>
 
-            {/* Abas de Categoria */}
-            <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
+            {/* Abas de Categoria com rolagem por toque */}
+            <div className="flex items-center gap-1.5 overflow-x-auto touch-pan-x touch-momentum no-scrollbar pb-1 sm:pb-0 shrink-0">
               {(
                 [
                   { id: 'all', label: 'Todos' },
@@ -193,7 +198,7 @@ export default function PlayerHandoutsDrawer() {
                 <button
                   key={tab.id}
                   onClick={() => setTypeFilter(tab.id)}
-                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                     typeFilter === tab.id
                       ? 'bg-[#8257e5] text-white shadow-sm'
                       : 'bg-[#202024] text-[#a1a1aa] hover:text-white hover:bg-white/5'
@@ -206,7 +211,7 @@ export default function PlayerHandoutsDrawer() {
           </div>
 
           {/* Grid de Itens */}
-          <div className="flex-1 overflow-y-auto p-4 bg-[#121214] min-h-[300px]">
+          <div className="flex-1 overflow-y-auto touch-momentum p-3 sm:p-4 bg-[#121214] min-h-[260px]">
             {filteredItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full min-h-[260px] text-center text-[#71717a] p-8">
                 <Inbox className="w-12 h-12 mb-2 opacity-40 text-amber-400" />

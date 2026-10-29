@@ -20,6 +20,7 @@ import {
   Upload,
   Download,
 } from 'lucide-react';
+import { useLoadingStore } from '@/store/useLoadingStore';
 import { timeAgo } from '@/lib/utils';
 
 const SLOTS_PER_PAGE = 10;
@@ -79,14 +80,21 @@ export default function LoadCampaignModal() {
   };
 
   const handleLoad = async (data: any) => {
+    useLoadingStore.getState().show(
+      'Carregando Campanha...',
+      'Restaurando tokens, mapas, camadas e fichas em memória...',
+    );
     try {
       await applyGameState(data);
       await saveWorkingSession(data);
       onOpenChange(false);
-      alert('Campanha carregada com sucesso!');
     } catch (err) {
       console.error('Falha ao carregar save', err);
       alert('Arquivo corrompido ou inválido.');
+    } finally {
+      setTimeout(() => {
+        useLoadingStore.getState().hide();
+      }, 350);
     }
   };
 

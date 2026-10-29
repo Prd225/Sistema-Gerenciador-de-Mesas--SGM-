@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTokenStore } from '@/store/useTokenStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useZoneStore } from '@/store/useZoneStore';
@@ -30,6 +30,14 @@ export default function InitiativeBar() {
 
   const safeQueue = Array.isArray(queue) ? queue : [];
   const safeTokens = Array.isArray(tokens) ? tokens : [];
+
+  const tokensById = useMemo(() => {
+    const map = new Map<string, (typeof safeTokens)[0]>();
+    for (const t of safeTokens) {
+      if (t?.id) map.set(t.id, t);
+    }
+    return map;
+  }, [safeTokens]);
 
   const [isMinimized, setIsMinimized] = useState(() => {
     try {
@@ -118,7 +126,7 @@ export default function InitiativeBar() {
 
   const activeItem = safeQueue[activeIndex];
   const activeToken = activeItem
-    ? safeTokens.find((t) => t && t.id === activeItem.tokenId)
+    ? tokensById.get(activeItem.tokenId) ?? null
     : null;
 
   const rawBorderColor = activeToken?.colorBorder || '#ffd700';
@@ -130,7 +138,7 @@ export default function InitiativeBar() {
     return (
       <div
         style={{ left: `${leftOffset}px` }}
-        className="absolute bottom-5 z-30 pointer-events-auto transition-[left] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] select-none"
+        className="absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] z-30 pointer-events-auto transition-[left] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] select-none"
       >
         <button
           type="button"
@@ -202,7 +210,7 @@ export default function InitiativeBar() {
         left: `${leftOffset}px`,
         maxWidth: `calc(100vw - ${leftOffset + 24}px - 80px)`,
       }}
-      className="absolute bottom-5 flex flex-col bg-[#202024]/95 border border-[#323238] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.6)] backdrop-blur-sm z-30 pointer-events-auto transition-[left,max-width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] select-none"
+      className="absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] flex flex-col bg-[#202024]/95 border border-[#323238] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.6)] backdrop-blur-sm z-30 pointer-events-auto transition-[left,max-width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] select-none"
     >
       {/* Header elegante, discreto e centralizado com botão de minimizar */}
       <div className="relative flex items-center justify-center px-4 pt-2.5 pb-1.5 text-[11px] tracking-wide border-b border-[#323238]/40">
@@ -229,11 +237,11 @@ export default function InitiativeBar() {
         </button>
       </div>
 
-      {/* Fila de tokens centralizada */}
-      <div className="overflow-x-auto custom-scrollbar px-4 pb-3.5 pt-8">
-        <div className="flex items-end justify-center gap-4 min-w-full w-fit">
+      {/* Fila de tokens centralizada com rolagem fluida por toque */}
+      <div className="overflow-x-auto touch-pan-x touch-momentum no-scrollbar sm:custom-scrollbar px-3 sm:px-4 pb-2.5 sm:pb-3.5 pt-6 sm:pt-8">
+        <div className="flex items-end justify-center gap-2.5 sm:gap-4 min-w-full w-fit">
           {safeQueue.map((item, index) => {
-        const token = safeTokens.find((t) => t && t.id === item.tokenId);
+        const token = tokensById.get(item.tokenId);
         if (!token) return null;
 
         const isActive = index === activeIndex;
@@ -258,18 +266,18 @@ export default function InitiativeBar() {
 
         return (
           <div
-            key={item.tokenId}
+            key={`${item.tokenId}-${index}`}
             className={`flex flex-col items-center gap-1.5 relative shrink-0 ${isGrayscale ? 'opacity-40 grayscale' : ''}`}
           >
             {isActive && !isGrayscale && (
               <ArrowDown
-                className="absolute -top-7 animate-bounce filter drop-shadow-[0_2px_2px_black]"
+                className="absolute -top-6 sm:-top-7 w-4 h-4 sm:w-5 sm:h-5 animate-bounce filter drop-shadow-[0_2px_2px_black]"
                 style={{ color: borderColor }}
               />
             )}
 
             <div
-              className={`w-12 h-12 rounded-full border-[3px] flex items-center justify-center font-bold text-[0.8rem] transition-all cursor-pointer overflow-visible relative
+              className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full border-[2.5px] sm:border-[3px] flex items-center justify-center font-bold text-[0.72rem] sm:text-[0.8rem] transition-all cursor-pointer overflow-visible relative
                 ${
                   isActive
                     ? 'scale-110 z-10 shadow-lg'
@@ -296,7 +304,7 @@ export default function InitiativeBar() {
               )}
 
               {/* Minimalist status indicators */}
-              {token.conditions.length > 0 && (
+              {conditions.length > 0 && (
                 <div className="absolute -bottom-2 -right-2 flex gap-1 flex-wrap-reverse max-w-[40px] justify-end">
                   {outOfCombat && (
                     <div className="bg-[#202024] border border-[#323238] rounded-full p-0.5 text-gray-400">

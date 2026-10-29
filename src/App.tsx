@@ -2,6 +2,7 @@ import { useState } from 'react';
 import AppLayout from './components/layout/AppLayout';
 import PlayerShell from './components/player/PlayerShell';
 import PlayerJoinScreen from './components/player/PlayerJoinScreen';
+import GlobalLoadingOverlay from './components/common/GlobalLoadingOverlay';
 import { useMultiplayerStore } from './store/useMultiplayerStore';
 import { isPlayerMode } from './lib/roomRole';
 
@@ -39,22 +40,22 @@ function App() {
     }
   });
 
-  // Se o usuário está em modo preview de jogador, em papel de jogador ou sala foi encerrada
-  if (isPlayerPreview || role === 'player' || isPlayerMode() || (isRoomClosed && role === null && !inviteCode)) {
-    return <PlayerShell />;
-  }
-
-  // Se o usuário acessou via link com código de convite ?room= e ainda não entrou
-  if (inviteCode && !role) {
-    return (
-      <PlayerJoinScreen
-        roomCode={inviteCode}
-        onCancel={handleCancelInvite}
-      />
-    );
-  }
-
-  return <AppLayout />;
+  return (
+    <>
+      <GlobalLoadingOverlay />
+      {/* Se o usuário está em modo preview de jogador, em papel de jogador ou sala foi encerrada */}
+      {(isPlayerPreview || role === 'player' || isPlayerMode() || (isRoomClosed && role === null && !inviteCode)) ? (
+        <PlayerShell />
+      ) : (inviteCode && !role) ? (
+        <PlayerJoinScreen
+          roomCode={inviteCode}
+          onCancel={handleCancelInvite}
+        />
+      ) : (
+        <AppLayout />
+      )}
+    </>
+  );
 }
 
 export default App;

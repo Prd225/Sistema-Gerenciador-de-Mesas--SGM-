@@ -56,7 +56,10 @@ export const useTokenStore = create<TokenState>((set, get) => ({
   // do jogador fique diferente da mesa por uma ação que será recusada.
   addToken: (token) => {
     if (isPlayerMode()) return;
-    set((state) => ({ tokens: [...state.tokens, token] }));
+    set((state) => {
+      if (state.tokens.some((t) => t.id === token.id)) return state;
+      return { tokens: [...state.tokens, token] };
+    });
     triggerAutoSave();
     if (socket.connected) {
       socket.emit('token:add', { token });
@@ -124,11 +127,19 @@ export const useTokenStore = create<TokenState>((set, get) => ({
 
   setInitiativeQueue: (initiativeQueue) => {
     if (isPlayerMode()) return;
-    set({ initiativeQueue });
+    const cleanQueue = Array.isArray(initiativeQueue) ? initiativeQueue : [];
+    const seen = new Set<string>();
+    const dedupedQueue = cleanQueue.filter((item) => {
+      if (!item || !item.tokenId) return false;
+      if (seen.has(item.tokenId)) return false;
+      seen.add(item.tokenId);
+      return true;
+    });
+    set({ initiativeQueue: dedupedQueue });
     triggerAutoSave();
     if (socket.connected) {
       socket.emit('initiative:update', {
-        queue: initiativeQueue,
+        queue: dedupedQueue,
         sortMode: get().initiativeSortMode,
       });
     }
@@ -185,7 +196,15 @@ export const useTokenStore = create<TokenState>((set, get) => ({
   },
 
   setInitiativeQueueFromRemote: (initiativeQueue, sortMode) => {
-    set(sortMode ? { initiativeQueue, initiativeSortMode: sortMode } : { initiativeQueue });
+    const cleanQueue = Array.isArray(initiativeQueue) ? initiativeQueue : [];
+    const seen = new Set<string>();
+    const dedupedQueue = cleanQueue.filter((item) => {
+      if (!item || !item.tokenId) return false;
+      if (seen.has(item.tokenId)) return false;
+      seen.add(item.tokenId);
+      return true;
+    });
+    set(sortMode ? { initiativeQueue: dedupedQueue, initiativeSortMode: sortMode } : { initiativeQueue: dedupedQueue });
   },
 
   setActiveCtxTokenId: (activeCtxTokenId) => set({ activeCtxTokenId }),

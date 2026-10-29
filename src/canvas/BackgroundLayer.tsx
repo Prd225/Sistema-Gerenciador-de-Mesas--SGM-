@@ -3,15 +3,30 @@ import { Group, Image as KonvaImage } from 'react-konva';
 import { useZoneStore } from '@/store/useZoneStore';
 import type { BgImage } from '@/types/game';
 
+const bgImageCache = new Map<string, HTMLImageElement>();
+
 function BgImageComponent({ bg }: { bg: BgImage }) {
-  const [image, setImage] = useState<HTMLImageElement | null>(null);
+  const [image, setImage] = useState<HTMLImageElement | null>(() => {
+    return (bg.src && bgImageCache.get(bg.src)) || null;
+  });
   const activeTool = useZoneStore((state) => state.activeTool);
   const updateBgImage = useZoneStore((state) => state.updateBgImage);
 
   useEffect(() => {
+    if (!bg.src) {
+      setImage(null);
+      return;
+    }
+    if (bgImageCache.has(bg.src)) {
+      setImage(bgImageCache.get(bg.src)!);
+      return;
+    }
     const img = new window.Image();
     img.src = bg.src;
-    img.onload = () => setImage(img);
+    img.onload = () => {
+      bgImageCache.set(bg.src, img);
+      setImage(img);
+    };
   }, [bg.src]);
 
   if (!image) return null;

@@ -46,5 +46,12 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // `touch:` → dispositivos de toque (dedo); `mouse:` → mouse/trackpad.
+    // Independentes da largura da tela (um tablet com teclado continua "mouse").
+    function ({ addVariant }) {
+      addVariant('touch', '@media (pointer: coarse)');
+      addVariant('mouse', '@media (pointer: fine)');
+    },
+  ],
 };

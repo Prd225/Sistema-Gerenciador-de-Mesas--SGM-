@@ -30,6 +30,7 @@ import { useTokenStore } from '@/store/useTokenStore';
 import { useMultiplayerStore } from '@/store/useMultiplayerStore';
 import { markLocalStateReady } from '@/lib/roomRole';
 import { startSoundpadBroadcast } from '@/lib/soundpadBroadcast';
+import { useLoadingStore } from '@/store/useLoadingStore';
 import { Search, Edit, Copy, IdCard, Trash2, Map } from 'lucide-react';
 
 export default function AppLayout({
@@ -75,12 +76,20 @@ export default function AppLayout({
         return;
       }
 
+      useLoadingStore.getState().show(
+        'Carregando Mesa...',
+        'Restaurando dados salvos, tokens e mapa em memória...',
+      );
+
       try {
-        await loadWorkingSession();
+        const loaded = await loadWorkingSession();
+        // Pequeno intervalo para montagem e transição suave do canvas
+        await new Promise((r) => setTimeout(r, loaded ? 350 : 150));
       } catch (err) {
         console.error('[SGM] Falha ao inicializar sessão persistida:', err);
       } finally {
         markLocalStateReady();
+        useLoadingStore.getState().hide();
       }
     };
     initSession();
@@ -152,7 +161,7 @@ export default function AppLayout({
   }, [autoSaveSlot]);
 
   return (
-    <div className="h-screen w-screen bg-[#121214] text-[#e1e1e6] overflow-hidden flex flex-col font-sans">
+    <div className="h-dvh w-full bg-[#121214] text-[#e1e1e6] overflow-hidden flex flex-col font-sans">
       <Header />
 
       <div className="flex-1 flex overflow-hidden relative">

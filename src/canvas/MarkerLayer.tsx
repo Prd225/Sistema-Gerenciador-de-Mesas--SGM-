@@ -59,7 +59,7 @@ function MarkerIcon({
 
 function MarkerLayer({ scale = 1 }: { scale?: number }) {
   const markersMap = useZoneStore((state) => state.markers);
-  const markers = Object.values(markersMap || {});
+  const markers = React.useMemo(() => Object.values(markersMap || {}), [markersMap]);
   const updateMarker = useZoneStore((state) => state.updateMarker);
   const activeTool = useZoneStore((state) => state.activeTool);
   const hideCompletedMarkers = useZoneStore(
@@ -264,9 +264,9 @@ function MarkerLayer({ scale = 1 }: { scale?: number }) {
               fontStyle="bold"
               fill={marker.textColor || 'white'}
               shadowColor="black"
-              shadowBlur={3}
+              shadowBlur={0}
               shadowOffset={{ x: 1, y: 1 }}
-              shadowOpacity={0.8}
+              shadowOpacity={0.9}
               listening={false}
               perfectDrawEnabled={false}
             />

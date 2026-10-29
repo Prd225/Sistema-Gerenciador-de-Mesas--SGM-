@@ -44,12 +44,20 @@ export const usePlayerHandoutsStore = create<PlayerHandoutsState>((set, get) => 
 
   setSharedHandouts: (handouts, isInitial = false) => {
     const list = Array.isArray(handouts) ? handouts : [];
+    const seen = new Set<string>();
+    const cleanList = list.filter((h) => {
+      if (!h || !h.id) return false;
+      if (seen.has(h.id)) return false;
+      seen.add(h.id);
+      return true;
+    });
+
     const current = Array.isArray(get().sharedHandouts) ? get().sharedHandouts : [];
     const currentIds = new Set(current.map((h) => h.id));
-    const newItems = list.filter((h) => h && !currentIds.has(h.id));
+    const newItems = cleanList.filter((h) => !currentIds.has(h.id));
 
-    // Se o drawer já estiver aberto, não acumula unread
-    const addedUnread = get().isDrawerOpen ? 0 : newItems.length;
+    // Se o drawer já estiver aberto ou for carga inicial, não acumula unread
+    const addedUnread = isInitial || get().isDrawerOpen ? 0 : newItems.length;
 
     const wasInitialized = get().hasInitialized;
     let nextNotification = get().revealNotification;
@@ -66,12 +74,16 @@ export const usePlayerHandoutsStore = create<PlayerHandoutsState>((set, get) => 
       };
     }
 
-    set((state) => ({
-      sharedHandouts: list,
-      hasInitialized: true,
-      unreadCount: (state.unreadCount || 0) + addedUnread,
-      revealNotification: nextNotification,
-    }));
+    set((state) => {
+      const baseUnread = isInitial ? 0 : (state.unreadCount || 0);
+      const nextUnread = cleanList.length === 0 ? 0 : Math.min(cleanList.length, baseUnread + addedUnread);
+      return {
+        sharedHandouts: cleanList,
+        hasInitialized: true,
+        unreadCount: nextUnread,
+        revealNotification: nextNotification,
+      };
+    });
   },
 
   setProjection: (payload) => {

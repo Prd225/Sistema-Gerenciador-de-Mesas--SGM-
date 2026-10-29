@@ -68,13 +68,31 @@ export function hydratePlayerToken(view: PlayerTokenView): Token {
 }
 
 function applyPlayerView(view: PlayerStatePayload) {
+  const rawTokens = Array.isArray(view.tokens) ? view.tokens : [];
+  const seenTokens = new Set<string>();
+  const uniqueTokens = rawTokens.filter((t) => {
+    if (!t || !t.id) return false;
+    if (seenTokens.has(t.id)) return false;
+    seenTokens.add(t.id);
+    return true;
+  });
+
+  const rawQueue = Array.isArray(view.initiativeQueue) ? view.initiativeQueue : [];
+  const seenQueue = new Set<string>();
+  const uniqueQueue = rawQueue.filter((item) => {
+    if (!item || !item.tokenId) return false;
+    if (seenQueue.has(item.tokenId)) return false;
+    seenQueue.add(item.tokenId);
+    return true;
+  });
+
   useTokenStore.setState({
-    tokens: (view.tokens || []).map(hydratePlayerToken),
-    initiativeQueue: view.initiativeQueue || [],
+    tokens: uniqueTokens.map(hydratePlayerToken),
+    initiativeQueue: uniqueQueue,
     initiativeSortMode: view.initiativeSortMode || 'descending',
   });
   useZoneStore.setState({
-    bgImages: view.bgImages || [],
+    bgImages: Array.isArray(view.bgImages) ? view.bgImages : [],
     zones: {},
     markers: {},
     activeTool: 'pan',
@@ -96,6 +114,7 @@ function applyPlayerView(view: PlayerStatePayload) {
       areas: [],
     });
   }
+  useMultiplayerStore.setState({ hasSyncedInitialView: true });
 }
 
 interface MultiplayerState {
@@ -110,6 +129,7 @@ interface MultiplayerState {
   pings: RoomPing[];
   isModalOpen: boolean;
   error: string | null;
+  hasSyncedInitialView: boolean;
 
   // UI
   setIsModalOpen: (open: boolean) => void;
@@ -381,6 +401,7 @@ export const useMultiplayerStore = create<MultiplayerState>((set, get) => {
     pings: [],
     isModalOpen: false,
     error: null,
+    hasSyncedInitialView: false,
 
     setIsModalOpen: (isModalOpen) => set({ isModalOpen, error: null }),
     setError: (error) => set({ error }),
@@ -495,6 +516,12 @@ export const useMultiplayerStore = create<MultiplayerState>((set, get) => {
                 if (res.state.soundpad) {
                   usePlayerAudioStore.getState().applyState(res.state.soundpad);
                 }
+                if (res.state.sharedHandouts) {
+                  usePlayerHandoutsStore.getState().setSharedHandouts(res.state.sharedHandouts, true);
+                }
+                if (res.state.projection) {
+                  usePlayerHandoutsStore.getState().setProjection(res.state.projection);
+                }
               } else if (assignedRole === 'gm') {
                 if (isLocalStateReady()) {
                   get().syncStateToRoom();
@@ -531,6 +558,7 @@ export const useMultiplayerStore = create<MultiplayerState>((set, get) => {
       }
 
       usePlayerAudioStore.getState().reset();
+      usePlayerHandoutsStore.getState().reset();
 
       set({
         isConnected: false,
@@ -541,6 +569,7 @@ export const useMultiplayerStore = create<MultiplayerState>((set, get) => {
         hostToken: null,
         members: [],
         pings: [],
+        hasSyncedInitialView: false,
       });
 
       // Se era jogador, recarrega limpo para restaurar o estado local do app
