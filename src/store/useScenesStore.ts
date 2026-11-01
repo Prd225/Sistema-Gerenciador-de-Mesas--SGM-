@@ -73,7 +73,7 @@ export const useScenesStore = create<ScenesState>((set, get) => {
 
       set({ isSwitching: true });
       useLoadingStore.getState().show(
-        'Alternando Cena...',
+        'Recarregando cena...',
         'Carregando elementos do mapa, tokens e camadas em memória...',
       );
 

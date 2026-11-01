@@ -27,7 +27,7 @@ export default function PlayerShell() {
       {!isRoomClosed && (!hasSyncedInitialView || isReconnecting) && (
         <LoadingScreen
           title={isReconnecting ? 'Reconectando à Mesa...' : 'Conectando à Mesa...'}
-          subtitle="Sincronizando mapa, tokens e fichas com o Mestre..."
+          subtitle="Sincronizando com o Mestre..."
           fullscreen={true}
         />
       )}

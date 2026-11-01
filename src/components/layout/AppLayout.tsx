@@ -77,7 +77,7 @@ export default function AppLayout({
       }
 
       useLoadingStore.getState().show(
-        'Carregando Mesa...',
+        'Recarregando mesa...',
         'Restaurando dados salvos, tokens e mapa em memória...',
       );
 

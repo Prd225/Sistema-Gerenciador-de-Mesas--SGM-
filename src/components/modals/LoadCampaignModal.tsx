@@ -81,7 +81,7 @@ export default function LoadCampaignModal() {
 
   const handleLoad = async (data: any) => {
     useLoadingStore.getState().show(
-      'Carregando Campanha...',
+      'Recarregando campanha...',
       'Restaurando tokens, mapas, camadas e fichas em memória...',
     );
     try {

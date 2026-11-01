@@ -13,13 +13,13 @@ interface LoadingState {
 
 export const useLoadingStore = create<LoadingState>((set) => ({
   isLoading: false,
-  title: 'Carregando Mesa...',
-  subtitle: 'Sincronizando dados e preparando o mapa...',
+  title: 'Recarregando...',
+  subtitle: '',
   progress: null,
 
   show: (
-    title = 'Carregando Mesa...',
-    subtitle = 'Sincronizando dados e preparando o mapa...',
+    title = 'Recarregando...',
+    subtitle = '',
     progress = null,
   ) => set({ isLoading: true, title, subtitle, progress }),
 
