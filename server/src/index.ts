@@ -25,6 +25,29 @@ if (!fs.existsSync(uploadsDir)) {
 // Servir arquivos estáticos locais para qualquer cliente da mesa
 app.use('/uploads', express.static(path.join(process.cwd(), 'server', 'uploads')));
 
+// Servir imagem direto de um caminho local do computador do mestre (ex: C:\Users\...\img.png)
+app.get('/api/local-image', (req, res) => {
+  try {
+    const rawPath = String(req.query.path || '').trim().replace(/^["']|["']$/g, '');
+    if (!rawPath) {
+      return res.status(400).send('Parâmetro path ausente');
+    }
+    let cleaned = rawPath;
+    if (cleaned.startsWith('file:///')) {
+      cleaned = decodeURIComponent(cleaned.replace(/^file:\/\/\//, ''));
+    } else if (cleaned.startsWith('file://')) {
+      cleaned = decodeURIComponent(cleaned.replace(/^file:\/\//, ''));
+    }
+    const resolved = path.normalize(cleaned);
+    if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) {
+      return res.status(404).send('Imagem não encontrada no disco');
+    }
+    res.sendFile(resolved);
+  } catch (err: any) {
+    res.status(500).send(err.message || 'Erro ao servir imagem local');
+  }
+});
+
 // Upload binário via stream direto para disco (sem limite de JSON, sem base64, zero consumo de RAM)
 app.post('/api/handouts/upload-raw', (req, res) => {
   try {

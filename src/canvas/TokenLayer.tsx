@@ -4,6 +4,7 @@ import { useTokenStore } from '@/store/useTokenStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useZoneStore } from '@/store/useZoneStore';
 import { isPlayerMode } from '@/lib/roomRole';
+import { useModularSheetStore } from '@/store/useModularSheetStore';
 
 /**
  * Renders token circles on the map.
@@ -130,7 +131,7 @@ function TokenLayer({ scale = 1 }: { scale?: number }) {
   const tokens = useTokenStore((state) => state.tokens);
   const initiativeQueue = useTokenStore((state) => state.initiativeQueue);
   const updateToken = useTokenStore((state) => state.updateToken);
-  const setEditingTokenId = useTokenStore((state) => state.setEditingTokenId);
+  const openSheetForToken = useModularSheetStore((state) => state.openSheetForToken);
   const turn = useCampaignStore((state) => state.turn);
   const activeTool = useZoneStore((state) => state.activeTool);
   const selectedNodeIds = useZoneStore((state) => state.selectedNodeIds);
@@ -320,11 +321,11 @@ function TokenLayer({ scale = 1 }: { scale?: number }) {
               }}
               onDblClick={() => {
                 if (isPlayerMode()) return;
-                setEditingTokenId(t.id);
+                openSheetForToken(t.id);
               }}
               onDblTap={() => {
                 if (isPlayerMode()) return;
-                setEditingTokenId(t.id);
+                openSheetForToken(t.id);
               }}
               onContextMenu={(e) => {
                 e.evt.preventDefault();

@@ -1,12 +1,63 @@
 import path from 'path';
+import fs from 'fs';
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+
+const MIME_BY_EXT: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.avif': 'image/avif',
+  '.bmp': 'image/bmp',
+};
+
+function normalizeLocalFilePath(rawPath: string): string {
+  let cleaned = rawPath.trim().replace(/^["']|["']$/g, '');
+  if (cleaned.startsWith('file:///')) {
+    cleaned = decodeURIComponent(cleaned.replace(/^file:\/\/\//, ''));
+  } else if (cleaned.startsWith('file://')) {
+    cleaned = decodeURIComponent(cleaned.replace(/^file:\/\//, ''));
+  }
+  return path.normalize(cleaned);
+}
 
 function youtubePlaylistPlugin(): Plugin {
   return {
     name: 'soundpad-youtube-api',
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
+        if (req.url && req.url.startsWith('/api/local-image')) {
+          const url = new URL(req.url, 'http://127.0.0.1:5173');
+          const rawPath = url.searchParams.get('path');
+          if (!rawPath) {
+            res.statusCode = 400;
+            res.end('Parâmetro path ausente');
+            return;
+          }
+          try {
+            const filePath = normalizeLocalFilePath(rawPath);
+            if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+              res.statusCode = 404;
+              res.end('Arquivo de imagem não encontrado');
+              return;
+            }
+            const ext = path.extname(filePath).toLowerCase();
+            const contentType = MIME_BY_EXT[ext] || 'application/octet-stream';
+            res.statusCode = 200;
+            res.setHeader('Content-Type', contentType);
+            res.setHeader('Cache-Control', 'no-cache');
+            fs.createReadStream(filePath).pipe(res);
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.end(err.message || 'Erro ao ler imagem local');
+            return;
+          }
+        }
+
         if (req.url && req.url.startsWith('/api/soundpad/youtube-playlist')) {
           const url = new URL(req.url, 'http://127.0.0.1:5173');
           const playlistId = url.searchParams.get('id');

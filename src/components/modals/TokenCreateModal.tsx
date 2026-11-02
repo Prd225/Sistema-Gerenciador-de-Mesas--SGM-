@@ -6,13 +6,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useTokenStore } from '@/store/useTokenStore';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -147,7 +140,6 @@ export default function TokenCreateModal() {
 
   const [name, setName] = useState('');
   const [initials, setInitials] = useState('');
-  const [sheetType, setSheetType] = useState<string>('player_san');
   const [colorText, setColorText] = useState('#ffffff');
   const [colorBorder, setColorBorder] = useState('#ffffff');
   const [colorFill, setColorFill] = useState('#8257e5');
@@ -186,7 +178,8 @@ export default function TokenCreateModal() {
       imageUrl: croppedImage || undefined,
       desc: '',
       conditions: [],
-      stats: getDefaultStats(sheetType),
+      // Fichas embutidas suspensas na interface, mantendo a estrutura padrão intacta
+      stats: getDefaultStats('player_san'),
     };
 
     addToken(newToken);
@@ -195,7 +188,6 @@ export default function TokenCreateModal() {
     // reset
     setName('');
     setInitials('');
-    setSheetType('player_san');
     setColorText('#ffffff');
     setColorBorder('#ffffff');
     setColorFill('#8257e5');
@@ -297,41 +289,6 @@ export default function TokenCreateModal() {
           </div>
 
           <div>
-            <label className="text-xs text-[#a8a8b3] block mb-1">
-              Tipo de Ficha
-            </label>
-            <Select
-              value={sheetType}
-              onValueChange={(val) => setSheetType(val as string)}
-            >
-              <SelectTrigger className="bg-[#121214] border-[#323238] text-[#e1e1e6] h-9">
-                <SelectValue>
-                  {
-                    {
-                      player_san: 'Investigador (Padrão)',
-                      player_det: 'Investigador (SaH)',
-                      threat_realidade: 'Ameaça da Realidade',
-                      threat_paranormal: 'Ameaça Paranormal',
-                    }[sheetType]
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent className="bg-[#202024] border-[#323238] text-[#e1e1e6]">
-                <SelectItem value="player_san">
-                  Investigador (Padrão)
-                </SelectItem>
-                <SelectItem value="player_det">Investigador (SaH)</SelectItem>
-                <SelectItem value="threat_realidade">
-                  Ameaça da Realidade
-                </SelectItem>
-                <SelectItem value="threat_paranormal">
-                  Ameaça Paranormal
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
             <label className="text-xs text-[#a8a8b3] block mb-1">Cores</label>
             <div className="flex gap-4">
               <div className="flex flex-col items-center gap-1">
@@ -363,6 +320,12 @@ export default function TokenCreateModal() {
               </div>
             </div>
           </div>
+
+          <p className="text-[11px] text-[#8d8d99] bg-[#121214] border border-[#29292e] rounded-md px-2.5 py-2">
+            Para vincular uma ficha de sistema a este token, utilize a opção{' '}
+            <strong className="text-[#c4b5fd]">Gerenciar Fichas</strong> no topo
+            da mesa.
+          </p>
         </div>
 
         <DialogFooter className="mt-4">

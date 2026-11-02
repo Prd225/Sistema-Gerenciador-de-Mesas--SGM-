@@ -10,6 +10,7 @@ import { useSoundpadStore } from '@/store/useSoundpadStore';
 import { useScenesStore } from '@/store/useScenesStore';
 import { useInventoryStore } from '@/store/useInventoryStore';
 import { useFogStore } from '@/store/useFogStore';
+import { useModularSheetStore } from '@/store/useModularSheetStore';
 import { db } from '@/lib/db';
 import { generateId } from '@/lib/uuid';
 import { isPlayerMode } from '@/lib/roomRole';
@@ -82,6 +83,9 @@ export const collectGameState = async () => {
     },
     soundpad: {
       pages: useSoundpadStore.getState().pages,
+    },
+    modularSheets: {
+      sheets: useModularSheetStore.getState().sheets,
     },
     fog: {
       enabled: useFogStore.getState().enabled,
@@ -191,6 +195,13 @@ export const applyGameState = async (data: any) => {
         pages: data.roulettes.pages || [],
       });
     }
+
+    useModularSheetStore.setState({
+      sheets: data.modularSheets?.sheets || [],
+      isOpen: false,
+      activeSheetId: null,
+      view: 'list',
+    });
 
     if (data.soundpad) {
       useSoundpadStore.setState({
@@ -533,6 +544,13 @@ export const resetGameState = async () => {
     isLooping: false,
     spotifyDeviceId: null,
     playbackTrigger: 0,
+  });
+
+  useModularSheetStore.setState({
+    sheets: [],
+    isOpen: false,
+    activeSheetId: null,
+    view: 'list',
   });
 
   useScenesStore.setState({

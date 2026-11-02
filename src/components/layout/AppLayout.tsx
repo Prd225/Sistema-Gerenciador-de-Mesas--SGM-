@@ -4,7 +4,8 @@ import Footer from './Footer';
 import SidebarLeft from '../sidebar/SidebarLeft';
 import SidebarRight from '../sidebar/SidebarRight';
 import StageMap from '@/canvas/StageMap';
-import TokenSheetModal from '../modals/TokenSheetModal';
+import TokenAppearanceModal from '../modals/TokenAppearanceModal';
+import ModularSheetsModal from '../modular-sheet/ModularSheetsModal';
 import InitiativeBar from '../initiative/InitiativeBar';
 import InitiativeModal from '../modals/InitiativeModal';
 import TokenCreateModal from '../modals/TokenCreateModal';
@@ -28,6 +29,7 @@ import {
 import { useZoneStore } from '@/store/useZoneStore';
 import { useTokenStore } from '@/store/useTokenStore';
 import { useMultiplayerStore } from '@/store/useMultiplayerStore';
+import { useModularSheetStore } from '@/store/useModularSheetStore';
 import { markLocalStateReady } from '@/lib/roomRole';
 import { startSoundpadBroadcast } from '@/lib/soundpadBroadcast';
 import { useLoadingStore } from '@/store/useLoadingStore';
@@ -50,6 +52,9 @@ export default function AppLayout({
   const updateToken = useTokenStore((state) => state.updateToken);
   const removeToken = useTokenStore((state) => state.removeToken);
   const getTokenById = useTokenStore((state) => state.getTokenById);
+  const openSheetForToken = useModularSheetStore(
+    (state) => state.openSheetForToken,
+  );
   const autoSaveSlot = useCampaignStore((state) => state.autoSaveSlot);
 
   const multiplayerRole = useMultiplayerStore((state) => state.role);
@@ -188,7 +193,9 @@ export default function AppLayout({
       </div>
 
       <Footer />
-      <TokenSheetModal />
+      {/* Fichas embutidas nos tokens suspensas; substituídas pelo Gerenciador Modular + Modal de Aparência */}
+      <TokenAppearanceModal />
+      <ModularSheetsModal />
       <TokenCreateModal />
       <LoadCampaignModal />
       <SaveCampaignModal />
@@ -243,11 +250,12 @@ export default function AppLayout({
             <div
               className="flex items-center gap-2 px-4 py-2 hover:bg-[#8257e5] hover:text-white cursor-pointer transition-colors text-sm"
               onClick={() => {
+                const targetId = tokenCtx.id;
                 setTokenCtx(null);
-                setEditingTokenId(tokenCtx.id);
+                openSheetForToken(targetId);
               }}
             >
-              <IdCard className="w-4 h-4" /> Ficha
+              <IdCard className="w-4 h-4" /> Ficha Modular
             </div>
             <div className="border-t border-[#323238] my-1" />
             <div

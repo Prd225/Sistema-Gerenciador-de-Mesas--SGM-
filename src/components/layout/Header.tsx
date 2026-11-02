@@ -3,6 +3,7 @@ import {
   Download,
   FilePlus2,
   FileText,
+  FileSpreadsheet,
   HelpCircle,
   Plus,
   Swords,
@@ -14,6 +15,8 @@ import { resetGameState } from '@/lib/saveHelpers';
 import { useTokenStore } from '@/store/useTokenStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useMultiplayerStore } from '@/store/useMultiplayerStore';
+import { useModularSheetStore } from '@/store/useModularSheetStore';
+import { isPlayerMode } from '@/lib/roomRole';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +42,12 @@ export default function Header() {
   const setShowLoadModal = useCampaignStore((state) => state.setShowLoadModal);
   const setShowSaveModal = useCampaignStore((state) => state.setShowSaveModal);
   const autoSaveStatus = useCampaignStore((state) => state.autoSaveStatus);
+
+  const modularSheets = useModularSheetStore((state) => state.sheets);
+  const openModularSheets = useModularSheetStore((state) => state.openManager);
+  const openSheetForToken = useModularSheetStore(
+    (state) => state.openSheetForToken,
+  );
 
   const handleNew = async () => {
     if (
@@ -150,63 +159,88 @@ export default function Header() {
       {/* Token Roster */}
       <div className="flex-1 px-5 mx-5 border-x border-[#323238] h-full flex items-center overflow-x-auto gap-3">
         {(Array.isArray(tokens) ? tokens : [])
-          .filter((t, idx, self) => t && t.id && self.findIndex((x) => x?.id === t.id) === idx)
+          .filter(
+            (t, idx, self) =>
+              t && t.id && self.findIndex((x) => x?.id === t.id) === idx,
+          )
           .map((t) => {
-          const isOnMap = t.x !== null;
-          return (
-            <div
-              key={t.id}
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData('text/plain', t.id);
-                e.dataTransfer.effectAllowed = 'copyMove';
-              }}
-              className={`
-                w-[50px] h-[50px] rounded-full border-[3px] flex items-center justify-center overflow-hidden
-                font-bold text-[0.9rem] cursor-grab shrink-0 select-none
-                transition-transform duration-200
-                hover:scale-110 hover:shadow-[0_0_10px_#8257e5]
-                active:cursor-grabbing
-                ${isOnMap ? 'opacity-50 border-dashed' : ''}
-              `}
-              style={{
-                borderColor: t.colorBorder,
-                backgroundColor: t.colorFill,
-                color: t.colorText,
-              }}
-              title={t.fullName}
-              onClick={() => {
-                if (t.x !== null && t.y !== null) {
-                  window.dispatchEvent(
-                    new CustomEvent('panTo', { detail: { x: t.x, y: t.y } }),
-                  );
+            const isOnMap = t.x !== null;
+            const assignedSheet = modularSheets.find((s) =>
+              s.assignedTokenIds.includes(t.id),
+            );
+            return (
+              <div
+                key={t.id}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('text/plain', t.id);
+                  e.dataTransfer.effectAllowed = 'copyMove';
+                }}
+                className={`
+                  relative w-[50px] h-[50px] rounded-full border-[3px] flex items-center justify-center overflow-hidden
+                  font-bold text-[0.9rem] cursor-grab shrink-0 select-none
+                  transition-transform duration-200
+                  hover:scale-110 hover:shadow-[0_0_10px_#8257e5]
+                  active:cursor-grabbing
+                  ${isOnMap ? 'opacity-50 border-dashed' : ''}
+                `}
+                style={{
+                  borderColor: t.colorBorder,
+                  backgroundColor: t.colorFill,
+                  color: t.colorText,
+                }}
+                title={
+                  assignedSheet
+                    ? `${t.fullName} • Ficha: ${assignedSheet.name} (Duplo-clique p/ abrir)`
+                    : t.fullName
                 }
-              }}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                setTokenContextMenu({ id: t.id, x: e.clientX, y: e.clientY });
-              }}
-            >
-              {t.imageUrl ? (
-                <img
-                  src={t.imageUrl}
-                  alt={t.name}
-                  className="w-full h-full object-cover pointer-events-none"
-                  draggable={false}
-                />
-              ) : (
-                t.name
-              )}
-            </div>
-          );
-        })}
+                onClick={() => {
+                  if (t.x !== null && t.y !== null) {
+                    window.dispatchEvent(
+                      new CustomEvent('panTo', { detail: { x: t.x, y: t.y } }),
+                    );
+                  }
+                }}
+                onDoubleClick={() => {
+                  if (!isPlayerMode()) {
+                    openSheetForToken(t.id);
+                  }
+                }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setTokenContextMenu({
+                    id: t.id,
+                    x: e.clientX,
+                    y: e.clientY,
+                  });
+                }}
+              >
+                {t.imageUrl ? (
+                  <img
+                    src={t.imageUrl}
+                    alt={t.name}
+                    className="w-full h-full object-cover pointer-events-none"
+                    draggable={false}
+                  />
+                ) : (
+                  t.name
+                )}
+                {assignedSheet && (
+                  <span
+                    className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-[#8257e5] border border-[#121214]"
+                    title={`Ficha vinculada: ${assignedSheet.name}`}
+                  />
+                )}
+              </div>
+            );
+          })}
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2">
         <Dialog>
           <DialogTrigger
-            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-transparent text-[#a8a8b3] hover:text-white hover:bg-white/5 h-10 px-4 py-2 border-none"
+            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-transparent text-[#a8a8b3] hover:text-white hover:bg-white/5 h-10 px-3 py-2 border-none"
             title="Ajuda"
           >
             <HelpCircle className="w-5 h-5" />
@@ -233,9 +267,9 @@ export default function Header() {
                     salvar o estado atual.
                   </li>
                   <li>
-                    Clique em <strong>Novo Token</strong> para criar um
-                    personagem ou ameaça. Em seguida, arraste a inicial dele no
-                    topo da tela para dentro do mapa.
+                    Clique em <strong>Criar Token</strong> para criar um
+                    personagem ou ameaça, e em <strong>Gerenciar Fichas</strong>{' '}
+                    logo abaixo para montar e vincular fichas modulares.
                   </li>
                   <li>
                     Utilize as ferramentas na base da tela para criar{' '}
@@ -273,13 +307,31 @@ export default function Header() {
             </div>
           </DialogContent>
         </Dialog>
-        <Button
-          onClick={() => setShowTokenCreateModal(true)}
-          variant="outline"
-          className="bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5 font-bold"
-        >
-          <Plus className="w-4 h-4 mr-2" /> Novo Token
-        </Button>
+
+        {/* Coluna vertical: Criar Token (em cima) e Gerenciar Fichas (abaixo, exclusivo do Mestre) */}
+        <div className="flex flex-col justify-center gap-1">
+          <Button
+            onClick={() => setShowTokenCreateModal(true)}
+            variant="outline"
+            size="sm"
+            className="h-7 px-3 text-xs bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5 font-bold justify-start"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1.5" /> Criar Token
+          </Button>
+
+          {!isPlayerMode() && (
+            <Button
+              onClick={() => openModularSheets('list')}
+              variant="outline"
+              size="sm"
+              className="h-7 px-3 text-xs bg-[#8257e5]/10 border-[#8257e5]/50 text-[#e1e1e6] hover:bg-[#8257e5]/25 hover:text-white font-bold justify-start"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5 text-[#a78bfa]" />
+              Gerenciar Fichas
+            </Button>
+          )}
+        </div>
+
         <Button
           onClick={() => setIsMultiplayerModalOpen(true)}
           variant="outline"

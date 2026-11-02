@@ -248,3 +248,41 @@ input[type='number'] {
 
 
 
+
+
+/* ==========================================================================
+   SGM Modular Sheet — Discord-Style Theming System
+   ========================================================================== */
+.sgm-sheet-card {
+  background-color: var(--sheet-card-bg, #18181b);
+  border-color: var(--sheet-card-border, #29292e);
+}
+
+.sgm-sheet-item {
+  background-color: var(--sheet-item-bg, #121214);
+  border-color: var(--sheet-item-border, #29292e);
+}
+
+
+/* Rollable card micro-interactions */
+.rollable-interactive {
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.15s ease, background-color 0.15s ease;
+  will-change: transform;
+}
+
+.rollable-interactive:hover {
+  transform: translateY(-2px) scale(1.02);
+}
+
+.rollable-interactive:active {
+  transform: translateY(1px) scale(0.96) rotate(-1deg);
+}
+
+.rollable-interactive:hover .rollable-dice-icon {
+  animation: dice-shake 0.4s ease-in-out infinite alternate;
+}
+
+@keyframes dice-shake {
+  0% { transform: rotate(-10deg) scale(1.15); }
+  100% { transform: rotate(10deg) scale(1.15); }
+}
