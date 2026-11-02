@@ -6,6 +6,7 @@ import type {
   RoomMember,
   SoundpadStatePayload,
   SoundpadControlPayload,
+  DiceRollPayload,
 } from '../../../src/types/multiplayer';
 import type { ActiveRoom } from '../roomManager';
 import { roomManager } from '../roomManager';
@@ -383,6 +384,26 @@ export function registerSocketHandlers(io: SgmServer, socket: SgmSocket) {
     if (!ctx) return;
     roomManager.setFog(ctx.room.code, payload);
     socket.to(ctx.room.code).emit('fog:updated', payload);
+  });
+
+  // Rolagens de Dados (Bandeja Virtual)
+  socket.on('dice:roll', (payload) => {
+    const ctx = context();
+    if (!ctx) return;
+    const { room } = ctx;
+
+    if (payload.visibility === 'self') return;
+
+    if (payload.visibility === 'gm') {
+      for (const [sockId, m] of room.members) {
+        if (m.role === 'gm' || sockId === socket.id) {
+          io.to(sockId).emit('dice:rolled', payload);
+        }
+      }
+      return;
+    }
+
+    socket.to(room.code).emit('dice:rolled', payload);
   });
 
   // Sair da Sala (explícito)

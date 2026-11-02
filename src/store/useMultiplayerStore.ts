@@ -23,6 +23,7 @@ import { useCampaignStore } from './useCampaignStore';
 import { usePlayerAudioStore } from './usePlayerAudioStore';
 import { usePlayerHandoutsStore } from './usePlayerHandoutsStore';
 import { useFogStore } from './useFogStore';
+import { useDiceTrayStore } from './useDiceTrayStore';
 import { broadcastCurrentSoundpad } from '@/lib/soundpadBroadcast';
 
 export function hydratePlayerToken(view: PlayerTokenView): Token {
@@ -363,6 +364,11 @@ function setupSocketListeners(set: any, get: any) {
     if (isPlayerMode()) {
       usePlayerAudioStore.getState().applyControl(payload);
     }
+  });
+
+  // Rolagens de Dados Remotas (Bandeja Virtual)
+  socket.on('dice:rolled', (payload) => {
+    useDiceTrayStore.getState().receiveRemoteRoll(payload as any);
   });
 
   // Sincronizar mesa ao trocar de cena (se for GM)

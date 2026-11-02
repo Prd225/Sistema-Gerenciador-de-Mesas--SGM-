@@ -8,7 +8,8 @@ export type SubPanelId =
   | 'table'
   | 'roulette'
   | 'notes'
-  | 'inventory';
+  | 'inventory'
+  | 'dice_tray';
 export type SlotId = 'left' | 'center' | 'right';
 
 export interface MasterPanelState {
@@ -34,7 +35,7 @@ export const useMasterPanelStore = create<MasterPanelState>((set) => ({
   toggleOpen: () => set((state) => ({ isOpen: !state.isOpen })),
   setSlot: (slot, panel) =>
     set((state) => {
-      if (slot === 'center' && panel === 'inventory') return state;
+      if (slot === 'center' && (panel === 'inventory' || panel === 'dice_tray')) return state;
       // Basic logic to prevent duplicate panels
       const newLayout = { ...state.layout };
       if (panel) {

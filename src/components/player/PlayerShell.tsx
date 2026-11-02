@@ -7,6 +7,8 @@ import PlayerHandoutsDrawer from './PlayerHandoutsDrawer';
 import PlayerProjectionOverlay from './PlayerProjectionOverlay';
 import PlayerHandoutNotification from './PlayerHandoutNotification';
 import PlayerSceneNotification from './PlayerSceneNotification';
+import DiceTrayWindow from '@/components/dice-tray/DiceTrayWindow';
+import DiceTrayOverlayNotification from '@/components/dice-tray/DiceTrayOverlayNotification';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import { useMultiplayerStore } from '@/store/useMultiplayerStore';
 import LoadingScreen from '@/components/common/LoadingScreen';
@@ -45,9 +47,19 @@ export default function PlayerShell() {
         <PlayerHud />
       </ErrorBoundary>
 
-      {/* Toolbar do Jogador (Handouts e Projeção) */}
+      {/* Toolbar do Jogador (Bandeja de Dados, Handouts e Projeção) */}
       <ErrorBoundary fallback={null} silent>
         <PlayerToolbar />
+      </ErrorBoundary>
+
+      {/* Bandeja de Dados Virtual do Jogador (Janela Minimizável) */}
+      <ErrorBoundary fallback={null} silent>
+        <DiceTrayWindow />
+      </ErrorBoundary>
+
+      {/* Alerta de Rolagens no Canvas */}
+      <ErrorBoundary fallback={null} silent>
+        <DiceTrayOverlayNotification />
       </ErrorBoundary>
 
       {/* Notificações Flutuantes do Jogador (Cena e Handouts) */}
@@ -98,17 +110,18 @@ export default function PlayerShell() {
             <div className="w-12 h-12 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center">
               <AlertCircle className="w-6 h-6" />
             </div>
-
-            <div className="flex flex-col gap-1">
-              <h2 className="text-lg font-bold text-white">Mesa Encerrada</h2>
-              <p className="text-sm text-[#a8a8b3]">
-                Esta sala foi encerrada pelo Mestre ou não está mais disponível.
+            <div>
+              <h2 className="text-lg font-bold text-white mb-1">Mesa Encerrada</h2>
+              <p className="text-xs text-[#a8a8b3]">
+                O mestre encerrou a sessão. Você foi desconectado da sala.
               </p>
             </div>
-
             <button
-              onClick={leaveRoom}
-              className="w-full py-2.5 px-4 rounded-lg bg-[#8257e5] hover:bg-[#9466ff] text-white font-semibold text-sm transition-colors shadow-lg shadow-[#8257e5]/25"
+              onClick={() => {
+                leaveRoom();
+                window.location.reload();
+              }}
+              className="w-full py-2 px-4 rounded-lg bg-[#8257e5] hover:bg-[#9466ff] text-white font-semibold text-xs transition-colors"
             >
               Voltar ao Início
             </button>

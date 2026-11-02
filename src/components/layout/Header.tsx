@@ -2,13 +2,13 @@ import {
   FolderOpen,
   Download,
   FilePlus2,
-  FileText,
   FileSpreadsheet,
   HelpCircle,
   Plus,
   Swords,
   ChevronDown,
   Radio,
+  Dices,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { resetGameState } from '@/lib/saveHelpers';
@@ -16,6 +16,7 @@ import { useTokenStore } from '@/store/useTokenStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useMultiplayerStore } from '@/store/useMultiplayerStore';
 import { useModularSheetStore } from '@/store/useModularSheetStore';
+import { useDiceTrayStore } from '@/store/useDiceTrayStore';
 import { isPlayerMode } from '@/lib/roomRole';
 import {
   DropdownMenu,
@@ -48,6 +49,9 @@ export default function Header() {
   const openSheetForToken = useModularSheetStore(
     (state) => state.openSheetForToken,
   );
+
+  const isDiceTrayOpen = useDiceTrayStore((state) => state.isOpen);
+  const toggleDiceTray = useDiceTrayStore((state) => state.toggleOpen);
 
   const handleNew = async () => {
     if (
@@ -98,53 +102,37 @@ export default function Header() {
           />
           <div className="flex flex-col">
             <div className="flex items-baseline gap-1.5">
-              <span className="text-xl">SGM</span>
-              <span
-                className={`text-xs font-medium tracking-wider transition-colors duration-500 ${
-                  autoSaveStatus === 'success'
-                    ? 'text-green-500'
-                    : 'text-[#a8a8b3]'
-                }`}
-              >
-                v7.0
+              <span className="text-xl tracking-wider text-white">SGM</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#8257e5]/20 text-[#8257e5] border border-[#8257e5]/30">
+                PRO
               </span>
             </div>
-            <span
-              className={`text-[0.60rem] font-semibold uppercase tracking-wider leading-none mt-0.5 transition-colors duration-500 ${
-                autoSaveStatus === 'success'
-                  ? 'text-green-600'
-                  : 'text-[#7a7a80]'
-              }`}
-            >
-              Sistema Gerenciador de Mesas
+            <span className="text-[9px] text-[#a8a8b3] tracking-tight -mt-0.5 font-normal">
+              Gerenciador de Mesas
             </span>
           </div>
         </div>
 
+        {/* Arquivo Dropdown Menu */}
         <DropdownMenu>
-          <DropdownMenuTrigger className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input h-9 px-4 py-2 bg-transparent border-none font-bold text-[#e1e1e6] hover:bg-white/5 hover:text-white">
-            <FileText className="w-4 h-4 mr-2" />
-            Arquivo
-            <ChevronDown className="w-4 h-4 ml-1" />
+          <DropdownMenuTrigger
+            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-transparent text-[#e1e1e6] hover:bg-white/5 hover:text-white h-9 px-3 py-2 border-[#323238]"
+          >
+            <FolderOpen className="w-4 h-4 mr-2 text-[#8257e5]" /> Arquivo{' '}
+            <ChevronDown className="w-3 h-3 ml-1 opacity-70" />
           </DropdownMenuTrigger>
           <DropdownMenuContent className="bg-[#202024] border-[#323238] text-[#e1e1e6]">
             <DropdownMenuItem
               onClick={handleNew}
-              className="cursor-pointer hover:bg-[#8257e5] hover:text-white focus:bg-[#8257e5] focus:text-white flex items-center justify-between"
-              title="Cria uma nova mesa em branco (ou use Ctrl+Shift+R para Hard Reset)"
+              className="cursor-pointer hover:bg-[#8257e5] hover:text-white focus:bg-[#8257e5] focus:text-white"
             >
-              <div className="flex items-center">
-                <FilePlus2 className="w-4 h-4 mr-2" /> Novo
-              </div>
-              <span className="text-[10px] text-[#7c7c8a] ml-4 font-mono">
-                Ctrl+Shift+R
-              </span>
+              <FilePlus2 className="w-4 h-4 mr-2" /> Novo Mapa
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={handleLoad}
               className="cursor-pointer hover:bg-[#8257e5] hover:text-white focus:bg-[#8257e5] focus:text-white"
             >
-              <FolderOpen className="w-4 h-4 mr-2" /> Carregar Salvamento
+              <FolderOpen className="w-4 h-4 mr-2" /> Carregar
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={handleSave}
@@ -248,24 +236,15 @@ export default function Header() {
           <DialogContent className="bg-[#202024] border-[#323238] text-[#e1e1e6] sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle className="text-[#ffd700] text-xl font-bold flex items-center gap-2">
-                <Swords className="w-6 h-6" /> GM Tool v6.6
+                <HelpCircle className="w-6 h-6 text-[#ffd700]" /> Guia Rápido
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 text-sm mt-2">
-              <p>
-                O GM Tool é uma plataforma de gerenciamento de mesas de RPG
-                projetada para fluidez e imersão.
-              </p>
-
+            <div className="space-y-4 text-sm mt-2 max-h-[60vh] overflow-y-auto pr-2">
               <div className="space-y-2">
                 <h4 className="font-bold text-[#8257e5] uppercase text-xs">
-                  Como Começar
+                  Primeiros Passos
                 </h4>
                 <ul className="list-disc pl-5 text-[#a8a8b3] space-y-1">
-                  <li>
-                    Use o menu <strong>Arquivo</strong> para importar um mapa ou
-                    salvar o estado atual.
-                  </li>
                   <li>
                     Clique em <strong>Criar Token</strong> para criar um
                     personagem ou ameaça, e em <strong>Gerenciar Fichas</strong>{' '}
@@ -331,6 +310,21 @@ export default function Header() {
             </Button>
           )}
         </div>
+
+        {/* Botão de Atalho Rápido para Bandeja de Dados */}
+        <Button
+          onClick={toggleDiceTray}
+          variant="outline"
+          className={`font-bold transition-all border ${
+            isDiceTrayOpen
+              ? 'bg-[#8257e5]/20 border-[#8257e5] text-white hover:bg-[#8257e5]/30'
+              : 'bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5'
+          }`}
+          title="Abrir/Fechar Bandeja de Dados Virtual"
+        >
+          <Dices className="w-4 h-4 mr-2 text-purple-400" />
+          Bandeja
+        </Button>
 
         <Button
           onClick={() => setIsMultiplayerModalOpen(true)}

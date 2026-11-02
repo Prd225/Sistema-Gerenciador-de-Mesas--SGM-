@@ -1,6 +1,7 @@
-import { Scroll, Tv, Eye } from 'lucide-react';
+import { Scroll, Tv, Eye, Dices } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePlayerHandoutsStore } from '@/store/usePlayerHandoutsStore';
+import { useDiceTrayStore } from '@/store/useDiceTrayStore';
 
 export default function PlayerToolbar() {
   const sharedHandouts = usePlayerHandoutsStore((state) => state.sharedHandouts);
@@ -10,6 +11,12 @@ export default function PlayerToolbar() {
   const isProjectionOpen = usePlayerHandoutsStore((state) => state.isProjectionOpen);
   const setIsProjectionOpen = usePlayerHandoutsStore((state) => state.setIsProjectionOpen);
   const unreadCount = usePlayerHandoutsStore((state) => state.unreadCount);
+
+  // Bandeja de Dados do Jogador
+  const isDiceTrayOpen = useDiceTrayStore((state) => state.isOpen);
+  const isDiceTrayMinimized = useDiceTrayStore((state) => state.isMinimized);
+  const toggleDiceTray = useDiceTrayStore((state) => state.toggleOpen);
+  const diceCount = useDiceTrayStore((state) => state.dice.length);
 
   return (
     <div className="fixed right-[calc(1.25rem+env(safe-area-inset-right,0px))] bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] z-30 flex flex-col items-end gap-2 pointer-events-none select-none">
@@ -38,6 +45,29 @@ export default function PlayerToolbar() {
 
       {/* Toolbar Principal do Jogador */}
       <div className="flex items-center gap-1.5 bg-[#202024]/95 p-1.5 rounded-xl border border-[#323238] shadow-[0_4px_15px_rgba(0,0,0,0.5)] pointer-events-auto">
+        {/* Botão da Bandeja de Dados */}
+        <div className="relative">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={toggleDiceTray}
+            className={`w-11 h-11 sm:w-10 sm:h-10 rounded-lg transition-all active:scale-95 ${
+              isDiceTrayOpen && !isDiceTrayMinimized
+                ? 'bg-[#8257e5] text-white border-[#8257e5] hover:bg-[#9466ff]'
+                : 'bg-transparent text-[#a8a8b3] border-transparent hover:bg-white/10 hover:text-white'
+            }`}
+            title="Bandeja de Dados Virtual"
+          >
+            <Dices className="w-5 h-5 text-purple-400" />
+          </Button>
+
+          {diceCount > 0 && (
+            <span className="absolute -top-1 -right-1 px-1.5 py-0.2 min-w-4 h-4 rounded-full bg-[#8257e5] text-white text-[10px] font-black flex items-center justify-center shadow-md pointer-events-none">
+              {diceCount}
+            </span>
+          )}
+        </div>
+
         {/* Botão de Handouts / Acervo Compartilhado */}
         <div className="relative">
           <Button

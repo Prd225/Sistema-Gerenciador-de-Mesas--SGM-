@@ -16,6 +16,8 @@ import MapToolbar from '../toolbar/MapToolbar';
 import MasterPanelTrigger from '../master-panel/MasterPanelTrigger';
 import MasterPanelOverlay from '../master-panel/MasterPanelOverlay';
 import SoundpadEngine from '../master-panel/soundpad/SoundpadEngine';
+import DiceTrayWindow from '../dice-tray/DiceTrayWindow';
+import DiceTrayOverlayNotification from '../dice-tray/DiceTrayOverlayNotification';
 import ErrorBoundary from '../common/ErrorBoundary';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { useEffect } from 'react';
@@ -289,6 +291,16 @@ export default function AppLayout({
       {/* Painel do Mestre */}
       <MasterPanelTrigger />
       <MasterPanelOverlay />
+
+      {/* Bandeja de Dados Virtual Flutuante / Minimizável */}
+      <ErrorBoundary fallback={null} silent>
+        <DiceTrayWindow />
+      </ErrorBoundary>
+
+      {/* Alerta de Rolagens no Canvas */}
+      <ErrorBoundary fallback={null} silent>
+        <DiceTrayOverlayNotification />
+      </ErrorBoundary>
 
       {/* Motor de Áudio em Background protegido por ErrorBoundary */}
       <ErrorBoundary fallback={null} silent>

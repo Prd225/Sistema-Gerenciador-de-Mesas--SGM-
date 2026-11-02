@@ -56,6 +56,24 @@ export interface RoomPing {
 }
 
 // ---------------------------------------------------------------------------
+// Rolagens de Dados (Bandeja Virtual)
+// ---------------------------------------------------------------------------
+
+export interface DiceRollPayload {
+  id: string;
+  senderName: string;
+  senderRole: 'gm' | 'player';
+  visibility: 'public' | 'gm' | 'self';
+  formula: string;
+  dice: Array<{ id: string; faces: number; value: number; color?: string }>;
+  modifier: number;
+  total: number;
+  outcomeTier: 'crit' | 'extreme' | 'success' | 'fail' | 'fumble' | 'neutral';
+  outcomeLabel: string;
+  timestamp: number;
+}
+
+// ---------------------------------------------------------------------------
 // Visão do jogador
 //
 // O jogador só enxerga o mapa: imagens de fundo, tokens (sem ficha), a fila
@@ -232,6 +250,9 @@ export interface ClientToServerEvents {
 
   // Fog of War (Névoa de Guerra - somente mestre)
   'fog:update': (payload: FogState) => void;
+
+  // Rolagens de Dados (Bandeja Virtual)
+  'dice:roll': (payload: DiceRollPayload) => void;
 }
 
 export interface ServerToClientEvents {
@@ -284,4 +305,7 @@ export interface ServerToClientEvents {
   // Handouts & Projeção
   'handout:shared-updated': (payload: { handouts: PlayerHandoutView[] }) => void;
   'projection:updated': (payload: ProjectionPayload) => void;
+
+  // Rolagens de Dados (Bandeja Virtual)
+  'dice:rolled': (payload: DiceRollPayload) => void;
 }
