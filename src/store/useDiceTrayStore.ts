@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { generateId } from '@/lib/uuid';
 import { diceAudio } from '@/lib/diceAudio';
 import { socket } from '@/lib/socket';
+import { useMultiplayerStore } from './useMultiplayerStore';
 
 export type DieFaceCount = 4 | 6 | 8 | 10 | 12 | 20 | 100;
 
@@ -100,7 +101,7 @@ export interface DiceTrayState {
   incrementDie: (dieId: string) => void;
   decrementDie: (dieId: string) => void;
   setDieValue: (dieId: string, val: number) => void;
-  updateDiePosition: (dieId: string, x: number, y: number) => void;
+  updateDiePosition: (dieId: string, x: number, y: number, rotation?: number) => void;
 
   // Regras
   setRules: (rules: Partial<DiceTrayRules>) => void;
@@ -203,16 +204,16 @@ function getRandomTrayPosition(existingCount: number): { x: number; y: number; r
   const row = Math.floor(existingCount / cols);
   const col = existingCount % cols;
 
-  const baseX = 15 + col * 22;
-  const baseY = 20 + (row % 3) * 28;
+  const baseX = 18 + col * 20;
+  const baseY = 22 + (row % 3) * 26;
 
-  const jitterX = (Math.random() - 0.5) * 10;
-  const jitterY = (Math.random() - 0.5) * 10;
-  const rotation = Math.round((Math.random() - 0.5) * 40);
+  const jitterX = (Math.random() - 0.5) * 8;
+  const jitterY = (Math.random() - 0.5) * 8;
+  const rotation = Math.round((Math.random() - 0.5) * 24);
 
   return {
-    x: Math.max(10, Math.min(85, baseX + jitterX)),
-    y: Math.max(15, Math.min(80, baseY + jitterY)),
+    x: Math.max(14, Math.min(84, baseX + jitterX)),
+    y: Math.max(18, Math.min(78, baseY + jitterY)),
     rotation,
   };
 }
@@ -286,11 +287,14 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
       rules: { ...state.rules, ...partialRules },
     })),
 
-  // Adicionar Dado na Bandeja
+  // Adicionar Dado na Bandeja (com som táctil de dado caindo no feltro)
   addDie: (faces, color) => {
     const { dice, modifier, undoStack } = get();
     const newSnapshot = takeSnapshot(dice, modifier);
     const pos = getRandomTrayPosition(dice.length);
+
+    // Reproduz efeito sonoro realista de dado caindo no feltro
+    diceAudio.playDieDrop();
 
     const newDie: TrayDie = {
       id: generateId(),
@@ -301,7 +305,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
       color: color || DIE_COLORS[faces] || '#8257e5',
       x: pos.x,
       y: pos.y,
-      rotation: pos.rotation,
+      rotation: 0, // Inicia retinho
     };
 
     set({
@@ -322,10 +326,19 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
     });
   },
 
-  // Atualizar posição do dado (Arrastar e reposicionar na bandeja)
-  updateDiePosition: (dieId, x, y) => {
+  // Atualizar posição e rotação do dado (arrasto livre e alinhamento)
+  updateDiePosition: (dieId, x, y, rotation) => {
     set((state) => ({
-      dice: state.dice.map((d) => (d.id === dieId ? { ...d, x, y } : d)),
+      dice: state.dice.map((d) =>
+        d.id === dieId
+          ? {
+              ...d,
+              x,
+              y,
+              rotation: rotation !== undefined ? rotation : d.rotation,
+            }
+          : d,
+      ),
     }));
   },
 
@@ -410,89 +423,187 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
     });
   },
 
-  // ROLAGEM PRINCIPAL COM ANIMAÇÃO DE FACES DESCRECENTE E SOM
-  rollDice: (senderName = 'Eu', senderRole = 'gm') => {
+  // ROLAGEM PRINCIPAL COM FÍSICA REALISTA, RICOHETE NOS CANTOS E GIRO COMPLETO
+  rollDice: (senderName, senderRole) => {
     const { dice, modifier, rules, visibility, undoStack, history } = get();
     if (dice.length === 0 || get().isRolling) return;
+
+    // Identificação precisa do usuário (Jogador real ou Mestre)
+    let realSenderName = senderName;
+    let realSenderRole = senderRole;
+    if (!realSenderName || realSenderName === 'Eu') {
+      const mpState = useMultiplayerStore.getState();
+      realSenderName = mpState.userName?.trim()
+        ? mpState.userName.trim()
+        : mpState.role === 'player'
+        ? 'Jogador'
+        : 'Mestre';
+      realSenderRole = mpState.role === 'player' ? 'player' : 'gm';
+    }
 
     // Guarda snapshot de undo (limite de 5)
     const newSnapshot = takeSnapshot(dice, modifier);
     const newUndo = [newSnapshot, ...undoStack].slice(0, 5);
 
-    // Efeito sonoro procedural de dados rolando
+    // Barulhão progressivo de dados rolando
     diceAudio.playRoll(dice.length);
 
-    // Define valores finais para cada dado
+    // Valores finais sorteados
     const finalValues = dice.map((d) => Math.floor(Math.random() * d.faces) + 1);
 
-    // Coloca todos os dados em estado de rolagem com posições espalhadas organicamente
+    // Inicialização da física individualizada para cada dado:
+    // Velocidades aleatórias, giros de 360° a 1080° e tempos de parada escalonados
+    const physics = dice.map((d, i) => {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 28 + Math.random() * 26; // 28..54 % por segundo
+      const spinDirection = Math.random() > 0.5 ? 1 : -1;
+      // Rotação completa vigorosa (720 a 1440 graus por segundo)
+      const rotSpeed = spinDirection * (720 + Math.random() * 720);
+      // Duração escalonada: cada dado para em momento diferente!
+      const duration = 900 + i * 160 + Math.random() * 120; // 900ms a 1600ms
+
+      return {
+        id: d.id,
+        x: d.x,
+        y: d.y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        rotation: d.rotation,
+        rotSpeed,
+        duration,
+        settled: false,
+        lastFaceSwap: 0,
+        faceInterval: 35,
+      };
+    });
+
     set({
       isRolling: true,
       undoStack: newUndo,
       redoStack: [],
-      dice: dice.map((d, i) => {
-        const pos = getRandomTrayPosition(i);
-        return {
-          ...d,
-          isRolling: true,
-          x: pos.x,
-          y: pos.y,
-          rotation: pos.rotation,
-        };
-      }),
+      dice: dice.map((d) => ({ ...d, isRolling: true })),
     });
 
-    // Animação de rotação decrescente de faces (tumble)
-    // Começa girando super rápido (a cada 40ms) e vai desacelerando progressivamente
-    let elapsed = 0;
-    const totalDuration = 1200; // 1.2 segundos de rolagem rica e fluida
-    let intervalTime = 45;
+    const startTime = performance.now();
+    let lastFrameTime = startTime;
 
-    const tumbleInterval = () => {
-      elapsed += intervalTime;
+    const tick = (now: number) => {
+      const dt = Math.min(45, now - lastFrameTime);
+      lastFrameTime = now;
+      const elapsed = now - startTime;
 
-      // Desaceleração gradual (easing out)
-      if (elapsed > 400) intervalTime = 70;
-      if (elapsed > 750) intervalTime = 110;
-      if (elapsed > 980) intervalTime = 160;
+      let anyActive = false;
 
-      if (elapsed < totalDuration) {
-        // Atualiza faces aleatórias temporárias durante o giro
-        set((state) => ({
-          dice: state.dice.map((d) => ({
+      const nextDice = get().dice.map((d, idx) => {
+        const p = physics[idx];
+        if (!p) return d;
+
+        if (elapsed < p.duration) {
+          anyActive = true;
+          let nx = p.x + p.vx * (dt / 1000);
+          let ny = p.y + p.vy * (dt / 1000);
+
+          // Ricochete nos cantos e bordas da bandeja
+          const minX = 14;
+          const maxX = 86;
+          const minY = 16;
+          const maxY = 84;
+
+          if (nx <= minX) {
+            nx = minX;
+            p.vx = -p.vx * 0.72;
+            diceAudio.playBounce();
+          } else if (nx >= maxX) {
+            nx = maxX;
+            p.vx = -p.vx * 0.72;
+            diceAudio.playBounce();
+          }
+
+          if (ny <= minY) {
+            ny = minY;
+            p.vy = -p.vy * 0.72;
+            diceAudio.playBounce();
+          } else if (ny >= maxY) {
+            ny = maxY;
+            p.vy = -p.vy * 0.72;
+            diceAudio.playBounce();
+          }
+
+          // Atrito e desaceleração gradual no feltro
+          p.vx *= 0.982;
+          p.vy *= 0.982;
+          p.rotSpeed *= 0.980;
+
+          // Rotação completa
+          p.rotation += p.rotSpeed * (dt / 1000);
+          p.x = nx;
+          p.y = ny;
+
+          // Troca de faces desacelerando progressivamente
+          let newFace = d.animatedFace;
+          const progress = elapsed / p.duration;
+          p.faceInterval = 35 + Math.pow(progress, 2) * 140; // 35ms -> 175ms
+
+          if (now - p.lastFaceSwap > p.faceInterval) {
+            newFace = Math.floor(Math.random() * d.faces) + 1;
+            p.lastFaceSwap = now;
+          }
+
+          return {
             ...d,
-            animatedFace: Math.floor(Math.random() * d.faces) + 1,
-            rotation: d.rotation + (Math.random() - 0.5) * 15,
-          })),
-        }));
-        setTimeout(tumbleInterval, intervalTime);
+            x: Math.round(nx * 10) / 10,
+            y: Math.round(ny * 10) / 10,
+            rotation: Math.round(p.rotation * 10) / 10,
+            animatedFace: newFace,
+            isRolling: true,
+          };
+        } else {
+          // Dado assentado no resultado final
+          return {
+            ...d,
+            x: Math.round(p.x * 10) / 10,
+            y: Math.round(p.y * 10) / 10,
+            rotation: 0, // Fica perfeitamente retinho após rolar
+            currentValue: finalValues[idx],
+            animatedFace: finalValues[idx],
+            isRolling: false,
+          };
+        }
+      });
+
+      set({ dice: nextDice });
+
+      if (anyActive) {
+        requestAnimationFrame(tick);
       } else {
-        // FINAL DA ANIMAÇÃO: Pousa nos valores finais decididos
+        // TODOS OS DADOS ASSENTARAM
         const settledDice = get().dice.map((d, idx) => ({
           ...d,
           currentValue: finalValues[idx],
           animatedFace: finalValues[idx],
+          rotation: 0, // Alinhado reto e nítido
           isRolling: false,
         }));
 
         const evaluated = evaluateOutcome(settledDice, modifier, rules);
 
-        // Toca som de crítico ou fumble se aplicável
         if (evaluated.outcomeTier === 'crit') {
           diceAudio.playCrit();
         } else if (evaluated.outcomeTier === 'fumble') {
           diceAudio.playFumble();
         }
 
-        const breakdown = settledDice.map((d) => `${d.currentValue}`).join(' + ') +
+        const breakdown =
+          settledDice.map((d) => `${d.currentValue}`).join(' + ') +
           (modifier !== 0 ? ` + ${modifier}` : '');
-        const formula = settledDice.map((d) => `d${d.faces}`).join(' + ') +
+        const formula =
+          settledDice.map((d) => `d${d.faces}`).join(' + ') +
           (modifier !== 0 ? ` + (${modifier})` : '');
 
         const newEntry: DiceRollEntry = {
           id: generateId(),
-          senderName,
-          senderRole,
+          senderName: realSenderName,
+          senderRole: realSenderRole || 'gm',
           visibility,
           formula,
           dice: settledDice.map((d) => ({
@@ -524,14 +635,13 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
           activeNotification: newEntry,
         });
 
-        // Broadcast via Socket se multiplayer estiver ativo
         if (socket && socket.connected) {
           socket.emit('dice:roll' as any, newEntry);
         }
       }
     };
 
-    setTimeout(tumbleInterval, intervalTime);
+    requestAnimationFrame(tick);
   },
 
   // Desfazer (Undo - limite 5)
@@ -592,4 +702,3 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
     }));
   },
 }));
-

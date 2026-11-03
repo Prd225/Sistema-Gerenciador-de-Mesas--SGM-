@@ -84,11 +84,10 @@ export default function Header() {
       {/* Logo & File Menu */}
       <div className="flex items-center gap-4">
         <div
-          className={`font-bold flex items-center gap-2 transition-colors duration-500 ${
-            autoSaveStatus === 'success'
+          className={`font-bold flex items-center gap-2 transition-colors duration-500 ${autoSaveStatus === 'success'
               ? 'text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.5)]'
               : 'text-[#ffd700]'
-          }`}
+            }`}
           title={
             autoSaveStatus === 'saving'
               ? 'Salvando...'
@@ -315,11 +314,10 @@ export default function Header() {
         <Button
           onClick={toggleDiceTray}
           variant="outline"
-          className={`font-bold transition-all border ${
-            isDiceTrayOpen
+          className={`font-bold transition-all border ${isDiceTrayOpen
               ? 'bg-[#8257e5]/20 border-[#8257e5] text-white hover:bg-[#8257e5]/30'
               : 'bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5'
-          }`}
+            }`}
           title="Abrir/Fechar Bandeja de Dados Virtual"
         >
           <Dices className="w-4 h-4 mr-2 text-purple-400" />
@@ -329,18 +327,16 @@ export default function Header() {
         <Button
           onClick={() => setIsMultiplayerModalOpen(true)}
           variant="outline"
-          className={`font-bold transition-all border ${
-            isMultiplayerConnected
+          className={`font-bold transition-all border ${isMultiplayerConnected
               ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/25 hover:text-emerald-400'
               : 'bg-transparent border-[#323238] text-[#e1e1e6] hover:bg-white/5'
-          }`}
+            }`}
         >
           <Radio
-            className={`w-4 h-4 mr-2 ${
-              isMultiplayerConnected
+            className={`w-4 h-4 mr-2 ${isMultiplayerConnected
                 ? 'text-emerald-400 animate-pulse'
                 : 'text-[#8257e5]'
-            }`}
+              }`}
           />
           {isMultiplayerConnected ? (
             <span className="flex items-center gap-1.5">

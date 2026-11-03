@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { useDiceTrayStore } from '@/store/useDiceTrayStore';
+import { useMultiplayerStore } from '@/store/useMultiplayerStore';
 import AnimatedDiceCard from './AnimatedDiceCard';
 import { Dices, RotateCcw } from 'lucide-react';
 
@@ -9,6 +10,18 @@ export default function DiceTrayCanvas() {
   const isRolling = useDiceTrayStore((state) => state.isRolling);
   const lastRollResult = useDiceTrayStore((state) => state.lastRollResult);
   const rollDice = useDiceTrayStore((state) => state.rollDice);
+
+  const userName = useMultiplayerStore((state) => state.userName);
+  const role = useMultiplayerStore((state) => state.role);
+
+  const handleRollAgain = () => {
+    const sender = userName?.trim()
+      ? userName.trim()
+      : role === 'player'
+      ? 'Jogador'
+      : 'Mestre';
+    rollDice(sender, role || 'gm');
+  };
 
   return (
     <div
@@ -102,7 +115,7 @@ export default function DiceTrayCanvas() {
             <button
               type="button"
               disabled={isRolling || dice.length === 0}
-              onClick={() => rollDice()}
+              onClick={handleRollAgain}
               className="p-2 rounded-lg bg-[#8257e5] hover:bg-[#9466ff] disabled:opacity-50 text-white transition-all active:scale-95 shadow-md"
               title="Rolar novamente"
             >

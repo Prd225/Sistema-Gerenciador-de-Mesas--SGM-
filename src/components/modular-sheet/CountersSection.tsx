@@ -284,11 +284,10 @@ export const CountersSection: React.FC<CountersSectionProps> = ({
                     handleSegmentClick(counterKey, idx, item.current)
                   }
                   title={`${item.label}: ${idx + 1}/${item.max}`}
-                  className={`w-6 h-6 rounded-full border-2 transition-all cursor-pointer ${
-                    isFilled
+                  className={`w-6 h-6 rounded-full border-2 transition-all cursor-pointer ${isFilled
                       ? `${palette.fill} ${palette.border} scale-100`
                       : 'bg-zinc-950 border-zinc-700 hover:border-zinc-500 scale-95'
-                  }`}
+                    }`}
                 />
               );
             })}
@@ -333,11 +332,10 @@ export const CountersSection: React.FC<CountersSectionProps> = ({
                   handleSegmentClick(counterKey, idx, item.current)
                 }
                 title={`${item.label}: ${idx + 1}/${item.max}`}
-                className={`flex-1 transition-all cursor-pointer ${
-                  isFilled
+                className={`flex-1 transition-all cursor-pointer ${isFilled
                     ? palette.fill
                     : 'bg-transparent hover:bg-white/10'
-                }`}
+                  }`}
               />
             );
           })}

@@ -2,6 +2,7 @@ import {
   useDiceTrayStore,
   type DieFaceCount,
 } from '@/store/useDiceTrayStore';
+import { useMultiplayerStore } from '@/store/useMultiplayerStore';
 import {
   Dices,
   Plus,
@@ -18,14 +19,14 @@ import {
   BellOff,
 } from 'lucide-react';
 
-const DIE_LIST: { faces: DieFaceCount; label: string; color: string }[] = [
-  { faces: 4, label: 'd4', color: '#f59e0b' },
-  { faces: 6, label: 'd6', color: '#0284c7' },
-  { faces: 8, label: 'd8', color: '#10b981' },
-  { faces: 10, label: 'd10', color: '#8257e5' },
-  { faces: 12, label: 'd12', color: '#e11d48' },
-  { faces: 20, label: 'd20', color: '#ffd700' },
-  { faces: 100, label: 'd100', color: '#ec4899' },
+const DIE_LIST: { faces: DieFaceCount; label: string; color: string; shapeHint: string }[] = [
+  { faces: 4, label: 'd4', color: '#f59e0b', shapeHint: '▲ Pirâmide' },
+  { faces: 6, label: 'd6', color: '#0284c7', shapeHint: '■ Cubo' },
+  { faces: 8, label: 'd8', color: '#10b981', shapeHint: '◆ Diamante' },
+  { faces: 10, label: 'd10', color: '#8257e5', shapeHint: '⬟ Pipa' },
+  { faces: 12, label: 'd12', color: '#e11d48', shapeHint: '⬠ Pentágono' },
+  { faces: 20, label: 'd20', color: '#ffd700', shapeHint: '⬡ Icosaedro' },
+  { faces: 100, label: 'd100', color: '#ec4899', shapeHint: '⬟ Porcentil' },
 ];
 
 export default function DiceTrayToolbar() {
@@ -35,6 +36,9 @@ export default function DiceTrayToolbar() {
   const setModifier = useDiceTrayStore((state) => state.setModifier);
   const isRolling = useDiceTrayStore((state) => state.isRolling);
   const rollDice = useDiceTrayStore((state) => state.rollDice);
+
+  const userName = useMultiplayerStore((state) => state.userName);
+  const role = useMultiplayerStore((state) => state.role);
 
   const visibility = useDiceTrayStore((state) => state.visibility);
   const setVisibility = useDiceTrayStore((state) => state.setVisibility);
@@ -55,6 +59,15 @@ export default function DiceTrayToolbar() {
     return acc;
   }, {} as Record<number, number>);
 
+  const handleRoll = () => {
+    const sender = userName?.trim()
+      ? userName.trim()
+      : role === 'player'
+      ? 'Jogador'
+      : 'Mestre';
+    rollDice(sender, role || 'gm');
+  };
+
   return (
     <div className="w-56 shrink-0 flex flex-col gap-3 p-3 bg-[#18181b]/90 border-r border-[#27272a] text-sm select-none overflow-y-auto">
       {/* Botões de Seleção de Dados */}
@@ -71,16 +84,19 @@ export default function DiceTrayToolbar() {
                 type="button"
                 onClick={() => addDie(die.faces, die.color)}
                 disabled={isRolling}
+                title={`Adicionar ${die.label} (${die.shapeHint})`}
                 className="group relative flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-[#27272a] bg-[#202024]/60 hover:bg-[#27272a] hover:border-[#3f3f46] active:scale-95 transition-all text-left"
               >
                 <div className="flex items-center gap-1.5">
                   <span
-                    className="w-2.5 h-2.5 rounded-full"
+                    className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm"
                     style={{ backgroundColor: die.color }}
                   />
-                  <span className="font-mono font-bold text-xs text-[#e4e4e7]">
-                    {die.label}
-                  </span>
+                  <div className="flex flex-col">
+                    <span className="font-mono font-bold text-xs text-[#e4e4e7] leading-none">
+                      {die.label}
+                    </span>
+                  </div>
                 </div>
                 {count > 0 && (
                   <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[#323238] text-[#a1a1aa] font-semibold">
@@ -137,7 +153,7 @@ export default function DiceTrayToolbar() {
       {/* Botão Principal de Rolar */}
       <button
         type="button"
-        onClick={() => rollDice()}
+        onClick={handleRoll}
         disabled={isRolling || dice.length === 0}
         className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#8257e5] hover:bg-[#9466ff] disabled:opacity-40 text-white font-bold text-sm tracking-wide shadow-md active:scale-95 transition-all"
       >

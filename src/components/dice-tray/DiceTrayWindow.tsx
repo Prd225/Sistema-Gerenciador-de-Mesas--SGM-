@@ -1,13 +1,15 @@
 import React, { useState, useRef } from 'react';
 import { useDiceTrayStore } from '@/store/useDiceTrayStore';
+import { useMultiplayerStore } from '@/store/useMultiplayerStore';
 import DiceTrayToolbar from './DiceTrayToolbar';
 import DiceTrayCanvas from './DiceTrayCanvas';
 import DiceTrayHistory from './DiceTrayHistory';
 import DiceTrayRulesConfig from './DiceTrayRulesConfig';
 import {
   Dices,
-  Minimize2,
+  Minus,
   Maximize2,
+  Minimize2,
   X,
   History,
   Sliders,
@@ -27,28 +29,44 @@ export default function DiceTrayWindow() {
   const rollDice = useDiceTrayStore((state) => state.rollDice);
   const lastRollResult = useDiceTrayStore((state) => state.lastRollResult);
 
+  const userName = useMultiplayerStore((state) => state.userName);
+  const role = useMultiplayerStore((state) => state.role);
+
+  // Estado de tela cheia / maximizado
+  const [isMaximized, setIsMaximized] = useState(false);
+
   // Posição flutuante arrastável da janela
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const windowRef = useRef<HTMLDivElement | null>(null);
 
   if (!isOpen) return null;
 
-  // Barra Minimizada Flutuante
+  const handleRollAgain = () => {
+    const sender = userName?.trim()
+      ? userName.trim()
+      : role === 'player'
+      ? 'Jogador'
+      : 'Mestre';
+    rollDice(sender, role || 'gm');
+  };
+
+  // Barra Minimizada Flutuante (Doca na parte inferior direita com z-index alto)
   if (isMinimized) {
     return (
-      <div className="fixed bottom-5 right-20 z-40 flex items-center gap-2 p-2 rounded-2xl bg-[#18181b]/95 border border-[#323238] shadow-2xl backdrop-blur-md select-none animate-in fade-in slide-in-from-bottom-2 duration-150">
+      <div className="fixed bottom-5 right-24 z-[170] flex items-center gap-2 p-2 rounded-2xl bg-[#18181b]/98 border border-[#3f3f46] shadow-[0_12px_35px_rgba(0,0,0,0.8)] backdrop-blur-md select-none animate-in fade-in slide-in-from-bottom-2 duration-150">
         <button
           type="button"
           onClick={() => setIsMinimized(false)}
           className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#202024] hover:bg-[#27272a] text-white text-xs font-bold transition-all active:scale-95"
+          title="Restaurar Bandeja de Dados"
         >
           <Dices className="w-4 h-4 text-[#8257e5]" />
           <span>Bandeja ({dice.length})</span>
         </button>
 
         {lastRollResult && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#202024]/60 border border-[#27272a] text-xs">
-            <span className="text-[#a1a1aa] font-mono text-[11px] truncate max-w-[80px]">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#202024]/80 border border-[#27272a] text-xs">
+            <span className="text-[#a1a1aa] font-mono text-[11px] truncate max-w-[90px]">
               {lastRollResult.formula}
             </span>
             <span className="text-white font-mono font-black text-sm">
@@ -60,8 +78,8 @@ export default function DiceTrayWindow() {
         <button
           type="button"
           disabled={isRolling || dice.length === 0}
-          onClick={() => rollDice()}
-          className="p-1.5 rounded-xl bg-[#8257e5] hover:bg-[#9466ff] disabled:opacity-40 text-white transition-all active:scale-95"
+          onClick={handleRollAgain}
+          className="p-1.5 rounded-xl bg-[#8257e5] hover:bg-[#9466ff] disabled:opacity-40 text-white transition-all active:scale-95 shadow"
           title="Rolar novamente"
         >
           <RotateCcw className={`w-3.5 h-3.5 ${isRolling ? 'animate-spin' : ''}`} />
@@ -71,7 +89,7 @@ export default function DiceTrayWindow() {
           type="button"
           onClick={() => setIsMinimized(false)}
           className="p-1.5 rounded-xl text-[#a1a1aa] hover:text-white hover:bg-white/10 transition-colors"
-          title="Maximizar janela"
+          title="Restaurar janela"
         >
           <Maximize2 className="w-3.5 h-3.5" />
         </button>
@@ -88,21 +106,23 @@ export default function DiceTrayWindow() {
     );
   }
 
-  // Header Drag Handler
+  // Header Drag Handler (apenas quando não maximizado)
   const handleHeaderPointerDown = (e: React.PointerEvent) => {
+    if (isMaximized) return;
     if ((e.target as HTMLElement).closest('button')) return;
+
     const initialMouseX = e.clientX;
     const initialMouseY = e.clientY;
 
     const currentX = position?.x ?? (window.innerWidth - 760) / 2;
-    const currentY = position?.y ?? (window.innerHeight - 560) / 2;
+    const currentY = position?.y ?? (window.innerHeight - 540) / 2;
 
     const onPointerMove = (moveEv: PointerEvent) => {
       const deltaX = moveEv.clientX - initialMouseX;
       const deltaY = moveEv.clientY - initialMouseY;
       setPosition({
-        x: Math.max(10, Math.min(window.innerWidth - 200, currentX + deltaX)),
-        y: Math.max(10, Math.min(window.innerHeight - 100, currentY + deltaY)),
+        x: Math.max(10, Math.min(window.innerWidth - 300, currentX + deltaX)),
+        y: Math.max(10, Math.min(window.innerHeight - 150, currentY + deltaY)),
       });
     };
 
@@ -115,20 +135,50 @@ export default function DiceTrayWindow() {
     window.addEventListener('pointerup', onPointerUp);
   };
 
-  const stylePosition = position
-    ? { left: `${position.x}px`, top: `${position.y}px` }
-    : { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' };
+  const stylePosition: React.CSSProperties = isMaximized
+    ? {
+        position: 'fixed',
+        left: '2vw',
+        top: '2vh',
+        width: '96vw',
+        height: '94vh',
+        transform: 'none',
+      }
+    : position
+    ? {
+        position: 'fixed',
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        width: '760px',
+        maxWidth: '95vw',
+        height: '540px',
+        maxHeight: '85vh',
+      }
+    : {
+        position: 'fixed',
+        left: '50%',
+        top: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: '760px',
+        maxWidth: '95vw',
+        height: '540px',
+        maxHeight: '85vh',
+      };
 
   return (
     <div
       ref={windowRef}
       style={stylePosition}
-      className="fixed z-[160] w-[760px] max-w-[95vw] h-[540px] max-h-[85vh] flex flex-col rounded-2xl bg-[#141417]/98 border border-[#323238] shadow-[0_12px_40px_rgba(0,0,0,0.7)] backdrop-blur-md overflow-hidden select-none animate-in fade-in zoom-in-95 duration-150"
+      className={`z-[160] flex flex-col rounded-2xl bg-[#141417]/98 border border-[#323238] shadow-[0_16px_50px_rgba(0,0,0,0.85)] backdrop-blur-md overflow-hidden select-none animate-in fade-in zoom-in-95 duration-150 transition-all ${
+        isMaximized ? 'rounded-xl' : 'rounded-2xl'
+      }`}
     >
       {/* Barra de Título / Cabeçalho da Janela */}
       <div
         onPointerDown={handleHeaderPointerDown}
-        className="flex items-center justify-between px-4 py-2.5 bg-[#18181b] border-b border-[#27272a] cursor-grab active:cursor-grabbing select-none"
+        className={`flex items-center justify-between px-4 py-2.5 bg-[#18181b] border-b border-[#27272a] select-none ${
+          isMaximized ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
+        }`}
       >
         {/* Identificação e Abas */}
         <div className="flex items-center gap-3">
@@ -152,7 +202,7 @@ export default function DiceTrayWindow() {
               <Dices className="w-3.5 h-3.5" />
               <span>Bandeja</span>
               {dice.length > 0 && (
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/30">
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/30 font-mono">
                   {dice.length}
                 </span>
               )}
@@ -186,21 +236,38 @@ export default function DiceTrayWindow() {
           </div>
         </div>
 
-        {/* Controles de Janela (Minimizar / Fechar) */}
+        {/* Controles de Janela (Minimizar, Maximizar/Restaurar, Fechar) */}
         <div className="flex items-center gap-1">
+          {/* Botão Minimizar para doca */}
           <button
             type="button"
             onClick={() => setIsMinimized(true)}
             className="p-1.5 rounded-lg text-[#a1a1aa] hover:text-white hover:bg-[#27272a] transition-all"
-            title="Minimizar janela"
+            title="Minimizar para barra"
           >
-            <Minimize2 className="w-3.5 h-3.5" />
+            <Minus className="w-3.5 h-3.5" />
           </button>
+
+          {/* Botão Maximizar / Restaurar tamanho */}
+          <button
+            type="button"
+            onClick={() => setIsMaximized(!isMaximized)}
+            className="p-1.5 rounded-lg text-[#a1a1aa] hover:text-white hover:bg-[#27272a] transition-all"
+            title={isMaximized ? 'Restaurar tamanho normal' : 'Maximizar tela'}
+          >
+            {isMaximized ? (
+              <Minimize2 className="w-3.5 h-3.5" />
+            ) : (
+              <Maximize2 className="w-3.5 h-3.5" />
+            )}
+          </button>
+
+          {/* Botão Fechar */}
           <button
             type="button"
             onClick={() => setIsOpen(false)}
             className="p-1.5 rounded-lg text-[#a1a1aa] hover:text-red-400 hover:bg-[#27272a] transition-all"
-            title="Fechar"
+            title="Fechar bandeja"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -221,4 +288,3 @@ export default function DiceTrayWindow() {
     </div>
   );
 }
-
