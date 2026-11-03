@@ -16,6 +16,8 @@ export interface TrayDie {
   color: string;
   x: number; // Porcentagem 0..100 na bandeja
   y: number; // Porcentagem 0..100 na bandeja
+  vx?: number; // Velocidade X em %/s (usado para Squash & Stretch dinâmico)
+  vy?: number; // Velocidade Y em %/s (usado para Squash & Stretch dinâmico)
   rotation: number;
   rotX?: number; // Pitch em graus (-35° a 35°)
   rotY?: number; // Yaw em graus (-35° a 35°)
@@ -317,6 +319,8 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
       color: color || DIE_COLORS[faces] || '#8257e5',
       x: pos.x,
       y: pos.y,
+      vx: 0,
+      vy: 0,
       rotation: 0,
       rotX: 0,
       rotY: 0,
@@ -350,6 +354,8 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
               ...d,
               x,
               y,
+              vx: 0,
+              vy: 0,
               rotation: rotation !== undefined ? rotation : d.rotation,
               rotX: rotX !== undefined ? rotX : 0,
               rotY: rotY !== undefined ? rotY : 0,
@@ -456,7 +462,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
     });
   },
 
-  // ROLAGEM PRINCIPAL COM FÍSICA 3D, COLISÕES MÚTUAS, QUICARES VIGOROSOS E TROCA DE FACES
+  // ROLAGEM PRINCIPAL COM FÍSICA SUAVE, SEM STUTTERING, COM SQUASH & STRETCH
   rollDice: (senderName, senderRole) => {
     const { dice, modifier, rules, visibility, undoStack, history } = get();
     if (dice.length === 0 || get().isRolling) return;
@@ -480,10 +486,10 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
 
     const finalValues = dice.map((d) => Math.floor(Math.random() * d.faces) + 1);
 
-    // Inicialização da física vigorosa (alta velocidade, rotações 3D e salto de impacto)
+    // Inicialização da física (altas velocidades, rotações 3D e saltos sem travamentos)
     const physics = dice.map((d, i) => {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 90 + Math.random() * 65; // 90..155 %/s
+      const speed = 95 + Math.random() * 60; // 95..155 %/s
       const spinDirection = Math.random() > 0.5 ? 1 : -1;
       const rotSpeed = spinDirection * (850 + Math.random() * 850);
       const duration = 1250 + i * 180 + Math.random() * 160;
@@ -498,7 +504,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
         rotSpeed,
         rotX: 0,
         rotY: 0,
-        lift: 20 + Math.random() * 8, // Salto 3D inicial
+        lift: 20 + Math.random() * 8,
         duration,
         settled: false,
         lastFaceSwap: 0,
@@ -518,7 +524,9 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
     let lastFrameTime = startTime;
 
     const tick = (now: number) => {
-      const dt = Math.min(40, now - lastFrameTime);
+      // Limitação estrita do deltaTime para evitar saltos bruscos (stuttering)
+      const rawDt = now - lastFrameTime;
+      const dt = Math.min(24, Math.max(10, rawDt));
       lastFrameTime = now;
       const elapsed = now - startTime;
 
@@ -587,7 +595,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
         p.x = nx;
         p.y = ny;
 
-        // Atrito e desaceleração progressiva
+        // Atrito e desaceleração progressiva constante
         p.vx *= 0.988;
         p.vy *= 0.988;
         p.rotSpeed *= 0.985;
@@ -598,7 +606,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
 
         // Ângulos 3D de pitch e yaw baseados no movimento
         const currentSpeed = Math.hypot(p.vx, p.vy);
-        const pitchSpeedFactor = Math.min(32, currentSpeed * 0.32);
+        const pitchSpeedFactor = Math.min(30, currentSpeed * 0.3);
         p.rotX = Math.sin(elapsed * 0.015 + idx * 2.3) * pitchSpeedFactor;
         p.rotY = Math.cos(elapsed * 0.015 + idx * 2.3) * pitchSpeedFactor;
       }
@@ -667,6 +675,8 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
             ...d,
             x: Math.round(p.x * 10) / 10,
             y: Math.round(p.y * 10) / 10,
+            vx: Math.round(p.vx * 10) / 10,
+            vy: Math.round(p.vy * 10) / 10,
             rotation: Math.round(p.rotation * 10) / 10,
             rotX: Math.round(p.rotX * 10) / 10,
             rotY: Math.round(p.rotY * 10) / 10,
@@ -680,6 +690,8 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
             ...d,
             x: Math.round(p.x * 10) / 10,
             y: Math.round(p.y * 10) / 10,
+            vx: 0,
+            vy: 0,
             rotation: 0,
             rotX: 0,
             rotY: 0,
@@ -706,6 +718,8 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
           rotX: 0,
           rotY: 0,
           lift: 0,
+          vx: 0,
+          vy: 0,
           isRolling: false,
         }));
 

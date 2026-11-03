@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, memo } from 'react';
 import { useDiceTrayStore, type TrayDie } from '@/store/useDiceTrayStore';
 import DieShapeSVG from './DieShapeSVG';
 import { Plus, Minus, X } from 'lucide-react';
@@ -8,7 +8,7 @@ interface AnimatedDiceCardProps {
   canvasRef: React.RefObject<HTMLDivElement | null>;
 }
 
-export default function AnimatedDiceCard({ die, canvasRef }: AnimatedDiceCardProps) {
+function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
   const isRolling = die.isRolling;
   const incrementDie = useDiceTrayStore((state) => state.incrementDie);
   const decrementDie = useDiceTrayStore((state) => state.decrementDie);
@@ -30,7 +30,6 @@ export default function AnimatedDiceCard({ die, canvasRef }: AnimatedDiceCardPro
 
   // Iniciar arrasto livre pelo feltro da bandeja
   const handlePointerDown = (e: React.PointerEvent) => {
-    // Evita arrastar se clicou em um botão (+, -, X)
     if ((e.target as HTMLElement).closest('button')) return;
 
     e.preventDefault();
@@ -78,43 +77,70 @@ export default function AnimatedDiceCard({ die, canvasRef }: AnimatedDiceCardPro
   const currentRotY = isDragging ? 0 : die.rotY || 0;
   const currentLift = isDragging ? 6 : die.lift || 0;
 
+  // Cálculo da Esticada Dinâmica (Squash & Stretch na direção da velocidade)
+  const speed = Math.hypot(die.vx || 0, die.vy || 0);
+  const isHighVelocity = isRolling && speed > 20;
+  const stretchFactor = isHighVelocity ? Math.min(0.24, (speed - 20) * 0.0022) : 0;
+  const velocityAngle = isHighVelocity ? Math.atan2(die.vy || 0, die.vx || 0) * (180 / Math.PI) : 0;
+
   return (
     <div
       onPointerDown={handlePointerDown}
       style={{
         left: `${die.x}%`,
         top: `${die.y}%`,
-        transform: `translate(-50%, -50%) rotate(${currentRotation}deg) scale(${isDragging ? 1.12 : 1})`,
+        transform: `translate3d(-50%, -50%, 0) rotate(${currentRotation}deg) scale(${isDragging ? 1.12 : 1})`,
+        willChange: isRolling ? 'transform, left, top' : 'auto',
+        transition: isRolling ? 'none' : isDragging ? 'transform 0.15s ease-out' : 'transform 0.2s ease-out',
       }}
-      className={`group absolute select-none cursor-grab active:cursor-grabbing transition-transform ${
-        isDragging
-          ? 'z-50 duration-150 ease-out'
-          : isRolling
-          ? 'z-20 duration-0'
-          : 'z-10 duration-200 ease-out'
+      className={`group absolute select-none cursor-grab active:cursor-grabbing ${
+        isDragging ? 'z-50' : isRolling ? 'z-20' : 'z-10'
       }`}
     >
       <div className="relative flex items-center justify-center">
-        {/* Sombra 3D projetada no feltro (reage à altura do salto e movimento) */}
+        {/* Sombra 1: Oclusão de Contato Direto com o Feltro (nítida e escura, desvanece no ar) */}
         <div
-          className="absolute pointer-events-none rounded-full bg-black/70 filter blur-[5px] transition-all"
+          className="absolute pointer-events-none rounded-full bg-black/85 filter blur-[2px]"
           style={{
-            width: '68px',
-            height: '32px',
-            bottom: '-6px',
+            width: '56px',
+            height: '24px',
+            bottom: '-4px',
             left: '50%',
-            transform: `translateX(-50%) scale(${Math.max(0.65, 1 - currentLift * 0.016)}) translateY(${currentLift * 0.4}px)`,
-            opacity: Math.max(0.2, 0.75 - currentLift * 0.018),
+            transform: `translateX(-50%) scale(${Math.max(0.4, 1 - currentLift * 0.035)})`,
+            opacity: Math.max(0, 0.85 - currentLift * 0.05),
+            transition: isRolling ? 'none' : 'all 0.2s ease-out',
           }}
         />
 
-        {/* Recipiente com perspectiva 3D e inclinação nas 3 dimensões (X, Y, Z) */}
+        {/* Sombra 2: Sombra Projetada Difusa (move com altura Z e direção da luz) */}
+        <div
+          className="absolute pointer-events-none rounded-full bg-black/55 filter blur-[8px]"
+          style={{
+            width: '78px',
+            height: '38px',
+            bottom: '-10px',
+            left: '50%',
+            transform: `translateX(calc(-50% + ${4 + currentLift * 0.3}px)) translateY(${currentLift * 0.6}px) scale(${1 + currentLift * 0.018})`,
+            opacity: Math.max(0.12, 0.65 - currentLift * 0.015),
+            transition: isRolling ? 'none' : 'all 0.2s ease-out',
+          }}
+        />
+
+        {/* Recipiente com Esticada Dinâmica (Squash & Stretch) e Perspectiva 3D */}
         <div
           style={{
-            transform: `perspective(650px) rotateX(${currentRotX}deg) rotateY(${currentRotY}deg) translateZ(${currentLift}px) scale(${
-              isRolling ? 1.05 : 1
-            })`,
+            transform: `
+              rotate(${velocityAngle}deg)
+              scale(${1 + stretchFactor}, ${1 - stretchFactor * 0.45})
+              rotate(${-velocityAngle}deg)
+              perspective(650px)
+              rotateX(${currentRotX}deg)
+              rotateY(${currentRotY}deg)
+              translateZ(${currentLift}px)
+              scale(${isRolling ? 1.05 : 1})
+            `,
             transformStyle: 'preserve-3d',
+            willChange: isRolling ? 'transform' : 'auto',
             transition: isRolling ? 'none' : 'transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}
         >
@@ -182,3 +208,5 @@ export default function AnimatedDiceCard({ die, canvasRef }: AnimatedDiceCardPro
     </div>
   );
 }
+
+export default memo(AnimatedDiceCardComponent);
