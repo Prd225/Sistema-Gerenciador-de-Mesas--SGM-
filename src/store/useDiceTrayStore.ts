@@ -11,11 +11,15 @@ export interface TrayDie {
   faces: DieFaceCount;
   currentValue: number;
   animatedFace: number;
+  sideFaces: number[];
   isRolling: boolean;
   color: string;
   x: number; // Porcentagem 0..100 na bandeja
   y: number; // Porcentagem 0..100 na bandeja
   rotation: number;
+  rotX?: number; // Pitch em graus (-35° a 35°)
+  rotY?: number; // Yaw em graus (-35° a 35°)
+  lift?: number; // Altura Z simulada (0 a 30px)
 }
 
 export type RollOutcomeTier = 'crit' | 'extreme' | 'success' | 'fail' | 'fumble' | 'neutral';
@@ -101,7 +105,7 @@ export interface DiceTrayState {
   incrementDie: (dieId: string) => void;
   decrementDie: (dieId: string) => void;
   setDieValue: (dieId: string, val: number) => void;
-  updateDiePosition: (dieId: string, x: number, y: number, rotation?: number) => void;
+  updateDiePosition: (dieId: string, x: number, y: number, rotation?: number, rotX?: number, rotY?: number) => void;
 
   // Regras
   setRules: (rules: Partial<DiceTrayRules>) => void;
@@ -131,6 +135,36 @@ const DEFAULT_RULES: DiceTrayRules = {
   poolThreshold: null,
   ruleMode: 'sum',
 };
+
+// Gera números para as facetas visíveis adjacentes de cada tipo de dado
+export function generateSideFaces(faces: DieFaceCount, centerVal: number): number[] {
+  const count =
+    faces === 4
+      ? 2
+      : faces === 6
+      ? 4
+      : faces === 8
+      ? 3
+      : faces === 10 || faces === 100
+      ? 4
+      : faces === 12
+      ? 5
+      : 3;
+
+  const res: number[] = [];
+  for (let i = 0; i < count; i++) {
+    if (faces === 100) {
+      let step = Math.floor(Math.random() * 10) * 10;
+      if (step === centerVal) step = (step + 10) % 100;
+      res.push(step);
+    } else {
+      let r = Math.floor(Math.random() * faces) + 1;
+      if (r === centerVal) r = (r % faces) + 1;
+      res.push(r);
+    }
+  }
+  return res;
+}
 
 // Calcula Patamar e Rótulo do Resultado baseado nas Regras
 function evaluateOutcome(
@@ -223,56 +257,33 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
   isMinimized: false,
   activeTab: 'tray',
 
-  dice: [
-    {
-      id: generateId(),
-      faces: 20,
-      currentValue: 20,
-      animatedFace: 20,
-      isRolling: false,
-      color: DIE_COLORS[20],
-      x: 35,
-      y: 40,
-      rotation: 0,
-    },
-  ],
+  dice: [],
   modifier: 0,
   isRolling: false,
   lastRollResult: null,
 
   visibility: 'public',
-  soundEnabled:
-    typeof window !== 'undefined'
-      ? localStorage.getItem('sgm_dice_tray_sound') !== 'false'
-      : true,
-  isOverlayEnabled:
-    typeof window !== 'undefined'
-      ? localStorage.getItem('sgm_dice_tray_overlay') !== 'false'
-      : true,
+  soundEnabled: true,
+  isOverlayEnabled: true,
   activeNotification: null,
 
   rules: DEFAULT_RULES,
+
   history: [],
   undoStack: [],
   redoStack: [],
 
   setIsOpen: (isOpen) => set({ isOpen }),
-  toggleOpen: () => set((state) => ({ isOpen: !state.isOpen })),
+  toggleOpen: () => set((state) => ({ isOpen: !state.isOpen, isMinimized: false })),
   setIsMinimized: (isMinimized) => set({ isMinimized }),
   setActiveTab: (activeTab) => set({ activeTab }),
 
+  setVisibility: (visibility) => set({ visibility }),
   setSoundEnabled: (soundEnabled) => {
-    localStorage.setItem('sgm_dice_tray_sound', String(soundEnabled));
     diceAudio.setMuted(!soundEnabled);
     set({ soundEnabled });
   },
-
-  setIsOverlayEnabled: (isOverlayEnabled) => {
-    localStorage.setItem('sgm_dice_tray_overlay', String(isOverlayEnabled));
-    set({ isOverlayEnabled });
-  },
-
-  setVisibility: (visibility) => set({ visibility }),
+  setIsOverlayEnabled: (isOverlayEnabled) => set({ isOverlayEnabled }),
   dismissNotification: () => set({ activeNotification: null }),
 
   setModifier: (modifier) => {
@@ -287,25 +298,29 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
       rules: { ...state.rules, ...partialRules },
     })),
 
-  // Adicionar Dado na Bandeja (com som táctil de dado caindo no feltro)
+  // Adicionar Dado na Bandeja
   addDie: (faces, color) => {
     const { dice, modifier, undoStack } = get();
     const newSnapshot = takeSnapshot(dice, modifier);
     const pos = getRandomTrayPosition(dice.length);
 
-    // Reproduz efeito sonoro realista de dado caindo no feltro
     diceAudio.playDieDrop();
 
+    const initialVal = Math.floor(Math.random() * faces) + 1;
     const newDie: TrayDie = {
       id: generateId(),
       faces,
-      currentValue: Math.floor(Math.random() * faces) + 1,
-      animatedFace: Math.floor(Math.random() * faces) + 1,
+      currentValue: initialVal,
+      animatedFace: initialVal,
+      sideFaces: generateSideFaces(faces, initialVal),
       isRolling: false,
       color: color || DIE_COLORS[faces] || '#8257e5',
       x: pos.x,
       y: pos.y,
-      rotation: 0, // Inicia retinho
+      rotation: 0,
+      rotX: 0,
+      rotY: 0,
+      lift: 0,
     };
 
     set({
@@ -327,7 +342,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
   },
 
   // Atualizar posição e rotação do dado (arrasto livre e alinhamento)
-  updateDiePosition: (dieId, x, y, rotation) => {
+  updateDiePosition: (dieId, x, y, rotation, rotX, rotY) => {
     set((state) => ({
       dice: state.dice.map((d) =>
         d.id === dieId
@@ -336,6 +351,9 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
               x,
               y,
               rotation: rotation !== undefined ? rotation : d.rotation,
+              rotX: rotX !== undefined ? rotX : 0,
+              rotY: rotY !== undefined ? rotY : 0,
+              lift: 0,
             }
           : d,
       ),
@@ -349,7 +367,12 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
     const updatedDice = dice.map((d) => {
       if (d.id !== dieId) return d;
       const next = d.currentValue >= d.faces ? 1 : d.currentValue + 1;
-      return { ...d, currentValue: next, animatedFace: next };
+      return {
+        ...d,
+        currentValue: next,
+        animatedFace: next,
+        sideFaces: generateSideFaces(d.faces, next),
+      };
     });
 
     const evaluated = evaluateOutcome(updatedDice, modifier, rules);
@@ -376,7 +399,12 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
     const updatedDice = dice.map((d) => {
       if (d.id !== dieId) return d;
       const next = d.currentValue <= 1 ? d.faces : d.currentValue - 1;
-      return { ...d, currentValue: next, animatedFace: next };
+      return {
+        ...d,
+        currentValue: next,
+        animatedFace: next,
+        sideFaces: generateSideFaces(d.faces, next),
+      };
     });
 
     const evaluated = evaluateOutcome(updatedDice, modifier, rules);
@@ -403,7 +431,12 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
     const updatedDice = dice.map((d) => {
       if (d.id !== dieId) return d;
       const clamped = Math.max(1, Math.min(d.faces, val));
-      return { ...d, currentValue: clamped, animatedFace: clamped };
+      return {
+        ...d,
+        currentValue: clamped,
+        animatedFace: clamped,
+        sideFaces: generateSideFaces(d.faces, clamped),
+      };
     });
 
     const evaluated = evaluateOutcome(updatedDice, modifier, rules);
@@ -423,12 +456,11 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
     });
   },
 
-  // ROLAGEM PRINCIPAL COM FÍSICA REALISTA, RICOHETE NOS CANTOS E GIRO COMPLETO
+  // ROLAGEM PRINCIPAL COM FÍSICA 3D, COLISÕES MÚTUAS, QUICARES VIGOROSOS E TROCA DE FACES
   rollDice: (senderName, senderRole) => {
     const { dice, modifier, rules, visibility, undoStack, history } = get();
     if (dice.length === 0 || get().isRolling) return;
 
-    // Identificação precisa do usuário (Jogador real ou Mestre)
     let realSenderName = senderName;
     let realSenderRole = senderRole;
     if (!realSenderName || realSenderName === 'Eu') {
@@ -441,26 +473,20 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
       realSenderRole = mpState.role === 'player' ? 'player' : 'gm';
     }
 
-    // Guarda snapshot de undo (limite de 5)
     const newSnapshot = takeSnapshot(dice, modifier);
     const newUndo = [newSnapshot, ...undoStack].slice(0, 5);
 
-    // Barulhão progressivo de dados rolando
     diceAudio.playRoll(dice.length);
 
-    // Valores finais sorteados
     const finalValues = dice.map((d) => Math.floor(Math.random() * d.faces) + 1);
 
-    // Inicialização da física individualizada para cada dado:
-    // Velocidades aleatórias, giros de 360° a 1080° e tempos de parada escalonados
+    // Inicialização da física vigorosa (alta velocidade, rotações 3D e salto de impacto)
     const physics = dice.map((d, i) => {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 28 + Math.random() * 26; // 28..54 % por segundo
+      const speed = 90 + Math.random() * 65; // 90..155 %/s
       const spinDirection = Math.random() > 0.5 ? 1 : -1;
-      // Rotação completa vigorosa (720 a 1440 graus por segundo)
-      const rotSpeed = spinDirection * (720 + Math.random() * 720);
-      // Duração escalonada: cada dado para em momento diferente!
-      const duration = 900 + i * 160 + Math.random() * 120; // 900ms a 1600ms
+      const rotSpeed = spinDirection * (850 + Math.random() * 850);
+      const duration = 1250 + i * 180 + Math.random() * 160;
 
       return {
         id: d.id,
@@ -470,10 +496,14 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
         vy: Math.sin(angle) * speed,
         rotation: d.rotation,
         rotSpeed,
+        rotX: 0,
+        rotY: 0,
+        lift: 20 + Math.random() * 8, // Salto 3D inicial
         duration,
         settled: false,
         lastFaceSwap: 0,
-        faceInterval: 35,
+        faceInterval: 28,
+        sideFaces: [...d.sideFaces],
       };
     });
 
@@ -488,84 +518,175 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
     let lastFrameTime = startTime;
 
     const tick = (now: number) => {
-      const dt = Math.min(45, now - lastFrameTime);
+      const dt = Math.min(40, now - lastFrameTime);
       lastFrameTime = now;
       const elapsed = now - startTime;
 
       let anyActive = false;
 
+      // 1. Atualização de movimento e colisões com bordas da bandeja
+      for (let idx = 0; idx < physics.length; idx++) {
+        const p = physics[idx];
+        if (elapsed >= p.duration) {
+          p.settled = true;
+          continue;
+        }
+        anyActive = true;
+
+        let nx = p.x + p.vx * (dt / 1000);
+        let ny = p.y + p.vy * (dt / 1000);
+
+        const minX = 12;
+        const maxX = 88;
+        const minY = 14;
+        const maxY = 86;
+
+        let bounced = false;
+        let bounceForce = 0;
+
+        if (nx <= minX) {
+          nx = minX;
+          bounceForce = Math.abs(p.vx);
+          p.vx = -p.vx * (0.86 + Math.random() * 0.06);
+          p.vy += (Math.random() - 0.5) * 35;
+          p.rotSpeed = -p.rotSpeed * 0.75 + (Math.random() - 0.5) * 500;
+          p.lift = Math.min(26, p.lift + 12);
+          bounced = true;
+        } else if (nx >= maxX) {
+          nx = maxX;
+          bounceForce = Math.abs(p.vx);
+          p.vx = -p.vx * (0.86 + Math.random() * 0.06);
+          p.vy += (Math.random() - 0.5) * 35;
+          p.rotSpeed = -p.rotSpeed * 0.75 + (Math.random() - 0.5) * 500;
+          p.lift = Math.min(26, p.lift + 12);
+          bounced = true;
+        }
+
+        if (ny <= minY) {
+          ny = minY;
+          bounceForce = Math.max(bounceForce, Math.abs(p.vy));
+          p.vy = -p.vy * (0.86 + Math.random() * 0.06);
+          p.vx += (Math.random() - 0.5) * 35;
+          p.rotSpeed = -p.rotSpeed * 0.75 + (Math.random() - 0.5) * 500;
+          p.lift = Math.min(26, p.lift + 12);
+          bounced = true;
+        } else if (ny >= maxY) {
+          ny = maxY;
+          bounceForce = Math.max(bounceForce, Math.abs(p.vy));
+          p.vy = -p.vy * (0.86 + Math.random() * 0.06);
+          p.vx += (Math.random() - 0.5) * 35;
+          p.rotSpeed = -p.rotSpeed * 0.75 + (Math.random() - 0.5) * 500;
+          p.lift = Math.min(26, p.lift + 12);
+          bounced = true;
+        }
+
+        if (bounced) {
+          diceAudio.playBounce(bounceForce / 60);
+        }
+
+        p.x = nx;
+        p.y = ny;
+
+        // Atrito e desaceleração progressiva
+        p.vx *= 0.988;
+        p.vy *= 0.988;
+        p.rotSpeed *= 0.985;
+        p.rotation += p.rotSpeed * (dt / 1000);
+
+        // Amortecimento do salto 3D (lift)
+        p.lift = Math.max(0, p.lift * 0.94);
+
+        // Ângulos 3D de pitch e yaw baseados no movimento
+        const currentSpeed = Math.hypot(p.vx, p.vy);
+        const pitchSpeedFactor = Math.min(32, currentSpeed * 0.32);
+        p.rotX = Math.sin(elapsed * 0.015 + idx * 2.3) * pitchSpeedFactor;
+        p.rotY = Math.cos(elapsed * 0.015 + idx * 2.3) * pitchSpeedFactor;
+      }
+
+      // 2. Colisão mútua entre dados (se misturam com vigor e quicam entre si)
+      for (let i = 0; i < physics.length; i++) {
+        for (let j = i + 1; j < physics.length; j++) {
+          const p1 = physics[i];
+          const p2 = physics[j];
+          if (p1.settled && p2.settled) continue;
+
+          const dx = p2.x - p1.x;
+          const dy = p2.y - p1.y;
+          const dist = Math.hypot(dx, dy);
+          const minDist = 11.5;
+
+          if (dist < minDist && dist > 0.01) {
+            const nx = dx / dist;
+            const ny = dy / dist;
+            const overlap = (minDist - dist) * 0.5;
+
+            p1.x -= nx * overlap;
+            p1.y -= ny * overlap;
+            p2.x += nx * overlap;
+            p2.y += ny * overlap;
+
+            const kx = p1.vx - p2.vx;
+            const ky = p1.vy - p2.vy;
+            const impulse = nx * kx + ny * ky;
+
+            if (impulse > 0) {
+              p1.vx -= impulse * nx * 0.9;
+              p1.vy -= impulse * ny * 0.9;
+              p2.vx += impulse * nx * 0.9;
+              p2.vy += impulse * ny * 0.9;
+
+              p1.lift = Math.min(24, p1.lift + 8);
+              p2.lift = Math.min(24, p2.lift + 8);
+
+              diceAudio.playDieCollision();
+            }
+          }
+        }
+      }
+
+      // 3. Atualização das faces trocando a cada momento
       const nextDice = get().dice.map((d, idx) => {
         const p = physics[idx];
         if (!p) return d;
 
-        if (elapsed < p.duration) {
-          anyActive = true;
-          let nx = p.x + p.vx * (dt / 1000);
-          let ny = p.y + p.vy * (dt / 1000);
-
-          // Ricochete nos cantos e bordas da bandeja
-          const minX = 14;
-          const maxX = 86;
-          const minY = 16;
-          const maxY = 84;
-
-          if (nx <= minX) {
-            nx = minX;
-            p.vx = -p.vx * 0.72;
-            diceAudio.playBounce();
-          } else if (nx >= maxX) {
-            nx = maxX;
-            p.vx = -p.vx * 0.72;
-            diceAudio.playBounce();
-          }
-
-          if (ny <= minY) {
-            ny = minY;
-            p.vy = -p.vy * 0.72;
-            diceAudio.playBounce();
-          } else if (ny >= maxY) {
-            ny = maxY;
-            p.vy = -p.vy * 0.72;
-            diceAudio.playBounce();
-          }
-
-          // Atrito e desaceleração gradual no feltro
-          p.vx *= 0.982;
-          p.vy *= 0.982;
-          p.rotSpeed *= 0.980;
-
-          // Rotação completa
-          p.rotation += p.rotSpeed * (dt / 1000);
-          p.x = nx;
-          p.y = ny;
-
-          // Troca de faces desacelerando progressivamente
-          let newFace = d.animatedFace;
+        if (!p.settled && elapsed < p.duration) {
           const progress = elapsed / p.duration;
-          p.faceInterval = 35 + Math.pow(progress, 2) * 140; // 35ms -> 175ms
+          p.faceInterval = 28 + Math.pow(progress, 2.5) * 190;
+
+          let newFace = d.animatedFace;
+          let newSideFaces = p.sideFaces;
 
           if (now - p.lastFaceSwap > p.faceInterval) {
             newFace = Math.floor(Math.random() * d.faces) + 1;
+            newSideFaces = generateSideFaces(d.faces, newFace);
+            p.sideFaces = newSideFaces;
             p.lastFaceSwap = now;
           }
 
           return {
             ...d,
-            x: Math.round(nx * 10) / 10,
-            y: Math.round(ny * 10) / 10,
+            x: Math.round(p.x * 10) / 10,
+            y: Math.round(p.y * 10) / 10,
             rotation: Math.round(p.rotation * 10) / 10,
+            rotX: Math.round(p.rotX * 10) / 10,
+            rotY: Math.round(p.rotY * 10) / 10,
+            lift: Math.round(p.lift * 10) / 10,
             animatedFace: newFace,
+            sideFaces: newSideFaces,
             isRolling: true,
           };
         } else {
-          // Dado assentado no resultado final
           return {
             ...d,
             x: Math.round(p.x * 10) / 10,
             y: Math.round(p.y * 10) / 10,
-            rotation: 0, // Fica perfeitamente retinho após rolar
+            rotation: 0,
+            rotX: 0,
+            rotY: 0,
+            lift: 0,
             currentValue: finalValues[idx],
             animatedFace: finalValues[idx],
+            sideFaces: generateSideFaces(d.faces, finalValues[idx]),
             isRolling: false,
           };
         }
@@ -576,12 +697,15 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
       if (anyActive) {
         requestAnimationFrame(tick);
       } else {
-        // TODOS OS DADOS ASSENTARAM
         const settledDice = get().dice.map((d, idx) => ({
           ...d,
           currentValue: finalValues[idx],
           animatedFace: finalValues[idx],
-          rotation: 0, // Alinhado reto e nítido
+          sideFaces: generateSideFaces(d.faces, finalValues[idx]),
+          rotation: 0,
+          rotX: 0,
+          rotY: 0,
+          lift: 0,
           isRolling: false,
         }));
 

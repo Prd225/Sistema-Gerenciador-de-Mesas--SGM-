@@ -6,6 +6,7 @@ class DiceAudioEngine {
   private ctx: AudioContext | null = null;
   private isMuted: boolean = false;
   private lastBounceTime: number = 0;
+  private lastCollisionTime: number = 0;
 
   private initCtx() {
     if (!this.ctx) {
@@ -74,12 +75,12 @@ class DiceAudioEngine {
     } catch {}
   }
 
-  // Som de colisão com a borda de couro/madeira da bandeja
-  public playBounce() {
+  // Som de colisão com a borda de couro/madeira da bandeja (com força/volume variável)
+  public playBounce(volMultiplier: number = 1.0) {
     if (this.isMuted) return;
     const now = performance.now();
     // Limita frequência para não sobrecarregar em múltiplos quiques
-    if (now - this.lastBounceTime < 45) return;
+    if (now - this.lastBounceTime < 35) return;
     this.lastBounceTime = now;
 
     try {
@@ -90,18 +91,33 @@ class DiceAudioEngine {
       const gain = this.ctx.createGain();
 
       osc.type = 'triangle';
-      const freq = 480 + Math.random() * 260;
+      const freq = 420 + Math.random() * 320;
       osc.frequency.setValueAtTime(freq, audioTime);
-      osc.frequency.exponentialRampToValueAtTime(freq * 0.35, audioTime + 0.04);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.35, audioTime + 0.045);
 
-      gain.gain.setValueAtTime(0.12, audioTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioTime + 0.045);
+      const targetVol = Math.min(0.25, 0.14 * Math.max(0.4, volMultiplier));
+      gain.gain.setValueAtTime(targetVol, audioTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioTime + 0.05);
 
       osc.connect(gain);
       gain.connect(this.ctx.destination);
 
       osc.start(audioTime);
-      osc.stop(audioTime + 0.05);
+      osc.stop(audioTime + 0.055);
+    } catch {}
+  }
+
+  // Som de colisão entre dois dados (estalido seco de resina ao se chocarem)
+  public playDieCollision() {
+    if (this.isMuted) return;
+    const now = performance.now();
+    if (now - this.lastCollisionTime < 40) return;
+    this.lastCollisionTime = now;
+
+    try {
+      this.initCtx();
+      if (!this.ctx) return;
+      this.playClack(this.ctx.currentTime, 0.95 + Math.random() * 0.5, 0.16);
     } catch {}
   }
 

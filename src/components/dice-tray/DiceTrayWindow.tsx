@@ -45,8 +45,8 @@ export default function DiceTrayWindow() {
     const sender = userName?.trim()
       ? userName.trim()
       : role === 'player'
-      ? 'Jogador'
-      : 'Mestre';
+        ? 'Jogador'
+        : 'Mestre';
     rollDice(sender, role || 'gm');
   };
 
@@ -137,15 +137,15 @@ export default function DiceTrayWindow() {
 
   const stylePosition: React.CSSProperties = isMaximized
     ? {
-        position: 'fixed',
-        left: '2vw',
-        top: '2vh',
-        width: '96vw',
-        height: '94vh',
-        transform: 'none',
-      }
+      position: 'fixed',
+      left: '2vw',
+      top: '2vh',
+      width: '96vw',
+      height: '94vh',
+      transform: 'none',
+    }
     : position
-    ? {
+      ? {
         position: 'fixed',
         left: `${position.x}px`,
         top: `${position.y}px`,
@@ -154,7 +154,7 @@ export default function DiceTrayWindow() {
         height: '540px',
         maxHeight: '85vh',
       }
-    : {
+      : {
         position: 'fixed',
         left: '50%',
         top: '50%',
@@ -169,16 +169,14 @@ export default function DiceTrayWindow() {
     <div
       ref={windowRef}
       style={stylePosition}
-      className={`z-[160] flex flex-col rounded-2xl bg-[#141417]/98 border border-[#323238] shadow-[0_16px_50px_rgba(0,0,0,0.85)] backdrop-blur-md overflow-hidden select-none animate-in fade-in zoom-in-95 duration-150 transition-all ${
-        isMaximized ? 'rounded-xl' : 'rounded-2xl'
-      }`}
+      className={`z-[160] flex flex-col rounded-2xl bg-[#141417]/98 border border-[#323238] shadow-[0_16px_50px_rgba(0,0,0,0.85)] backdrop-blur-md overflow-hidden select-none animate-in fade-in zoom-in-95 duration-150 transition-all ${isMaximized ? 'rounded-xl' : 'rounded-2xl'
+        }`}
     >
       {/* Barra de Título / Cabeçalho da Janela */}
       <div
         onPointerDown={handleHeaderPointerDown}
-        className={`flex items-center justify-between px-4 py-2.5 bg-[#18181b] border-b border-[#27272a] select-none ${
-          isMaximized ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
-        }`}
+        className={`flex items-center justify-between px-4 py-2.5 bg-[#18181b] border-b border-[#27272a] select-none ${isMaximized ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
+          }`}
       >
         {/* Identificação e Abas */}
         <div className="flex items-center gap-3">
@@ -193,11 +191,10 @@ export default function DiceTrayWindow() {
             <button
               type="button"
               onClick={() => setActiveTab('tray')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                activeTab === 'tray'
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${activeTab === 'tray'
                   ? 'bg-[#8257e5] text-white shadow-sm'
                   : 'text-[#a1a1aa] hover:text-white hover:bg-[#202024]'
-              }`}
+                }`}
             >
               <Dices className="w-3.5 h-3.5" />
               <span>Bandeja</span>
@@ -211,11 +208,10 @@ export default function DiceTrayWindow() {
             <button
               type="button"
               onClick={() => setActiveTab('history')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                activeTab === 'history'
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${activeTab === 'history'
                   ? 'bg-[#8257e5] text-white shadow-sm'
                   : 'text-[#a1a1aa] hover:text-white hover:bg-[#202024]'
-              }`}
+                }`}
             >
               <History className="w-3.5 h-3.5" />
               <span>Histórico</span>
@@ -224,11 +220,10 @@ export default function DiceTrayWindow() {
             <button
               type="button"
               onClick={() => setActiveTab('rules')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                activeTab === 'rules'
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${activeTab === 'rules'
                   ? 'bg-[#8257e5] text-white shadow-sm'
                   : 'text-[#a1a1aa] hover:text-white hover:bg-[#202024]'
-              }`}
+                }`}
             >
               <Sliders className="w-3.5 h-3.5" />
               <span>Regras</span>

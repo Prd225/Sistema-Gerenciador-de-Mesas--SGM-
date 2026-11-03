@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useDiceTrayStore, type TrayDie } from '@/store/useDiceTrayStore';
 import DieShapeSVG from './DieShapeSVG';
-import { Plus, Minus, X, Sparkles, Skull } from 'lucide-react';
+import { Plus, Minus, X } from 'lucide-react';
 
 interface AnimatedDiceCardProps {
   die: TrayDie;
@@ -58,8 +58,8 @@ export default function AnimatedDiceCard({ die, canvasRef }: AnimatedDiceCardPro
       const newX = Math.max(10, Math.min(90, dragStartRef.current.initialDieX + deltaPercentX));
       const newY = Math.max(12, Math.min(88, dragStartRef.current.initialDieY + deltaPercentY));
 
-      // Ao arrastar, alinha a rotação para 0deg fluidamente
-      updateDiePosition(die.id, Math.round(newX * 10) / 10, Math.round(newY * 10) / 10, 0);
+      // Ao arrastar, alinha a rotação e inclinação para 0 fluidamente ("retinho")
+      updateDiePosition(die.id, Math.round(newX * 10) / 10, Math.round(newY * 10) / 10, 0, 0, 0);
     };
 
     const handlePointerUp = () => {
@@ -74,6 +74,9 @@ export default function AnimatedDiceCard({ die, canvasRef }: AnimatedDiceCardPro
 
   // Ao ser segurado/arrastado, fica "retinho" (0deg) fluidamente
   const currentRotation = isDragging ? 0 : die.rotation;
+  const currentRotX = isDragging ? 0 : die.rotX || 0;
+  const currentRotY = isDragging ? 0 : die.rotY || 0;
+  const currentLift = isDragging ? 6 : die.lift || 0;
 
   return (
     <div
@@ -92,36 +95,43 @@ export default function AnimatedDiceCard({ die, canvasRef }: AnimatedDiceCardPro
       }`}
     >
       <div className="relative flex items-center justify-center">
-        {/* Renderizador de Silhueta Geométrica Autêntica do Dado */}
-        <DieShapeSVG
-          faces={die.faces}
-          color={die.color}
-          isCrit={isCrit}
-          isFumble={isFumble}
-          isRolling={isRolling}
-          value={die.animatedFace}
-          size={84}
+        {/* Sombra 3D projetada no feltro (reage à altura do salto e movimento) */}
+        <div
+          className="absolute pointer-events-none rounded-full bg-black/70 filter blur-[5px] transition-all"
+          style={{
+            width: '68px',
+            height: '32px',
+            bottom: '-6px',
+            left: '50%',
+            transform: `translateX(-50%) scale(${Math.max(0.65, 1 - currentLift * 0.016)}) translateY(${currentLift * 0.4}px)`,
+            opacity: Math.max(0.2, 0.75 - currentLift * 0.018),
+          }}
         />
 
-        {/* Ícone de Destaque Crítico Positivo */}
-        {isCrit && (
-          <div
-            className="absolute -top-1 -right-1 text-amber-400 bg-amber-950/80 rounded-full p-1 border border-amber-400/80 shadow-md animate-pulse"
-            title="Crítico Positivo!"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-          </div>
-        )}
-
-        {/* Ícone de Destaque Desastre Crítico */}
-        {isFumble && (
-          <div
-            className="absolute -top-1 -right-1 text-red-500 bg-red-950/80 rounded-full p-1 border border-red-500/80 shadow-md animate-pulse"
-            title="Desastre Crítico!"
-          >
-            <Skull className="w-3.5 h-3.5" />
-          </div>
-        )}
+        {/* Recipiente com perspectiva 3D e inclinação nas 3 dimensões (X, Y, Z) */}
+        <div
+          style={{
+            transform: `perspective(650px) rotateX(${currentRotX}deg) rotateY(${currentRotY}deg) translateZ(${currentLift}px) scale(${
+              isRolling ? 1.05 : 1
+            })`,
+            transformStyle: 'preserve-3d',
+            transition: isRolling ? 'none' : 'transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1)',
+          }}
+        >
+          {/* Renderizador de Silhueta Geométrica Autêntica com Facetas 3D */}
+          <DieShapeSVG
+            faces={die.faces}
+            color={die.color}
+            isCrit={isCrit}
+            isFumble={isFumble}
+            isRolling={isRolling}
+            value={die.animatedFace}
+            sideFaces={die.sideFaces}
+            rotX={currentRotX}
+            rotY={currentRotY}
+            size={84}
+          />
+        </div>
 
         {/* Botão de Remover (Aparece no Hover) */}
         {!isRolling && (

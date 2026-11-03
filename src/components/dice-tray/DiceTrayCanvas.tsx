@@ -28,6 +28,8 @@ export default function DiceTrayCanvas() {
       ref={canvasRef}
       className="relative flex-1 w-full h-full min-h-[300px] overflow-hidden rounded-xl border border-[#27272a] bg-[#111216] select-none shadow-inner"
       style={{
+        perspective: '1000px',
+        transformStyle: 'preserve-3d',
         backgroundImage: `
           radial-gradient(circle at 50% 50%, rgba(30, 32, 40, 0.9) 0%, rgba(14, 15, 19, 0.98) 100%),
           repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.01) 0, rgba(255, 255, 255, 0.01) 2px, transparent 2px, transparent 6px)
@@ -99,11 +101,13 @@ export default function DiceTrayCanvas() {
                 Total
               </span>
               <span
-                className={`font-mono font-black text-2xl leading-none ${
+                className={`text-2xl font-black font-mono leading-none tracking-tight ${
                   lastRollResult.outcomeTier === 'crit'
                     ? 'text-amber-400'
                     : lastRollResult.outcomeTier === 'fumble'
                     ? 'text-red-400'
+                    : lastRollResult.outcomeTier === 'success'
+                    ? 'text-emerald-400'
                     : 'text-white'
                 }`}
               >
@@ -111,13 +115,13 @@ export default function DiceTrayCanvas() {
               </span>
             </div>
 
-            {/* Botão de Rolar Novamente com Mesmos Dados */}
+            {/* Rolar Novamente */}
             <button
               type="button"
-              disabled={isRolling || dice.length === 0}
               onClick={handleRollAgain}
-              className="p-2 rounded-lg bg-[#8257e5] hover:bg-[#9466ff] disabled:opacity-50 text-white transition-all active:scale-95 shadow-md"
-              title="Rolar novamente"
+              disabled={isRolling}
+              className="p-2 rounded-lg bg-[#27272a] hover:bg-[#8257e5] text-[#a1a1aa] hover:text-white transition-colors disabled:opacity-50"
+              title="Rolar novamente estes mesmos dados"
             >
               <RotateCcw className={`w-4 h-4 ${isRolling ? 'animate-spin' : ''}`} />
             </button>
