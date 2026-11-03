@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { generateId } from '@/lib/uuid';
 import { diceAudio } from '@/lib/diceAudio';
 import { socket } from '@/lib/socket';
+import { diceDOMRegistry } from '@/lib/diceDOMRegistry';
 import { useMultiplayerStore } from './useMultiplayerStore';
 
 export type DieFaceCount = 4 | 6 | 8 | 10 | 12 | 20 | 100;
@@ -462,7 +463,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
     });
   },
 
-  // ROLAGEM PRINCIPAL COM FÍSICA SUAVE, SEM STUTTERING, COM SQUASH & STRETCH
+  // ROLAGEM PRINCIPAL A 144 FPS - ZERO RE-RENDERIZAÇÕES DURANTE O GIRO
   rollDice: (senderName, senderRole) => {
     const { dice, modifier, rules, visibility, undoStack, history } = get();
     if (dice.length === 0 || get().isRolling) return;
@@ -486,7 +487,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
 
     const finalValues = dice.map((d) => Math.floor(Math.random() * d.faces) + 1);
 
-    // Inicialização da física (altas velocidades, rotações 3D e saltos sem travamentos)
+    // Inicialização da física ultrarrápida (rotações 3D e saltos na GPU)
     const physics = dice.map((d, i) => {
       const angle = Math.random() * Math.PI * 2;
       const speed = 95 + Math.random() * 60; // 95..155 %/s
@@ -513,6 +514,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
       };
     });
 
+    // Inicia estado de rolagem (UMA ÚNICA re-renderização React para ligar isRolling)
     set({
       isRolling: true,
       undoStack: newUndo,
@@ -524,7 +526,6 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
     let lastFrameTime = startTime;
 
     const tick = (now: number) => {
-      // Limitação estrita do deltaTime para evitar saltos bruscos (stuttering)
       const rawDt = now - lastFrameTime;
       const dt = Math.min(24, Math.max(10, rawDt));
       lastFrameTime = now;
@@ -532,7 +533,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
 
       let anyActive = false;
 
-      // 1. Atualização de movimento e colisões com bordas da bandeja
+      // 1. Atualização de física e colisões com as bordas da bandeja
       for (let idx = 0; idx < physics.length; idx++) {
         const p = physics[idx];
         if (elapsed >= p.duration) {
@@ -595,7 +596,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
         p.x = nx;
         p.y = ny;
 
-        // Atrito e desaceleração progressiva constante
+        // Atrito e rotação contínua
         p.vx *= 0.988;
         p.vy *= 0.988;
         p.rotSpeed *= 0.985;
@@ -652,65 +653,93 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
         }
       }
 
-      // 3. Atualização das faces trocando a cada momento
-      const nextDice = get().dice.map((d, idx) => {
+      // 3. Atualização direta do DOM via GPU transforms (Zero re-renderizações React durante o giro)
+      for (let idx = 0; idx < physics.length; idx++) {
         const p = physics[idx];
-        if (!p) return d;
+        const dom = diceDOMRegistry.get(p.id);
+        if (!dom) continue;
 
+        if (dom.cardEl) {
+          dom.cardEl.style.left = `${Math.round(p.x * 10) / 10}%`;
+          dom.cardEl.style.top = `${Math.round(p.y * 10) / 10}%`;
+          dom.cardEl.style.transform = `translate3d(-50%, -50%, 0) rotate(${Math.round(p.rotation * 10) / 10}deg)`;
+        }
+
+        if (dom.innerEl) {
+          const speed = Math.hypot(p.vx, p.vy);
+          const isHighVelocity = speed > 20;
+          const stretchFactor = isHighVelocity ? Math.min(0.24, (speed - 20) * 0.0022) : 0;
+          const velocityAngle = isHighVelocity ? Math.atan2(p.vy, p.vx) * (180 / Math.PI) : 0;
+
+          dom.innerEl.style.transform = `
+            rotate(${velocityAngle}deg)
+            scale(${1 + stretchFactor}, ${1 - stretchFactor * 0.45})
+            rotate(${-velocityAngle}deg)
+            perspective(650px)
+            rotateX(${Math.round(p.rotX * 10) / 10}deg)
+            rotateY(${Math.round(p.rotY * 10) / 10}deg)
+            translateZ(${Math.round(p.lift * 10) / 10}px)
+            scale(1.05)
+          `;
+        }
+
+        if (dom.shadowContactEl) {
+          dom.shadowContactEl.style.transform = `translateX(-50%) scale(${Math.max(0.4, 1 - p.lift * 0.035)})`;
+          dom.shadowContactEl.style.opacity = `${Math.max(0, 0.85 - p.lift * 0.05)}`;
+        }
+
+        if (dom.shadowCastEl) {
+          dom.shadowCastEl.style.transform = `translateX(calc(-50% + ${4 + p.lift * 0.3}px)) translateY(${p.lift * 0.6}px) scale(${1 + p.lift * 0.018})`;
+          dom.shadowCastEl.style.opacity = `${Math.max(0.12, 0.65 - p.lift * 0.015)}`;
+        }
+
+        // Troca rápida de faces no texto do SVG
         if (!p.settled && elapsed < p.duration) {
           const progress = elapsed / p.duration;
           p.faceInterval = 28 + Math.pow(progress, 2.5) * 190;
 
-          let newFace = d.animatedFace;
-          let newSideFaces = p.sideFaces;
-
           if (now - p.lastFaceSwap > p.faceInterval) {
-            newFace = Math.floor(Math.random() * d.faces) + 1;
-            newSideFaces = generateSideFaces(d.faces, newFace);
+            const dieDef = dice[idx];
+            const newFace = Math.floor(Math.random() * dieDef.faces) + 1;
+            const newSideFaces = generateSideFaces(dieDef.faces, newFace);
             p.sideFaces = newSideFaces;
             p.lastFaceSwap = now;
+
+            if (dom.mainNumEl) dom.mainNumEl.textContent = `${newFace}`;
+            if (dom.mainNumShadowEl) dom.mainNumShadowEl.textContent = `${newFace}`;
+            p.sideFaces.forEach((sf, sIdx) => {
+              if (dom.sideNumEls[sIdx]) {
+                dom.sideNumEls[sIdx]!.textContent = `${sf}`;
+              }
+            });
           }
-
-          return {
-            ...d,
-            x: Math.round(p.x * 10) / 10,
-            y: Math.round(p.y * 10) / 10,
-            vx: Math.round(p.vx * 10) / 10,
-            vy: Math.round(p.vy * 10) / 10,
-            rotation: Math.round(p.rotation * 10) / 10,
-            rotX: Math.round(p.rotX * 10) / 10,
-            rotY: Math.round(p.rotY * 10) / 10,
-            lift: Math.round(p.lift * 10) / 10,
-            animatedFace: newFace,
-            sideFaces: newSideFaces,
-            isRolling: true,
-          };
-        } else {
-          return {
-            ...d,
-            x: Math.round(p.x * 10) / 10,
-            y: Math.round(p.y * 10) / 10,
-            vx: 0,
-            vy: 0,
-            rotation: 0,
-            rotX: 0,
-            rotY: 0,
-            lift: 0,
-            currentValue: finalValues[idx],
-            animatedFace: finalValues[idx],
-            sideFaces: generateSideFaces(d.faces, finalValues[idx]),
-            isRolling: false,
-          };
         }
-      });
-
-      set({ dice: nextDice });
+      }
 
       if (anyActive) {
         requestAnimationFrame(tick);
       } else {
+        // Limpa estilos inline de animação do DOM
+        physics.forEach((p) => {
+          const dom = diceDOMRegistry.get(p.id);
+          if (dom) {
+            if (dom.innerEl) dom.innerEl.style.transform = '';
+            if (dom.shadowContactEl) {
+              dom.shadowContactEl.style.transform = '';
+              dom.shadowContactEl.style.opacity = '';
+            }
+            if (dom.shadowCastEl) {
+              dom.shadowCastEl.style.transform = '';
+              dom.shadowCastEl.style.opacity = '';
+            }
+          }
+        });
+
+        // Único React re-render com os valores e posições finais assentados
         const settledDice = get().dice.map((d, idx) => ({
           ...d,
+          x: Math.round(physics[idx].x * 10) / 10,
+          y: Math.round(physics[idx].y * 10) / 10,
           currentValue: finalValues[idx],
           animatedFace: finalValues[idx],
           sideFaces: generateSideFaces(d.faces, finalValues[idx]),

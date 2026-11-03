@@ -1,6 +1,8 @@
+import React from 'react';
 import { type DieFaceCount } from '@/store/useDiceTrayStore';
 
 interface DieShapeSVGProps {
+  dieId: string;
   faces: DieFaceCount;
   color: string;
   isCrit: boolean;
@@ -11,9 +13,13 @@ interface DieShapeSVGProps {
   rotX?: number; // Ângulo de pitch em graus (-35..35)
   rotY?: number; // Ângulo de yaw em graus (-35..35)
   size?: number;
+  mainNumRef?: React.RefObject<SVGTextElement | null>;
+  mainNumShadowRef?: React.RefObject<SVGTextElement | null>;
+  sideNumRefs?: React.MutableRefObject<(SVGTextElement | null)[]>;
 }
 
 export default function DieShapeSVG({
+  dieId,
   faces,
   color,
   isCrit,
@@ -24,9 +30,14 @@ export default function DieShapeSVG({
   rotX = 0,
   rotY = 0,
   size = 84,
+  mainNumRef,
+  mainNumShadowRef,
+  sideNumRefs,
 }: DieShapeSVGProps) {
-  const gradientId = `die-grad-${faces}-${color.replace(/[^a-zA-Z0-9]/g, '')}`;
-  const clipId = `die-clip-${faces}-${color.replace(/[^a-zA-Z0-9]/g, '')}`;
+  // IDs 100% únicos por dado para evitar qualquer conflito de SVG no DOM
+  const safeId = dieId.replace(/[^a-zA-Z0-9_-]/g, '');
+  const gradientId = `die-grad-${safeId}`;
+  const clipId = `die-clip-${safeId}`;
 
   // Cores dinâmicas para bordas e destaques limpos
   const strokeColor = isCrit
@@ -47,7 +58,7 @@ export default function DieShapeSVG({
 
   const sideNumberColor = 'rgba(255, 255, 255, 0.4)';
 
-  // Deslocamento de perspectiva pseudo-3D suave normalizado (-1..+1)
+  // Deslocamento de perspectiva pseudo-3D normalizado
   const tiltX = Math.max(-1, Math.min(1, rotY / 32));
   const tiltY = Math.max(-1, Math.min(1, rotX / 32));
 
@@ -77,7 +88,7 @@ export default function DieShapeSVG({
           <stop offset="100%" stopColor="#000000" stopOpacity={0.48} />
         </linearGradient>
 
-        {/* ClipPaths Mestres para garantir 100% que NENHUM número vaza fora do dado */}
+        {/* ClipPaths Mestres para garantir 100% que NENHUM elemento vaze fora da face do dado */}
         {faces === 4 && (
           <clipPath id={clipId}>
             <polygon points="50,6 94,88 6,88" />
@@ -139,6 +150,9 @@ export default function DieShapeSVG({
             {isRolling && (
               <>
                 <text
+                  ref={(el) => {
+                    if (sideNumRefs) sideNumRefs.current[0] = el;
+                  }}
                   x={34 + tiltX * 3}
                   y={50 + tiltY * 3}
                   textAnchor="middle"
@@ -150,6 +164,9 @@ export default function DieShapeSVG({
                   {sideFaces[0] ?? 1}
                 </text>
                 <text
+                  ref={(el) => {
+                    if (sideNumRefs) sideNumRefs.current[1] = el;
+                  }}
                   x={66 + tiltX * 3}
                   y={50 + tiltY * 3}
                   textAnchor="middle"
@@ -163,8 +180,9 @@ export default function DieShapeSVG({
               </>
             )}
 
-            {/* Sombra de texto rápida */}
+            {/* Sombra de texto */}
             <text
+              ref={mainNumShadowRef}
               x={50 + tiltX * 4}
               y={76 + tiltY * 3 + 1.2}
               textAnchor="middle"
@@ -179,6 +197,7 @@ export default function DieShapeSVG({
             </text>
             {/* Número Principal */}
             <text
+              ref={mainNumRef}
               x={50 + tiltX * 4}
               y={76 + tiltY * 3}
               textAnchor="middle"
@@ -232,6 +251,7 @@ export default function DieShapeSVG({
 
             {/* Sombra rápida do número */}
             <text
+              ref={mainNumShadowRef}
               x={fx + fw / 2}
               y={fy + fh / 2 + 2.2}
               textAnchor="middle"
@@ -246,6 +266,7 @@ export default function DieShapeSVG({
             </text>
             {/* Número Principal */}
             <text
+              ref={mainNumRef}
               x={fx + fw / 2}
               y={fy + fh / 2 + 1}
               textAnchor="middle"
@@ -306,13 +327,43 @@ export default function DieShapeSVG({
             {/* Números nas facetas durante a rolagem (estritamente dentro das facetas) */}
             {isRolling && (
               <>
-                <text x="50" y="16" textAnchor="middle" fill={sideNumberColor} fontSize="10" fontWeight="bold">
+                <text
+                  ref={(el) => {
+                    if (sideNumRefs) sideNumRefs.current[0] = el;
+                  }}
+                  x="50"
+                  y="16"
+                  textAnchor="middle"
+                  fill={sideNumberColor}
+                  fontSize="10"
+                  fontWeight="bold"
+                >
                   {sideFaces[0] ?? 4}
                 </text>
-                <text x="26" y="62" textAnchor="middle" fill={sideNumberColor} fontSize="10" fontWeight="bold">
+                <text
+                  ref={(el) => {
+                    if (sideNumRefs) sideNumRefs.current[1] = el;
+                  }}
+                  x="26"
+                  y="62"
+                  textAnchor="middle"
+                  fill={sideNumberColor}
+                  fontSize="10"
+                  fontWeight="bold"
+                >
                   {sideFaces[1] ?? 7}
                 </text>
-                <text x="74" y="62" textAnchor="middle" fill={sideNumberColor} fontSize="10" fontWeight="bold">
+                <text
+                  ref={(el) => {
+                    if (sideNumRefs) sideNumRefs.current[2] = el;
+                  }}
+                  x="74"
+                  y="62"
+                  textAnchor="middle"
+                  fill={sideNumberColor}
+                  fontSize="10"
+                  fontWeight="bold"
+                >
                   {sideFaces[2] ?? 2}
                 </text>
               </>
@@ -320,6 +371,7 @@ export default function DieShapeSVG({
 
             {/* Sombra de texto */}
             <text
+              ref={mainNumShadowRef}
               x={50 + tiltX * 5}
               y={52 + tiltY * 5 + 1.2}
               textAnchor="middle"
@@ -334,6 +386,7 @@ export default function DieShapeSVG({
             </text>
             {/* Número Principal */}
             <text
+              ref={mainNumRef}
               x={50 + tiltX * 5}
               y={52 + tiltY * 5}
               textAnchor="middle"
@@ -394,22 +447,58 @@ export default function DieShapeSVG({
             {isRolling && (
               <>
                 <g transform={`translate(${28 + tiltX * 3}, ${32 + tiltY * 3}) rotate(-40)`}>
-                  <text textAnchor="middle" dominantBaseline="central" fill={sideNumberColor} fontSize="10" fontWeight="bold">
+                  <text
+                    ref={(el) => {
+                      if (sideNumRefs) sideNumRefs.current[0] = el;
+                    }}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fill={sideNumberColor}
+                    fontSize="10"
+                    fontWeight="bold"
+                  >
                     {sideFaces[0] ?? 2}
                   </text>
                 </g>
                 <g transform={`translate(${72 + tiltX * 3}, ${32 + tiltY * 3}) rotate(40)`}>
-                  <text textAnchor="middle" dominantBaseline="central" fill={sideNumberColor} fontSize="10" fontWeight="bold">
+                  <text
+                    ref={(el) => {
+                      if (sideNumRefs) sideNumRefs.current[1] = el;
+                    }}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fill={sideNumberColor}
+                    fontSize="10"
+                    fontWeight="bold"
+                  >
                     {sideFaces[1] ?? 6}
                   </text>
                 </g>
                 <g transform={`translate(${30 + tiltX * 3}, ${68 + tiltY * 3}) rotate(-25)`}>
-                  <text textAnchor="middle" dominantBaseline="central" fill={sideNumberColor} fontSize="10" fontWeight="bold">
+                  <text
+                    ref={(el) => {
+                      if (sideNumRefs) sideNumRefs.current[2] = el;
+                    }}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fill={sideNumberColor}
+                    fontSize="10"
+                    fontWeight="bold"
+                  >
                     {sideFaces[2] ?? 7}
                   </text>
                 </g>
                 <g transform={`translate(${70 + tiltX * 3}, ${68 + tiltY * 3}) rotate(25)`}>
-                  <text textAnchor="middle" dominantBaseline="central" fill={sideNumberColor} fontSize="10" fontWeight="bold">
+                  <text
+                    ref={(el) => {
+                      if (sideNumRefs) sideNumRefs.current[3] = el;
+                    }}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fill={sideNumberColor}
+                    fontSize="10"
+                    fontWeight="bold"
+                  >
                     {sideFaces[3] ?? 3}
                   </text>
                 </g>
@@ -418,6 +507,7 @@ export default function DieShapeSVG({
 
             {/* Sombra de texto */}
             <text
+              ref={mainNumShadowRef}
               x={50 + tiltX * 4}
               y={48 + tiltY * 4 + 1.2}
               textAnchor="middle"
@@ -432,6 +522,7 @@ export default function DieShapeSVG({
             </text>
             {/* Número Principal na Faceta Central */}
             <text
+              ref={mainNumRef}
               x={50 + tiltX * 4}
               y={48 + tiltY * 4}
               textAnchor="middle"
@@ -486,19 +577,69 @@ export default function DieShapeSVG({
             {/* Números nas facetas periféricas durante a rolagem */}
             {isRolling && (
               <>
-                <text x="50" y="15" textAnchor="middle" fill={sideNumberColor} fontSize="9" fontWeight="bold">
+                <text
+                  ref={(el) => {
+                    if (sideNumRefs) sideNumRefs.current[0] = el;
+                  }}
+                  x="50"
+                  y="15"
+                  textAnchor="middle"
+                  fill={sideNumberColor}
+                  fontSize="9"
+                  fontWeight="bold"
+                >
                   {sideFaces[0] ?? 5}
                 </text>
-                <text x="82" y="32" textAnchor="middle" fill={sideNumberColor} fontSize="9" fontWeight="bold">
+                <text
+                  ref={(el) => {
+                    if (sideNumRefs) sideNumRefs.current[1] = el;
+                  }}
+                  x="82"
+                  y="32"
+                  textAnchor="middle"
+                  fill={sideNumberColor}
+                  fontSize="9"
+                  fontWeight="bold"
+                >
                   {sideFaces[1] ?? 8}
                 </text>
-                <text x="74" y="82" textAnchor="middle" fill={sideNumberColor} fontSize="9" fontWeight="bold">
+                <text
+                  ref={(el) => {
+                    if (sideNumRefs) sideNumRefs.current[2] = el;
+                  }}
+                  x="74"
+                  y="82"
+                  textAnchor="middle"
+                  fill={sideNumberColor}
+                  fontSize="9"
+                  fontWeight="bold"
+                >
                   {sideFaces[2] ?? 1}
                 </text>
-                <text x="26" y="82" textAnchor="middle" fill={sideNumberColor} fontSize="9" fontWeight="bold">
+                <text
+                  ref={(el) => {
+                    if (sideNumRefs) sideNumRefs.current[3] = el;
+                  }}
+                  x="26"
+                  y="82"
+                  textAnchor="middle"
+                  fill={sideNumberColor}
+                  fontSize="9"
+                  fontWeight="bold"
+                >
                   {sideFaces[3] ?? 11}
                 </text>
-                <text x="18" y="32" textAnchor="middle" fill={sideNumberColor} fontSize="9" fontWeight="bold">
+                <text
+                  ref={(el) => {
+                    if (sideNumRefs) sideNumRefs.current[4] = el;
+                  }}
+                  x="18"
+                  y="32"
+                  textAnchor="middle"
+                  fill={sideNumberColor}
+                  fontSize="9"
+                  fontWeight="bold"
+                >
                   {sideFaces[4] ?? 3}
                 </text>
               </>
@@ -506,6 +647,7 @@ export default function DieShapeSVG({
 
             {/* Sombra de texto */}
             <text
+              ref={mainNumShadowRef}
               x={50 + tiltX * 5}
               y={52 + tiltY * 5 + 1.2}
               textAnchor="middle"
@@ -520,6 +662,7 @@ export default function DieShapeSVG({
             </text>
             {/* Número Principal */}
             <text
+              ref={mainNumRef}
               x={50 + tiltX * 5}
               y={52 + tiltY * 5}
               textAnchor="middle"
@@ -580,13 +723,43 @@ export default function DieShapeSVG({
             {/* Números nas facetas periféricas em rolagem */}
             {isRolling && (
               <>
-                <text x="50" y="16" textAnchor="middle" fill={sideNumberColor} fontSize="10" fontWeight="bold">
+                <text
+                  ref={(el) => {
+                    if (sideNumRefs) sideNumRefs.current[0] = el;
+                  }}
+                  x="50"
+                  y="16"
+                  textAnchor="middle"
+                  fill={sideNumberColor}
+                  fontSize="10"
+                  fontWeight="bold"
+                >
                   {sideFaces[0] ?? 14}
                 </text>
-                <text x="82" y="50" textAnchor="middle" fill={sideNumberColor} fontSize="10" fontWeight="bold">
+                <text
+                  ref={(el) => {
+                    if (sideNumRefs) sideNumRefs.current[1] = el;
+                  }}
+                  x="82"
+                  y="50"
+                  textAnchor="middle"
+                  fill={sideNumberColor}
+                  fontSize="10"
+                  fontWeight="bold"
+                >
                   {sideFaces[1] ?? 8}
                 </text>
-                <text x="18" y="50" textAnchor="middle" fill={sideNumberColor} fontSize="10" fontWeight="bold">
+                <text
+                  ref={(el) => {
+                    if (sideNumRefs) sideNumRefs.current[2] = el;
+                  }}
+                  x="18"
+                  y="50"
+                  textAnchor="middle"
+                  fill={sideNumberColor}
+                  fontSize="10"
+                  fontWeight="bold"
+                >
                   {sideFaces[2] ?? 2}
                 </text>
               </>
@@ -594,6 +767,7 @@ export default function DieShapeSVG({
 
             {/* Sombra de texto */}
             <text
+              ref={mainNumShadowRef}
               x={50 + tiltX * 5}
               y={54 + tiltY * 5 + 1.2}
               textAnchor="middle"
@@ -608,6 +782,7 @@ export default function DieShapeSVG({
             </text>
             {/* Número Principal */}
             <text
+              ref={mainNumRef}
               x={50 + tiltX * 5}
               y={54 + tiltY * 5}
               textAnchor="middle"

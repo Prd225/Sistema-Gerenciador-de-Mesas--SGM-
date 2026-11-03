@@ -1,5 +1,6 @@
-import React, { useState, useRef, memo } from 'react';
+import React, { useState, useRef, useEffect, memo } from 'react';
 import { useDiceTrayStore, type TrayDie } from '@/store/useDiceTrayStore';
+import { diceDOMRegistry } from '@/lib/diceDOMRegistry';
 import DieShapeSVG from './DieShapeSVG';
 import { Plus, Minus, X } from 'lucide-react';
 
@@ -15,6 +16,30 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
   const removeDie = useDiceTrayStore((state) => state.removeDie);
   const updateDiePosition = useDiceTrayStore((state) => state.updateDiePosition);
   const rules = useDiceTrayStore((state) => state.rules);
+
+  // Refs de acesso direto ao DOM para a animação de física a 144 FPS
+  const cardRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const shadowContactRef = useRef<HTMLDivElement>(null);
+  const shadowCastRef = useRef<HTMLDivElement>(null);
+  const mainNumRef = useRef<SVGTextElement>(null);
+  const mainNumShadowRef = useRef<SVGTextElement>(null);
+  const sideNumRefs = useRef<(SVGTextElement | null)[]>([]);
+
+  useEffect(() => {
+    diceDOMRegistry.register(die.id, {
+      cardEl: cardRef.current,
+      innerEl: innerRef.current,
+      shadowContactEl: shadowContactRef.current,
+      shadowCastEl: shadowCastRef.current,
+      mainNumEl: mainNumRef.current,
+      mainNumShadowEl: mainNumShadowRef.current,
+      sideNumEls: sideNumRefs.current,
+    });
+    return () => {
+      diceDOMRegistry.unregister(die.id);
+    };
+  }, [die.id]);
 
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef<{ startX: number; startY: number; initialDieX: number; initialDieY: number }>({
@@ -71,20 +96,14 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
     window.addEventListener('pointerup', handlePointerUp);
   };
 
-  // Ao ser segurado/arrastado, fica "retinho" (0deg) fluidamente
   const currentRotation = isDragging ? 0 : die.rotation;
   const currentRotX = isDragging ? 0 : die.rotX || 0;
   const currentRotY = isDragging ? 0 : die.rotY || 0;
   const currentLift = isDragging ? 6 : die.lift || 0;
 
-  // Cálculo da Esticada Dinâmica (Squash & Stretch na direção da velocidade)
-  const speed = Math.hypot(die.vx || 0, die.vy || 0);
-  const isHighVelocity = isRolling && speed > 20;
-  const stretchFactor = isHighVelocity ? Math.min(0.24, (speed - 20) * 0.0022) : 0;
-  const velocityAngle = isHighVelocity ? Math.atan2(die.vy || 0, die.vx || 0) * (180 / Math.PI) : 0;
-
   return (
     <div
+      ref={cardRef}
       onPointerDown={handlePointerDown}
       style={{
         left: `${die.x}%`,
@@ -98,8 +117,9 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
       }`}
     >
       <div className="relative flex items-center justify-center">
-        {/* Sombra 1: Oclusão de Contato Direto com o Feltro (nítida e escura, desvanece no ar) */}
+        {/* Sombra 1: Oclusão de Contato Direto com o Feltro */}
         <div
+          ref={shadowContactRef}
           className="absolute pointer-events-none rounded-full bg-black/85 filter blur-[2px]"
           style={{
             width: '56px',
@@ -112,8 +132,9 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
           }}
         />
 
-        {/* Sombra 2: Sombra Projetada Difusa (move com altura Z e direção da luz) */}
+        {/* Sombra 2: Sombra Projetada Difusa */}
         <div
+          ref={shadowCastRef}
           className="absolute pointer-events-none rounded-full bg-black/55 filter blur-[8px]"
           style={{
             width: '78px',
@@ -128,11 +149,9 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
 
         {/* Recipiente com Esticada Dinâmica (Squash & Stretch) e Perspectiva 3D */}
         <div
+          ref={innerRef}
           style={{
             transform: `
-              rotate(${velocityAngle}deg)
-              scale(${1 + stretchFactor}, ${1 - stretchFactor * 0.45})
-              rotate(${-velocityAngle}deg)
               perspective(650px)
               rotateX(${currentRotX}deg)
               rotateY(${currentRotY}deg)
@@ -146,6 +165,7 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
         >
           {/* Renderizador de Silhueta Geométrica Autêntica com Facetas 3D */}
           <DieShapeSVG
+            dieId={die.id}
             faces={die.faces}
             color={die.color}
             isCrit={isCrit}
@@ -156,6 +176,9 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
             rotX={currentRotX}
             rotY={currentRotY}
             size={84}
+            mainNumRef={mainNumRef}
+            mainNumShadowRef={mainNumShadowRef}
+            sideNumRefs={sideNumRefs}
           />
         </div>
 

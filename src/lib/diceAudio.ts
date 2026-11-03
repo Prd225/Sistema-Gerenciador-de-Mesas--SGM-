@@ -80,7 +80,7 @@ class DiceAudioEngine {
     if (this.isMuted) return;
     const now = performance.now();
     // Limita frequência para não sobrecarregar em múltiplos quiques
-    if (now - this.lastBounceTime < 35) return;
+    if (now - this.lastBounceTime < 55) return;
     this.lastBounceTime = now;
 
     try {
@@ -111,7 +111,7 @@ class DiceAudioEngine {
   public playDieCollision() {
     if (this.isMuted) return;
     const now = performance.now();
-    if (now - this.lastCollisionTime < 40) return;
+    if (now - this.lastCollisionTime < 55) return;
     this.lastCollisionTime = now;
 
     try {
