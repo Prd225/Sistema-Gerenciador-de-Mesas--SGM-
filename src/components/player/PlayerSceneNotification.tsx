@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Film, Sparkles, X } from 'lucide-react';
+import { Film, Sparkles } from 'lucide-react';
 import { useCampaignStore } from '@/store/useCampaignStore';
 
 let sharedAudioCtx: AudioContext | null = null;
@@ -90,7 +90,7 @@ export default function PlayerSceneNotification() {
   };
 
   const handleTouchEnd = () => {
-    if (dragY < -26) {
+    if (dragY < -24) {
       setIsExiting(true);
       setTimeout(() => {
         dismiss();
@@ -142,23 +142,10 @@ export default function PlayerSceneNotification() {
               <Sparkles className="w-3 h-3 text-purple-300 animate-pulse" />
               <span>Transição de Cena</span>
             </div>
-            <p className="text-sm font-extrabold text-white tracking-wide truncate max-w-[200px] sm:max-w-[280px]">
+            <p className="text-sm font-extrabold text-white tracking-wide truncate max-w-[220px] sm:max-w-[300px]">
               Cena — {sceneNotification}
             </p>
           </div>
-
-          {/* Fechar Notificação */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              dismiss();
-            }}
-            className="text-[#a1a1aa] hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors shrink-0"
-            title="Dispensar"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
         </div>
       </div>
     </div>

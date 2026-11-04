@@ -33,7 +33,15 @@ const DIE_LIST: { faces: DieFaceCount; label: string; color: string; shapeHint: 
   { faces: 100, label: 'd100', color: '#ec4899', shapeHint: '⬟ Porcentil' },
 ];
 
-export default function DiceTrayToolbar() {
+interface DiceTrayToolbarProps {
+  isMobilePortrait?: boolean;
+  isMobileLandscape?: boolean;
+}
+
+export default function DiceTrayToolbar({
+  isMobilePortrait = false,
+  isMobileLandscape = false,
+}: DiceTrayToolbarProps) {
   const dice = useDiceTrayStore((state) => state.dice);
   const addDie = useDiceTrayStore((state) => state.addDie);
   const modifier = useDiceTrayStore((state) => state.modifier);
@@ -61,6 +69,7 @@ export default function DiceTrayToolbar() {
 
   const [isModifiersExpanded, setIsModifiersExpanded] = useState(false);
   const rollBtnRef = useRef<HTMLButtonElement>(null);
+  const mobileRollBtnRef = useRef<HTMLButtonElement>(null);
 
   // Contagem por tipo de dado
   const countsByFace = dice.reduce((acc, d) => {
@@ -82,12 +91,12 @@ export default function DiceTrayToolbar() {
     diceShake.hoverEnd();
   };
 
-  const handlePointerDown = (e: React.PointerEvent) => {
+  const handlePointerDown = (e: React.PointerEvent, targetBtn?: HTMLButtonElement | null) => {
     if (isRolling || dice.length === 0 || e.button !== 0) return;
     try {
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     } catch {}
-    diceShake.holdStart(rollBtnRef.current);
+    diceShake.holdStart(targetBtn || (e.currentTarget as HTMLElement));
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
@@ -115,10 +124,18 @@ export default function DiceTrayToolbar() {
   };
 
   return (
-    <div className="w-full md:w-56 shrink-0 flex flex-col gap-2 sm:gap-3 p-2.5 sm:p-3 bg-[#18181b]/95 border-t md:border-t-0 md:border-r border-[#27272a] text-sm select-none overflow-y-auto max-h-[44vh] md:max-h-none">
-      {/* Botões de Seleção de Dados (Grid de 4 colunas no mobile, 2 colunas no desktop) */}
+    <div
+      className={`w-full ${
+        isMobilePortrait
+          ? 'p-2.5 pr-20 flex flex-col gap-2 select-none overflow-y-auto'
+          : isMobileLandscape
+          ? 'w-52 shrink-0 h-full p-2 flex flex-col gap-2 select-none overflow-y-auto border-r border-[#27272a]'
+          : 'md:w-56 shrink-0 flex flex-col gap-2 sm:gap-3 p-2.5 sm:p-3 bg-[#18181b]/95 border-t md:border-t-0 md:border-r border-[#27272a] text-sm select-none overflow-y-auto max-h-[44vh] md:max-h-none'
+      }`}
+    >
+      {/* Botões de Seleção de Dados */}
       <div>
-        <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#71717a] block mb-1.5 sm:mb-2">
+        <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#71717a] block mb-1 sm:mb-1.5">
           Adicionar Dados
         </span>
         <div className="grid grid-cols-4 md:grid-cols-2 gap-1 sm:gap-1.5">
@@ -138,12 +155,11 @@ export default function DiceTrayToolbar() {
                     className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm"
                     style={{ backgroundColor: die.color }}
                   />
-                  <span className="font-mono font-bold text-xs text-[#e4e4e7] leading-none">
-                    {die.label}
-                  </span>
+                  <span className="font-bold text-xs text-[#e4e4e7]">{die.label}</span>
                 </div>
+
                 {count > 0 && (
-                  <span className="text-[9px] sm:text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[#323238] text-[#a1a1aa] font-semibold">
+                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-[#8257e5]/20 text-[#a78bfa] border border-[#8257e5]/40 shrink-0">
                     {count}
                   </span>
                 )}
@@ -153,79 +169,72 @@ export default function DiceTrayToolbar() {
         </div>
       </div>
 
-      {/* Seção Modificadores (Global + Expansor para Isolados por Dado) */}
-      <div className="bg-[#202024]/40 border border-[#27272a] rounded-lg p-2 sm:p-2.5 transition-all">
-        <div className="flex items-center justify-between mb-1 sm:mb-1.5">
+      {/* Seção de Modificadores (Global + Isolados por Dado) */}
+      <div className="bg-[#202024]/40 border border-[#27272a] rounded-lg p-2 sm:p-2.5">
+        <div className="flex items-center justify-between mb-1.5">
           <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#71717a]">
             Modificadores
           </span>
-          <span className="text-xs font-mono font-bold text-[#e4e4e7]">
+          <span className="text-xs font-mono font-bold text-[#8257e5]">
             {modifier >= 0 ? `+${modifier}` : modifier}
           </span>
         </div>
 
-        {/* Modificador Global */}
-        <div className="flex items-center gap-1">
+        {/* Modificador Global com setas < e > */}
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => setModifier(modifier - 1)}
             disabled={isRolling}
-            className="flex-1 py-1 flex items-center justify-center rounded bg-[#27272a] hover:bg-[#323238] active:scale-90 text-[#a1a1aa] hover:text-white transition-all touch-manipulation"
-            title="Reduzir modificador global (-1)"
+            className="flex-1 py-1 px-2 rounded bg-[#27272a] hover:bg-[#323238] active:scale-95 text-[#a1a1aa] hover:text-white font-mono font-bold text-sm transition-all flex items-center justify-center touch-manipulation"
+            title="Diminuir modificador global (-1)"
           >
-            <Minus className="w-3.5 h-3.5" />
+            &lt;
           </button>
-          <button
-            type="button"
-            onClick={() => setModifier(0)}
-            disabled={isRolling || modifier === 0}
-            className="px-2 py-1 text-[10px] rounded bg-[#27272a] hover:bg-[#323238] disabled:opacity-40 text-[#71717a] hover:text-white font-mono transition-all touch-manipulation"
-            title="Zerar modificador global"
-          >
-            0
-          </button>
+
+          <span className="w-9 text-center font-mono text-xs font-bold text-white bg-[#18181b] py-1 rounded border border-[#27272a]">
+            {modifier}
+          </span>
+
           <button
             type="button"
             onClick={() => setModifier(modifier + 1)}
             disabled={isRolling}
-            className="flex-1 py-1 flex items-center justify-center rounded bg-[#27272a] hover:bg-[#323238] active:scale-90 text-[#a1a1aa] hover:text-white transition-all touch-manipulation"
+            className="flex-1 py-1 px-2 rounded bg-[#27272a] hover:bg-[#323238] active:scale-95 text-[#a1a1aa] hover:text-white font-mono font-bold text-sm transition-all flex items-center justify-center touch-manipulation"
             title="Aumentar modificador global (+1)"
           >
-            <Plus className="w-3.5 h-3.5" />
+            &gt;
           </button>
         </div>
 
-        {/* Botão Expansor Centralizado Abaixo do Stepper */}
-        <div className="flex items-center justify-center mt-1.5 pt-1 border-t border-[#27272a]/60">
-          <button
-            type="button"
-            onClick={() => setIsModifiersExpanded(!isModifiersExpanded)}
-            className="flex items-center justify-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold text-[#a1a1aa] hover:text-white hover:bg-white/5 transition-all w-full touch-manipulation"
-            title={isModifiersExpanded ? 'Recolher modificadores por dado' : 'Expandir modificadores individuais por dado'}
-          >
-            <span>{isModifiersExpanded ? 'Recolher' : 'Por Dado'}</span>
-            {isModifiersExpanded ? (
-              <ChevronUp className="w-3.5 h-3.5 text-[#8257e5]" />
-            ) : (
-              <ChevronDown className="w-3.5 h-3.5" />
-            )}
-          </button>
-        </div>
+        {/* Botão Expansor de Modificadores Isolados por Dado */}
+        <button
+          type="button"
+          onClick={() => setIsModifiersExpanded(!isModifiersExpanded)}
+          className="w-full mt-2 pt-1.5 border-t border-[#27272a] flex items-center justify-center gap-1 text-[10px] font-medium text-[#a1a1aa] hover:text-white transition-colors cursor-pointer touch-manipulation"
+        >
+          <span>Por Dado</span>
+          {isModifiersExpanded ? (
+            <ChevronUp className="w-3 h-3 text-[#8257e5]" />
+          ) : (
+            <ChevronDown className="w-3 h-3 text-[#71717a]" />
+          )}
+        </button>
 
-        {/* Lista de Modificadores Isolados por Dado */}
+        {/* Lista de Modificadores Isolados quando expandido */}
         {isModifiersExpanded && (
-          <div className="mt-2 pt-2 border-t border-[#27272a] flex flex-col gap-1.5 max-h-40 overflow-y-auto pr-0.5">
+          <div className="mt-2 flex flex-col gap-1.5 max-h-36 overflow-y-auto pr-1">
             {dice.length === 0 ? (
-              <span className="text-[10px] text-[#71717a] italic text-center py-1">
-                Nenhum dado na bandeja
-              </span>
+              <p className="text-[10px] text-[#71717a] text-center py-1">
+                Nenhum dado na bandeja.
+              </p>
             ) : (
               dice.map((d, index) => {
                 const dMod = d.modifier || 0;
                 return (
                   <div
                     key={d.id}
-                    className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-[#18181b]/70 border border-[#27272a]/80"
+                    className="flex items-center justify-between p-1 rounded bg-[#18181b] border border-[#27272a]"
                   >
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span
@@ -269,22 +278,40 @@ export default function DiceTrayToolbar() {
         )}
       </div>
 
-      {/* Botão Principal de Rolar Dados (Suporta clique rápido e Segurar para Arremesso Forte) */}
+      {/* Botão Desktop: Barra Horizontal */}
       <button
         ref={rollBtnRef}
         type="button"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        onPointerDown={handlePointerDown}
+        onPointerDown={(e) => handlePointerDown(e, rollBtnRef.current)}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
         onContextMenu={(e) => e.preventDefault()}
         disabled={isRolling || dice.length === 0}
-        className="w-full relative flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#8257e5] hover:bg-[#9466ff] disabled:opacity-40 text-white font-bold text-sm tracking-wide shadow-md active:scale-95 transition-transform cursor-pointer select-none touch-manipulation"
+        className="hidden md:flex w-full relative items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#8257e5] hover:bg-[#9466ff] disabled:opacity-40 text-white font-bold text-sm tracking-wide shadow-md active:scale-95 transition-transform cursor-pointer select-none touch-manipulation"
         title="Clique ou segure para arremessar os dados com força"
       >
         <Dices className={`w-4 h-4 ${isRolling ? 'animate-spin' : ''}`} />
         <span>{isRolling ? 'Rolando...' : 'Rolar Dados'}</span>
+      </button>
+
+      {/* Botão Móvel: Quadradão com bordas arredondadas no canto inferior direito para o polegar */}
+      <button
+        ref={mobileRollBtnRef}
+        type="button"
+        onPointerDown={(e) => handlePointerDown(e, mobileRollBtnRef.current)}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        onContextMenu={(e) => e.preventDefault()}
+        disabled={isRolling || dice.length === 0}
+        className="md:hidden fixed bottom-3 right-3 sm:bottom-4 sm:right-4 z-40 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-[#8257e5] disabled:opacity-35 text-white shadow-[0_10px_30px_rgba(0,0,0,0.8)] border-2 border-purple-400/40 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform cursor-pointer select-none touch-manipulation"
+        title="Toque ou segure com o polegar para arremessar os dados"
+      >
+        <Dices className={`w-7 h-7 sm:w-8 sm:h-8 ${isRolling ? 'animate-spin' : ''}`} />
+        <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider">
+          {isRolling ? '...' : 'Rolar'}
+        </span>
       </button>
 
       {/* Visibilidade da Rolagem */}

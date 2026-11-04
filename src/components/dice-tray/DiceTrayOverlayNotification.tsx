@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useDiceTrayStore } from '@/store/useDiceTrayStore';
-import { Sparkles, Skull, X, Dices } from 'lucide-react';
+import { Sparkles, Skull, Dices } from 'lucide-react';
 
 export default function DiceTrayOverlayNotification() {
   const activeNotification = useDiceTrayStore((state) => state.activeNotification);
@@ -19,13 +19,13 @@ export default function DiceTrayOverlayNotification() {
       return;
     }
 
-    // Notificação rápida: fecha automaticamente após 3.6 segundos
+    // Notificação rápida: fecha automaticamente após 3.5 segundos
     const timer = setTimeout(() => {
       setIsExiting(true);
       setTimeout(() => {
         dismissNotification();
       }, 180);
-    }, 3600);
+    }, 3500);
 
     return () => clearTimeout(timer);
   }, [activeNotification, dismissNotification]);
@@ -50,7 +50,7 @@ export default function DiceTrayOverlayNotification() {
   };
 
   const handleTouchEnd = () => {
-    if (dragY < -26) {
+    if (dragY < -24) {
       setIsExiting(true);
       setTimeout(() => {
         dismissNotification();
@@ -98,7 +98,7 @@ export default function DiceTrayOverlayNotification() {
           <div
             onClick={toggleOpen}
             className="flex items-center gap-2.5 cursor-pointer group flex-1 min-w-0"
-            title="Toque para abrir a Bandeja de Dados"
+            title="Toque para abrir a Bandeja de Dados (ou arraste para cima para dispensar)"
           >
             <div
               className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border shadow-sm ${
@@ -120,7 +120,7 @@ export default function DiceTrayOverlayNotification() {
 
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-bold text-white truncate max-w-[120px] sm:max-w-[180px]">
+                <span className="text-xs font-bold text-white truncate max-w-[140px] sm:max-w-[200px]">
                   {activeNotification.senderName}
                 </span>
                 <span className="text-[10px] text-[#a1a1aa] font-mono shrink-0">
@@ -146,7 +146,7 @@ export default function DiceTrayOverlayNotification() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 pl-2 border-l border-[#2e2e33] shrink-0">
+          <div className="flex items-center gap-2 pl-3 border-l border-[#2e2e33] shrink-0">
             <span
               className={`font-mono font-black text-2xl leading-none ${
                 isCrit ? 'text-amber-400' : isFumble ? 'text-red-400' : 'text-white'
@@ -154,15 +154,6 @@ export default function DiceTrayOverlayNotification() {
             >
               {activeNotification.total}
             </span>
-
-            <button
-              type="button"
-              onClick={dismissNotification}
-              className="p-1 rounded-lg text-[#71717a] hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-              title="Fechar notificação"
-            >
-              <X className="w-4 h-4" />
-            </button>
           </div>
         </div>
       </div>

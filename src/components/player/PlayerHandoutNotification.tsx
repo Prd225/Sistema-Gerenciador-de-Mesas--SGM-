@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Scroll, Sparkles, X, Eye } from 'lucide-react';
+import { Scroll, Sparkles, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePlayerHandoutsStore } from '@/store/usePlayerHandoutsStore';
 
@@ -96,7 +96,7 @@ export default function PlayerHandoutNotification() {
   };
 
   const handleTouchEnd = () => {
-    if (dragY < -26) {
+    if (dragY < -24) {
       setIsExiting(true);
       setTimeout(() => {
         dismiss();
@@ -135,7 +135,7 @@ export default function PlayerHandoutNotification() {
         {/* Indicador de deslizar para cima */}
         <div className="w-8 h-1 bg-amber-400/30 rounded-full mx-auto mb-1.5 shrink-0" />
 
-        <div className="relative flex items-center gap-3">
+        <div className="relative flex items-center justify-between gap-3">
           {/* Ícone com pulso */}
           <div className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 shrink-0">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-xl bg-amber-400 opacity-20" />
@@ -148,7 +148,7 @@ export default function PlayerHandoutNotification() {
               <Sparkles className="w-3 h-3 text-amber-300 animate-pulse" />
               <span>{messageHeader}</span>
             </div>
-            <p className="text-xs sm:text-sm font-semibold text-white truncate max-w-[170px] sm:max-w-[240px]">
+            <p className="text-xs sm:text-sm font-semibold text-white truncate max-w-[200px] sm:max-w-[280px]">
               {notification.title}
             </p>
           </div>
@@ -160,24 +160,11 @@ export default function PlayerHandoutNotification() {
               e.stopPropagation();
               openRevealedHandout(notification.handout);
             }}
-            className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs h-7 px-2.5 rounded-lg shadow shrink-0 flex items-center gap-1 active:scale-95"
+            className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs h-7 px-3 rounded-lg shadow shrink-0 flex items-center gap-1 active:scale-95"
           >
             <Eye className="w-3.5 h-3.5" />
             <span>Ver</span>
           </Button>
-
-          {/* Fechar Notificação */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              dismiss();
-            }}
-            className="text-[#a1a1aa] hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors shrink-0"
-            title="Dispensar"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
         </div>
       </div>
     </div>

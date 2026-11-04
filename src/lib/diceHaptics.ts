@@ -110,3 +110,4 @@ class DiceHaptics {
 }
 
 export const diceHaptics = new DiceHaptics();
+

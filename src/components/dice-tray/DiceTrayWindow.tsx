@@ -20,20 +20,42 @@ export default function DiceTrayWindow() {
   const setActiveTab = useDiceTrayStore((state) => state.setActiveTab);
   const dice = useDiceTrayStore((state) => state.dice);
 
-  // Detecção de viewport mobile
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth < 768 : false,
-  );
+  // Detecção de viewport mobile (considera portrait < 768px, landscape < 1024px com altura < 600px, e telas touch)
+  const [viewport, setViewport] = useState(() => {
+    if (typeof window === 'undefined') {
+      return { isMobile: false, isLandscape: false };
+    }
+    const isTouch = window.matchMedia('(pointer: coarse)').matches;
+    const isSmallHeight = window.innerHeight < 600;
+    const isSmallWidth = window.innerWidth < 768;
+    const isMobileLandscape = window.innerHeight <= 520 && window.innerWidth < 1024;
+    const isMobileDevice =
+      isSmallHeight || isSmallWidth || isMobileLandscape || (isTouch && window.innerWidth < 1024);
+    const isLandscape = window.innerWidth > window.innerHeight;
+    return { isMobile: isMobileDevice, isLandscape };
+  });
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
+      const isTouch = window.matchMedia('(pointer: coarse)').matches;
+      const isSmallHeight = window.innerHeight < 600;
+      const isSmallWidth = window.innerWidth < 768;
+      const isMobileLandscape = window.innerHeight <= 520 && window.innerWidth < 1024;
+      const isMobileDevice =
+        isSmallHeight || isSmallWidth || isMobileLandscape || (isTouch && window.innerWidth < 1024);
+      const isLandscape = window.innerWidth > window.innerHeight;
+      setViewport({ isMobile: isMobileDevice, isLandscape });
     };
+
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
   }, []);
 
-  // Estado de tela cheia / maximizado
+  // Estado de tela cheia / maximizado no Desktop
   const [isMaximized, setIsMaximized] = useState(false);
 
   // Posição flutuante arrastável da janela (Desktop)
@@ -44,7 +66,7 @@ export default function DiceTrayWindow() {
 
   // Header Drag Handler (apenas em desktop e quando não maximizado)
   const handleHeaderPointerDown = (e: React.PointerEvent) => {
-    if (isMobile || isMaximized) return;
+    if (viewport.isMobile || isMaximized) return;
     if ((e.target as HTMLElement).closest('button')) return;
 
     const initialMouseX = e.clientX;
@@ -71,13 +93,15 @@ export default function DiceTrayWindow() {
     window.addEventListener('pointerup', onPointerUp);
   };
 
-  const stylePosition: React.CSSProperties = isMobile
+  const stylePosition: React.CSSProperties = viewport.isMobile
     ? {
         position: 'fixed',
         left: 0,
         top: 0,
         width: '100vw',
         height: '100dvh',
+        maxWidth: '100vw',
+        maxHeight: '100dvh',
         transform: 'none',
       }
     : isMaximized
@@ -114,15 +138,19 @@ export default function DiceTrayWindow() {
     <div
       ref={windowRef}
       style={stylePosition}
-      className={`z-[160] flex flex-col bg-[#141417]/98 border border-[#323238] shadow-[0_16px_50px_rgba(0,0,0,0.85)] backdrop-blur-md overflow-hidden select-none animate-in fade-in zoom-in-95 duration-150 transition-all ${
-        isMobile ? 'rounded-none' : isMaximized ? 'rounded-xl' : 'rounded-2xl'
+      className={`z-[160] flex flex-col bg-[#141417]/98 shadow-[0_16px_50px_rgba(0,0,0,0.85)] backdrop-blur-md overflow-hidden select-none animate-in fade-in zoom-in-95 duration-150 transition-all ${
+        viewport.isMobile
+          ? 'rounded-none border-0'
+          : isMaximized
+          ? 'rounded-xl border border-[#323238]'
+          : 'rounded-2xl border border-[#323238]'
       }`}
     >
       {/* Barra de Título / Cabeçalho da Janela */}
       <div
         onPointerDown={handleHeaderPointerDown}
-        className={`flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 bg-[#18181b] border-b border-[#27272a] select-none ${
-          isMobile || isMaximized ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
+        className={`flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 bg-[#18181b] border-b border-[#27272a] select-none shrink-0 ${
+          viewport.isMobile || isMaximized ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
         }`}
       >
         {/* Identificação e Abas */}
@@ -181,10 +209,9 @@ export default function DiceTrayWindow() {
           </div>
         </div>
 
-        {/* Controles de Janela (Apenas Maximizar/Restaurar e Fechar) */}
+        {/* Controles de Janela (Maximizar/Restaurar apenas em desktop e Fechar) */}
         <div className="flex items-center gap-1 shrink-0 ml-1">
-          {/* Botão Maximizar / Restaurar (Apenas Desktop) */}
-          {!isMobile && (
+          {!viewport.isMobile && (
             <button
               type="button"
               onClick={() => setIsMaximized(!isMaximized)}
@@ -203,7 +230,7 @@ export default function DiceTrayWindow() {
           <button
             type="button"
             onClick={() => setIsOpen(false)}
-            className="p-1.5 rounded-lg text-[#a1a1aa] hover:text-red-400 hover:bg-[#27272a] transition-all cursor-pointer"
+            className="p-1.5 rounded-lg text-[#a1a1aa] hover:text-red-400 hover:bg-[#27272a] transition-all cursor-pointer active:scale-95"
             title="Fechar bandeja de dados"
           >
             <X className="w-3.5 h-3.5" />
@@ -212,12 +239,36 @@ export default function DiceTrayWindow() {
       </div>
 
       {/* Conteúdo das Abas */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+      <div
+        className={`flex-1 flex overflow-hidden relative ${
+          viewport.isMobile && !viewport.isLandscape
+            ? 'flex-col' // Mobile portrait: Bandeja no topo, ferramentas embaixo
+            : 'flex-row' // Desktop e Mobile Landscape: Ferramentas na lateral esquerda, Bandeja na direita
+        }`}
+      >
         {activeTab === 'tray' && (
-          <>
-            <DiceTrayToolbar />
-            <DiceTrayCanvas />
-          </>
+          viewport.isMobile && !viewport.isLandscape ? (
+            // Modo Vertical Móvel: Bandeja EM CIMA, Ferramentas EMBAIXO
+            <>
+              <div className="flex-1 min-h-[46dvh] w-full relative overflow-hidden">
+                <DiceTrayCanvas isMobileLandscape={false} />
+              </div>
+              <div className="w-full shrink-0 max-h-[44dvh] overflow-y-auto border-t border-[#27272a] bg-[#18181b]/98 pb-safe">
+                <DiceTrayToolbar isMobilePortrait={true} isMobileLandscape={false} />
+              </div>
+            </>
+          ) : (
+            // Desktop ou Landscape Móvel: Toolbar na lateral esquerda, Canvas na direita (Full Screen)
+            <>
+              <DiceTrayToolbar
+                isMobilePortrait={false}
+                isMobileLandscape={viewport.isMobile && viewport.isLandscape}
+              />
+              <div className="flex-1 min-w-0 h-full relative overflow-hidden">
+                <DiceTrayCanvas isMobileLandscape={viewport.isMobile && viewport.isLandscape} />
+              </div>
+            </>
+          )
         )}
 
         {activeTab === 'history' && <DiceTrayHistory />}

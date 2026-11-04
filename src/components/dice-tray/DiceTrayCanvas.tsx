@@ -3,7 +3,11 @@ import { useDiceTrayStore } from '@/store/useDiceTrayStore';
 import AnimatedDiceCard from './AnimatedDiceCard';
 import { Dices } from 'lucide-react';
 
-export default function DiceTrayCanvas() {
+interface DiceTrayCanvasProps {
+  isMobileLandscape?: boolean;
+}
+
+export default function DiceTrayCanvas({ isMobileLandscape = false }: DiceTrayCanvasProps) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const dice = useDiceTrayStore((state) => state.dice);
   const lastRollResult = useDiceTrayStore((state) => state.lastRollResult);
@@ -11,32 +15,28 @@ export default function DiceTrayCanvas() {
   return (
     <div
       ref={canvasRef}
-      className="relative flex-1 w-full h-full min-h-[200px] sm:min-h-[300px] overflow-hidden rounded-xl border border-[#27272a] bg-[#111216] select-none shadow-inner touch-none"
-      style={{
-        perspective: '1000px',
-        transformStyle: 'preserve-3d',
-        touchAction: 'none',
-        backgroundImage: `
-          radial-gradient(circle at 50% 50%, rgba(30, 32, 40, 0.9) 0%, rgba(14, 15, 19, 0.98) 100%),
-          repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.01) 0, rgba(255, 255, 255, 0.01) 2px, transparent 2px, transparent 6px)
-        `,
-      }}
+      className="relative flex-1 w-full h-full min-h-[160px] bg-[#121214] overflow-hidden select-none touch-none"
     >
-      {/* Moldura de Feltro / Textura Interior */}
-      <div className="absolute inset-1 rounded-lg border border-[#27272a]/60 pointer-events-none" />
+      {/* Feltro com Textura Tátil e Bordas Suaves */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-40 bg-[radial-gradient(#27272a_1px,transparent_1px)]"
+        style={{ backgroundSize: '18px 18px' }}
+      />
 
-      {/* Marca d'água sutil no fundo */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-5">
-        <Dices className="w-56 h-56 text-white" />
+      {/* Marca d'água de Dados no Centro do Feltro */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.035]">
+        <Dices className="w-56 h-56 text-white stroke-[1]" />
       </div>
 
-      {/* Estado Vazio */}
+      {/* Instrução quando a bandeja estiver vazia */}
       {dice.length === 0 && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 text-[#71717a] pointer-events-none">
-          <Dices className="w-12 h-12 mb-3 text-[#3f3f46] animate-pulse" />
-          <p className="text-sm font-semibold text-[#a1a1aa]">Bandeja Vazia</p>
-          <p className="text-xs max-w-xs mt-1 text-[#71717a]">
-            Selecione dados na barra lateral para colocar na bandeja e role quando estiver pronto.
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center pointer-events-none select-none z-0">
+          <div className="w-14 h-14 rounded-2xl bg-[#202024]/60 border border-[#27272a] flex items-center justify-center mb-3 text-[#71717a] shadow-inner">
+            <Dices className="w-7 h-7" />
+          </div>
+          <p className="text-sm font-semibold text-[#e4e4e7]">A bandeja está vazia</p>
+          <p className="text-xs text-[#71717a] max-w-xs mt-1">
+            Selecione dados na barra lateral para rolar na mesa virtual.
           </p>
         </div>
       )}
@@ -46,9 +46,13 @@ export default function DiceTrayCanvas() {
         <AnimatedDiceCard key={die.id} die={die} canvasRef={canvasRef} />
       ))}
 
-      {/* Placa de Resultado no Rodapé da Bandeja (Sem botão repetido de reroll) */}
+      {/* Placa de Resultado no Rodapé da Bandeja */}
       {lastRollResult && (
-        <div className="absolute bottom-2 left-2 right-2 sm:bottom-3 sm:left-3 sm:right-3 flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-[#18181b]/95 border border-[#323238] shadow-xl backdrop-blur-md z-30 animate-in fade-in slide-in-from-bottom-2 duration-150">
+        <div
+          className={`absolute bottom-2 left-2 ${
+            isMobileLandscape ? 'right-20' : 'right-2 sm:right-3'
+          } sm:bottom-3 sm:left-3 flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-[#18181b]/95 border border-[#323238] shadow-xl backdrop-blur-md z-30 animate-in fade-in slide-in-from-bottom-2 duration-150`}
+        >
           <div className="flex flex-col min-w-0 pr-2">
             <div className="flex items-center gap-1.5 sm:gap-2">
               <span className="text-xs font-mono font-medium text-[#a1a1aa]">
