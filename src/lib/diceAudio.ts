@@ -1,260 +1,318 @@
-// Motor de Som Procedural de Dados via Web Audio API
-// Efeitos ultra-realistas de colisão, feltro, chacoalhar e impacto
-// 100% offline, sem arquivos externos ou atrasos de rede
+// Motor de Som de Dados via Web Audio API
+// - Eventos configuráveis em diceSoundConfig.ts (arquivos próprios do usuário)
+// - Fallback procedural (sintetizado) para todo evento sem arquivo definido
+// - 100% offline, buffers decodificados uma única vez e reaproveitados
+
+import { DICE_SOUNDS, type DiceSoundEvent } from './diceSoundConfig';
+
+interface PlayOpts {
+  volume?: number; // multiplicador 0..2
+  rate?: number; // playbackRate
+}
 
 class DiceAudioEngine {
   private ctx: AudioContext | null = null;
-  private isMuted: boolean = false;
-  private lastBounceTime: number = 0;
-  private lastCollisionTime: number = 0;
+  private master: GainNode | null = null;
+  private isMuted = false;
+  private buffers = new Map<string, AudioBuffer>();
+  private loading = new Set<string>();
+  private lastPlay = new Map<DiceSoundEvent, number>();
 
-  private initCtx() {
+  // Loop do "segurar para rolar"
+  private holdSource: AudioBufferSourceNode | null = null;
+  private holdGain: GainNode | null = null;
+  private holdTimer: number | null = null;
+  private holdIntensity = 0;
+
+  private initCtx(): boolean {
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (AudioCtx) {
-        this.ctx = new AudioCtx();
-      }
+      if (!AudioCtx) return false;
+      this.ctx = new AudioCtx();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = 1;
+      this.master.connect(this.ctx.destination);
+      this.preloadAll();
     }
-    if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume().catch(() => {});
-    }
+    if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+    return true;
   }
 
   public setMuted(muted: boolean) {
     this.isMuted = muted;
+    if (muted) this.stopHold();
   }
 
   public getMuted(): boolean {
     return this.isMuted;
   }
 
-  // Som de um dado caindo e assentando no feltro (usado ao adicionar dado na bandeja)
+  // ---------------------------------------------------------------------------
+  // Carregamento de arquivos configurados
+  // ---------------------------------------------------------------------------
+  private sourcesOf(event: DiceSoundEvent): string[] {
+    let src = DICE_SOUNDS[event].src;
+    if (!src && event === 'release') src = DICE_SOUNDS.place.src;
+    if (!src) return [];
+    return Array.isArray(src) ? src : [src];
+  }
+
+  private preloadAll() {
+    (Object.keys(DICE_SOUNDS) as DiceSoundEvent[]).forEach((ev) =>
+      this.sourcesOf(ev).forEach((url) => this.load(url)),
+    );
+  }
+
+  private load(url: string) {
+    if (!this.ctx || this.buffers.has(url) || this.loading.has(url)) return;
+    this.loading.add(url);
+    fetch(url)
+      .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(r.status)))
+      .then((data) => this.ctx!.decodeAudioData(data))
+      .then((buf) => this.buffers.set(url, buf))
+      .catch(() => console.warn(`[diceAudio] Falha ao carregar som: ${url}`))
+      .finally(() => this.loading.delete(url));
+  }
+
+  private bufferFor(event: DiceSoundEvent): AudioBuffer | null {
+    const list = this.sourcesOf(event).filter((u) => this.buffers.has(u));
+    if (list.length === 0) return null;
+    return this.buffers.get(list[Math.floor(Math.random() * list.length)]) || null;
+  }
+
+  // Toca o arquivo configurado; retorna false se não houver (=> usar procedural)
+  private playSample(event: DiceSoundEvent, opts: PlayOpts = {}): boolean {
+    if (!this.ctx || !this.master) return false;
+    const buf = this.bufferFor(event);
+    if (!buf) return false;
+    const entry = DICE_SOUNDS[event].src ? DICE_SOUNDS[event] : DICE_SOUNDS.place;
+    const src = this.ctx.createBufferSource();
+    const gain = this.ctx.createGain();
+    src.buffer = buf;
+    src.playbackRate.value = opts.rate ?? 0.94 + Math.random() * 0.12;
+    gain.gain.value = entry.volume * (opts.volume ?? 1);
+    src.connect(gain);
+    gain.connect(this.master);
+    src.start();
+    return true;
+  }
+
+  private throttled(event: DiceSoundEvent, ms: number): boolean {
+    const now = performance.now();
+    if (now - (this.lastPlay.get(event) || 0) < ms) return true;
+    this.lastPlay.set(event, now);
+    return false;
+  }
+
+  // ---------------------------------------------------------------------------
+  // API pública por evento
+  // ---------------------------------------------------------------------------
+
+  /** Dado colocado na bandeja */
   public playDieDrop() {
-    if (this.isMuted) return;
-    try {
-      this.initCtx();
-      if (!this.ctx) return;
-      const now = this.ctx.currentTime;
-
-      // 1. Estalido de contato inicial da resina
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(1100, now);
-      osc.frequency.exponentialRampToValueAtTime(450, now + 0.035);
-
-      gain.gain.setValueAtTime(0.18, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.045);
-
-      // 2. Micro repique secundário
-      setTimeout(() => {
-        if (!this.ctx || this.isMuted) return;
-        const t2 = this.ctx.currentTime;
-        const osc2 = this.ctx.createOscillator();
-        const gain2 = this.ctx.createGain();
-        osc2.type = 'sine';
-        osc2.frequency.setValueAtTime(750, t2);
-        osc2.frequency.exponentialRampToValueAtTime(320, t2 + 0.03);
-        gain2.gain.setValueAtTime(0.1, t2);
-        gain2.gain.exponentialRampToValueAtTime(0.001, t2 + 0.035);
-        osc2.connect(gain2);
-        gain2.connect(this.ctx.destination);
-        osc2.start(t2);
-        osc2.stop(t2 + 0.04);
-      }, 40);
-
-      // 3. Batida suave e absorção no feltro
-      setTimeout(() => {
-        if (!this.ctx || this.isMuted) return;
-        this.playThud(this.ctx.currentTime, 0.2);
-      }, 70);
-    } catch {}
+    if (this.isMuted || !this.initCtx()) return;
+    if (this.playSample('place')) return;
+    this.synthDrop(1);
   }
 
-  // Som de colisão com a borda de couro/madeira da bandeja (com força/volume variável)
-  public playBounce(volMultiplier: number = 1.0) {
-    if (this.isMuted) return;
-    const now = performance.now();
-    // Limita frequência para não sobrecarregar em múltiplos quiques
-    if (now - this.lastBounceTime < 55) return;
-    this.lastBounceTime = now;
-
-    try {
-      this.initCtx();
-      if (!this.ctx) return;
-      const audioTime = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-
-      osc.type = 'triangle';
-      const freq = 420 + Math.random() * 320;
-      osc.frequency.setValueAtTime(freq, audioTime);
-      osc.frequency.exponentialRampToValueAtTime(freq * 0.35, audioTime + 0.045);
-
-      const targetVol = Math.min(0.25, 0.14 * Math.max(0.4, volMultiplier));
-      gain.gain.setValueAtTime(targetVol, audioTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioTime + 0.05);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-
-      osc.start(audioTime);
-      osc.stop(audioTime + 0.055);
-    } catch {}
+  /** Dado selecionado / pego com o mouse */
+  public playSelect() {
+    if (this.isMuted || !this.initCtx() || this.throttled('select', 60)) return;
+    if (this.playSample('select')) return;
+    const t = this.ctx!.currentTime;
+    this.synthClack(t, 1.5, 0.07);
   }
 
-  // Som de colisão entre dois dados (estalido seco de resina ao se chocarem)
+  /** Dado solto após arrastar (mesmo som do 'place' por padrão) */
+  public playRelease() {
+    if (this.isMuted || !this.initCtx() || this.throttled('release', 60)) return;
+    if (this.playSample('release')) return;
+    this.synthDrop(0.75);
+  }
+
+  /** Rolagem: escolhe o evento conforme a quantidade de dados */
+  public playRoll(diceCount = 1, intensity = 0) {
+    if (this.isMuted || !this.initCtx()) return;
+    const event: DiceSoundEvent =
+      diceCount <= 1 ? 'rollSingle' : diceCount <= 4 ? 'rollFew' : 'rollMany';
+    if (this.playSample(event, { volume: 1 + intensity * 0.3 })) return;
+    this.synthRoll(diceCount, intensity);
+  }
+
+  /** Dado batendo na borda/canto da bandeja */
+  public playBounce(force = 1) {
+    if (this.isMuted || !this.initCtx() || this.throttled('wallHit', 50)) return;
+    const vol = Math.min(1.4, Math.max(0.35, force));
+    if (this.playSample('wallHit', { volume: vol })) return;
+    const t = this.ctx!.currentTime;
+    this.synthClack(t, 0.6 + Math.random() * 0.35, 0.13 * vol);
+  }
+
+  /** Dado batendo em outro dado */
   public playDieCollision() {
-    if (this.isMuted) return;
-    const now = performance.now();
-    if (now - this.lastCollisionTime < 55) return;
-    this.lastCollisionTime = now;
-
-    try {
-      this.initCtx();
-      if (!this.ctx) return;
-      this.playClack(this.ctx.currentTime, 0.95 + Math.random() * 0.5, 0.16);
-    } catch {}
+    if (this.isMuted || !this.initCtx() || this.throttled('dieHit', 55)) return;
+    if (this.playSample('dieHit')) return;
+    this.synthClack(this.ctx!.currentTime, 0.95 + Math.random() * 0.5, 0.14);
   }
 
-  // Cascata progressiva de dados rolando, batendo entre si e assentando
-  public playRoll(diceCount: number = 1) {
-    if (this.isMuted) return;
-    try {
-      this.initCtx();
-      if (!this.ctx) return;
+  /** Início do "segurar para rolar" (loop que intensifica) */
+  public startHold() {
+    if (this.isMuted || !this.initCtx()) return;
+    this.stopHold();
+    this.holdIntensity = 0;
+    const buf = this.bufferFor('holdLoop');
+    if (buf && this.ctx && this.master) {
+      this.holdSource = this.ctx.createBufferSource();
+      this.holdGain = this.ctx.createGain();
+      this.holdSource.buffer = buf;
+      this.holdSource.loop = true;
+      this.holdGain.gain.value = DICE_SOUNDS.holdLoop.volume * 0.4;
+      this.holdSource.connect(this.holdGain);
+      this.holdGain.connect(this.master);
+      this.holdSource.start();
+      return;
+    }
+    // Fallback procedural: chocalhar que acelera com a intensidade
+    const rattle = () => {
+      if (!this.ctx || this.isMuted) return;
+      const i = this.holdIntensity;
+      this.synthClack(this.ctx.currentTime, 0.8 + Math.random() * 0.6, 0.025 + i * 0.07);
+      this.holdTimer = window.setTimeout(rattle, 150 - i * 105 + Math.random() * 40);
+    };
+    rattle();
+  }
 
-      const now = this.ctx.currentTime;
-      const count = Math.min(10, Math.max(1, diceCount));
-
-      // Fase 1: Chocalho inicial rápido (arremesso)
-      const initialClicks = 4 + count * 2;
-      for (let i = 0; i < initialClicks; i++) {
-        const timeOffset = (i / initialClicks) * 0.25 + Math.random() * 0.03;
-        this.playClack(now + timeOffset, 0.7 + Math.random() * 0.6, 0.14);
-      }
-
-      // Fase 2: Rolagem contínua progressiva no feltro (dados se chocando)
-      const rollClicks = 8 + count * 4;
-      for (let i = 0; i < rollClicks; i++) {
-        const progress = i / rollClicks;
-        // Intervalo vai se alargando suavemente (desaceleração)
-        const timeOffset = 0.25 + Math.pow(progress, 1.4) * 0.75 + Math.random() * 0.04;
-        const volume = Math.max(0.04, 0.16 * (1 - progress * 0.65));
-        const pitch = 0.6 + Math.random() * 0.7;
-        this.playClack(now + timeOffset, pitch, volume);
-      }
-
-      // Fase 3: Assentamento final escalonado dos dados (impactos no feltro)
-      const settlingSteps = Math.min(5, count);
-      for (let s = 0; s < settlingSteps; s++) {
-        const thudOffset = 800 + s * 90 + Math.random() * 60;
-        setTimeout(() => {
-          if (!this.ctx || this.isMuted) return;
-          this.playThud(this.ctx.currentTime, 0.22 - s * 0.02);
-        }, thudOffset);
-      }
-    } catch {
-      // Ignora falhas de autoplay
+  /** Atualiza a intensidade do loop de segurar (0..1) */
+  public setHoldIntensity(i: number) {
+    this.holdIntensity = Math.max(0, Math.min(1, i));
+    if (this.holdSource && this.holdGain && this.ctx) {
+      const t = this.ctx.currentTime;
+      this.holdGain.gain.setTargetAtTime(
+        DICE_SOUNDS.holdLoop.volume * (0.4 + this.holdIntensity * 0.6),
+        t,
+        0.05,
+      );
+      this.holdSource.playbackRate.setTargetAtTime(1 + this.holdIntensity * 0.35, t, 0.05);
     }
   }
 
-  // Estalido agudo (colisão de resina/acrílico)
-  private playClack(time: number, pitchMult: number = 1, volume: number = 0.15) {
+  public stopHold() {
+    if (this.holdTimer !== null) {
+      clearTimeout(this.holdTimer);
+      this.holdTimer = null;
+    }
+    if (this.holdSource) {
+      try {
+        this.holdSource.stop();
+      } catch {}
+      this.holdSource.disconnect();
+      this.holdSource = null;
+    }
+    if (this.holdGain) {
+      this.holdGain.disconnect();
+      this.holdGain = null;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Síntese procedural (fallback)
+  // ---------------------------------------------------------------------------
+  private synthDrop(vol: number) {
     if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this.synthClack(t, 1.4, 0.16 * vol);
+    this.synthClack(t + 0.045, 1.0, 0.08 * vol);
+    this.synthThud(t + 0.07, 0.18 * vol);
+  }
+
+  private synthRoll(diceCount: number, intensity: number) {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const count = Math.min(10, Math.max(1, diceCount));
+    const boost = 1 + intensity * 0.5;
+
+    const initialClicks = 4 + count * 2;
+    for (let i = 0; i < initialClicks; i++) {
+      const off = (i / initialClicks) * 0.25 + Math.random() * 0.03;
+      this.synthClack(now + off, 0.7 + Math.random() * 0.6, 0.12 * boost);
+    }
+    const rollClicks = 8 + count * 3;
+    for (let i = 0; i < rollClicks; i++) {
+      const p = i / rollClicks;
+      const off = 0.25 + Math.pow(p, 1.4) * (0.75 + intensity * 0.4) + Math.random() * 0.04;
+      this.synthClack(now + off, 0.6 + Math.random() * 0.7, Math.max(0.035, 0.14 * (1 - p * 0.65)) * boost);
+    }
+    const settle = Math.min(5, count);
+    for (let s = 0; s < settle; s++) {
+      this.synthThud(now + 0.8 + intensity * 0.4 + s * 0.09 + Math.random() * 0.06, 0.2 - s * 0.02);
+    }
+  }
+
+  private synthClack(time: number, pitch = 1, volume = 0.15) {
+    if (!this.ctx || !this.master) return;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
-
     osc.type = 'triangle';
-    const baseFreq = (700 + Math.random() * 500) * pitchMult;
-    osc.frequency.setValueAtTime(baseFreq, time);
-    osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.35, time + 0.04);
-
+    const f = (700 + Math.random() * 500) * pitch;
+    osc.frequency.setValueAtTime(f, time);
+    osc.frequency.exponentialRampToValueAtTime(f * 0.35, time + 0.04);
     gain.gain.setValueAtTime(volume, time);
     gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
-
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
-
+    gain.connect(this.master);
     osc.start(time);
     osc.stop(time + 0.055);
   }
 
-  // Impacto grave (feltro / bandeja de madeira)
-  private playThud(time: number, volume: number = 0.25) {
-    if (!this.ctx) return;
+  private synthThud(time: number, volume = 0.25) {
+    if (!this.ctx || !this.master) return;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
-
     osc.type = 'sine';
     osc.frequency.setValueAtTime(140, time);
     osc.frequency.exponentialRampToValueAtTime(45, time + 0.11);
-
     gain.gain.setValueAtTime(volume, time);
     gain.gain.exponentialRampToValueAtTime(0.001, time + 0.13);
-
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
-
+    gain.connect(this.master);
     osc.start(time);
     osc.stop(time + 0.14);
   }
 
-  // Som de Crítico Positivo (fanfarra / brilho)
+  /** Crítico positivo (fanfarra curta) */
   public playCrit() {
-    if (this.isMuted) return;
-    try {
-      this.initCtx();
-      if (!this.ctx) return;
-      const now = this.ctx.currentTime;
-      const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
-      notes.forEach((freq, idx) => {
-        const time = now + idx * 0.07;
-        const osc = this.ctx!.createOscillator();
-        const gain = this.ctx!.createGain();
-
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, time);
-
-        gain.gain.setValueAtTime(0.15, time);
-        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.25);
-
-        osc.connect(gain);
-        gain.connect(this.ctx!.destination);
-
-        osc.start(time);
-        osc.stop(time + 0.28);
-      });
-    } catch {}
+    if (this.isMuted || !this.initCtx() || !this.ctx || !this.master) return;
+    const now = this.ctx.currentTime;
+    [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+      const t = now + idx * 0.07;
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.15, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+      osc.connect(gain);
+      gain.connect(this.master!);
+      osc.start(t);
+      osc.stop(t + 0.28);
+    });
   }
 
-  // Som de Desastre Crítico (grave sombrio)
+  /** Desastre crítico (grave sombrio) */
   public playFumble() {
-    if (this.isMuted) return;
-    try {
-      this.initCtx();
-      if (!this.ctx) return;
-      const now = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(120, now);
-      osc.frequency.linearRampToValueAtTime(50, now + 0.35);
-
-      gain.gain.setValueAtTime(0.18, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-
-      osc.start(now);
-      osc.stop(now + 0.4);
-    } catch {}
+    if (this.isMuted || !this.initCtx() || !this.ctx || !this.master) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(120, now);
+    osc.frequency.linearRampToValueAtTime(50, now + 0.35);
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+    osc.connect(gain);
+    gain.connect(this.master);
+    osc.start(now);
+    osc.stop(now + 0.4);
   }
 }
 

@@ -1,8 +1,10 @@
+import { useState, useRef } from 'react';
 import {
   useDiceTrayStore,
   type DieFaceCount,
 } from '@/store/useDiceTrayStore';
 import { useMultiplayerStore } from '@/store/useMultiplayerStore';
+import { diceShake } from '@/lib/diceShake';
 import {
   Dices,
   Plus,
@@ -17,6 +19,8 @@ import {
   Lock,
   Bell,
   BellOff,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 const DIE_LIST: { faces: DieFaceCount; label: string; color: string; shapeHint: string }[] = [
@@ -34,6 +38,8 @@ export default function DiceTrayToolbar() {
   const addDie = useDiceTrayStore((state) => state.addDie);
   const modifier = useDiceTrayStore((state) => state.modifier);
   const setModifier = useDiceTrayStore((state) => state.setModifier);
+  const incrementDieModifier = useDiceTrayStore((state) => state.incrementDieModifier);
+  const decrementDieModifier = useDiceTrayStore((state) => state.decrementDieModifier);
   const isRolling = useDiceTrayStore((state) => state.isRolling);
   const rollDice = useDiceTrayStore((state) => state.rollDice);
 
@@ -53,19 +59,59 @@ export default function DiceTrayToolbar() {
   const redo = useDiceTrayStore((state) => state.redo);
   const clearTray = useDiceTrayStore((state) => state.clearTray);
 
+  const [isModifiersExpanded, setIsModifiersExpanded] = useState(false);
+  const rollBtnRef = useRef<HTMLButtonElement>(null);
+
   // Contagem por tipo de dado
   const countsByFace = dice.reduce((acc, d) => {
     acc[d.faces] = (acc[d.faces] || 0) + 1;
     return acc;
   }, {} as Record<number, number>);
 
-  const handleRoll = () => {
-    const sender = userName?.trim()
-      ? userName.trim()
-      : role === 'player'
-      ? 'Jogador'
-      : 'Mestre';
-    rollDice(sender, role || 'gm');
+  // Manipulação de Hover e Segurar para Rolar
+  const handleMouseEnter = () => {
+    if (!isRolling && dice.length > 0) {
+      diceShake.hoverStart();
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (diceShake.isHolding()) {
+      diceShake.cancel();
+    }
+    diceShake.hoverEnd();
+  };
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (isRolling || dice.length === 0 || e.button !== 0) return;
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
+    diceShake.holdStart(rollBtnRef.current);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (isRolling || dice.length === 0) return;
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
+
+    if (diceShake.isHolding()) {
+      const intensity = diceShake.release(true);
+      const sender = userName?.trim()
+        ? userName.trim()
+        : role === 'player'
+        ? 'Jogador'
+        : 'Mestre';
+      rollDice(sender, role || 'gm', intensity);
+    }
+  };
+
+  const handlePointerCancel = () => {
+    if (diceShake.isHolding()) {
+      diceShake.cancel();
+    }
+    diceShake.hoverEnd();
   };
 
   return (
@@ -109,23 +155,25 @@ export default function DiceTrayToolbar() {
         </div>
       </div>
 
-      {/* Modificador Numérico */}
-      <div className="bg-[#202024]/40 border border-[#27272a] rounded-lg p-2.5">
+      {/* Seção Modificadores (Global + Expansor para Isolados por Dado) */}
+      <div className="bg-[#202024]/40 border border-[#27272a] rounded-lg p-2.5 transition-all">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[11px] font-bold uppercase tracking-wider text-[#71717a]">
-            Modificador
+            Modificadores
           </span>
           <span className="text-xs font-mono font-bold text-[#e4e4e7]">
             {modifier >= 0 ? `+${modifier}` : modifier}
           </span>
         </div>
+
+        {/* Modificador Global */}
         <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => setModifier(modifier - 1)}
             disabled={isRolling}
             className="flex-1 py-1 flex items-center justify-center rounded bg-[#27272a] hover:bg-[#323238] active:scale-90 text-[#a1a1aa] hover:text-white transition-all"
-            title="Reduzir modificador (-1)"
+            title="Reduzir modificador global (-1)"
           >
             <Minus className="w-3.5 h-3.5" />
           </button>
@@ -134,7 +182,7 @@ export default function DiceTrayToolbar() {
             onClick={() => setModifier(0)}
             disabled={isRolling || modifier === 0}
             className="px-2 py-1 text-[10px] rounded bg-[#27272a] hover:bg-[#323238] disabled:opacity-40 text-[#71717a] hover:text-white font-mono transition-all"
-            title="Zerar modificador"
+            title="Zerar modificador global"
           >
             0
           </button>
@@ -143,19 +191,98 @@ export default function DiceTrayToolbar() {
             onClick={() => setModifier(modifier + 1)}
             disabled={isRolling}
             className="flex-1 py-1 flex items-center justify-center rounded bg-[#27272a] hover:bg-[#323238] active:scale-90 text-[#a1a1aa] hover:text-white transition-all"
-            title="Aumentar modificador (+1)"
+            title="Aumentar modificador global (+1)"
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
         </div>
+
+        {/* Botão Expansor Centralizado Abaixo do Stepper (demarcado pelo usuário) */}
+        <div className="flex items-center justify-center mt-1.5 pt-1 border-t border-[#27272a]/60">
+          <button
+            type="button"
+            onClick={() => setIsModifiersExpanded(!isModifiersExpanded)}
+            className="flex items-center justify-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold text-[#a1a1aa] hover:text-white hover:bg-white/5 transition-all w-full"
+            title={isModifiersExpanded ? 'Recolher modificadores por dado' : 'Expandir modificadores individuais por dado'}
+          >
+            <span>{isModifiersExpanded ? 'Recolher' : 'Por Dado'}</span>
+            {isModifiersExpanded ? (
+              <ChevronUp className="w-3.5 h-3.5 text-[#8257e5]" />
+            ) : (
+              <ChevronDown className="w-3.5 h-3.5" />
+            )}
+          </button>
+        </div>
+
+        {/* Lista de Modificadores Isolados por Dado */}
+        {isModifiersExpanded && (
+          <div className="mt-2 pt-2 border-t border-[#27272a] flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-0.5">
+            {dice.length === 0 ? (
+              <span className="text-[10px] text-[#71717a] italic text-center py-1">
+                Nenhum dado na bandeja
+              </span>
+            ) : (
+              dice.map((d, index) => {
+                const dMod = d.modifier || 0;
+                return (
+                  <div
+                    key={d.id}
+                    className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-[#18181b]/70 border border-[#27272a]/80"
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0 shadow-sm"
+                        style={{ backgroundColor: d.color }}
+                      />
+                      <span className="font-mono text-xs text-[#e4e4e7] font-semibold truncate">
+                        d{d.faces}
+                        <span className="text-[9px] text-[#71717a] ml-1">#{index + 1}</span>
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => decrementDieModifier(d.id)}
+                        disabled={isRolling}
+                        className="w-4 h-4 flex items-center justify-center rounded bg-[#27272a] hover:bg-[#323238] active:scale-90 text-[#a1a1aa] hover:text-white transition-all text-xs"
+                        title="Reduzir modificador deste dado (-1)"
+                      >
+                        <Minus className="w-2.5 h-2.5" />
+                      </button>
+                      <span className="w-5 text-center font-mono text-[11px] font-bold text-[#a78bfa]">
+                        {dMod >= 0 ? `+${dMod}` : dMod}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => incrementDieModifier(d.id)}
+                        disabled={isRolling}
+                        className="w-4 h-4 flex items-center justify-center rounded bg-[#27272a] hover:bg-[#323238] active:scale-90 text-[#a1a1aa] hover:text-white transition-all text-xs"
+                        title="Aumentar modificador deste dado (+1)"
+                      >
+                        <Plus className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Botão Principal de Rolar */}
+      {/* Botão Principal de Rolar Dados (Suporta clique rápido e Segurar para Arremesso Forte) */}
       <button
+        ref={rollBtnRef}
         type="button"
-        onClick={handleRoll}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
         disabled={isRolling || dice.length === 0}
-        className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#8257e5] hover:bg-[#9466ff] disabled:opacity-40 text-white font-bold text-sm tracking-wide shadow-md active:scale-95 transition-all"
+        className="w-full relative flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#8257e5] hover:bg-[#9466ff] disabled:opacity-40 text-white font-bold text-sm tracking-wide shadow-md active:scale-95 transition-transform cursor-pointer select-none"
+        title="Clique ou segure para arremessar os dados com força"
       >
         <Dices className={`w-4 h-4 ${isRolling ? 'animate-spin' : ''}`} />
         <span>{isRolling ? 'Rolando...' : 'Rolar Dados'}</span>

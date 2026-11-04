@@ -116,6 +116,11 @@ export default function DiceTrayHistory() {
                       >
                         <span className="text-[10px] opacity-60">d{d.faces}:</span>
                         <span className="text-white">{d.value}</span>
+                        {!!d.modifier && (
+                          <span className="text-[10px] text-[#a78bfa]">
+                            {d.modifier > 0 ? `+${d.modifier}` : d.modifier}
+                          </span>
+                        )}
                       </span>
                     ))}
 

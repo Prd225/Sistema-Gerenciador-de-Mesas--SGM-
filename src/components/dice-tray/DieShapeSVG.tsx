@@ -1,5 +1,199 @@
-import React from 'react';
+import { memo, type RefObject, type MutableRefObject } from 'react';
 import { type DieFaceCount } from '@/store/useDiceTrayStore';
+
+// ---------------------------------------------------------------------------
+// Geometria declarativa de cada dado (viewBox 0..100)
+// ---------------------------------------------------------------------------
+type Tone = 'light' | 'dark';
+interface Facet {
+  pts: string;
+  tone: Tone;
+  op: number;
+}
+interface NumPos {
+  x: number;
+  y: number;
+  rot?: number;
+}
+interface DieGeometry {
+  outline: string; // path d
+  facets: Facet[];
+  face: string; // path d da face principal (frontal)
+  faceOp: number;
+  ridges: string; // path d com as arestas internas
+  main: NumPos & { size: number };
+  sides: NumPos[];
+  sideSize: number;
+}
+
+const poly = (pts: string) => `M${pts.trim().split(/\s+/).join(' L')} Z`;
+const lines = (segs: [string, string][]) => segs.map(([a, b]) => `M${a} L${b}`).join(' ');
+
+// D4 — Tetraedro
+const D4: DieGeometry = {
+  outline: poly('50,6 94,88 6,88'),
+  facets: [
+    { pts: '50,6 50,60 6,88', tone: 'light', op: 0.5 },
+    { pts: '50,6 94,88 50,60', tone: 'dark', op: 0.42 },
+  ],
+  face: poly('6,88 50,60 94,88'),
+  faceOp: 0.22,
+  ridges: lines([
+    ['50,6', '50,60'],
+    ['6,88', '50,60'],
+    ['94,88', '50,60'],
+  ]),
+  main: { x: 50, y: 77, size: 19 },
+  sides: [
+    { x: 35, y: 52, rot: -28 },
+    { x: 65, y: 52, rot: 28 },
+  ],
+  sideSize: 11,
+};
+
+// D6 — Cubo
+const D6: DieGeometry = {
+  outline: 'M24,8 H76 Q92,8 92,24 V76 Q92,92 76,92 H24 Q8,92 8,76 V24 Q8,8 24,8 Z',
+  facets: [],
+  face: 'M27,15 H73 Q85,15 85,27 V73 Q85,85 73,85 H27 Q15,85 15,73 V27 Q15,15 27,15 Z',
+  faceOp: 0.16,
+  ridges: '',
+  main: { x: 50, y: 51, size: 32 },
+  sides: [],
+  sideSize: 0,
+};
+
+// D8 — Octaedro (diamante)
+const D8: DieGeometry = {
+  outline: poly('50,4 94,50 50,96 6,50'),
+  facets: [
+    { pts: '50,4 94,50 76,68 50,22', tone: 'dark', op: 0.32 },
+    { pts: '50,4 50,22 24,68 6,50', tone: 'light', op: 0.3 },
+    { pts: '94,50 50,96 76,68', tone: 'dark', op: 0.48 },
+    { pts: '6,50 24,68 50,96', tone: 'light', op: 0.18 },
+    { pts: '24,68 76,68 50,96', tone: 'dark', op: 0.3 },
+  ],
+  face: poly('50,22 76,68 24,68'),
+  faceOp: 0.42,
+  ridges: lines([
+    ['50,4', '50,22'],
+    ['94,50', '76,68'],
+    ['6,50', '24,68'],
+    ['50,96', '24,68'],
+    ['50,96', '76,68'],
+  ]),
+  main: { x: 50, y: 54, size: 22 },
+  sides: [
+    { x: 73, y: 42, rot: 40 },
+    { x: 27, y: 42, rot: -40 },
+    { x: 50, y: 80 },
+  ],
+  sideSize: 9,
+};
+
+// D10 / D100 — Deltoedro (pipa)
+const D10: DieGeometry = {
+  outline: poly('50,4 92,48 50,96 8,48'),
+  facets: [
+    { pts: '50,4 28,48 8,48', tone: 'light', op: 0.34 },
+    { pts: '50,4 92,48 72,48', tone: 'dark', op: 0.34 },
+    { pts: '28,48 50,80 50,96 8,48', tone: 'light', op: 0.16 },
+    { pts: '72,48 92,48 50,96 50,80', tone: 'dark', op: 0.46 },
+  ],
+  face: poly('50,4 72,48 50,80 28,48'),
+  faceOp: 0.4,
+  ridges: lines([
+    ['50,80', '50,96'],
+    ['28,48', '8,48'],
+    ['72,48', '92,48'],
+  ]),
+  main: { x: 50, y: 47, size: 22 },
+  sides: [
+    { x: 29, y: 35, rot: -42 },
+    { x: 71, y: 35, rot: 42 },
+    { x: 32, y: 66, rot: -28 },
+    { x: 68, y: 66, rot: 28 },
+  ],
+  sideSize: 9,
+};
+
+// D12 — Dodecaedro
+const D12: DieGeometry = {
+  outline: poly('50,4 78,13 95,37 95,67 78,91 50,96 22,91 5,67 5,37 22,13'),
+  facets: [
+    { pts: '50,19 80,41 95,37 78,13 50,4', tone: 'light', op: 0.22 },
+    { pts: '80,41 69,78 78,91 95,67 95,37', tone: 'dark', op: 0.38 },
+    { pts: '69,78 31,78 22,91 50,96 78,91', tone: 'dark', op: 0.46 },
+    { pts: '31,78 20,41 5,37 5,67 22,91', tone: 'light', op: 0.14 },
+    { pts: '20,41 50,19 50,4 22,13 5,37', tone: 'light', op: 0.3 },
+  ],
+  face: poly('50,19 80,41 69,78 31,78 20,41'),
+  faceOp: 0.4,
+  ridges: lines([
+    ['50,19', '50,4'],
+    ['80,41', '95,37'],
+    ['69,78', '78,91'],
+    ['31,78', '22,91'],
+    ['20,41', '5,37'],
+  ]),
+  main: { x: 50, y: 52, size: 23 },
+  sides: [
+    { x: 71, y: 24, rot: 36 },
+    { x: 83, y: 62, rot: 72 },
+    { x: 50, y: 88 },
+    { x: 17, y: 62, rot: -72 },
+    { x: 29, y: 24, rot: -36 },
+  ],
+  sideSize: 8,
+};
+
+// D20 — Icosaedro
+const D20: DieGeometry = {
+  outline: poly('50,4 92,26 92,74 50,96 8,74 8,26'),
+  facets: [
+    { pts: '50,4 92,26 50,20', tone: 'light', op: 0.18 },
+    { pts: '50,4 50,20 8,26', tone: 'light', op: 0.34 },
+    { pts: '92,26 80,72 50,20', tone: 'dark', op: 0.22 },
+    { pts: '92,26 92,74 80,72', tone: 'dark', op: 0.42 },
+    { pts: '92,74 50,96 80,72', tone: 'dark', op: 0.5 },
+    { pts: '50,96 20,72 80,72', tone: 'dark', op: 0.32 },
+    { pts: '50,96 8,74 20,72', tone: 'dark', op: 0.38 },
+    { pts: '8,74 8,26 20,72', tone: 'light', op: 0.14 },
+    { pts: '8,26 50,20 20,72', tone: 'light', op: 0.26 },
+  ],
+  face: poly('50,20 80,72 20,72'),
+  faceOp: 0.45,
+  ridges: lines([
+    ['50,4', '50,20'],
+    ['92,26', '50,20'],
+    ['8,26', '50,20'],
+    ['92,26', '80,72'],
+    ['92,74', '80,72'],
+    ['50,96', '80,72'],
+    ['50,96', '20,72'],
+    ['8,74', '20,72'],
+    ['8,26', '20,72'],
+  ]),
+  main: { x: 50, y: 55, size: 22 },
+  sides: [
+    { x: 74, y: 40, rot: 60 },
+    { x: 26, y: 40, rot: -60 },
+    { x: 50, y: 82 },
+  ],
+  sideSize: 9,
+};
+
+const GEOMETRY: Record<DieFaceCount, DieGeometry> = {
+  4: D4,
+  6: D6,
+  8: D8,
+  10: D10,
+  12: D12,
+  20: D20,
+  100: D10,
+};
+
+// ---------------------------------------------------------------------------
 
 interface DieShapeSVGProps {
   dieId: string;
@@ -10,15 +204,12 @@ interface DieShapeSVGProps {
   isRolling: boolean;
   value: number | string;
   sideFaces?: number[];
-  rotX?: number; // Ângulo de pitch em graus (-35..35)
-  rotY?: number; // Ângulo de yaw em graus (-35..35)
   size?: number;
-  mainNumRef?: React.RefObject<SVGTextElement | null>;
-  mainNumShadowRef?: React.RefObject<SVGTextElement | null>;
-  sideNumRefs?: React.MutableRefObject<(SVGTextElement | null)[]>;
+  mainNumRef?: RefObject<SVGTextElement | null>;
+  sideNumRefs?: MutableRefObject<(SVGTextElement | null)[]>;
 }
 
-export default function DieShapeSVG({
+function DieShapeSVG({
   dieId,
   faces,
   color,
@@ -27,40 +218,22 @@ export default function DieShapeSVG({
   isRolling,
   value,
   sideFaces = [],
-  rotX = 0,
-  rotY = 0,
   size = 84,
   mainNumRef,
-  mainNumShadowRef,
   sideNumRefs,
 }: DieShapeSVGProps) {
-  // IDs 100% únicos por dado para evitar qualquer conflito de SVG no DOM
-  const safeId = dieId.replace(/[^a-zA-Z0-9_-]/g, '');
-  const gradientId = `die-grad-${safeId}`;
-  const clipId = `die-clip-${safeId}`;
+  const g = GEOMETRY[faces];
+  const uid = dieId.replace(/[^a-zA-Z0-9_-]/g, '');
+  const gradId = `dg-${uid}`;
+  const lightId = `dl-${uid}`;
+  const darkId = `dd-${uid}`;
+  const glossId = `ds-${uid}`;
+  const clipId = `dc-${uid}`;
 
-  // Cores dinâmicas para bordas e destaques limpos
-  const strokeColor = isCrit
-    ? '#fbbf24'
-    : isFumble
-    ? '#ef4444'
-    : 'rgba(255, 255, 255, 0.35)';
-
-  const strokeWidth = isCrit || isFumble ? 2.2 : 1.3;
-
-  const numberColor = isCrit
-    ? '#fde047'
-    : isFumble
-    ? '#f87171'
-    : isRolling
-    ? '#e9d5ff'
-    : '#ffffff';
-
-  const sideNumberColor = 'rgba(255, 255, 255, 0.4)';
-
-  // Deslocamento de perspectiva pseudo-3D normalizado
-  const tiltX = Math.max(-1, Math.min(1, rotY / 32));
-  const tiltY = Math.max(-1, Math.min(1, rotX / 32));
+  const edge = isCrit ? '#fbbf24' : isFumble ? '#ef4444' : 'rgba(255,255,255,0.42)';
+  const edgeWidth = isCrit || isFumble ? 2.4 : 1.4;
+  const numColor = isCrit ? '#fde047' : isFumble ? '#fca5a5' : '#ffffff';
+  const mainSize = faces === 100 ? g.main.size - 4 : g.main.size;
 
   return (
     <svg
@@ -70,733 +243,98 @@ export default function DieShapeSVG({
       className="overflow-visible select-none pointer-events-none"
     >
       <defs>
-        {/* Gradiente principal da resina do dado */}
-        <linearGradient id={gradientId} x1="20%" y1="15%" x2="80%" y2="85%">
-          <stop offset="0%" stopColor={color} stopOpacity={0.92} />
-          <stop offset="50%" stopColor={color} stopOpacity={0.65} />
-          <stop offset="100%" stopColor="#0c0d11" stopOpacity={0.95} />
+        <linearGradient id={gradId} x1="15%" y1="10%" x2="85%" y2="90%">
+          <stop offset="0%" stopColor={color} stopOpacity={1} />
+          <stop offset="55%" stopColor={color} stopOpacity={0.82} />
+          <stop offset="100%" stopColor="#0b0b0f" stopOpacity={0.9} />
         </linearGradient>
-
-        {/* Gradientes de iluminação das facetas */}
-        <linearGradient id="facet-light" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity={0.25} />
-          <stop offset="100%" stopColor="#ffffff" stopOpacity={0.03} />
+        <linearGradient id={lightId} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity={0.5} />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity={0.05} />
         </linearGradient>
-
-        <linearGradient id="facet-dark" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#000000" stopOpacity={0.08} />
-          <stop offset="100%" stopColor="#000000" stopOpacity={0.48} />
+        <linearGradient id={darkId} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#000000" stopOpacity={0.15} />
+          <stop offset="100%" stopColor="#000000" stopOpacity={0.75} />
         </linearGradient>
-
-        {/* ClipPaths Mestres para garantir 100% que NENHUM elemento vaze fora da face do dado */}
-        {faces === 4 && (
-          <clipPath id={clipId}>
-            <polygon points="50,6 94,88 6,88" />
-          </clipPath>
-        )}
-        {faces === 6 && (
-          <clipPath id={clipId}>
-            <rect x="8" y="8" width="84" height="84" rx="16" />
-          </clipPath>
-        )}
-        {faces === 8 && (
-          <clipPath id={clipId}>
-            <polygon points="50,4 94,50 50,96 6,50" />
-          </clipPath>
-        )}
-        {(faces === 10 || faces === 100) && (
-          <clipPath id={clipId}>
-            <polygon points="50,4 92,48 50,96 8,48" />
-          </clipPath>
-        )}
-        {faces === 12 && (
-          <clipPath id={clipId}>
-            <polygon points="50,4 78,13 95,37 95,67 78,91 50,96 22,91 5,67 5,37 22,13" />
-          </clipPath>
-        )}
-        {faces === 20 && (
-          <clipPath id={clipId}>
-            <polygon points="50,4 92,26 92,74 50,96 8,74 8,26" />
-          </clipPath>
-        )}
+        <radialGradient id={glossId} cx="32%" cy="22%" r="45%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity={0.32} />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
+        </radialGradient>
+        <clipPath id={clipId}>
+          <path d={g.outline} />
+        </clipPath>
       </defs>
 
-      {/* D4: Piramidal / Tetraedro */}
-      {faces === 4 && (() => {
-        const apexX = 50 + tiltX * 8;
-        const apexY = 58 + tiltY * 8;
+      <g clipPath={`url(#${clipId})`}>
+        {/* Corpo de resina */}
+        <path d={g.outline} fill={`url(#${gradId})`} />
 
-        return (
-          <g clipPath={`url(#${clipId})`}>
-            {/* Silhueta triangular */}
-            <polygon
-              points="50,6 94,88 6,88"
-              fill={`url(#${gradientId})`}
-              stroke={strokeColor}
-              strokeWidth={strokeWidth}
-              strokeLinejoin="round"
-            />
-            {/* Facetas internas */}
-            <polygon points={`50,6 ${apexX},${apexY} 6,88`} fill="url(#facet-light)" opacity={0.55} />
-            <polygon points={`50,6 94,88 ${apexX},${apexY}`} fill="url(#facet-dark)" opacity={0.45} />
-            <polygon points={`6,88 ${apexX},${apexY} 94,88`} fill="url(#facet-light)" opacity={0.3} />
+        {/* Facetas laterais */}
+        {g.facets.map((f, i) => (
+          <polygon
+            key={i}
+            points={f.pts}
+            fill={`url(#${f.tone === 'light' ? lightId : darkId})`}
+            opacity={f.op}
+          />
+        ))}
 
-            {/* Linhas de crista */}
-            <line x1="50" y1="6" x2={apexX} y2={apexY} stroke={strokeColor} strokeWidth={1} strokeOpacity={0.6} />
-            <line x1="6" y1="88" x2={apexX} y2={apexY} stroke={strokeColor} strokeWidth={1} strokeOpacity={0.6} />
-            <line x1="94" y1="88" x2={apexX} y2={apexY} stroke={strokeColor} strokeWidth={1} strokeOpacity={0.6} />
+        {/* Face frontal */}
+        <path d={g.face} fill={`url(#${lightId})`} opacity={g.faceOp} />
+        <path d={g.face} fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth={1} strokeLinejoin="round" />
 
-            {/* Números nas facetas laterais (apenas durante a rolagem) */}
-            {isRolling && (
-              <>
-                <text
-                  ref={(el) => {
-                    if (sideNumRefs) sideNumRefs.current[0] = el;
-                  }}
-                  x={34 + tiltX * 3}
-                  y={50 + tiltY * 3}
-                  textAnchor="middle"
-                  fill={sideNumberColor}
-                  fontSize="12"
-                  fontWeight="bold"
-                  fontFamily="monospace, sans-serif"
-                >
-                  {sideFaces[0] ?? 1}
-                </text>
-                <text
-                  ref={(el) => {
-                    if (sideNumRefs) sideNumRefs.current[1] = el;
-                  }}
-                  x={66 + tiltX * 3}
-                  y={50 + tiltY * 3}
-                  textAnchor="middle"
-                  fill={sideNumberColor}
-                  fontSize="12"
-                  fontWeight="bold"
-                  fontFamily="monospace, sans-serif"
-                >
-                  {sideFaces[1] ?? 3}
-                </text>
-              </>
-            )}
+        {/* Arestas */}
+        {g.ridges && (
+          <path d={g.ridges} stroke="rgba(255,255,255,0.28)" strokeWidth={1} fill="none" strokeLinecap="round" />
+        )}
 
-            {/* Sombra de texto */}
+        {/* Brilho especular suave */}
+        <path d={g.outline} fill={`url(#${glossId})`} />
+
+        {/* Números das faces laterais (somente durante a rolagem) */}
+        {isRolling &&
+          g.sides.map((s, i) => (
             <text
-              ref={mainNumShadowRef}
-              x={50 + tiltX * 4}
-              y={76 + tiltY * 3 + 1.2}
+              key={i}
+              ref={(el) => {
+                if (sideNumRefs) sideNumRefs.current[i] = el;
+              }}
+              transform={`translate(${s.x} ${s.y}) rotate(${s.rot ?? 0})`}
               textAnchor="middle"
               dominantBaseline="central"
-              fill="#000000"
-              fontSize="25"
-              fontWeight="900"
-              fontFamily="monospace, sans-serif"
-              opacity={0.85}
+              fill="rgba(255,255,255,0.55)"
+              fontSize={g.sideSize}
+              fontWeight={800}
+              fontFamily="ui-monospace, monospace"
             >
-              {value}
+              {sideFaces[i] ?? ''}
             </text>
-            {/* Número Principal */}
-            <text
-              ref={mainNumRef}
-              x={50 + tiltX * 4}
-              y={76 + tiltY * 3}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fill={numberColor}
-              fontSize="25"
-              fontWeight="900"
-              fontFamily="monospace, sans-serif"
-            >
-              {value}
-            </text>
-          </g>
-        );
-      })()}
+          ))}
 
-      {/* D6: Cubo com chanfros */}
-      {faces === 6 && (() => {
-        const fx = 12 + tiltX * 6;
-        const fy = 12 + tiltY * 6;
-        const fw = 76;
-        const fh = 76;
+        {/* Número principal (contorno escuro via paint-order: sem texto duplicado) */}
+        <text
+          ref={mainNumRef}
+          x={g.main.x}
+          y={g.main.y}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fill={numColor}
+          stroke="rgba(0,0,0,0.55)"
+          strokeWidth={3}
+          strokeLinejoin="round"
+          paintOrder="stroke"
+          fontSize={mainSize}
+          fontWeight={900}
+          fontFamily="ui-monospace, monospace"
+        >
+          {value}
+        </text>
+      </g>
 
-        return (
-          <g clipPath={`url(#${clipId})`}>
-            {/* Extrusão de fundo */}
-            <rect x="8" y="8" width="84" height="84" rx="16" fill="#090a0d" opacity={0.7} />
-
-            {/* Face frontal */}
-            <rect
-              x={fx}
-              y={fy}
-              width={fw}
-              height={fh}
-              rx="13"
-              fill={`url(#${gradientId})`}
-              stroke={strokeColor}
-              strokeWidth={strokeWidth}
-            />
-
-            {/* Borda interna chanfrada */}
-            <rect
-              x={fx + 4}
-              y={fy + 4}
-              width={fw - 8}
-              height={fh - 8}
-              rx="10"
-              fill="none"
-              stroke="rgba(255,255,255,0.14)"
-              strokeWidth="0.9"
-            />
-
-            {/* Sombra rápida do número */}
-            <text
-              ref={mainNumShadowRef}
-              x={fx + fw / 2}
-              y={fy + fh / 2 + 2.2}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fill="#000000"
-              fontSize="31"
-              fontWeight="900"
-              fontFamily="monospace, sans-serif"
-              opacity={0.85}
-            >
-              {value}
-            </text>
-            {/* Número Principal */}
-            <text
-              ref={mainNumRef}
-              x={fx + fw / 2}
-              y={fy + fh / 2 + 1}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fill={numberColor}
-              fontSize="31"
-              fontWeight="900"
-              fontFamily="monospace, sans-serif"
-            >
-              {value}
-            </text>
-          </g>
-        );
-      })()}
-
-      {/* D8: Octaedro / Diamante */}
-      {faces === 8 && (() => {
-        const cx = 50 + tiltX * 6;
-        const cy = 22 + tiltY * 6;
-        const rx = 76 + tiltX * 5;
-        const ry = 68 + tiltY * 5;
-        const lx = 24 + tiltX * 5;
-        const ly = 68 + tiltY * 5;
-
-        return (
-          <g clipPath={`url(#${clipId})`}>
-            {/* Silhueta externa */}
-            <polygon
-              points="50,4 94,50 50,96 6,50"
-              fill={`url(#${gradientId})`}
-              stroke={strokeColor}
-              strokeWidth={strokeWidth}
-              strokeLinejoin="round"
-            />
-
-            {/* Faceta frontal triangular */}
-            <polygon
-              points={`${cx},${cy} ${rx},${ry} ${lx},${ly}`}
-              fill="url(#facet-light)"
-              opacity={0.45}
-              stroke={strokeColor}
-              strokeWidth="0.9"
-              strokeOpacity={0.6}
-            />
-
-            {/* Facetas periféricas */}
-            <polygon points={`50,4 ${cx},${cy} 6,50`} fill="url(#facet-light)" opacity={0.3} />
-            <polygon points={`50,4 ${cx},${cy} 94,50`} fill="url(#facet-dark)" opacity={0.4} />
-            <polygon points={`6,50 ${lx},${ly} 50,96`} fill="url(#facet-light)" opacity={0.25} />
-            <polygon points={`94,50 ${rx},${ry} 50,96`} fill="url(#facet-dark)" opacity={0.5} />
-
-            {/* Linhas de crista */}
-            <line x1="50" y1="4" x2={cx} y2={cy} stroke={strokeColor} strokeWidth={1} strokeOpacity={0.6} />
-            <line x1="94" y1="50" x2={rx} y2={ry} stroke={strokeColor} strokeWidth={1} strokeOpacity={0.6} />
-            <line x1="6" y1="50" x2={lx} y2={ly} stroke={strokeColor} strokeWidth={1} strokeOpacity={0.6} />
-            <line x1="50" y1="96" x2={50 + tiltX * 5} y2={ly} stroke={strokeColor} strokeWidth={1} strokeOpacity={0.6} />
-
-            {/* Números nas facetas durante a rolagem (estritamente dentro das facetas) */}
-            {isRolling && (
-              <>
-                <text
-                  ref={(el) => {
-                    if (sideNumRefs) sideNumRefs.current[0] = el;
-                  }}
-                  x="50"
-                  y="16"
-                  textAnchor="middle"
-                  fill={sideNumberColor}
-                  fontSize="10"
-                  fontWeight="bold"
-                >
-                  {sideFaces[0] ?? 4}
-                </text>
-                <text
-                  ref={(el) => {
-                    if (sideNumRefs) sideNumRefs.current[1] = el;
-                  }}
-                  x="26"
-                  y="62"
-                  textAnchor="middle"
-                  fill={sideNumberColor}
-                  fontSize="10"
-                  fontWeight="bold"
-                >
-                  {sideFaces[1] ?? 7}
-                </text>
-                <text
-                  ref={(el) => {
-                    if (sideNumRefs) sideNumRefs.current[2] = el;
-                  }}
-                  x="74"
-                  y="62"
-                  textAnchor="middle"
-                  fill={sideNumberColor}
-                  fontSize="10"
-                  fontWeight="bold"
-                >
-                  {sideFaces[2] ?? 2}
-                </text>
-              </>
-            )}
-
-            {/* Sombra de texto */}
-            <text
-              ref={mainNumShadowRef}
-              x={50 + tiltX * 5}
-              y={52 + tiltY * 5 + 1.2}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fill="#000000"
-              fontSize="26"
-              fontWeight="900"
-              fontFamily="monospace, sans-serif"
-              opacity={0.85}
-            >
-              {value}
-            </text>
-            {/* Número Principal */}
-            <text
-              ref={mainNumRef}
-              x={50 + tiltX * 5}
-              y={52 + tiltY * 5}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fill={numberColor}
-              fontSize="26"
-              fontWeight="900"
-              fontFamily="monospace, sans-serif"
-            >
-              {value}
-            </text>
-          </g>
-        );
-      })()}
-
-      {/* D10 & D100: Formato de Pipa / Deltoedro Autêntico */}
-      {(faces === 10 || faces === 100) && (() => {
-        const topX = 50 + tiltX * 3;
-        const topY = 4;
-        const rightX = 72 + tiltX * 5;
-        const rightY = 48 + tiltY * 4;
-        const botX = 50 + tiltX * 3;
-        const botY = 80 + tiltY * 5;
-        const leftX = 28 + tiltX * 5;
-        const leftY = 48 + tiltY * 4;
-
-        return (
-          <g clipPath={`url(#${clipId})`}>
-            {/* Silhueta externa deltoedro em pipa */}
-            <polygon
-              points="50,4 92,48 50,96 8,48"
-              fill={`url(#${gradientId})`}
-              stroke={strokeColor}
-              strokeWidth={strokeWidth}
-              strokeLinejoin="round"
-            />
-
-            {/* Faceta frontal em forma de pipa central */}
-            <polygon
-              points={`${topX},${topY} ${rightX},${rightY} ${botX},${botY} ${leftX},${leftY}`}
-              fill="url(#facet-light)"
-              opacity={0.42}
-              stroke={strokeColor}
-              strokeWidth="1"
-              strokeOpacity={0.65}
-            />
-
-            {/* Facetas periféricas */}
-            <polygon points={`${topX},${topY} ${leftX},${leftY} 8,48`} fill="url(#facet-light)" opacity={0.35} />
-            <polygon points={`${topX},${topY} ${rightX},${rightY} 92,48`} fill="url(#facet-dark)" opacity={0.35} />
-            <polygon points={`${leftX},${leftY} ${botX},${botY} 50,96 8,48`} fill="url(#facet-light)" opacity={0.2} />
-            <polygon points={`${rightX},${rightY} ${botX},${botY} 50,96 92,48`} fill="url(#facet-dark)" opacity={0.48} />
-
-            {/* Linha de crista inferior */}
-            <line x1={botX} y1={botY} x2="50" y2="96" stroke={strokeColor} strokeWidth={1.1} strokeOpacity={0.65} />
-
-            {/* Números nas facetas laterais inclinados (estritamente dentro das facetas) */}
-            {isRolling && (
-              <>
-                <g transform={`translate(${28 + tiltX * 3}, ${32 + tiltY * 3}) rotate(-40)`}>
-                  <text
-                    ref={(el) => {
-                      if (sideNumRefs) sideNumRefs.current[0] = el;
-                    }}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    fill={sideNumberColor}
-                    fontSize="10"
-                    fontWeight="bold"
-                  >
-                    {sideFaces[0] ?? 2}
-                  </text>
-                </g>
-                <g transform={`translate(${72 + tiltX * 3}, ${32 + tiltY * 3}) rotate(40)`}>
-                  <text
-                    ref={(el) => {
-                      if (sideNumRefs) sideNumRefs.current[1] = el;
-                    }}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    fill={sideNumberColor}
-                    fontSize="10"
-                    fontWeight="bold"
-                  >
-                    {sideFaces[1] ?? 6}
-                  </text>
-                </g>
-                <g transform={`translate(${30 + tiltX * 3}, ${68 + tiltY * 3}) rotate(-25)`}>
-                  <text
-                    ref={(el) => {
-                      if (sideNumRefs) sideNumRefs.current[2] = el;
-                    }}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    fill={sideNumberColor}
-                    fontSize="10"
-                    fontWeight="bold"
-                  >
-                    {sideFaces[2] ?? 7}
-                  </text>
-                </g>
-                <g transform={`translate(${70 + tiltX * 3}, ${68 + tiltY * 3}) rotate(25)`}>
-                  <text
-                    ref={(el) => {
-                      if (sideNumRefs) sideNumRefs.current[3] = el;
-                    }}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    fill={sideNumberColor}
-                    fontSize="10"
-                    fontWeight="bold"
-                  >
-                    {sideFaces[3] ?? 3}
-                  </text>
-                </g>
-              </>
-            )}
-
-            {/* Sombra de texto */}
-            <text
-              ref={mainNumShadowRef}
-              x={50 + tiltX * 4}
-              y={48 + tiltY * 4 + 1.2}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fill="#000000"
-              fontSize={faces === 100 ? '22' : '26'}
-              fontWeight="900"
-              fontFamily="monospace, sans-serif"
-              opacity={0.85}
-            >
-              {value}
-            </text>
-            {/* Número Principal na Faceta Central */}
-            <text
-              ref={mainNumRef}
-              x={50 + tiltX * 4}
-              y={48 + tiltY * 4}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fill={numberColor}
-              fontSize={faces === 100 ? '22' : '26'}
-              fontWeight="900"
-              fontFamily="monospace, sans-serif"
-            >
-              {value}
-            </text>
-          </g>
-        );
-      })()}
-
-      {/* D12: Dodecaedro */}
-      {faces === 12 && (() => {
-        const v0 = { x: 50 + tiltX * 5, y: 19 + tiltY * 5 };
-        const v1 = { x: 80 + tiltX * 5, y: 41 + tiltY * 5 };
-        const v2 = { x: 69 + tiltX * 5, y: 78 + tiltY * 5 };
-        const v3 = { x: 31 + tiltX * 5, y: 78 + tiltY * 5 };
-        const v4 = { x: 20 + tiltX * 5, y: 41 + tiltY * 5 };
-
-        return (
-          <g clipPath={`url(#${clipId})`}>
-            {/* Decágono exterior */}
-            <polygon
-              points="50,4 78,13 95,37 95,67 78,91 50,96 22,91 5,67 5,37 22,13"
-              fill={`url(#${gradientId})`}
-              stroke={strokeColor}
-              strokeWidth={strokeWidth}
-              strokeLinejoin="round"
-            />
-
-            {/* Pentágono regular central */}
-            <polygon
-              points={`${v0.x},${v0.y} ${v1.x},${v1.y} ${v2.x},${v2.y} ${v3.x},${v3.y} ${v4.x},${v4.y}`}
-              fill="url(#facet-light)"
-              opacity={0.45}
-              stroke={strokeColor}
-              strokeWidth="1.2"
-              strokeOpacity={0.65}
-            />
-
-            {/* Arestas conectando aos vértices externos */}
-            <line x1={v0.x} y1={v0.y} x2="50" y2="4" stroke={strokeColor} strokeWidth={1} strokeOpacity={0.5} />
-            <line x1={v1.x} y1={v1.y} x2="95" y2="37" stroke={strokeColor} strokeWidth={1} strokeOpacity={0.5} />
-            <line x1={v2.x} y1={v2.y} x2="78" y2="91" stroke={strokeColor} strokeWidth={1} strokeOpacity={0.5} />
-            <line x1={v3.x} y1={v3.y} x2="22" y2="91" stroke={strokeColor} strokeWidth={1} strokeOpacity={0.5} />
-            <line x1={v4.x} y1={v4.y} x2="5" y2="37" stroke={strokeColor} strokeWidth={1} strokeOpacity={0.5} />
-
-            {/* Números nas facetas periféricas durante a rolagem */}
-            {isRolling && (
-              <>
-                <text
-                  ref={(el) => {
-                    if (sideNumRefs) sideNumRefs.current[0] = el;
-                  }}
-                  x="50"
-                  y="15"
-                  textAnchor="middle"
-                  fill={sideNumberColor}
-                  fontSize="9"
-                  fontWeight="bold"
-                >
-                  {sideFaces[0] ?? 5}
-                </text>
-                <text
-                  ref={(el) => {
-                    if (sideNumRefs) sideNumRefs.current[1] = el;
-                  }}
-                  x="82"
-                  y="32"
-                  textAnchor="middle"
-                  fill={sideNumberColor}
-                  fontSize="9"
-                  fontWeight="bold"
-                >
-                  {sideFaces[1] ?? 8}
-                </text>
-                <text
-                  ref={(el) => {
-                    if (sideNumRefs) sideNumRefs.current[2] = el;
-                  }}
-                  x="74"
-                  y="82"
-                  textAnchor="middle"
-                  fill={sideNumberColor}
-                  fontSize="9"
-                  fontWeight="bold"
-                >
-                  {sideFaces[2] ?? 1}
-                </text>
-                <text
-                  ref={(el) => {
-                    if (sideNumRefs) sideNumRefs.current[3] = el;
-                  }}
-                  x="26"
-                  y="82"
-                  textAnchor="middle"
-                  fill={sideNumberColor}
-                  fontSize="9"
-                  fontWeight="bold"
-                >
-                  {sideFaces[3] ?? 11}
-                </text>
-                <text
-                  ref={(el) => {
-                    if (sideNumRefs) sideNumRefs.current[4] = el;
-                  }}
-                  x="18"
-                  y="32"
-                  textAnchor="middle"
-                  fill={sideNumberColor}
-                  fontSize="9"
-                  fontWeight="bold"
-                >
-                  {sideFaces[4] ?? 3}
-                </text>
-              </>
-            )}
-
-            {/* Sombra de texto */}
-            <text
-              ref={mainNumShadowRef}
-              x={50 + tiltX * 5}
-              y={52 + tiltY * 5 + 1.2}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fill="#000000"
-              fontSize="26"
-              fontWeight="900"
-              fontFamily="monospace, sans-serif"
-              opacity={0.85}
-            >
-              {value}
-            </text>
-            {/* Número Principal */}
-            <text
-              ref={mainNumRef}
-              x={50 + tiltX * 5}
-              y={52 + tiltY * 5}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fill={numberColor}
-              fontSize="26"
-              fontWeight="900"
-              fontFamily="monospace, sans-serif"
-            >
-              {value}
-            </text>
-          </g>
-        );
-      })()}
-
-      {/* D20: Icosaedro */}
-      {faces === 20 && (() => {
-        const t1 = { x: 50 + tiltX * 6, y: 20 + tiltY * 6 };
-        const t2 = { x: 80 + tiltX * 5, y: 72 + tiltY * 5 };
-        const t3 = { x: 20 + tiltX * 5, y: 72 + tiltY * 5 };
-
-        return (
-          <g clipPath={`url(#${clipId})`}>
-            {/* Silhueta hexagonal */}
-            <polygon
-              points="50,4 92,26 92,74 50,96 8,74 8,26"
-              fill={`url(#${gradientId})`}
-              stroke={strokeColor}
-              strokeWidth={strokeWidth}
-              strokeLinejoin="round"
-            />
-
-            {/* Triângulo equilátero central */}
-            <polygon
-              points={`${t1.x},${t1.y} ${t2.x},${t2.y} ${t3.x},${t3.y}`}
-              fill="url(#facet-light)"
-              opacity={0.5}
-              stroke={strokeColor}
-              strokeWidth="1.3"
-              strokeOpacity={0.7}
-            />
-
-            {/* Facetas triangulares periféricas */}
-            <polygon points={`50,4 ${t1.x},${t1.y} 92,26`} fill="url(#facet-light)" opacity={0.25} />
-            <polygon points={`50,4 ${t1.x},${t1.y} 8,26`} fill="url(#facet-light)" opacity={0.35} />
-            <polygon points={`${t2.x},${t2.y} 92,26 92,74`} fill="url(#facet-dark)" opacity={0.4} />
-            <polygon points={`${t3.x},${t3.y} 8,26 8,74`} fill="url(#facet-light)" opacity={0.2} />
-            <polygon points={`${t2.x},${t2.y} 50,96 ${50 + tiltX * 4},72`} fill="url(#facet-dark)" opacity={0.5} />
-            <polygon points={`${t3.x},${t3.y} 50,96 ${50 + tiltX * 4},72`} fill="url(#facet-dark)" opacity={0.4} />
-
-            {/* Linhas de crista */}
-            <line x1="50" y1="4" x2={t1.x} y2={t1.y} stroke={strokeColor} strokeWidth={1} strokeOpacity={0.6} />
-            <line x1="92" y1="74" x2={t2.x} y2={t2.y} stroke={strokeColor} strokeWidth={1} strokeOpacity={0.6} />
-            <line x1="8" y1="74" x2={t3.x} y2={t3.y} stroke={strokeColor} strokeWidth={1} strokeOpacity={0.6} />
-            <line x1="50" y1="96" x2={t2.x} y2={t2.y} stroke={strokeColor} strokeWidth={1} strokeOpacity={0.6} />
-            <line x1="50" y1="96" x2={t3.x} y2={t3.y} stroke={strokeColor} strokeWidth={1} strokeOpacity={0.6} />
-
-            {/* Números nas facetas periféricas em rolagem */}
-            {isRolling && (
-              <>
-                <text
-                  ref={(el) => {
-                    if (sideNumRefs) sideNumRefs.current[0] = el;
-                  }}
-                  x="50"
-                  y="16"
-                  textAnchor="middle"
-                  fill={sideNumberColor}
-                  fontSize="10"
-                  fontWeight="bold"
-                >
-                  {sideFaces[0] ?? 14}
-                </text>
-                <text
-                  ref={(el) => {
-                    if (sideNumRefs) sideNumRefs.current[1] = el;
-                  }}
-                  x="82"
-                  y="50"
-                  textAnchor="middle"
-                  fill={sideNumberColor}
-                  fontSize="10"
-                  fontWeight="bold"
-                >
-                  {sideFaces[1] ?? 8}
-                </text>
-                <text
-                  ref={(el) => {
-                    if (sideNumRefs) sideNumRefs.current[2] = el;
-                  }}
-                  x="18"
-                  y="50"
-                  textAnchor="middle"
-                  fill={sideNumberColor}
-                  fontSize="10"
-                  fontWeight="bold"
-                >
-                  {sideFaces[2] ?? 2}
-                </text>
-              </>
-            )}
-
-            {/* Sombra de texto */}
-            <text
-              ref={mainNumShadowRef}
-              x={50 + tiltX * 5}
-              y={54 + tiltY * 5 + 1.2}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fill="#000000"
-              fontSize="26"
-              fontWeight="900"
-              fontFamily="monospace, sans-serif"
-              opacity={0.85}
-            >
-              {value}
-            </text>
-            {/* Número Principal */}
-            <text
-              ref={mainNumRef}
-              x={50 + tiltX * 5}
-              y={54 + tiltY * 5}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fill={numberColor}
-              fontSize="26"
-              fontWeight="900"
-              fontFamily="monospace, sans-serif"
-            >
-              {value}
-            </text>
-          </g>
-        );
-      })()}
+      {/* Contorno externo nítido */}
+      <path d={g.outline} fill="none" stroke={edge} strokeWidth={edgeWidth} strokeLinejoin="round" />
     </svg>
   );
 }
+
+export default memo(DieShapeSVG);

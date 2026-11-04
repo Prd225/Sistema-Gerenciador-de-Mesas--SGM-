@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect, memo } from 'react';
 import { useDiceTrayStore, type TrayDie } from '@/store/useDiceTrayStore';
 import { diceDOMRegistry } from '@/lib/diceDOMRegistry';
+import { diceAudio } from '@/lib/diceAudio';
 import DieShapeSVG from './DieShapeSVG';
-import { Plus, Minus, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 interface AnimatedDiceCardProps {
   die: TrayDie;
@@ -17,24 +18,20 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
   const updateDiePosition = useDiceTrayStore((state) => state.updateDiePosition);
   const rules = useDiceTrayStore((state) => state.rules);
 
-  // Refs de acesso direto ao DOM para a animação de física a 144 FPS
+  // Refs de acesso direto ao DOM para a animação de física e balanço a 144 FPS
   const cardRef = useRef<HTMLDivElement>(null);
-  const innerRef = useRef<HTMLDivElement>(null);
-  const shadowContactRef = useRef<HTMLDivElement>(null);
-  const shadowCastRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const shadowRef = useRef<HTMLDivElement>(null);
   const mainNumRef = useRef<SVGTextElement>(null);
-  const mainNumShadowRef = useRef<SVGTextElement>(null);
   const sideNumRefs = useRef<(SVGTextElement | null)[]>([]);
 
   useEffect(() => {
     diceDOMRegistry.register(die.id, {
-      cardEl: cardRef.current,
-      innerEl: innerRef.current,
-      shadowContactEl: shadowContactRef.current,
-      shadowCastEl: shadowCastRef.current,
-      mainNumEl: mainNumRef.current,
-      mainNumShadowEl: mainNumShadowRef.current,
-      sideNumEls: sideNumRefs.current,
+      card: cardRef,
+      body: bodyRef,
+      shadow: shadowRef,
+      mainNum: mainNumRef,
+      sideNums: sideNumRefs,
     });
     return () => {
       diceDOMRegistry.unregister(die.id);
@@ -60,6 +57,8 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(true);
+
+    diceAudio.playSelect();
 
     dragStartRef.current = {
       startX: e.clientX,
@@ -88,6 +87,7 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
 
     const handlePointerUp = () => {
       setIsDragging(false);
+      diceAudio.playRelease();
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
     };
@@ -99,7 +99,8 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
   const currentRotation = isDragging ? 0 : die.rotation;
   const currentRotX = isDragging ? 0 : die.rotX || 0;
   const currentRotY = isDragging ? 0 : die.rotY || 0;
-  const currentLift = isDragging ? 6 : die.lift || 0;
+  const currentLift = isDragging ? 8 : die.lift || 0;
+  const individualMod = die.modifier || 0;
 
   return (
     <div
@@ -108,7 +109,7 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
       style={{
         left: `${die.x}%`,
         top: `${die.y}%`,
-        transform: `translate3d(-50%, -50%, 0) rotate(${currentRotation}deg) scale(${isDragging ? 1.12 : 1})`,
+        transform: `translate3d(-50%, -50%, 0) scale(${isDragging ? 1.08 : 1})`,
         willChange: isRolling ? 'transform, left, top' : 'auto',
         transition: isRolling ? 'none' : isDragging ? 'transform 0.15s ease-out' : 'transform 0.2s ease-out',
       }}
@@ -117,46 +118,37 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
       }`}
     >
       <div className="relative flex items-center justify-center">
-        {/* Sombra 1: Oclusão de Contato Direto com o Feltro */}
+        {/* Sombra Esfumaçada Suave (Smoky Soft Shadow - sem bordas duras, difusa no feltro) */}
         <div
-          ref={shadowContactRef}
-          className="absolute pointer-events-none rounded-full bg-black/85 filter blur-[2px]"
-          style={{
-            width: '56px',
-            height: '24px',
-            bottom: '-4px',
-            left: '50%',
-            transform: `translateX(-50%) scale(${Math.max(0.4, 1 - currentLift * 0.035)})`,
-            opacity: Math.max(0, 0.85 - currentLift * 0.05),
-            transition: isRolling ? 'none' : 'all 0.2s ease-out',
-          }}
-        />
-
-        {/* Sombra 2: Sombra Projetada Difusa */}
-        <div
-          ref={shadowCastRef}
-          className="absolute pointer-events-none rounded-full bg-black/55 filter blur-[8px]"
+          ref={shadowRef}
+          className="absolute pointer-events-none rounded-full"
           style={{
             width: '78px',
-            height: '38px',
-            bottom: '-10px',
+            height: '78px',
             left: '50%',
-            transform: `translateX(calc(-50% + ${4 + currentLift * 0.3}px)) translateY(${currentLift * 0.6}px) scale(${1 + currentLift * 0.018})`,
-            opacity: Math.max(0.12, 0.65 - currentLift * 0.015),
-            transition: isRolling ? 'none' : 'all 0.2s ease-out',
+            top: '50%',
+            marginLeft: '-39px',
+            marginTop: '-35px',
+            background: 'radial-gradient(circle, rgba(0,0,0,0.68) 0%, rgba(0,0,0,0.32) 42%, rgba(0,0,0,0) 74%)',
+            filter: 'blur(7px)',
+            transform: `translate3d(${currentLift * 0.45}px, ${currentLift * 0.55}px, 0) scale(${1 + currentLift * 0.02})`,
+            opacity: Math.max(0.2, 0.65 - currentLift * 0.02),
+            transition: isRolling ? 'none' : 'transform 0.15s ease-out, opacity 0.15s ease-out',
+            willChange: isRolling ? 'transform, opacity' : 'auto',
           }}
         />
 
-        {/* Recipiente com Esticada Dinâmica (Squash & Stretch) e Perspectiva 3D */}
+        {/* Recipiente com Rotação, Altura e Perspectiva 3D */}
         <div
-          ref={innerRef}
+          ref={bodyRef}
           style={{
             transform: `
-              perspective(650px)
+              translate3d(0, ${-currentLift * 0.55}px, 0)
+              rotate(${currentRotation}deg)
+              perspective(550px)
               rotateX(${currentRotX}deg)
               rotateY(${currentRotY}deg)
-              translateZ(${currentLift}px)
-              scale(${isRolling ? 1.05 : 1})
+              scale(${isRolling ? 1.04 : 1})
             `,
             transformStyle: 'preserve-3d',
             willChange: isRolling ? 'transform' : 'auto',
@@ -173,14 +165,21 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
             isRolling={isRolling}
             value={die.animatedFace}
             sideFaces={die.sideFaces}
-            rotX={currentRotX}
-            rotY={currentRotY}
             size={84}
             mainNumRef={mainNumRef}
-            mainNumShadowRef={mainNumShadowRef}
             sideNumRefs={sideNumRefs}
           />
         </div>
+
+        {/* Tag Flutuante de Modificador Individual do Dado */}
+        {!isRolling && individualMod !== 0 && (
+          <div
+            className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-[#8257e5] border border-[#a78bfa] text-white font-mono font-black text-[10px] shadow-lg z-20 pointer-events-none select-none"
+            title={`Modificador isolado: ${individualMod > 0 ? `+${individualMod}` : individualMod}`}
+          >
+            {individualMod > 0 ? `+${individualMod}` : individualMod}
+          </div>
+        )}
 
         {/* Botão de Remover (Aparece no Hover) */}
         {!isRolling && (
@@ -197,7 +196,7 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
           </button>
         )}
 
-        {/* Controles de Incremento e Decremento Pós-Resultado (Aparecem no Hover) */}
+        {/* Controles de Rotação de Face Pós-Resultado: Símbolos < e > (Aparecem no Hover) */}
         {!isRolling && (
           <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-[#18181b]/95 border border-[#323238] rounded-md px-1.5 py-0.5 shadow-xl z-30">
             <button
@@ -206,12 +205,12 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
                 e.stopPropagation();
                 decrementDie(die.id);
               }}
-              className="w-5 h-5 flex items-center justify-center rounded text-[#a1a1aa] hover:text-white hover:bg-white/10 active:scale-90 transition-transform"
-              title="Reduzir face do dado (-1)"
+              className="w-5 h-5 flex items-center justify-center rounded text-[#a1a1aa] hover:text-white hover:bg-white/10 active:scale-90 transition-transform font-bold"
+              title="Girar face para a anterior (<)"
             >
-              <Minus className="w-3 h-3" />
+              <ChevronLeft className="w-3.5 h-3.5" />
             </button>
-            <span className="text-[10px] font-mono font-bold text-[#e4e4e7] px-0.5">
+            <span className="text-[11px] font-mono font-bold text-[#e4e4e7] px-1 min-w-[18px] text-center">
               {die.currentValue}
             </span>
             <button
@@ -220,10 +219,10 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
                 e.stopPropagation();
                 incrementDie(die.id);
               }}
-              className="w-5 h-5 flex items-center justify-center rounded text-[#a1a1aa] hover:text-white hover:bg-white/10 active:scale-90 transition-transform"
-              title="Aumentar face do dado (+1)"
+              className="w-5 h-5 flex items-center justify-center rounded text-[#a1a1aa] hover:text-white hover:bg-white/10 active:scale-90 transition-transform font-bold"
+              title="Girar face para a próxima (>)"
             >
-              <Plus className="w-3 h-3" />
+              <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         )}
