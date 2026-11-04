@@ -104,6 +104,7 @@ export interface DiceTrayState {
   setSoundEnabled: (enabled: boolean) => void;
   setIsOverlayEnabled: (enabled: boolean) => void;
   dismissNotification: () => void;
+  clearLastRollResult: () => void;
 
   // Rolagem & Ajuste Pós-Resultado
   rollDice: (senderName?: string, senderRole?: 'gm' | 'player', intensity?: number) => void;
@@ -348,6 +349,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
   },
   setIsOverlayEnabled: (isOverlayEnabled) => set({ isOverlayEnabled }),
   dismissNotification: () => set({ activeNotification: null }),
+  clearLastRollResult: () => set({ lastRollResult: null }),
 
   setModifier: (modifier) => {
     const { dice, undoStack } = get();
@@ -646,13 +648,28 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
 
       let anyActive = false;
 
-      // 1. Atualização de física e colisões vigorosas com as bordas da bandeja
+      // 1. Atualização de física e desaceleração gradual realista até parada natural
       for (let idx = 0; idx < physics.length; idx++) {
         const p = physics[idx];
-        if (elapsed >= p.duration) {
+        if (p.settled) continue;
+
+        const isBraking = elapsed >= p.duration;
+        const currentSpeed = Math.hypot(p.vx, p.vy);
+        const rotMagnitude = Math.abs(p.rotSpeed);
+
+        // Critério de repouso suave: velocidade < 1.0 px/s, rotação < 6 deg/s e lift amortecido
+        // Ou timeout de segurança (duration + 850ms)
+        if (isBraking && ((currentSpeed < 1.0 && rotMagnitude < 6 && p.lift < 0.15) || elapsed >= p.duration + 850)) {
           p.settled = true;
+          p.vx = 0;
+          p.vy = 0;
+          p.rotSpeed = 0;
+          p.lift = 0;
+          p.rotX = 0;
+          p.rotY = 0;
           continue;
         }
+
         anyActive = true;
 
         let nx = p.x + p.vx * (dt / 1000);
@@ -666,23 +683,25 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
         let bounced = false;
         let bounceForce = 0;
 
-        const restitution = 0.88 + Math.min(0.06, (intensity || 0) * 0.05);
+        const restitution = isBraking
+          ? 0.45
+          : 0.86 + Math.min(0.06, (intensity || 0) * 0.05);
 
         if (nx <= minX) {
           nx = minX;
           bounceForce = Math.abs(p.vx);
           p.vx = -p.vx * restitution;
-          p.vy += (Math.random() - 0.5) * (45 + (intensity || 0) * 65);
-          p.rotSpeed = -p.rotSpeed * 0.82 + (Math.random() - 0.5) * (700 + (intensity || 0) * 900);
-          p.lift = Math.min(32, p.lift + 10 + (intensity || 0) * 8);
+          p.vy += (Math.random() - 0.5) * (isBraking ? 15 : (45 + (intensity || 0) * 65));
+          p.rotSpeed = -p.rotSpeed * 0.72 + (Math.random() - 0.5) * (isBraking ? 120 : (700 + (intensity || 0) * 900));
+          p.lift = Math.min(32, p.lift + (isBraking ? 2 : 10 + (intensity || 0) * 8));
           bounced = true;
         } else if (nx >= maxX) {
           nx = maxX;
           bounceForce = Math.abs(p.vx);
           p.vx = -p.vx * restitution;
-          p.vy += (Math.random() - 0.5) * (45 + (intensity || 0) * 65);
-          p.rotSpeed = -p.rotSpeed * 0.82 + (Math.random() - 0.5) * (700 + (intensity || 0) * 900);
-          p.lift = Math.min(32, p.lift + 10 + (intensity || 0) * 8);
+          p.vy += (Math.random() - 0.5) * (isBraking ? 15 : (45 + (intensity || 0) * 65));
+          p.rotSpeed = -p.rotSpeed * 0.72 + (Math.random() - 0.5) * (isBraking ? 120 : (700 + (intensity || 0) * 900));
+          p.lift = Math.min(32, p.lift + (isBraking ? 2 : 10 + (intensity || 0) * 8));
           bounced = true;
         }
 
@@ -690,21 +709,21 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
           ny = minY;
           bounceForce = Math.max(bounceForce, Math.abs(p.vy));
           p.vy = -p.vy * restitution;
-          p.vx += (Math.random() - 0.5) * (45 + (intensity || 0) * 65);
-          p.rotSpeed = -p.rotSpeed * 0.82 + (Math.random() - 0.5) * (700 + (intensity || 0) * 900);
-          p.lift = Math.min(32, p.lift + 10 + (intensity || 0) * 8);
+          p.vx += (Math.random() - 0.5) * (isBraking ? 15 : (45 + (intensity || 0) * 65));
+          p.rotSpeed = -p.rotSpeed * 0.72 + (Math.random() - 0.5) * (isBraking ? 120 : (700 + (intensity || 0) * 900));
+          p.lift = Math.min(32, p.lift + (isBraking ? 2 : 10 + (intensity || 0) * 8));
           bounced = true;
         } else if (ny >= maxY) {
           ny = maxY;
           bounceForce = Math.max(bounceForce, Math.abs(p.vy));
           p.vy = -p.vy * restitution;
-          p.vx += (Math.random() - 0.5) * (45 + (intensity || 0) * 65);
-          p.rotSpeed = -p.rotSpeed * 0.82 + (Math.random() - 0.5) * (700 + (intensity || 0) * 900);
-          p.lift = Math.min(32, p.lift + 10 + (intensity || 0) * 8);
+          p.vx += (Math.random() - 0.5) * (isBraking ? 15 : (45 + (intensity || 0) * 65));
+          p.rotSpeed = -p.rotSpeed * 0.72 + (Math.random() - 0.5) * (isBraking ? 120 : (700 + (intensity || 0) * 900));
+          p.lift = Math.min(32, p.lift + (isBraking ? 2 : 10 + (intensity || 0) * 8));
           bounced = true;
         }
 
-        if (bounced) {
+        if (bounced && !isBraking) {
           diceAudio.playBounce(Math.min(2.5, bounceForce / 45));
           diceHaptics.bounce(bounceForce);
         }
@@ -712,18 +731,26 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
         p.x = nx;
         p.y = ny;
 
-        // Atrito e rotação contínua (menor perda de energia em arremessos fortes)
-        const friction = 0.988 + Math.min(0.005, (intensity || 0) * 0.005);
-        p.vx *= friction;
-        p.vy *= friction;
-        p.rotSpeed *= (0.985 + Math.min(0.006, (intensity || 0) * 0.006));
+        // Desaceleração suave por atrito: aumenta progressivamente até os dados quase pararem
+        if (isBraking) {
+          p.vx *= 0.925;
+          p.vy *= 0.925;
+          p.rotSpeed *= 0.90;
+          p.lift = Math.max(0, p.lift * 0.84);
+        } else {
+          const progress = Math.min(1, elapsed / p.duration);
+          const friction = progress < 0.6
+            ? 0.988 + Math.min(0.005, (intensity || 0) * 0.005)
+            : 0.988 - (progress - 0.6) * 0.065;
+          p.vx *= friction;
+          p.vy *= friction;
+          p.rotSpeed *= (0.985 - progress * 0.035);
+          p.lift = Math.max(0, p.lift * 0.94);
+        }
+
         p.rotation += p.rotSpeed * (dt / 1000);
 
-        // Amortecimento do salto 3D (lift)
-        p.lift = Math.max(0, p.lift * 0.94);
-
-        // Ângulos 3D de pitch e yaw baseados no movimento
-        const currentSpeed = Math.hypot(p.vx, p.vy);
+        // Ângulos 3D de pitch e yaw proporcionais à velocidade restante
         const pitchSpeedFactor = Math.min(28, currentSpeed * 0.25);
         p.rotX = Math.sin(elapsed * 0.015 + idx * 2.3) * pitchSpeedFactor;
         p.rotY = Math.cos(elapsed * 0.015 + idx * 2.3) * pitchSpeedFactor;
@@ -799,12 +826,22 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
           dom.shadow.current.style.opacity = `${Math.max(0.18, 0.65 - p.lift * 0.02)}`;
         }
 
-        // Troca rápida de faces no texto do SVG com RNG uniforme
-        if (!p.settled && elapsed < p.duration) {
-          const progress = elapsed / p.duration;
-          p.faceInterval = 28 + Math.pow(progress, 2.5) * 190;
-
-          if (now - p.lastFaceSwap > p.faceInterval) {
+        // Troca rápida de faces no SVG com desaceleração e revelação da face final
+        if (!p.settled) {
+          if (elapsed >= p.duration * 0.82) {
+            // Revela e fixa a face final sorteada enquanto o dado desliza até parar completamente
+            const finalVal = finalValues[idx];
+            if (dom.mainNum.current && dom.mainNum.current.textContent !== `${finalVal}`) {
+              dom.mainNum.current.textContent = `${finalVal}`;
+              const sideFaces = generateSideFaces(dice[idx].faces, finalVal);
+              sideFaces.forEach((sf, sIdx) => {
+                const sideEl = dom.sideNums.current[sIdx];
+                if (sideEl) sideEl.textContent = `${sf}`;
+              });
+            }
+          } else if (now - p.lastFaceSwap > p.faceInterval) {
+            const progress = elapsed / p.duration;
+            p.faceInterval = 28 + Math.pow(progress, 2.2) * 160;
             const dieDef = dice[idx];
             const newFace = rollDieFace(dieDef.faces);
             const newSideFaces = generateSideFaces(dieDef.faces, newFace);
@@ -898,7 +935,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
             breakdown,
           },
           history: [newEntry, ...history].slice(0, 50),
-          activeNotification: newEntry,
+          // activeNotification não é enviado para si próprio (apenas jogadores remotos recebem o banner no topo)
         });
 
         if (socket && socket.connected) {

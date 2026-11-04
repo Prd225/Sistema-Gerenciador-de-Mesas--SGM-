@@ -304,7 +304,7 @@ export default function DiceTrayToolbar({
             </button>
           </div>
 
-          {/* Botão Rolar Gigante para o Polegar (Lado Direito, altura total das 2 colunas como no rascunho) */}
+          {/* Botão Rolar Elevado 3D para o Polegar (Lado Direito, altura total das 2 colunas como no rascunho) */}
           <button
             ref={mobileRollBtnRef}
             type="button"
@@ -313,8 +313,7 @@ export default function DiceTrayToolbar({
             onPointerCancel={handlePointerCancel}
             onContextMenu={(e) => e.preventDefault()}
             disabled={isRolling || dice.length === 0}
-            className="w-24 sm:w-28 shrink-0 rounded-2xl bg-[#8257e5] disabled:opacity-35 text-white shadow-[0_10px_28px_rgba(130,87,229,0.4)] border-2 border-purple-400/40 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform cursor-pointer select-none touch-manipulation"
-            title="Toque ou segure com o polegar para arremessar os dados"
+            className="w-24 sm:w-28 shrink-0 rounded-2xl bg-violet-600 hover:bg-violet-500 border border-violet-400/20 border-b-[5px] border-b-violet-900 active:border-b-[1px] active:translate-y-[4px] disabled:opacity-40 disabled:border-b-2 disabled:translate-y-0 text-white shadow-md flex flex-col items-center justify-center gap-1.5 cursor-pointer select-none touch-manipulation transition-colors"
           >
             <Dices className={`w-8 h-8 ${isRolling ? 'animate-spin' : ''}`} />
             <span className="font-black text-xs sm:text-sm tracking-wider uppercase">
@@ -552,7 +551,7 @@ export default function DiceTrayToolbar({
         )}
       </div>
 
-      {/* Botão de Rolar Dados no Desktop / Landscape */}
+      {/* Botão de Rolar Dados Elevado 3D no Desktop / Landscape */}
       <button
         ref={rollBtnRef}
         type="button"
@@ -563,8 +562,7 @@ export default function DiceTrayToolbar({
         onPointerCancel={handlePointerCancel}
         onContextMenu={(e) => e.preventDefault()}
         disabled={isRolling || dice.length === 0}
-        className="w-full relative flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#8257e5] hover:bg-[#9466ff] disabled:opacity-40 text-white font-bold text-sm tracking-wide shadow-md active:scale-95 transition-transform cursor-pointer select-none touch-manipulation"
-        title="Clique ou segure para arremessar os dados com força"
+        className="w-full relative flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-violet-600 hover:bg-violet-500 border border-violet-400/20 border-b-4 border-b-violet-900 active:border-b-0 active:translate-y-1 disabled:opacity-40 disabled:border-b-2 disabled:translate-y-0 text-white font-bold text-sm tracking-wide shadow-md cursor-pointer select-none touch-manipulation transition-colors"
       >
         <Dices className={`w-4 h-4 ${isRolling ? 'animate-spin' : ''}`} />
         <span>{isRolling ? 'Rolando...' : 'Rolar Dados'}</span>

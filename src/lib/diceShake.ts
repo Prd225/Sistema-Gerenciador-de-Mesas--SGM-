@@ -42,13 +42,18 @@ function holdProgress(now: number): number {
 function paintButton(progress: number) {
   if (!button) return;
   const c = COLOR_FROM.map((from, i) => Math.round(from + (COLOR_TO[i] - from) * progress));
+  const borderC = [76, 29, 149].map((from, i) => Math.round(from + ([69, 10, 10][i] - from) * progress));
   button.style.backgroundColor = `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
-  button.style.transform = `scale(${1 - progress * 0.05})`;
+  button.style.borderBottomColor = `rgb(${borderC[0]}, ${borderC[1]}, ${borderC[2]})`;
+  button.style.borderBottomWidth = '1px';
+  button.style.transform = 'translateY(4px)';
 }
 
 function resetButton() {
   if (!button) return;
   button.style.backgroundColor = '';
+  button.style.borderBottomColor = '';
+  button.style.borderBottomWidth = '';
   button.style.transform = '';
 }
 

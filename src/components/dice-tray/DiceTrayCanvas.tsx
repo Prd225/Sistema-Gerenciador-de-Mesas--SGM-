@@ -1,16 +1,31 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useDiceTrayStore } from '@/store/useDiceTrayStore';
 import AnimatedDiceCard from './AnimatedDiceCard';
-import { Dices } from 'lucide-react';
+import { Dices, X, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface DiceTrayCanvasProps {
   isMobileLandscape?: boolean;
 }
 
-export default function DiceTrayCanvas({ isMobileLandscape = false }: DiceTrayCanvasProps) {
+export default function DiceTrayCanvas({ isMobileLandscape: _isMobileLandscape = false }: DiceTrayCanvasProps) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const dice = useDiceTrayStore((state) => state.dice);
   const lastRollResult = useDiceTrayStore((state) => state.lastRollResult);
+  const isRolling = useDiceTrayStore((state) => state.isRolling);
+  const clearLastRollResult = useDiceTrayStore((state) => state.clearLastRollResult);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Fecha automaticamente o pop-up de resultado central após alguns segundos
+  useEffect(() => {
+    if (!lastRollResult) {
+      setIsExpanded(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      clearLastRollResult();
+    }, 5500);
+    return () => clearTimeout(timer);
+  }, [lastRollResult, clearLastRollResult]);
 
   return (
     <div
@@ -46,63 +61,75 @@ export default function DiceTrayCanvas({ isMobileLandscape = false }: DiceTrayCa
         <AnimatedDiceCard key={die.id} die={die} canvasRef={canvasRef} />
       ))}
 
-      {/* Placa de Resultado no Rodapé da Bandeja */}
-      {lastRollResult && (
-        <div
-          className={`absolute bottom-2 left-2 ${
-            isMobileLandscape ? 'right-20' : 'right-2 sm:right-3'
-          } sm:bottom-3 sm:left-3 flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-[#18181b]/95 border border-[#323238] shadow-xl backdrop-blur-md z-30 animate-in fade-in slide-in-from-bottom-2 duration-150`}
-        >
-          <div className="flex flex-col min-w-0 pr-2">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <span className="text-xs font-mono font-medium text-[#a1a1aa]">
-                {lastRollResult.formula}
-              </span>
-              <span className="text-[10px] text-[#71717a]">•</span>
-              <span className="text-[11px] font-mono text-[#71717a] truncate max-w-[120px] sm:max-w-xs">
-                [{lastRollResult.breakdown}]
-              </span>
-            </div>
+      {/* Pop-up Central de Resultado (Apenas para o jogador que realizou a rolagem) */}
+      {lastRollResult && !isRolling && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30 p-4">
+          <div className="pointer-events-auto relative flex flex-col items-center bg-[#18181b]/95 border border-[#323238] rounded-2xl shadow-2xl p-4 sm:p-5 min-w-[210px] max-w-[280px] sm:max-w-xs backdrop-blur-md animate-in zoom-in-95 fade-in duration-200">
+            {/* Botão de Fechar */}
+            <button
+              type="button"
+              onClick={clearLastRollResult}
+              className="absolute top-2.5 right-2.5 p-1 text-[#71717a] hover:text-white rounded-lg hover:bg-[#27272a] transition-colors cursor-pointer touch-manipulation"
+              aria-label="Fechar resultado"
+            >
+              <X className="w-4 h-4" />
+            </button>
 
-            {/* Rótulo de Sucesso / Crítico */}
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span
-                className={`text-xs font-bold uppercase tracking-wider ${
-                  lastRollResult.outcomeTier === 'crit'
-                    ? 'text-amber-400'
-                    : lastRollResult.outcomeTier === 'fumble'
-                    ? 'text-red-400'
-                    : lastRollResult.outcomeTier === 'success'
-                    ? 'text-emerald-400'
-                    : lastRollResult.outcomeTier === 'fail'
-                    ? 'text-rose-400'
-                    : 'text-[#a1a1aa]'
-                }`}
-              >
-                {lastRollResult.outcomeLabel}
-              </span>
-            </div>
-          </div>
+            {/* Rótulo de Sucesso / Crítico / Falha */}
+            <span
+              className={`text-xs font-bold uppercase tracking-wider text-center ${
+                lastRollResult.outcomeTier === 'crit'
+                  ? 'text-amber-400 font-black drop-shadow-[0_0_8px_rgba(251,191,36,0.3)]'
+                  : lastRollResult.outcomeTier === 'fumble'
+                  ? 'text-red-400 font-black drop-shadow-[0_0_8px_rgba(248,113,113,0.3)]'
+                  : lastRollResult.outcomeTier === 'success'
+                  ? 'text-emerald-400 font-black'
+                  : lastRollResult.outcomeTier === 'fail'
+                  ? 'text-rose-400 font-black'
+                  : 'text-[#a1a1aa]'
+              }`}
+            >
+              {lastRollResult.outcomeLabel}
+            </span>
 
-          <div className="flex items-center gap-3 shrink-0">
-            {/* Total Numérico */}
-            <div className="flex flex-col items-end">
-              <span className="text-[10px] uppercase font-bold text-[#71717a] tracking-wider">
-                Total
-              </span>
-              <span
-                className={`text-2xl font-black font-mono leading-none tracking-tight ${
-                  lastRollResult.outcomeTier === 'crit'
-                    ? 'text-amber-400'
-                    : lastRollResult.outcomeTier === 'fumble'
-                    ? 'text-red-400'
-                    : lastRollResult.outcomeTier === 'success'
-                    ? 'text-emerald-400'
-                    : 'text-white'
-                }`}
+            {/* Total Numérico Centralizado e Grande */}
+            <span
+              className={`text-5xl sm:text-6xl font-black font-mono tracking-tight my-1.5 text-center ${
+                lastRollResult.outcomeTier === 'crit'
+                  ? 'text-amber-400'
+                  : lastRollResult.outcomeTier === 'fumble'
+                  ? 'text-red-400'
+                  : lastRollResult.outcomeTier === 'success'
+                  ? 'text-emerald-400'
+                  : 'text-white'
+              }`}
+            >
+              {lastRollResult.total}
+            </span>
+
+            {/* Expansor de cálculo exclusivo para mobile (no PC não precisa, histórico fica disponível) */}
+            <div className="w-full flex flex-col items-center sm:hidden mt-1">
+              <button
+                type="button"
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="flex items-center gap-1 text-[11px] font-medium text-[#a1a1aa] hover:text-white py-0.5 px-2 rounded-lg hover:bg-[#27272a] transition-colors cursor-pointer touch-manipulation"
               >
-                {lastRollResult.total}
-              </span>
+                <span>{isExpanded ? 'Ocultar cálculo' : 'Ver cálculo'}</span>
+                {isExpanded ? (
+                  <ChevronUp className="w-3 h-3 text-[#8257e5]" />
+                ) : (
+                  <ChevronDown className="w-3 h-3 text-[#71717a]" />
+                )}
+              </button>
+
+              {isExpanded && (
+                <div className="w-full mt-2 text-center text-xs font-mono text-[#a1a1aa] bg-[#121214]/90 p-2 rounded-xl border border-[#27272a] animate-in fade-in duration-150">
+                  <div className="text-white font-semibold">{lastRollResult.formula}</div>
+                  <div className="text-[11px] text-[#71717a] mt-0.5 break-all">
+                    [{lastRollResult.breakdown}]
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
