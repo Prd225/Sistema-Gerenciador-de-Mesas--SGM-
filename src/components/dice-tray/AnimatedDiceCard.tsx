@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, memo } from 'react';
 import { useDiceTrayStore, type TrayDie } from '@/store/useDiceTrayStore';
 import { diceDOMRegistry } from '@/lib/diceDOMRegistry';
 import { diceAudio } from '@/lib/diceAudio';
+import { diceHaptics } from '@/lib/diceHaptics';
 import DieShapeSVG from './DieShapeSVG';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 
@@ -59,6 +60,7 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
     setIsDragging(true);
 
     diceAudio.playSelect();
+    diceHaptics.pickup();
 
     dragStartRef.current = {
       startX: e.clientX,
@@ -88,6 +90,7 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
     const handlePointerUp = () => {
       setIsDragging(false);
       diceAudio.playRelease();
+      diceHaptics.drop();
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
     };

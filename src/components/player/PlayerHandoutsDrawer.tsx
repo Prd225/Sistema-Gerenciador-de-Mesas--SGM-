@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
-  Minus,
+  X,
   Scroll,
   Search,
   FileText,
@@ -97,6 +97,9 @@ export default function PlayerHandoutsDrawer() {
   const [typeFilter, setTypeFilter] = useState<'all' | 'text' | 'image' | 'pdf' | 'media'>('all');
   const [inspectItem, setInspectItem] = useState<PlayerHandoutView | null>(null);
 
+  const [drawerDragY, setDrawerDragY] = useState(0);
+  const touchStartY = useRef<number | null>(null);
+
   useEffect(() => {
     if (selectedHandout) {
       setInspectItem(selectedHandout);
@@ -127,6 +130,26 @@ export default function PlayerHandoutsDrawer() {
 
   if (!isDrawerOpen) return null;
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartY.current === null) return;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (dy > 0) {
+      setDrawerDragY(dy);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (drawerDragY > 70) {
+      setIsDrawerOpen(false);
+    }
+    setDrawerDragY(0);
+    touchStartY.current = null;
+  };
+
   return (
     <>
       <div
@@ -135,15 +158,29 @@ export default function PlayerHandoutsDrawer() {
       >
         <div
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full sm:max-w-3xl bg-[#121214] border-t sm:border border-[#27272a] rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col max-h-[90dvh] sm:max-h-[88vh] pb-safe overflow-hidden animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 duration-200"
+          style={{
+            transform: drawerDragY > 0 ? `translate3d(0, ${drawerDragY}px, 0)` : undefined,
+            transition: touchStartY.current !== null ? 'none' : 'transform 0.2s ease-out',
+          }}
+          className="relative w-full sm:max-w-3xl bg-[#121214] border-t sm:border border-[#27272a] rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[88vh] pb-safe overflow-hidden animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 duration-200"
         >
-          {/* Pull handle indicador para mobile */}
-          <div className="sm:hidden pt-2.5 pb-1 flex justify-center bg-[#18181b]">
-            <div className="w-10 h-1 bg-[#3f3f46] rounded-full" />
+          {/* Pull handle indicador para mobile com suporte a arraste para fechar */}
+          <div
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            className="sm:hidden pt-3 pb-2 flex justify-center bg-[#18181b] touch-none cursor-grab active:cursor-grabbing"
+          >
+            <div className="w-12 h-1.5 bg-[#52525b] rounded-full" />
           </div>
 
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-2.5 sm:py-3 border-b border-[#27272a] bg-[#18181b]">
+          <div
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            className="flex items-center justify-between px-4 py-2.5 sm:py-3 border-b border-[#27272a] bg-[#18181b]"
+          >
             <div className="flex items-center gap-2.5">
               <span className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400">
                 <Scroll className="w-5 h-5" />
@@ -163,10 +200,10 @@ export default function PlayerHandoutsDrawer() {
 
             <button
               onClick={() => setIsDrawerOpen(false)}
-              className="p-2 text-[#a1a1aa] hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+              className="p-2 text-[#a1a1aa] hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer active:scale-95"
               title="Fechar"
             >
-              <Minus className="w-4 h-4" />
+              <X className="w-4 h-4" />
             </button>
           </div>
 
@@ -198,7 +235,7 @@ export default function PlayerHandoutsDrawer() {
                 <button
                   key={tab.id}
                   onClick={() => setTypeFilter(tab.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition-all cursor-pointer active:scale-95 ${
                     typeFilter === tab.id
                       ? 'bg-[#8257e5] text-white shadow-sm'
                       : 'bg-[#202024] text-[#a1a1aa] hover:text-white hover:bg-white/5'
@@ -234,7 +271,7 @@ export default function PlayerHandoutsDrawer() {
                     <div
                       key={item.id}
                       onClick={() => setInspectItem(item)}
-                      className="group flex flex-col bg-[#18181b] hover:bg-[#202024] border border-[#27272a] hover:border-[#8257e5] rounded-lg overflow-hidden transition-all duration-150 cursor-pointer shadow-sm select-none"
+                      className="group flex flex-col bg-[#18181b] hover:bg-[#202024] border border-[#27272a] hover:border-[#8257e5] rounded-xl overflow-hidden transition-all duration-150 cursor-pointer shadow-sm select-none active:scale-[0.98]"
                     >
                       {/* Preview / Thumbnail */}
                       <div className="relative aspect-[4/3] w-full bg-[#121214] overflow-hidden flex items-center justify-center border-b border-[#27272a] group-hover:bg-[#161619] transition-colors">
@@ -299,7 +336,7 @@ export default function PlayerHandoutsDrawer() {
                               e.stopPropagation();
                               setInspectItem(item);
                             }}
-                            className="flex-1 bg-[#202024] border-[#323238] hover:bg-[#8257e5] hover:text-white text-[#d4d4d8] text-[11px] h-6 px-1.5 gap-1 transition-all"
+                            className="flex-1 bg-[#202024] border-[#323238] hover:bg-[#8257e5] hover:text-white text-[#d4d4d8] text-[11px] h-7 px-1.5 gap-1 transition-all active:scale-95"
                           >
                             <Eye className="w-3 h-3" />
                             <span>Ver</span>
@@ -313,10 +350,10 @@ export default function PlayerHandoutsDrawer() {
                                 e.stopPropagation();
                                 openPdfInNewTab(item);
                               }}
-                              className="h-6 w-6 shrink-0 bg-[#202024] border-[#323238] hover:bg-red-500/20 text-[#a1a1aa] hover:text-red-300 transition-all"
+                              className="h-7 w-7 shrink-0 bg-[#202024] border-[#323238] hover:bg-red-500/20 text-[#a1a1aa] hover:text-red-300 transition-all active:scale-95"
                               title="Abrir PDF em Nova Guia"
                             >
-                              <ExternalLink className="w-3 h-3" />
+                              <ExternalLink className="w-3.5 h-3.5" />
                             </Button>
                           )}
                         </div>

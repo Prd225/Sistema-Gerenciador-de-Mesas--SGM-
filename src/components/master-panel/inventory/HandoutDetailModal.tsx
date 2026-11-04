@@ -4,7 +4,7 @@ import { useInventoryStore } from '@/store/useInventoryStore';
 import { useZoneStore } from '@/store/useZoneStore';
 import { replaceDiceShortcodesWithHtml } from '@/lib/diceEmoji';
 import {
-  Minus,
+  X,
   Copy,
   Eye,
   EyeOff,
@@ -413,7 +413,7 @@ export default function HandoutDetailModal({
               className="p-2 sm:p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
               title="Minimizar"
             >
-              <Minus className="w-4 h-4 text-[#e1e1e6]" />
+              <X className="w-4 h-4 text-[#e1e1e6]" />
             </button>
           </div>
         </div>
@@ -548,13 +548,13 @@ export default function HandoutDetailModal({
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[350] flex items-center justify-center p-2 sm:p-6 bg-black/85"
+      className="fixed inset-0 z-[350] flex items-center justify-center p-0 sm:p-6 bg-black/90"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`relative w-full ${
-          item.type === 'pdf' ? 'max-w-5xl h-[88dvh]' : 'max-w-4xl max-h-[92dvh]'
-        } bg-[#121214] border border-[#323238] rounded-xl shadow-xl flex flex-col overflow-hidden pb-safe`}
+        className={`relative w-full h-[100dvh] sm:h-auto ${
+          item.type === 'pdf' ? 'sm:max-w-5xl sm:h-[88dvh]' : 'sm:max-w-4xl sm:max-h-[92dvh]'
+        } bg-[#121214] sm:border border-[#323238] rounded-none sm:rounded-xl shadow-xl flex flex-col overflow-hidden pb-safe`}
       >
         {/* Barra Superior */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-[#27272a] bg-[#18181b]">
@@ -724,7 +724,7 @@ export default function HandoutDetailModal({
               className="p-1.5 text-[#a1a1aa] hover:text-white rounded-lg hover:bg-white/10 transition-all cursor-pointer"
               title="Minimizar"
             >
-              <Minus className="w-4 h-4" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>

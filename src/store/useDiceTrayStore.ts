@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { generateId } from '@/lib/uuid';
 import { diceAudio } from '@/lib/diceAudio';
+import { diceHaptics } from '@/lib/diceHaptics';
 import { socket } from '@/lib/socket';
 import { diceDOMRegistry, setDieAnimating } from '@/lib/diceDOMRegistry';
 import { useMultiplayerStore } from './useMultiplayerStore';
@@ -367,6 +368,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
     const pos = getRandomTrayPosition(dice.length);
 
     diceAudio.playDieDrop();
+    diceHaptics.drop();
 
     const initialVal = rollDieFace(faces);
     const newDie: TrayDie = {
@@ -704,6 +706,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
 
         if (bounced) {
           diceAudio.playBounce(Math.min(2.5, bounceForce / 45));
+          diceHaptics.bounce(bounceForce);
         }
 
         p.x = nx;
@@ -762,6 +765,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
               p2.lift = Math.min(30, p2.lift + 8 + (intensity || 0) * 6);
 
               diceAudio.playDieCollision();
+              diceHaptics.collision();
             }
           }
         }
@@ -851,6 +855,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
         }));
 
         const evaluated = evaluateOutcome(settledDice, modifier, rules);
+        diceHaptics.settle();
 
         if (evaluated.outcomeTier === 'crit') {
           diceAudio.playCrit();

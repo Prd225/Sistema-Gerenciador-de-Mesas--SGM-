@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  Minus,
+  X,
+  Check,
   Copy,
   Tv,
   ExternalLink,
@@ -24,6 +25,7 @@ export default function PlayerProjectionOverlay() {
     projectedHandout?.type === 'video' ||
     projectedHandout?.type === 'audio';
   const [isCinemaMode, setIsCinemaMode] = useState<boolean>(Boolean(isMultimedia));
+  const [copiedText, setCopiedText] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -404,7 +406,7 @@ export default function PlayerProjectionOverlay() {
               className="p-2 sm:p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-[#e1e1e6] hover:text-white border border-white/15 hover:border-white/30 backdrop-blur-md transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
               title="Minimizar"
             >
-              <Minus className="w-4 h-4 text-[#e1e1e6]" />
+              <X className="w-4 h-4 text-[#e1e1e6]" />
             </button>
           </div>
         </div>
@@ -525,13 +527,13 @@ export default function PlayerProjectionOverlay() {
   }
 
   return (
-    <div className="fixed inset-0 z-[360] flex items-center justify-center p-2 sm:p-6 bg-black/85 select-none animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[360] flex items-center justify-center p-0 sm:p-6 bg-black/90 select-none animate-in fade-in duration-200">
       <div
-        className={`relative w-full ${
+        className={`relative w-full h-[100dvh] sm:h-auto ${
           projectedHandout.type === 'pdf'
-            ? 'max-w-5xl h-[88dvh]'
-            : 'max-w-4xl max-h-[92dvh]'
-        } bg-[#121214] border border-[#323238] rounded-xl shadow-xl flex flex-col overflow-hidden pb-safe`}
+            ? 'sm:max-w-5xl sm:h-[88dvh]'
+            : 'sm:max-w-4xl sm:max-h-[92dvh]'
+        } bg-[#121214] sm:border border-[#323238] rounded-none sm:rounded-xl shadow-xl flex flex-col overflow-hidden pb-safe`}
       >
         {/* Cabeçalho de Projeção Ativa */}
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#27272a] bg-[#18181b]">
@@ -579,7 +581,7 @@ export default function PlayerProjectionOverlay() {
               className="p-2 sm:p-1.5 text-[#a1a1aa] hover:text-white rounded-lg hover:bg-white/10 transition-all cursor-pointer active:scale-95"
               title="Minimizar"
             >
-              <Minus className="w-4 h-4" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -677,10 +679,34 @@ export default function PlayerProjectionOverlay() {
               <div
                 className={`w-full max-w-2xl p-6 sm:p-8 rounded-xl border flex flex-col gap-5 h-fit shadow-lg my-auto ${getTextThemeClasses()}`}
               >
-                <div className="border-b border-current/20 pb-3">
-                  <h2 className="text-xl font-bold tracking-wide">
+                <div className="border-b border-current/20 pb-3 flex items-center justify-between gap-2">
+                  <h2 className="text-lg sm:text-xl font-bold tracking-wide truncate">
                     {projectedHandout.title}
                   </h2>
+                  {projectedHandout.textContent && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(projectedHandout.textContent || '');
+                        setCopiedText(true);
+                        setTimeout(() => setCopiedText(false), 2000);
+                      }}
+                      className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/20 transition-all flex items-center gap-1.5 shrink-0 active:scale-95 cursor-pointer"
+                      title="Copiar texto"
+                    >
+                      {copiedText ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="text-emerald-300">Copiado</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copiar</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
                 <div
                   className="leading-relaxed text-sm sm:text-base break-words [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mb-2 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mb-1.5 [&_hr]:my-3 [&_hr]:border-current/20 whitespace-pre-wrap font-serif"

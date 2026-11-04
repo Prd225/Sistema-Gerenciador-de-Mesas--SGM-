@@ -1,13 +1,15 @@
 // Controlador do botão "Rolar Dados" com hover / segurar.
 // - Hover: dados são "pegos" (sobem levemente) e balançam bem pouco
 // - Segurar: balanço cresce gradualmente, botão vai do lilás ao vermelho escuro,
+//            vibração tátil aumenta em frequência,
 //            e as faces dos dados vão se alternando rapidamente (sensação de aleatoriedade)
-// - Soltar: devolve a intensidade (0..1) para arremesso com impulso proporcional
+// - Soltar: devolve a intensidade (0..1) para arremesso com impulso proporcional e vibração de impacto
 // Tudo roda num único rAF escrevendo transforms e valores direto no DOM (zero re-render).
 
 import { useDiceTrayStore, rollDieFace, generateSideFaces } from '@/store/useDiceTrayStore';
 import { diceDOMRegistry, writeDiePose, setDieAnimating, REST_POSE } from './diceDOMRegistry';
 import { diceAudio } from './diceAudio';
+import { diceHaptics } from './diceHaptics';
 
 type Mode = 'idle' | 'hover' | 'hold';
 
@@ -95,6 +97,7 @@ function loop(now: number) {
   if (mode === 'hold') {
     paintButton(progress);
     diceAudio.setHoldIntensity(progress);
+    diceHaptics.chargePulse(progress);
 
     // Alterna os valores dos dados enquanto segura (sensação dinâmica de aleatoriedade)
     // Conforme o botão é segurado, o sorteio acelera de 140ms para até 32ms
@@ -183,10 +186,11 @@ export const diceShake = {
     return mode === 'hold';
   },
 
-  /** Solta o botão: para o balanço e retorna a intensidade acumulada (0..1). */
+  /** Solta o botão: para o balanço, dispara vibração tátil e retorna a intensidade acumulada (0..1). */
   release(stillHovering: boolean): number {
     const intensity = holdProgress(performance.now());
     diceAudio.stopHold();
+    diceHaptics.launch(intensity);
     resetButton();
     button = null;
     touched.clear();
@@ -198,6 +202,7 @@ export const diceShake = {
   /** Cancela o segurar sem rolar (ex: perdeu o ponteiro). */
   cancel() {
     diceAudio.stopHold();
+    diceHaptics.stop();
     resetButton();
     button = null;
     mode = 'idle';

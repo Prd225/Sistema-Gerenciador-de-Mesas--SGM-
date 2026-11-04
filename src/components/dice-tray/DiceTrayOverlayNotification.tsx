@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useDiceTrayStore } from '@/store/useDiceTrayStore';
 import { Sparkles, Skull, X, Dices } from 'lucide-react';
 
@@ -8,13 +8,24 @@ export default function DiceTrayOverlayNotification() {
   const isOverlayEnabled = useDiceTrayStore((state) => state.isOverlayEnabled);
   const toggleOpen = useDiceTrayStore((state) => state.toggleOpen);
 
-  useEffect(() => {
-    if (!activeNotification) return;
+  const [dragY, setDragY] = useState(0);
+  const [isExiting, setIsExiting] = useState(false);
+  const touchStartRef = useRef<number | null>(null);
 
-    // Fecha o alerta automaticamente após 5.5 segundos
+  useEffect(() => {
+    if (!activeNotification) {
+      setDragY(0);
+      setIsExiting(false);
+      return;
+    }
+
+    // Notificação rápida: fecha automaticamente após 3.6 segundos
     const timer = setTimeout(() => {
-      dismissNotification();
-    }, 5500);
+      setIsExiting(true);
+      setTimeout(() => {
+        dismissNotification();
+      }, 180);
+    }, 3600);
 
     return () => clearTimeout(timer);
   }, [activeNotification, dismissNotification]);
@@ -25,87 +36,134 @@ export default function DiceTrayOverlayNotification() {
   const isFumble = activeNotification.outcomeTier === 'fumble';
   const isSuccess = activeNotification.outcomeTier === 'success';
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartRef.current = e.touches[0].clientY;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartRef.current === null) return;
+    const currentY = e.touches[0].clientY;
+    const deltaY = currentY - touchStartRef.current;
+    if (deltaY < 0) {
+      setDragY(deltaY);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (dragY < -26) {
+      setIsExiting(true);
+      setTimeout(() => {
+        dismissNotification();
+        setDragY(0);
+        setIsExiting(false);
+      }, 150);
+    } else {
+      setDragY(0);
+    }
+    touchStartRef.current = null;
+  };
+
   return (
-    <div className="fixed bottom-14 left-1/2 -translate-x-1/2 z-[140] pointer-events-none select-none max-w-[92vw] sm:max-w-md animate-in fade-in slide-in-from-bottom-4 duration-200">
+    <div
+      className="fixed top-[calc(0.75rem+env(safe-area-inset-top,0px))] left-1/2 -translate-x-1/2 z-[250] pointer-events-none select-none w-[calc(100vw-1.5rem)] max-w-md animate-in fade-in slide-in-from-top-4 duration-200"
+      style={{
+        transform: isExiting
+          ? 'translate3d(-50%, -120%, 0)'
+          : `translate3d(-50%, ${dragY}px, 0)`,
+        opacity: isExiting ? 0 : Math.max(0, 1 + dragY / 70),
+        transition:
+          touchStartRef.current !== null
+            ? 'none'
+            : 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease-out',
+      }}
+    >
       <div
-        className={`pointer-events-auto flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border bg-[#18181b]/95 backdrop-blur-md shadow-2xl ${
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className={`pointer-events-auto flex flex-col px-3.5 pt-1.5 pb-2.5 rounded-2xl border bg-[#18181b]/98 backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.85)] touch-pan-y ${
           isCrit
-            ? 'border-amber-400 bg-amber-950/20'
+            ? 'border-amber-400/80 bg-amber-950/30 shadow-[0_16px_40px_rgba(245,158,11,0.2)]'
             : isFumble
-            ? 'border-red-500 bg-red-950/20'
+            ? 'border-red-500/80 bg-red-950/30 shadow-[0_16px_40px_rgba(239,68,68,0.2)]'
             : isSuccess
-            ? 'border-emerald-500/50 bg-emerald-950/20'
-            : 'border-[#323238]'
+            ? 'border-emerald-500/60 bg-emerald-950/25'
+            : 'border-[#3f3f46]'
         }`}
       >
-        <div
-          onClick={toggleOpen}
-          className="flex items-center gap-3 cursor-pointer group"
-          title="Clique para abrir a Bandeja de Dados"
-        >
+        {/* Indicador sutil de arrastar para cima */}
+        <div className="w-8 h-1 bg-white/20 rounded-full mx-auto mb-1.5 shrink-0" />
+
+        <div className="flex items-center justify-between gap-2.5">
           <div
-            className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border ${
-              isCrit
-                ? 'bg-amber-500/20 border-amber-400 text-amber-300'
-                : isFumble
-                ? 'bg-red-500/20 border-red-500 text-red-400'
-                : 'bg-[#202024] border-[#323238] text-[#8257e5]'
-            }`}
+            onClick={toggleOpen}
+            className="flex items-center gap-2.5 cursor-pointer group flex-1 min-w-0"
+            title="Toque para abrir a Bandeja de Dados"
           >
-            {isCrit ? (
-              <Sparkles className="w-5 h-5 animate-pulse" />
-            ) : isFumble ? (
-              <Skull className="w-5 h-5 animate-pulse" />
-            ) : (
-              <Dices className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-            )}
-          </div>
-
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-white">
-                {activeNotification.senderName}
-              </span>
-              <span className="text-[10px] text-[#71717a] font-mono">
-                {activeNotification.formula}
-              </span>
+            <div
+              className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border shadow-sm ${
+                isCrit
+                  ? 'bg-amber-500/20 border-amber-400 text-amber-300'
+                  : isFumble
+                  ? 'bg-red-500/20 border-red-500 text-red-400'
+                  : 'bg-[#202024] border-[#323238] text-[#8257e5]'
+              }`}
+            >
+              {isCrit ? (
+                <Sparkles className="w-5 h-5 animate-pulse text-amber-300" />
+              ) : isFumble ? (
+                <Skull className="w-5 h-5 animate-pulse text-red-400" />
+              ) : (
+                <Dices className="w-5 h-5 group-hover:rotate-12 transition-transform text-[#8257e5]" />
+              )}
             </div>
 
-            <div className="flex items-center gap-2">
-              <span
-                className={`text-xs font-extrabold uppercase tracking-wider ${
-                  isCrit
-                    ? 'text-amber-400'
-                    : isFumble
-                    ? 'text-red-400'
-                    : isSuccess
-                    ? 'text-emerald-400'
-                    : 'text-[#a1a1aa]'
-                }`}
-              >
-                {activeNotification.outcomeLabel}
-              </span>
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-white truncate max-w-[120px] sm:max-w-[180px]">
+                  {activeNotification.senderName}
+                </span>
+                <span className="text-[10px] text-[#a1a1aa] font-mono shrink-0">
+                  {activeNotification.formula}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`text-[11px] font-extrabold uppercase tracking-wider ${
+                    isCrit
+                      ? 'text-amber-400'
+                      : isFumble
+                      ? 'text-red-400'
+                      : isSuccess
+                      ? 'text-emerald-400'
+                      : 'text-[#a1a1aa]'
+                  }`}
+                >
+                  {activeNotification.outcomeLabel}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-3 pl-2 border-l border-[#27272a]">
-          <span
-            className={`font-mono font-black text-2xl leading-none ${
-              isCrit ? 'text-amber-400' : isFumble ? 'text-red-400' : 'text-white'
-            }`}
-          >
-            {activeNotification.total}
-          </span>
+          <div className="flex items-center gap-2 pl-2 border-l border-[#2e2e33] shrink-0">
+            <span
+              className={`font-mono font-black text-2xl leading-none ${
+                isCrit ? 'text-amber-400' : isFumble ? 'text-red-400' : 'text-white'
+              }`}
+            >
+              {activeNotification.total}
+            </span>
 
-          <button
-            type="button"
-            onClick={dismissNotification}
-            className="p-1 rounded-md text-[#71717a] hover:text-white hover:bg-white/10 transition-colors"
-            title="Fechar notificação"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+            <button
+              type="button"
+              onClick={dismissNotification}
+              className="p-1 rounded-lg text-[#71717a] hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              title="Fechar notificação"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

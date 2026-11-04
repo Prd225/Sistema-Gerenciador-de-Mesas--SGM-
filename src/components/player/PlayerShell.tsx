@@ -52,18 +52,18 @@ export default function PlayerShell() {
         <PlayerToolbar />
       </ErrorBoundary>
 
-      {/* Bandeja de Dados Virtual do Jogador (Janela Minimizável) */}
+      {/* Bandeja de Dados Virtual do Jogador */}
       <ErrorBoundary fallback={null} silent>
         <DiceTrayWindow />
       </ErrorBoundary>
 
-      {/* Alerta de Rolagens no Canvas */}
+      {/* Alerta de Rolagens no Topo do Canvas */}
       <ErrorBoundary fallback={null} silent>
         <DiceTrayOverlayNotification />
       </ErrorBoundary>
 
-      {/* Notificações Flutuantes do Jogador (Cena e Handouts) */}
-      <div className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 z-50 pointer-events-none flex flex-col items-center gap-2 max-w-[92vw] sm:max-w-md">
+      {/* Notificações Flutuantes do Jogador (Cena e Handouts no topo, adaptado para mobile) */}
+      <div className="fixed top-[calc(0.75rem+env(safe-area-inset-top,0px))] left-1/2 -translate-x-1/2 z-[210] pointer-events-none flex flex-col items-center gap-2 w-[calc(100vw-1.5rem)] max-w-md">
         <ErrorBoundary fallback={null} silent>
           <PlayerSceneNotification />
         </ErrorBoundary>

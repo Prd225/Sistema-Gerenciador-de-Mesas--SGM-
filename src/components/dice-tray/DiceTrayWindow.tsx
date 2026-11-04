@@ -6,7 +6,6 @@ import DiceTrayHistory from './DiceTrayHistory';
 import DiceTrayRulesConfig from './DiceTrayRulesConfig';
 import {
   Dices,
-  Minus,
   Maximize2,
   Minimize2,
   X,
@@ -17,13 +16,9 @@ import {
 export default function DiceTrayWindow() {
   const isOpen = useDiceTrayStore((state) => state.isOpen);
   const setIsOpen = useDiceTrayStore((state) => state.setIsOpen);
-  const isMinimized = useDiceTrayStore((state) => state.isMinimized);
-  const setIsMinimized = useDiceTrayStore((state) => state.setIsMinimized);
   const activeTab = useDiceTrayStore((state) => state.activeTab);
   const setActiveTab = useDiceTrayStore((state) => state.setActiveTab);
-
   const dice = useDiceTrayStore((state) => state.dice);
-  const lastRollResult = useDiceTrayStore((state) => state.lastRollResult);
 
   // Detecção de viewport mobile
   const [isMobile, setIsMobile] = useState(() =>
@@ -46,54 +41,6 @@ export default function DiceTrayWindow() {
   const windowRef = useRef<HTMLDivElement | null>(null);
 
   if (!isOpen) return null;
-
-  // Barra Minimizada Flutuante (Doca adaptada para mobile e desktop sem botão de reroll redundante)
-  if (isMinimized) {
-    return (
-      <div className="fixed bottom-16 sm:bottom-5 left-3 sm:left-auto right-3 sm:right-24 z-[170] flex items-center justify-between sm:justify-start gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-2xl bg-[#18181b]/98 border border-[#3f3f46] shadow-[0_12px_35px_rgba(0,0,0,0.85)] backdrop-blur-md select-none animate-in fade-in slide-in-from-bottom-2 duration-150">
-        <button
-          type="button"
-          onClick={() => setIsMinimized(false)}
-          className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#202024] hover:bg-[#27272a] text-white text-xs font-bold transition-all active:scale-95"
-          title="Restaurar Bandeja de Dados"
-        >
-          <Dices className="w-4 h-4 text-[#8257e5]" />
-          <span>Bandeja ({dice.length})</span>
-        </button>
-
-        {lastRollResult && (
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-[#202024]/80 border border-[#27272a] text-xs">
-            <span className="text-[#a1a1aa] font-mono text-[10px] sm:text-[11px] truncate max-w-[70px] sm:max-w-[110px]">
-              {lastRollResult.formula}
-            </span>
-            <span className="text-white font-mono font-black text-xs sm:text-sm">
-              = {lastRollResult.total}
-            </span>
-          </div>
-        )}
-
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setIsMinimized(false)}
-            className="p-1.5 rounded-xl text-[#a1a1aa] hover:text-white hover:bg-white/10 transition-colors"
-            title="Restaurar janela"
-          >
-            <Maximize2 className="w-3.5 h-3.5" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsOpen(false)}
-            className="p-1.5 rounded-xl text-[#a1a1aa] hover:text-red-400 hover:bg-white/10 transition-colors"
-            title="Fechar bandeja"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   // Header Drag Handler (apenas em desktop e quando não maximizado)
   const handleHeaderPointerDown = (e: React.PointerEvent) => {
@@ -234,24 +181,14 @@ export default function DiceTrayWindow() {
           </div>
         </div>
 
-        {/* Controles de Janela (Minimizar, Maximizar/Restaurar, Fechar) */}
+        {/* Controles de Janela (Apenas Maximizar/Restaurar e Fechar) */}
         <div className="flex items-center gap-1 shrink-0 ml-1">
-          {/* Botão Minimizar para doca */}
-          <button
-            type="button"
-            onClick={() => setIsMinimized(true)}
-            className="p-1.5 rounded-lg text-[#a1a1aa] hover:text-white hover:bg-[#27272a] transition-all"
-            title="Minimizar para barra"
-          >
-            <Minus className="w-3.5 h-3.5" />
-          </button>
-
           {/* Botão Maximizar / Restaurar (Apenas Desktop) */}
           {!isMobile && (
             <button
               type="button"
               onClick={() => setIsMaximized(!isMaximized)}
-              className="p-1.5 rounded-lg text-[#a1a1aa] hover:text-white hover:bg-[#27272a] transition-all"
+              className="p-1.5 rounded-lg text-[#a1a1aa] hover:text-white hover:bg-[#27272a] transition-all cursor-pointer"
               title={isMaximized ? 'Restaurar tamanho normal' : 'Maximizar tela'}
             >
               {isMaximized ? (
@@ -262,31 +199,29 @@ export default function DiceTrayWindow() {
             </button>
           )}
 
-          {/* Botão Fechar */}
+          {/* Fechar Janela */}
           <button
             type="button"
             onClick={() => setIsOpen(false)}
-            className="p-1.5 rounded-lg text-[#a1a1aa] hover:text-red-400 hover:bg-[#27272a] transition-all"
-            title="Fechar bandeja"
+            className="p-1.5 rounded-lg text-[#a1a1aa] hover:text-red-400 hover:bg-[#27272a] transition-all cursor-pointer"
+            title="Fechar bandeja de dados"
           >
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
-      {/* Conteúdo da Janela (Responsivo: Canvas no topo e Toolbar embaixo no mobile; Toolbar na esquerda e Canvas na direita no desktop) */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+      {/* Conteúdo das Abas */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         {activeTab === 'tray' && (
           <>
-            <div className="flex-1 flex flex-col min-h-0 order-1 md:order-2">
-              <DiceTrayCanvas />
-            </div>
-            <div className="shrink-0 order-2 md:order-1">
-              <DiceTrayToolbar />
-            </div>
+            <DiceTrayToolbar />
+            <DiceTrayCanvas />
           </>
         )}
+
         {activeTab === 'history' && <DiceTrayHistory />}
+
         {activeTab === 'rules' && <DiceTrayRulesConfig />}
       </div>
     </div>
