@@ -1,27 +1,12 @@
 import { useRef } from 'react';
 import { useDiceTrayStore } from '@/store/useDiceTrayStore';
-import { useMultiplayerStore } from '@/store/useMultiplayerStore';
 import AnimatedDiceCard from './AnimatedDiceCard';
-import { Dices, RotateCcw } from 'lucide-react';
+import { Dices } from 'lucide-react';
 
 export default function DiceTrayCanvas() {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const dice = useDiceTrayStore((state) => state.dice);
-  const isRolling = useDiceTrayStore((state) => state.isRolling);
   const lastRollResult = useDiceTrayStore((state) => state.lastRollResult);
-  const rollDice = useDiceTrayStore((state) => state.rollDice);
-
-  const userName = useMultiplayerStore((state) => state.userName);
-  const role = useMultiplayerStore((state) => state.role);
-
-  const handleRollAgain = () => {
-    const sender = userName?.trim()
-      ? userName.trim()
-      : role === 'player'
-      ? 'Jogador'
-      : 'Mestre';
-    rollDice(sender, role || 'gm');
-  };
 
   return (
     <div
@@ -61,16 +46,16 @@ export default function DiceTrayCanvas() {
         <AnimatedDiceCard key={die.id} die={die} canvasRef={canvasRef} />
       ))}
 
-      {/* Placa de Resultado no Rodapé da Bandeja */}
+      {/* Placa de Resultado no Rodapé da Bandeja (Sem botão repetido de reroll) */}
       {lastRollResult && (
-        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between px-4 py-2.5 rounded-lg bg-[#18181b]/95 border border-[#323238] shadow-xl backdrop-blur-md z-30 animate-in fade-in slide-in-from-bottom-2 duration-150">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
+        <div className="absolute bottom-2 left-2 right-2 sm:bottom-3 sm:left-3 sm:right-3 flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-[#18181b]/95 border border-[#323238] shadow-xl backdrop-blur-md z-30 animate-in fade-in slide-in-from-bottom-2 duration-150">
+          <div className="flex flex-col min-w-0 pr-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <span className="text-xs font-mono font-medium text-[#a1a1aa]">
                 {lastRollResult.formula}
               </span>
               <span className="text-[10px] text-[#71717a]">•</span>
-              <span className="text-[11px] font-mono text-[#71717a] truncate max-w-[180px] sm:max-w-xs">
+              <span className="text-[11px] font-mono text-[#71717a] truncate max-w-[120px] sm:max-w-xs">
                 [{lastRollResult.breakdown}]
               </span>
             </div>
@@ -95,7 +80,7 @@ export default function DiceTrayCanvas() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             {/* Total Numérico */}
             <div className="flex flex-col items-end">
               <span className="text-[10px] uppercase font-bold text-[#71717a] tracking-wider">
@@ -115,17 +100,6 @@ export default function DiceTrayCanvas() {
                 {lastRollResult.total}
               </span>
             </div>
-
-            {/* Rolar Novamente */}
-            <button
-              type="button"
-              onClick={handleRollAgain}
-              disabled={isRolling}
-              className="p-2 rounded-lg bg-[#27272a] hover:bg-[#8257e5] text-[#a1a1aa] hover:text-white transition-colors disabled:opacity-50"
-              title="Rolar novamente estes mesmos dados"
-            >
-              <RotateCcw className={`w-4 h-4 ${isRolling ? 'animate-spin' : ''}`} />
-            </button>
           </div>
         </div>
       )}

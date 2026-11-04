@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useDiceTrayStore } from '@/store/useDiceTrayStore';
-import { useMultiplayerStore } from '@/store/useMultiplayerStore';
 import DiceTrayToolbar from './DiceTrayToolbar';
 import DiceTrayCanvas from './DiceTrayCanvas';
 import DiceTrayHistory from './DiceTrayHistory';
@@ -13,7 +12,6 @@ import {
   X,
   History,
   Sliders,
-  RotateCcw,
 } from 'lucide-react';
 
 export default function DiceTrayWindow() {
@@ -25,12 +23,7 @@ export default function DiceTrayWindow() {
   const setActiveTab = useDiceTrayStore((state) => state.setActiveTab);
 
   const dice = useDiceTrayStore((state) => state.dice);
-  const isRolling = useDiceTrayStore((state) => state.isRolling);
-  const rollDice = useDiceTrayStore((state) => state.rollDice);
   const lastRollResult = useDiceTrayStore((state) => state.lastRollResult);
-
-  const userName = useMultiplayerStore((state) => state.userName);
-  const role = useMultiplayerStore((state) => state.role);
 
   // Detecção de viewport mobile
   const [isMobile, setIsMobile] = useState(() =>
@@ -54,16 +47,7 @@ export default function DiceTrayWindow() {
 
   if (!isOpen) return null;
 
-  const handleRollAgain = () => {
-    const sender = userName?.trim()
-      ? userName.trim()
-      : role === 'player'
-        ? 'Jogador'
-        : 'Mestre';
-    rollDice(sender, role || 'gm');
-  };
-
-  // Barra Minimizada Flutuante (Doca adaptada para mobile e desktop)
+  // Barra Minimizada Flutuante (Doca adaptada para mobile e desktop sem botão de reroll redundante)
   if (isMinimized) {
     return (
       <div className="fixed bottom-16 sm:bottom-5 left-3 sm:left-auto right-3 sm:right-24 z-[170] flex items-center justify-between sm:justify-start gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-2xl bg-[#18181b]/98 border border-[#3f3f46] shadow-[0_12px_35px_rgba(0,0,0,0.85)] backdrop-blur-md select-none animate-in fade-in slide-in-from-bottom-2 duration-150">
@@ -89,16 +73,6 @@ export default function DiceTrayWindow() {
         )}
 
         <div className="flex items-center gap-1">
-          <button
-            type="button"
-            disabled={isRolling || dice.length === 0}
-            onClick={handleRollAgain}
-            className="p-1.5 rounded-xl bg-[#8257e5] hover:bg-[#9466ff] disabled:opacity-40 text-white transition-all active:scale-95 shadow"
-            title="Rolar novamente"
-          >
-            <RotateCcw className={`w-3.5 h-3.5 ${isRolling ? 'animate-spin' : ''}`} />
-          </button>
-
           <button
             type="button"
             onClick={() => setIsMinimized(false)}
@@ -300,12 +274,16 @@ export default function DiceTrayWindow() {
         </div>
       </div>
 
-      {/* Conteúdo da Janela (Responsivo: flex-col no mobile, flex-row no desktop) */}
+      {/* Conteúdo da Janela (Responsivo: Canvas no topo e Toolbar embaixo no mobile; Toolbar na esquerda e Canvas na direita no desktop) */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {activeTab === 'tray' && (
           <>
-            <DiceTrayCanvas />
-            <DiceTrayToolbar />
+            <div className="flex-1 flex flex-col min-h-0 order-1 md:order-2">
+              <DiceTrayCanvas />
+            </div>
+            <div className="shrink-0 order-2 md:order-1">
+              <DiceTrayToolbar />
+            </div>
           </>
         )}
         {activeTab === 'history' && <DiceTrayHistory />}
