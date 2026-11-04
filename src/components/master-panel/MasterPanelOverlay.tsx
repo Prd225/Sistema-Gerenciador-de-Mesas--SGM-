@@ -10,10 +10,8 @@ import MasterRoulettes from './roulettes/MasterRoulettes';
 import MasterSoundpad from './soundpad/MasterSoundpad';
 import ScenesPanel from './scenes/ScenesPanel';
 import MasterInventory from './inventory/MasterInventory';
-import MasterDiceTrayPanel from '@/components/dice-tray/MasterDiceTrayPanel';
 
 function RenderPanel({ panelId }: { panelId: string }) {
-  if (panelId === 'dice_tray') return <MasterDiceTrayPanel />;
   if (panelId === 'inventory') return <MasterInventory />;
   if (panelId === 'diary') return <MasterDiary />;
   if (panelId === 'rules') return <MasterRules />;

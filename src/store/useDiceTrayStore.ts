@@ -143,7 +143,24 @@ const DEFAULT_RULES: DiceTrayRules = {
   ruleMode: 'sum',
 };
 
-// Gera números para as facetas visíveis adjacentes de cada tipo de dado
+// Algoritmo de aleatoriedade matematicamente uniforme e criptograficamente justo
+// Elimina qualquer viés de módulo (modulo bias) usando Uint32Array e rejection sampling
+export function rollDieFace(faces: DieFaceCount): number {
+  if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
+    const array = new Uint32Array(1);
+    const maxUint = 0xffffffff;
+    const limit = maxUint - (maxUint % faces);
+    let rand: number;
+    do {
+      window.crypto.getRandomValues(array);
+      rand = array[0];
+    } while (rand >= limit);
+    return (rand % faces) + 1;
+  }
+  return Math.floor(Math.random() * faces) + 1;
+}
+
+// Gera números para as facetas visíveis adjacentes de cada tipo de dado sem duplicar a face frontal
 export function generateSideFaces(faces: DieFaceCount, centerVal: number): number[] {
   const count =
     faces === 4
@@ -159,15 +176,26 @@ export function generateSideFaces(faces: DieFaceCount, centerVal: number): numbe
       : 3;
 
   const res: number[] = [];
+  const used = new Set<number>([centerVal]);
+
   for (let i = 0; i < count; i++) {
     if (faces === 100) {
-      let step = Math.floor(Math.random() * 10) * 10;
-      if (step === centerVal) step = (step + 10) % 100;
+      let step = (rollDieFace(10) - 1) * 10;
+      if (step === 0) step = 100;
+      if (used.has(step)) {
+        step = ((step + 10) % 100) || 100;
+      }
+      used.add(step);
       res.push(step);
     } else {
-      let r = Math.floor(Math.random() * faces) + 1;
-      if (r === centerVal) r = (r % faces) + 1;
-      res.push(r);
+      let candidate = rollDieFace(faces);
+      let attempts = 0;
+      while (used.has(candidate) && attempts < faces) {
+        candidate = (candidate % faces) + 1;
+        attempts++;
+      }
+      used.add(candidate);
+      res.push(candidate);
     }
   }
   return res;
@@ -198,13 +226,13 @@ function formatFormulaAndBreakdown(dice: TrayDie[], globalModifier: number) {
   return { formula, breakdown };
 }
 
-// Calcula Patamar e Rótulo do Resultado baseado nas Regras
+// Calcula Patamar e Rótulo do Resultado baseado nas Regras (suporta vantagens e múltiplos d20)
 function evaluateOutcome(
   dice: TrayDie[],
   modifier: number,
   rules: DiceTrayRules,
 ): { total: number; diceTotal: number; outcomeTier: RollOutcomeTier; outcomeLabel: string } {
-  const d20Die = dice.find((d) => d.faces === 20);
+  const d20Dice = dice.filter((d) => d.faces === 20);
 
   if (rules.ruleMode === 'pool' && rules.poolThreshold !== null) {
     const successCount = dice.filter(
@@ -219,8 +247,8 @@ function evaluateOutcome(
   if (rules.ruleMode === 'highest') {
     const highest = Math.max(...dice.map((d) => d.currentValue + (d.modifier || 0)), 0);
     const total = highest + modifier;
-    const isCrit = d20Die && d20Die.currentValue >= rules.critPositive;
-    const isFumble = d20Die && d20Die.currentValue <= rules.critNegative;
+    const isCrit = d20Dice.some((d) => d.currentValue >= rules.critPositive);
+    const isFumble = !isCrit && d20Dice.some((d) => d.currentValue <= rules.critNegative);
     const outcomeTier: RollOutcomeTier = isCrit ? 'crit' : isFumble ? 'fumble' : 'neutral';
     const outcomeLabel = isCrit ? 'Crítico Positivo!' : isFumble ? 'Desastre Crítico!' : `Maior Dado (${highest})`;
     return { total, diceTotal: highest, outcomeTier, outcomeLabel };
@@ -236,9 +264,9 @@ function evaluateOutcome(
   const diceTotal = dice.reduce((acc, d) => acc + d.currentValue + (d.modifier || 0), 0);
   const total = diceTotal + modifier;
 
-  // Verificação de Crítico Positivo e Fumble no d20
-  const isD20Crit = d20Die ? d20Die.currentValue >= rules.critPositive : false;
-  const isD20Fumble = d20Die ? d20Die.currentValue <= rules.critNegative : false;
+  // Verificação de Crítico Positivo e Fumble no d20 (avalia todos os d20s em caso de vantagem)
+  const isD20Crit = d20Dice.some((d) => d.currentValue >= rules.critPositive);
+  const isD20Fumble = !isD20Crit && d20Dice.some((d) => d.currentValue <= rules.critNegative);
 
   if (isD20Crit) {
     return { total, diceTotal, outcomeTier: 'crit', outcomeLabel: 'CRÍTICO POSITIVO!' };
@@ -340,7 +368,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
 
     diceAudio.playDieDrop();
 
-    const initialVal = Math.floor(Math.random() * faces) + 1;
+    const initialVal = rollDieFace(faces);
     const newDie: TrayDie = {
       id: generateId(),
       faces,
@@ -561,7 +589,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
     // Toca som proporcional à quantidade de dados e à intensidade do arremesso
     diceAudio.playRoll(dice.length, intensity);
 
-    const finalValues = dice.map((d) => Math.floor(Math.random() * d.faces) + 1);
+    const finalValues = dice.map((d) => rollDieFace(d.faces));
 
     // Inicialização da física (impulsionada pela intensidade do arremesso)
     const speedBoost = 1 + (intensity || 0) * 0.85;
@@ -764,14 +792,14 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
           dom.shadow.current.style.opacity = `${Math.max(0.18, 0.65 - p.lift * 0.02)}`;
         }
 
-        // Troca rápida de faces no texto do SVG
+        // Troca rápida de faces no texto do SVG com RNG uniforme
         if (!p.settled && elapsed < p.duration) {
           const progress = elapsed / p.duration;
           p.faceInterval = 28 + Math.pow(progress, 2.5) * 190;
 
           if (now - p.lastFaceSwap > p.faceInterval) {
             const dieDef = dice[idx];
-            const newFace = Math.floor(Math.random() * dieDef.faces) + 1;
+            const newFace = rollDieFace(dieDef.faces);
             const newSideFaces = generateSideFaces(dieDef.faces, newFace);
             p.sideFaces = newSideFaces;
             p.lastFaceSwap = now;

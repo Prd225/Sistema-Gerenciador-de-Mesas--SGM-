@@ -106,14 +106,16 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
     <div
       ref={cardRef}
       onPointerDown={handlePointerDown}
+      onContextMenu={(e) => e.preventDefault()}
       style={{
         left: `${die.x}%`,
         top: `${die.y}%`,
         transform: `translate3d(-50%, -50%, 0) scale(${isDragging ? 1.08 : 1})`,
+        touchAction: 'none',
         willChange: isRolling ? 'transform, left, top' : 'auto',
         transition: isRolling ? 'none' : isDragging ? 'transform 0.15s ease-out' : 'transform 0.2s ease-out',
       }}
-      className={`group absolute select-none cursor-grab active:cursor-grabbing ${
+      className={`group absolute select-none cursor-grab active:cursor-grabbing touch-none ${
         isDragging ? 'z-50' : isRolling ? 'z-20' : 'z-10'
       }`}
     >

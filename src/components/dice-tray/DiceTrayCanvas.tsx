@@ -26,10 +26,11 @@ export default function DiceTrayCanvas() {
   return (
     <div
       ref={canvasRef}
-      className="relative flex-1 w-full h-full min-h-[300px] overflow-hidden rounded-xl border border-[#27272a] bg-[#111216] select-none shadow-inner"
+      className="relative flex-1 w-full h-full min-h-[200px] sm:min-h-[300px] overflow-hidden rounded-xl border border-[#27272a] bg-[#111216] select-none shadow-inner touch-none"
       style={{
         perspective: '1000px',
         transformStyle: 'preserve-3d',
+        touchAction: 'none',
         backgroundImage: `
           radial-gradient(circle at 50% 50%, rgba(30, 32, 40, 0.9) 0%, rgba(14, 15, 19, 0.98) 100%),
           repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.01) 0, rgba(255, 255, 255, 0.01) 2px, transparent 2px, transparent 6px)

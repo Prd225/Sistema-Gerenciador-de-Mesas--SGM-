@@ -15,7 +15,6 @@ const PANEL_DETAILS: Record<
   SubPanelId,
   { title: string; icon: React.ElementType }
 > = {
-  dice_tray: { title: 'Bandeja de Dados', icon: Dices },
   inventory: { title: 'Inventário do Mestre', icon: FolderArchive },
   diary: { title: 'Diário do Mestre', icon: BookOpen },
   rules: { title: 'Regras', icon: Scale },

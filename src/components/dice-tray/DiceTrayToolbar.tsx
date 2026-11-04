@@ -115,13 +115,13 @@ export default function DiceTrayToolbar() {
   };
 
   return (
-    <div className="w-56 shrink-0 flex flex-col gap-3 p-3 bg-[#18181b]/90 border-r border-[#27272a] text-sm select-none overflow-y-auto">
-      {/* Botões de Seleção de Dados */}
+    <div className="w-full md:w-56 shrink-0 flex flex-col gap-2 sm:gap-3 p-2.5 sm:p-3 bg-[#18181b]/95 border-t md:border-t-0 md:border-r border-[#27272a] text-sm select-none overflow-y-auto max-h-[44vh] md:max-h-none">
+      {/* Botões de Seleção de Dados (Grid de 4 colunas no mobile, 2 colunas no desktop) */}
       <div>
-        <span className="text-[11px] font-bold uppercase tracking-wider text-[#71717a] block mb-2">
+        <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#71717a] block mb-1.5 sm:mb-2">
           Adicionar Dados
         </span>
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className="grid grid-cols-4 md:grid-cols-2 gap-1 sm:gap-1.5">
           {DIE_LIST.map((die) => {
             const count = countsByFace[die.faces] || 0;
             return (
@@ -131,21 +131,19 @@ export default function DiceTrayToolbar() {
                 onClick={() => addDie(die.faces, die.color)}
                 disabled={isRolling}
                 title={`Adicionar ${die.label} (${die.shapeHint})`}
-                className="group relative flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-[#27272a] bg-[#202024]/60 hover:bg-[#27272a] hover:border-[#3f3f46] active:scale-95 transition-all text-left"
+                className="group relative flex items-center justify-between px-2 sm:px-2.5 py-1.5 rounded-lg border border-[#27272a] bg-[#202024]/60 hover:bg-[#27272a] hover:border-[#3f3f46] active:scale-95 transition-all text-left touch-manipulation"
               >
                 <div className="flex items-center gap-1.5">
                   <span
                     className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm"
                     style={{ backgroundColor: die.color }}
                   />
-                  <div className="flex flex-col">
-                    <span className="font-mono font-bold text-xs text-[#e4e4e7] leading-none">
-                      {die.label}
-                    </span>
-                  </div>
+                  <span className="font-mono font-bold text-xs text-[#e4e4e7] leading-none">
+                    {die.label}
+                  </span>
                 </div>
                 {count > 0 && (
-                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[#323238] text-[#a1a1aa] font-semibold">
+                  <span className="text-[9px] sm:text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[#323238] text-[#a1a1aa] font-semibold">
                     {count}
                   </span>
                 )}
@@ -156,9 +154,9 @@ export default function DiceTrayToolbar() {
       </div>
 
       {/* Seção Modificadores (Global + Expansor para Isolados por Dado) */}
-      <div className="bg-[#202024]/40 border border-[#27272a] rounded-lg p-2.5 transition-all">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#71717a]">
+      <div className="bg-[#202024]/40 border border-[#27272a] rounded-lg p-2 sm:p-2.5 transition-all">
+        <div className="flex items-center justify-between mb-1 sm:mb-1.5">
+          <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#71717a]">
             Modificadores
           </span>
           <span className="text-xs font-mono font-bold text-[#e4e4e7]">
@@ -172,7 +170,7 @@ export default function DiceTrayToolbar() {
             type="button"
             onClick={() => setModifier(modifier - 1)}
             disabled={isRolling}
-            className="flex-1 py-1 flex items-center justify-center rounded bg-[#27272a] hover:bg-[#323238] active:scale-90 text-[#a1a1aa] hover:text-white transition-all"
+            className="flex-1 py-1 flex items-center justify-center rounded bg-[#27272a] hover:bg-[#323238] active:scale-90 text-[#a1a1aa] hover:text-white transition-all touch-manipulation"
             title="Reduzir modificador global (-1)"
           >
             <Minus className="w-3.5 h-3.5" />
@@ -181,7 +179,7 @@ export default function DiceTrayToolbar() {
             type="button"
             onClick={() => setModifier(0)}
             disabled={isRolling || modifier === 0}
-            className="px-2 py-1 text-[10px] rounded bg-[#27272a] hover:bg-[#323238] disabled:opacity-40 text-[#71717a] hover:text-white font-mono transition-all"
+            className="px-2 py-1 text-[10px] rounded bg-[#27272a] hover:bg-[#323238] disabled:opacity-40 text-[#71717a] hover:text-white font-mono transition-all touch-manipulation"
             title="Zerar modificador global"
           >
             0
@@ -190,19 +188,19 @@ export default function DiceTrayToolbar() {
             type="button"
             onClick={() => setModifier(modifier + 1)}
             disabled={isRolling}
-            className="flex-1 py-1 flex items-center justify-center rounded bg-[#27272a] hover:bg-[#323238] active:scale-90 text-[#a1a1aa] hover:text-white transition-all"
+            className="flex-1 py-1 flex items-center justify-center rounded bg-[#27272a] hover:bg-[#323238] active:scale-90 text-[#a1a1aa] hover:text-white transition-all touch-manipulation"
             title="Aumentar modificador global (+1)"
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* Botão Expansor Centralizado Abaixo do Stepper (demarcado pelo usuário) */}
+        {/* Botão Expansor Centralizado Abaixo do Stepper */}
         <div className="flex items-center justify-center mt-1.5 pt-1 border-t border-[#27272a]/60">
           <button
             type="button"
             onClick={() => setIsModifiersExpanded(!isModifiersExpanded)}
-            className="flex items-center justify-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold text-[#a1a1aa] hover:text-white hover:bg-white/5 transition-all w-full"
+            className="flex items-center justify-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold text-[#a1a1aa] hover:text-white hover:bg-white/5 transition-all w-full touch-manipulation"
             title={isModifiersExpanded ? 'Recolher modificadores por dado' : 'Expandir modificadores individuais por dado'}
           >
             <span>{isModifiersExpanded ? 'Recolher' : 'Por Dado'}</span>
@@ -216,7 +214,7 @@ export default function DiceTrayToolbar() {
 
         {/* Lista de Modificadores Isolados por Dado */}
         {isModifiersExpanded && (
-          <div className="mt-2 pt-2 border-t border-[#27272a] flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-0.5">
+          <div className="mt-2 pt-2 border-t border-[#27272a] flex flex-col gap-1.5 max-h-40 overflow-y-auto pr-0.5">
             {dice.length === 0 ? (
               <span className="text-[10px] text-[#71717a] italic text-center py-1">
                 Nenhum dado na bandeja
@@ -245,10 +243,10 @@ export default function DiceTrayToolbar() {
                         type="button"
                         onClick={() => decrementDieModifier(d.id)}
                         disabled={isRolling}
-                        className="w-4 h-4 flex items-center justify-center rounded bg-[#27272a] hover:bg-[#323238] active:scale-90 text-[#a1a1aa] hover:text-white transition-all text-xs"
+                        className="w-5 h-5 flex items-center justify-center rounded bg-[#27272a] hover:bg-[#323238] active:scale-90 text-[#a1a1aa] hover:text-white transition-all text-xs touch-manipulation"
                         title="Reduzir modificador deste dado (-1)"
                       >
-                        <Minus className="w-2.5 h-2.5" />
+                        <Minus className="w-3 h-3" />
                       </button>
                       <span className="w-5 text-center font-mono text-[11px] font-bold text-[#a78bfa]">
                         {dMod >= 0 ? `+${dMod}` : dMod}
@@ -257,10 +255,10 @@ export default function DiceTrayToolbar() {
                         type="button"
                         onClick={() => incrementDieModifier(d.id)}
                         disabled={isRolling}
-                        className="w-4 h-4 flex items-center justify-center rounded bg-[#27272a] hover:bg-[#323238] active:scale-90 text-[#a1a1aa] hover:text-white transition-all text-xs"
+                        className="w-5 h-5 flex items-center justify-center rounded bg-[#27272a] hover:bg-[#323238] active:scale-90 text-[#a1a1aa] hover:text-white transition-all text-xs touch-manipulation"
                         title="Aumentar modificador deste dado (+1)"
                       >
-                        <Plus className="w-2.5 h-2.5" />
+                        <Plus className="w-3 h-3" />
                       </button>
                     </div>
                   </div>
@@ -280,8 +278,9 @@ export default function DiceTrayToolbar() {
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
+        onContextMenu={(e) => e.preventDefault()}
         disabled={isRolling || dice.length === 0}
-        className="w-full relative flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#8257e5] hover:bg-[#9466ff] disabled:opacity-40 text-white font-bold text-sm tracking-wide shadow-md active:scale-95 transition-transform cursor-pointer select-none"
+        className="w-full relative flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#8257e5] hover:bg-[#9466ff] disabled:opacity-40 text-white font-bold text-sm tracking-wide shadow-md active:scale-95 transition-transform cursor-pointer select-none touch-manipulation"
         title="Clique ou segure para arremessar os dados com força"
       >
         <Dices className={`w-4 h-4 ${isRolling ? 'animate-spin' : ''}`} />
@@ -289,15 +288,15 @@ export default function DiceTrayToolbar() {
       </button>
 
       {/* Visibilidade da Rolagem */}
-      <div className="bg-[#202024]/40 border border-[#27272a] rounded-lg p-2.5">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-[#71717a] block mb-1.5">
+      <div className="bg-[#202024]/40 border border-[#27272a] rounded-lg p-2 sm:p-2.5">
+        <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#71717a] block mb-1 sm:mb-1.5">
           Visibilidade
         </span>
         <div className="grid grid-cols-3 gap-1">
           <button
             type="button"
             onClick={() => setVisibility('public')}
-            className={`flex flex-col items-center justify-center p-1.5 rounded text-[10px] font-medium transition-all ${
+            className={`flex flex-col items-center justify-center p-1.5 rounded text-[10px] font-medium transition-all touch-manipulation ${
               visibility === 'public'
                 ? 'bg-[#8257e5] text-white font-bold'
                 : 'bg-[#27272a]/50 text-[#71717a] hover:text-white'
@@ -311,7 +310,7 @@ export default function DiceTrayToolbar() {
           <button
             type="button"
             onClick={() => setVisibility('gm')}
-            className={`flex flex-col items-center justify-center p-1.5 rounded text-[10px] font-medium transition-all ${
+            className={`flex flex-col items-center justify-center p-1.5 rounded text-[10px] font-medium transition-all touch-manipulation ${
               visibility === 'gm'
                 ? 'bg-amber-600 text-white font-bold'
                 : 'bg-[#27272a]/50 text-[#71717a] hover:text-white'
@@ -325,7 +324,7 @@ export default function DiceTrayToolbar() {
           <button
             type="button"
             onClick={() => setVisibility('self')}
-            className={`flex flex-col items-center justify-center p-1.5 rounded text-[10px] font-medium transition-all ${
+            className={`flex flex-col items-center justify-center p-1.5 rounded text-[10px] font-medium transition-all touch-manipulation ${
               visibility === 'self'
                 ? 'bg-zinc-700 text-white font-bold'
                 : 'bg-[#27272a]/50 text-[#71717a] hover:text-white'
@@ -344,7 +343,7 @@ export default function DiceTrayToolbar() {
           type="button"
           onClick={undo}
           disabled={undoStack.length === 0 || isRolling}
-          className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-[#202024]/60 border border-[#27272a] hover:bg-[#27272a] disabled:opacity-30 text-xs text-[#a1a1aa] hover:text-white transition-all active:scale-95"
+          className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-[#202024]/60 border border-[#27272a] hover:bg-[#27272a] disabled:opacity-30 text-xs text-[#a1a1aa] hover:text-white transition-all active:scale-95 touch-manipulation"
           title={`Desfazer última alteração (${undoStack.length}/5)`}
         >
           <Undo2 className="w-3.5 h-3.5" />
@@ -355,7 +354,7 @@ export default function DiceTrayToolbar() {
           type="button"
           onClick={redo}
           disabled={redoStack.length === 0 || isRolling}
-          className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-[#202024]/60 border border-[#27272a] hover:bg-[#27272a] disabled:opacity-30 text-xs text-[#a1a1aa] hover:text-white transition-all active:scale-95"
+          className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-[#202024]/60 border border-[#27272a] hover:bg-[#27272a] disabled:opacity-30 text-xs text-[#a1a1aa] hover:text-white transition-all active:scale-95 touch-manipulation"
           title={`Refazer alteração (${redoStack.length}/5)`}
         >
           <Redo2 className="w-3.5 h-3.5" />
@@ -366,7 +365,7 @@ export default function DiceTrayToolbar() {
           type="button"
           onClick={clearTray}
           disabled={dice.length === 0 || isRolling}
-          className="p-1.5 rounded-lg bg-[#202024]/60 border border-[#27272a] hover:bg-red-950/40 hover:border-red-800 disabled:opacity-30 text-xs text-[#a1a1aa] hover:text-red-400 transition-all active:scale-95"
+          className="p-1.5 rounded-lg bg-[#202024]/60 border border-[#27272a] hover:bg-red-950/40 hover:border-red-800 disabled:opacity-30 text-xs text-[#a1a1aa] hover:text-red-400 transition-all active:scale-95 touch-manipulation"
           title="Limpar todos os dados da bandeja"
         >
           <Trash2 className="w-3.5 h-3.5" />
@@ -378,7 +377,7 @@ export default function DiceTrayToolbar() {
         <button
           type="button"
           onClick={() => setSoundEnabled(!soundEnabled)}
-          className="flex items-center gap-1 hover:text-white transition-colors"
+          className="flex items-center gap-1 hover:text-white transition-colors touch-manipulation"
           title={soundEnabled ? 'Desativar efeitos sonoros' : 'Ativar efeitos sonoros'}
         >
           {soundEnabled ? (
@@ -386,13 +385,13 @@ export default function DiceTrayToolbar() {
           ) : (
             <VolumeX className="w-3.5 h-3.5 text-[#71717a]" />
           )}
-          <span className="text-[11px]">{soundEnabled ? 'Som Ativo' : 'Mudo'}</span>
+          <span className="text-[10px] sm:text-[11px]">{soundEnabled ? 'Som Ativo' : 'Mudo'}</span>
         </button>
 
         <button
           type="button"
           onClick={() => setIsOverlayEnabled(!isOverlayEnabled)}
-          className="flex items-center gap-1 hover:text-white transition-colors"
+          className="flex items-center gap-1 hover:text-white transition-colors touch-manipulation"
           title={isOverlayEnabled ? 'Desativar alertas no canvas' : 'Ativar alertas no canvas'}
         >
           {isOverlayEnabled ? (
@@ -400,7 +399,7 @@ export default function DiceTrayToolbar() {
           ) : (
             <BellOff className="w-3.5 h-3.5 text-[#71717a]" />
           )}
-          <span className="text-[11px]">Overlay</span>
+          <span className="text-[10px] sm:text-[11px]">Overlay</span>
         </button>
       </div>
     </div>

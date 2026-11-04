@@ -12,7 +12,6 @@ import {
   Clapperboard,
   Music,
   Table,
-  Dices,
   NotebookPen,
   FolderArchive,
   Boxes,
@@ -24,12 +23,6 @@ const AVAILABLE_PANELS: {
   allowedSlots: SlotId[];
   icon: React.ElementType;
 }[] = [
-  {
-    id: 'dice_tray',
-    title: 'Bandeja de Dados',
-    allowedSlots: ['left', 'right'],
-    icon: Dices,
-  },
   {
     id: 'inventory',
     title: 'Inventário do Mestre',
