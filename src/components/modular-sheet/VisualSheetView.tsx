@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { AlertCircle } from 'lucide-react';
 import {
   rollSheetFormula,
+  isTabMatching,
   type ASTExpr,
   type ASTModuleLayoutMeta,
   type CompiledSheet,
@@ -27,6 +28,8 @@ interface VisualSheetViewProps {
   sheetId: string;
   sheet: CompiledSheet;
   activeTab?: string;
+  onSelectTab?: (tabId: string) => void;
+  availableTabs?: Array<{ id: string; label: string }>;
 }
 
 const DEFAULT_COL1_KINDS = new Set(['profile', 'attr', 'stat', 'desc', 'inv', 'text']);
@@ -42,7 +45,13 @@ type LayoutSectionBand =
       mod: ASTModuleLayoutMeta;
     };
 
-export function VisualSheetView({ sheetId, sheet, activeTab }: VisualSheetViewProps) {
+export function VisualSheetView({
+  sheetId,
+  sheet,
+  activeTab,
+  onSelectTab,
+  availableTabs,
+}: VisualSheetViewProps) {
   const [rollHistory, setRollHistory] = useState<SheetRollHistoryEntry[]>([]);
   const { updateSheetSource, setCounterCurrent } = useModularSheetStore();
   const currentTheme = SHEET_THEMES[sheet.meta.theme ?? 'purple'] || SHEET_THEMES.purple;
@@ -165,17 +174,13 @@ export function VisualSheetView({ sheetId, sheet, activeTab }: VisualSheetViewPr
     [sheetId, sheet.meta.name, updateSheetSource],
   );
 
-  const isMainTab = !activeTab || activeTab === 'Principal' || activeTab === 'Geral';
-
   // Deduplica módulos de mesma espécie que renderizam agrupados (ex: attr, stat, res, turn, desc, skill, ability, inv, diagram)
   // preservando instâncias individuais para profile, counter e slots.
   const seenSingletonKinds = new Set<string>();
   const visibleModules: ASTModuleLayoutMeta[] = [];
 
   for (const mod of sheet.moduleLayouts) {
-    const matchesTab = isMainTab
-      ? !mod.tab || mod.tab === 'Geral' || mod.tab === 'Principal'
-      : mod.tab === activeTab;
+    const matchesTab = isTabMatching(mod.tab, activeTab);
     if (!matchesTab) continue;
 
     if (mod.kind === 'rule' || mod.kind === 'meta' || mod.kind === 'tab') continue;
@@ -399,6 +404,32 @@ export function VisualSheetView({ sheetId, sheet, activeTab }: VisualSheetViewPr
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Barra de Abas Horizontal Rápida (quando houver múltiplas abas) */}
+      {availableTabs && availableTabs.length > 1 && onSelectTab && (
+        <div
+          className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b mb-1"
+          style={{ borderColor: 'var(--sheet-card-border, #29292e)' }}
+        >
+          {availableTabs.map((tab) => {
+            const isActive = isTabMatching(tab.id, activeTab);
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => onSelectTab(tab.id)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-extrabold uppercase tracking-wide transition-all shrink-0 ${
+                  isActive
+                    ? currentTheme.buttonActive
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
       )}
 

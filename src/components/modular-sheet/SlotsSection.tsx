@@ -1,6 +1,11 @@
-import { Box, Lock, AlertTriangle, CheckCircle2, Plus, Minus } from 'lucide-react';
+import { Box, Lock, AlertTriangle, CheckCircle2, Plus, Minus, Flame } from 'lucide-react';
 import { useModularSheetStore } from '@/store/useModularSheetStore';
-import type { CompiledSheet, EvaluatedSlotsBlock, EvaluatedSlotItem } from '@/lib/sheet-dsl';
+import {
+  isTabMatching,
+  type CompiledSheet,
+  type EvaluatedSlotsBlock,
+  type EvaluatedSlotItem,
+} from '@/lib/sheet-dsl';
 
 interface SlotsSectionProps {
   sheetId: string;
@@ -11,10 +16,7 @@ interface SlotsSectionProps {
 export function SlotsSection({ sheetId, sheet, activeTab }: SlotsSectionProps) {
   const { cycleSlotState, setSlotCurrent } = useModularSheetStore();
 
-  const blocks = sheet.slots.filter((b) => {
-    if (!activeTab || activeTab === 'Geral' || activeTab === 'Principal') return true;
-    return !b.tab || b.tab === activeTab;
-  });
+  const blocks = sheet.slots.filter((b) => isTabMatching(b.tab, activeTab));
 
   if (blocks.length === 0) return null;
 
@@ -77,45 +79,63 @@ function SlotBlockGrid({
           const isDamaged = slot.state === 'damaged';
           const isLocked = slot.state === 'locked';
           const isEmpty = slot.state === 'empty';
+          const isCondition = Boolean(slot.isCondition);
+          const itemSpan = slot.colSpan && slot.colSpan > 1 ? Math.min(cols, slot.colSpan) : 1;
+          const spanClass = itemSpan === 2 ? 'col-span-2' : itemSpan >= 3 ? 'col-span-3' : '';
 
           return (
             <div
               key={slot.id}
               onClick={() => onCycleSlot(slot)}
-              className={`group relative rounded-lg border p-2.5 flex flex-col justify-between transition-all cursor-pointer select-none min-h-[74px] ${
+              className={`group relative rounded-lg border p-2.5 flex flex-col justify-between transition-all cursor-pointer select-none min-h-[74px] ${spanClass} ${
                 isDamaged
                   ? 'border-rose-500/60 bg-rose-950/20 hover:border-rose-400'
-                  : isLocked
-                    ? 'opacity-60 hover:opacity-80'
-                    : isFilled
-                      ? 'hover:border-[var(--sheet-accent)]'
-                      : 'border-dashed hover:border-[var(--sheet-accent)]'
+                  : isCondition
+                    ? 'border-amber-500/50 bg-amber-950/20 hover:border-amber-400'
+                    : isLocked
+                      ? 'opacity-60 hover:opacity-80'
+                      : isFilled
+                        ? 'hover:border-[var(--sheet-accent)]'
+                        : 'border-dashed hover:border-[var(--sheet-accent)]'
               }`}
               style={{
-                backgroundColor: isDamaged
-                  ? undefined
-                  : isLocked
-                    ? 'var(--sheet-item-bg, #121214)'
-                    : isFilled
+                backgroundColor:
+                  isDamaged || isCondition
+                    ? undefined
+                    : isLocked || isFilled
                       ? 'var(--sheet-item-bg, #121214)'
                       : 'transparent',
-                borderColor: isDamaged
-                  ? undefined
-                  : isFilled
-                    ? 'var(--sheet-card-border, #323238)'
-                    : 'var(--sheet-card-border, #29292e)',
+                borderColor:
+                  isDamaged || isCondition
+                    ? undefined
+                    : isFilled
+                      ? 'var(--sheet-card-border, #323238)'
+                      : 'var(--sheet-card-border, #29292e)',
               }}
             >
               {/* Header do Slot */}
               <div className="flex items-center justify-between gap-1 text-[11px]">
-                <span className="font-semibold truncate text-[#e1e1e6]">
-                  {slot.label !== slot.id ? slot.label : isEmpty ? 'Vazio' : slot.id}
-                </span>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="font-semibold truncate text-[#e1e1e6]">
+                    {slot.label !== slot.id ? slot.label : isEmpty ? 'Vazio' : slot.id}
+                  </span>
+                  {itemSpan > 1 && (
+                    <span className="text-[9px] font-mono px-1 rounded bg-zinc-800 text-zinc-300 border border-zinc-700 shrink-0">
+                      2 Slots
+                    </span>
+                  )}
+                  {isCondition && (
+                    <span className="text-[9px] uppercase tracking-wider font-extrabold px-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0">
+                      Condição
+                    </span>
+                  )}
+                </div>
 
                 <span className="shrink-0">
                   {isDamaged && <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />}
+                  {isCondition && <Flame className="w-3.5 h-3.5 text-amber-400" />}
                   {isLocked && <Lock className="w-3.5 h-3.5 text-[#8d8d99]" />}
-                  {isFilled && (
+                  {isFilled && !isCondition && (
                     <CheckCircle2
                       className="w-3.5 h-3.5"
                       style={{ color: 'var(--sheet-accent-text, #a78bfa)' }}

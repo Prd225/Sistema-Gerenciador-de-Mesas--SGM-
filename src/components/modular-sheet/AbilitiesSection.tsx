@@ -12,7 +12,12 @@ import {
   Power,
 } from 'lucide-react';
 import { useModularSheetStore } from '@/store/useModularSheetStore';
-import type { AbilityCategory, CompiledSheet, EvaluatedAbility } from '@/lib/sheet-dsl';
+import {
+  isTabMatching,
+  type AbilityCategory,
+  type CompiledSheet,
+  type EvaluatedAbility,
+} from '@/lib/sheet-dsl';
 import type { OnExecuteRoll } from './types';
 
 interface AbilitiesSectionProps {
@@ -61,10 +66,9 @@ export function AbilitiesSection({
   const setToggleState = useModularSheetStore((s) => s.setToggleState);
   const setResourceCurrent = useModularSheetStore((s) => s.setResourceCurrent);
 
-  const tabAbilities = sheet.abilities.filter((a) => {
-    if (!activeTab || activeTab === 'Geral' || activeTab === 'Principal') return true;
-    return !a.tab || a.tab === activeTab;
-  });
+  const tabAbilities = sheet.abilities.filter((a) =>
+    isTabMatching(a.tab, activeTab),
+  );
 
   if (tabAbilities.length === 0) return null;
 

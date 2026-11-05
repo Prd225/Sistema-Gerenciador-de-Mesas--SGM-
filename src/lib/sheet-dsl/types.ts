@@ -378,6 +378,8 @@ export interface ASTSlotItemDecl {
   content?: string;
   current?: number;
   max?: number;
+  colSpan?: number;
+  isCondition?: boolean;
   meta: ASTMetadataMap;
   span: SourceSpan;
 }
@@ -616,6 +618,20 @@ export interface EvaluatedSlotItem {
   current?: number;
   max?: number;
   tags: string[];
+  colSpan?: number;
+  isCondition?: boolean;
+}
+
+/**
+ * Determina se um item ou módulo associado a uma aba pertence à aba atualmente ativa.
+ * Previne vazamentos de abas secundárias para a aba principal ou vice-versa.
+ */
+export function isTabMatching(itemTab: string | undefined, activeTab?: string): boolean {
+  const isMainTab = !activeTab || activeTab === 'Principal' || activeTab === 'Geral';
+  if (isMainTab) {
+    return !itemTab || itemTab === 'Principal' || itemTab === 'Geral';
+  }
+  return itemTab === activeTab;
 }
 
 export interface EvaluatedSlotsBlock {

@@ -11,7 +11,7 @@ import {
   Minus,
 } from 'lucide-react';
 import { useModularSheetStore } from '@/store/useModularSheetStore';
-import type { CompiledSheet, EvaluatedItem } from '@/lib/sheet-dsl';
+import { isTabMatching, type CompiledSheet, type EvaluatedItem } from '@/lib/sheet-dsl';
 import type { OnExecuteRoll } from './types';
 
 interface InventorySectionProps {
@@ -31,9 +31,7 @@ export function InventorySection({
   const setItemQty = useModularSheetStore((s) => s.setItemQty);
 
   const inv = sheet.inventory;
-  if (activeTab && activeTab !== 'Geral' && activeTab !== 'Principal') {
-    if (inv.tab && inv.tab !== activeTab) return null;
-  }
+  if (!isTabMatching(inv.tab, activeTab)) return null;
 
   const hasInventoryDecl =
     inv.items.length > 0 || inv.maxCapacity > 0 && sheet.rules.some((r) => r.source === 'inventory');

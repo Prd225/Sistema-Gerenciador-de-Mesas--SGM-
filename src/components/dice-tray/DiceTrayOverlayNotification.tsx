@@ -81,15 +81,14 @@ export default function DiceTrayOverlayNotification() {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className={`pointer-events-auto flex flex-col px-3.5 pt-1.5 pb-2.5 rounded-2xl border bg-[#18181b]/98 backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.85)] touch-pan-y ${
-          isCrit
+        className={`pointer-events-auto flex flex-col px-3.5 pt-1.5 pb-2.5 rounded-2xl border bg-[#18181b]/98 backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.85)] touch-pan-y ${isCrit
             ? 'border-amber-400/80 bg-amber-950/30 shadow-[0_16px_40px_rgba(245,158,11,0.2)]'
             : isFumble
-            ? 'border-red-500/80 bg-red-950/30 shadow-[0_16px_40px_rgba(239,68,68,0.2)]'
-            : isSuccess
-            ? 'border-emerald-500/60 bg-emerald-950/25'
-            : 'border-[#3f3f46]'
-        }`}
+              ? 'border-red-500/80 bg-red-950/30 shadow-[0_16px_40px_rgba(239,68,68,0.2)]'
+              : isSuccess
+                ? 'border-emerald-500/60 bg-emerald-950/25'
+                : 'border-[#3f3f46]'
+          }`}
       >
         {/* Indicador sutil de arrastar para cima */}
         <div className="w-8 h-1 bg-white/20 rounded-full mx-auto mb-1.5 shrink-0" />
@@ -101,13 +100,12 @@ export default function DiceTrayOverlayNotification() {
             title="Toque para abrir a Bandeja de Dados (ou arraste para cima para dispensar)"
           >
             <div
-              className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border shadow-sm ${
-                isCrit
+              className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border shadow-sm ${isCrit
                   ? 'bg-amber-500/20 border-amber-400 text-amber-300'
                   : isFumble
-                  ? 'bg-red-500/20 border-red-500 text-red-400'
-                  : 'bg-[#202024] border-[#323238] text-[#8257e5]'
-              }`}
+                    ? 'bg-red-500/20 border-red-500 text-red-400'
+                    : 'bg-[#202024] border-[#323238] text-[#8257e5]'
+                }`}
             >
               {isCrit ? (
                 <Sparkles className="w-5 h-5 animate-pulse text-amber-300" />
@@ -130,15 +128,14 @@ export default function DiceTrayOverlayNotification() {
 
               <div className="flex items-center gap-1.5">
                 <span
-                  className={`text-[11px] font-extrabold uppercase tracking-wider ${
-                    isCrit
+                  className={`text-[11px] font-extrabold uppercase tracking-wider ${isCrit
                       ? 'text-amber-400'
                       : isFumble
-                      ? 'text-red-400'
-                      : isSuccess
-                      ? 'text-emerald-400'
-                      : 'text-[#a1a1aa]'
-                  }`}
+                        ? 'text-red-400'
+                        : isSuccess
+                          ? 'text-emerald-400'
+                          : 'text-[#a1a1aa]'
+                    }`}
                 >
                   {activeNotification.outcomeLabel}
                 </span>
@@ -148,9 +145,8 @@ export default function DiceTrayOverlayNotification() {
 
           <div className="flex items-center gap-2 pl-3 border-l border-[#2e2e33] shrink-0">
             <span
-              className={`font-mono font-black text-2xl leading-none ${
-                isCrit ? 'text-amber-400' : isFumble ? 'text-red-400' : 'text-white'
-              }`}
+              className={`font-mono font-black text-2xl leading-none ${isCrit ? 'text-amber-400' : isFumble ? 'text-red-400' : 'text-white'
+                }`}
             >
               {activeNotification.total}
             </span>

@@ -126,8 +126,23 @@ const PRESET_CARDS: Array<{
       icon: <Swords className="w-5 h-5 text-amber-300" />,
     },
     {
+      id: 'mausritter',
+      title: 'Mausritter',
+      systemBadge: 'Preset Oficial 3',
+      subtitle:
+        'Espadas & Bigodes: d20 Roll-Under, Grade Física de Slots (Patas, Corpo, Mochila) e Mercenários.',
+      highlights: [
+        'Roll-Under (1d20 <= Attr)',
+        'Slots Físicos & Condições',
+        'Abas: Aventureiro, Inventário, Mercenários',
+      ],
+      accentCls:
+        'border-amber-400 bg-amber-500/15',
+      icon: <Sparkles className="w-5 h-5 text-amber-300" />,
+    },
+    {
       id: 'blank',
-      title: 'Ficha Modular Livre (DSL)',
+      title: 'Ficha Modular Livre',
       systemBadge: 'Customizado',
       subtitle:
         'Esqueleto limpo em SGM-SDL com suporte a abas, slots Mausritter, dados e regras modulares.',
@@ -144,6 +159,9 @@ function getPresetInitialDSL(presetId: ModularSheetPresetChoice): string {
   }
   if (presetId === 'tormenta20') {
     return SHEET_DSL_PRESETS.tormenta20.source;
+  }
+  if (presetId === 'mausritter') {
+    return SHEET_DSL_PRESETS.mausritter.source;
   }
   return BLANK_SHEET_DSL_TEMPLATE;
 }
@@ -358,7 +376,7 @@ export default function ModularSheetsModal() {
               <h1 className="text-white text-sm font-extrabold flex items-center gap-2">
                 Gerenciador de Fichas Modulares
                 <span className="text-[10px] font-mono text-[#8d8d99] font-normal">
-                  (SGM-SDL)
+                  SGM-SDL
                 </span>
               </h1>
             </div>
@@ -941,6 +959,8 @@ export default function ModularSheetsModal() {
                     sheetId={activeSheet.id}
                     sheet={compiledActiveSheet}
                     activeTab={selectedTab}
+                    onSelectTab={setSelectedTab}
+                    availableTabs={availableTabs}
                   />
                 </div>
               )}

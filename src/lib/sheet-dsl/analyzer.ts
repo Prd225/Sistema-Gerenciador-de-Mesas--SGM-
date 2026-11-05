@@ -356,7 +356,10 @@ export class SheetAnalyzer {
           label: d.label || d.id,
           value: d.valueExpr ? this.evalExpr(d.valueExpr) : undefined,
           active,
-          hasEffects: d.effects.length > 0 || d.kind === 'aspect' || d.kind === 'tag' || d.kind === 'consequence',
+          hasEffects:
+            d.effects.length > 0 ||
+            d.kind === 'consequence' ||
+            (d.meta.flags.includes('active') && (d.kind === 'aspect' || d.kind === 'tag')),
           effectSummaries: d.effects.map((e) => this.formatEffectSummary(e)),
           tags: d.meta.tags,
           tab: d.tab,
@@ -853,6 +856,8 @@ export class SheetAnalyzer {
           current,
           max: s.max,
           tags: s.meta.tags,
+          colSpan: s.colSpan,
+          isCondition: s.isCondition,
         });
       }
 

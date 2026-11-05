@@ -1189,6 +1189,30 @@ export class SheetParser {
       content = label;
     }
 
+    let colSpan: number | undefined;
+    if (meta.props.span && meta.props.span.type === 'NumberLit') {
+      colSpan = meta.props.span.value;
+    } else if (meta.props.cols && meta.props.cols.type === 'NumberLit') {
+      colSpan = meta.props.cols.value;
+    } else if (
+      meta.flags.includes('double') ||
+      meta.flags.includes('largo') ||
+      meta.flags.includes('2slots') ||
+      meta.tags.includes('double') ||
+      meta.tags.includes('2slots')
+    ) {
+      colSpan = 2;
+    }
+
+    const isCondition =
+      meta.flags.includes('condition') ||
+      meta.flags.includes('condicao') ||
+      meta.flags.includes('fatigue') ||
+      meta.flags.includes('fadiga') ||
+      meta.tags.includes('condicao') ||
+      meta.tags.includes('condition') ||
+      meta.tags.includes('fatigue');
+
     return {
       id,
       label,
@@ -1196,6 +1220,8 @@ export class SheetParser {
       content,
       current,
       max,
+      colSpan,
+      isCondition,
       meta,
       span: this.mergeSpans(startTok.span, this.previous().span),
     };

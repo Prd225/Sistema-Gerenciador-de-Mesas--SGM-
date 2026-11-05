@@ -5,7 +5,7 @@ import { isPlayerMode } from '@/lib/roomRole';
 import { SHEET_DSL_PRESETS, compileSheetDSL } from '@/lib/sheet-dsl';
 import type { SheetRuntimeOverrides } from '@/lib/sheet-dsl';
 
-export type ModularSheetPresetChoice = 'ordem_paranormal' | 'tormenta20' | 'blank';
+export type ModularSheetPresetChoice = 'ordem_paranormal' | 'tormenta20' | 'mausritter' | 'blank';
 
 export interface ModularSheetRecord {
   id: string;

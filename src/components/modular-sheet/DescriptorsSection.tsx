@@ -1,6 +1,6 @@
-import { Eye, ShieldCheck, ShieldAlert, Flame, Sparkles, Tag } from 'lucide-react';
+import { Eye, ShieldCheck, ShieldAlert, Flame, Sparkles, Tag, Info } from 'lucide-react';
 import { useModularSheetStore } from '@/store/useModularSheetStore';
-import type { CompiledSheet } from '@/lib/sheet-dsl';
+import { isTabMatching, type CompiledSheet } from '@/lib/sheet-dsl';
 import { formatEvaluatedValue } from './types';
 
 interface DescriptorsSectionProps {
@@ -16,15 +16,35 @@ export function DescriptorsSection({
 }: DescriptorsSectionProps) {
   const setToggleState = useModularSheetStore((s) => s.setToggleState);
 
-  const visibleDescriptors = sheet.descriptors.filter((d) => {
-    if (!activeTab || activeTab === 'Geral' || activeTab === 'Principal') return true;
-    return !d.tab || d.tab === activeTab;
-  });
+  const visibleDescriptors = sheet.descriptors.filter((d) =>
+    isTabMatching(d.tab, activeTab),
+  );
 
   if (visibleDescriptors.length === 0) return null;
 
-  const interactiveDescs = visibleDescriptors.filter((d) => d.hasEffects);
-  const staticDescs = visibleDescriptors.filter((d) => !d.hasEffects);
+  // 1. Notas explicativas estáticas (ex: condicoes_info: "Condições ocupam...")
+  const infoNotes = visibleDescriptors.filter(
+    (d) =>
+      !d.hasEffects &&
+      typeof d.value === 'string' &&
+      (d.value.length > 25 || d.id.includes('info') || d.id.includes('nota')),
+  );
+
+  // 2. Modificadores táticos interativos (possuem efeitos que alteram atributos/rolagens ou consequência)
+  const interactiveDescs = visibleDescriptors.filter(
+    (d) =>
+      d.effectSummaries.length > 0 ||
+      d.kind === 'consequence' ||
+      (d.hasEffects && d.active !== undefined && d.effectSummaries.length > 0),
+  );
+
+  // 3. Chips estáticos (resistências, sentidos, imunidades, divindades, etc.)
+  const staticDescs = visibleDescriptors.filter(
+    (d) =>
+      !infoNotes.some((n) => n.id === d.id) &&
+      !interactiveDescs.some((i) => i.id === d.id),
+  );
+
   const customTitle = sheet.blockTitles.descriptors;
 
   const getBadgeStyle = (kind: string) => {
@@ -74,6 +94,21 @@ export function DescriptorsSection({
         <h3 className="text-xs font-bold uppercase tracking-wider text-[#a8a8b3] px-0.5">
           {customTitle}
         </h3>
+      )}
+
+      {/* Notas Informativas Estáticas */}
+      {infoNotes.length > 0 && (
+        <div className="space-y-1.5">
+          {infoNotes.map((note) => (
+            <div
+              key={`${note.kind}-${note.id}`}
+              className="rounded-lg border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-xs text-amber-200/90 leading-relaxed flex items-start gap-2"
+            >
+              <Info className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+              <span>{String(note.value || note.label)}</span>
+            </div>
+          ))}
+        </div>
       )}
 
       {/* Chips Estáticos (Resistências, Sentidos, Imunidades, Divindade, etc.) */}
@@ -136,7 +171,7 @@ export function DescriptorsSection({
                     <span className="text-xs font-bold text-white truncate">
                       {d.label}
                     </span>
-                    {d.value !== undefined && typeof d.value === 'string' && (
+                    {d.value !== undefined && typeof d.value === 'string' && d.value !== d.label && (
                       <span className="text-xs italic text-[#ffd700] truncate">
                         “{d.value}”
                       </span>

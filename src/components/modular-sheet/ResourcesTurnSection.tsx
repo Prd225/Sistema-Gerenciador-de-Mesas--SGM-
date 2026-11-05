@@ -1,6 +1,6 @@
 import { Plus, Minus, RotateCcw } from 'lucide-react';
 import { useModularSheetStore } from '@/store/useModularSheetStore';
-import type { CompiledSheet, ModuleDisplayStyle } from '@/lib/sheet-dsl';
+import { isTabMatching, type CompiledSheet, type ModuleDisplayStyle } from '@/lib/sheet-dsl';
 
 interface ResourcesTurnSectionProps {
   sheetId: string;
@@ -83,10 +83,7 @@ export function ResourcesTurnSection({
   const resList =
     mode === 'turn'
       ? []
-      : Object.values(sheet.resources).filter((r) => {
-          if (!activeTab || activeTab === 'Geral' || activeTab === 'Principal') return true;
-          return !r.tab || r.tab === activeTab;
-        });
+      : Object.values(sheet.resources).filter((r) => isTabMatching(r.tab, activeTab));
 
   const turnSlots = mode === 'res' ? [] : Object.values(sheet.turn.slots);
   const customTitle = mode === 'turn' ? sheet.blockTitles.turn : sheet.blockTitles.resources;

@@ -1,5 +1,11 @@
+import { useMemo } from 'react';
 import { Lock, Dices } from 'lucide-react';
-import type { CompiledSheet, EvaluatedStat, ModuleDisplayStyle } from '@/lib/sheet-dsl';
+import {
+  isTabMatching,
+  type CompiledSheet,
+  type EvaluatedStat,
+  type ModuleDisplayStyle,
+} from '@/lib/sheet-dsl';
 import { formatEvaluatedValue, type OnExecuteRoll } from './types';
 
 interface AttributesStatsSectionProps {
@@ -29,21 +35,49 @@ export function AttributesStatsSection({
   mode = 'both',
   displayOverride,
 }: AttributesStatsSectionProps) {
-  const attrList =
-    mode === 'stat'
-      ? []
-      : Object.values(sheet.attributes).filter((a) => {
-        if (!activeTab || activeTab === 'Geral' || activeTab === 'Principal') return true;
-        return !a.tab || a.tab === activeTab;
-      });
+  const attrList = useMemo(
+    () =>
+      mode === 'stat'
+        ? []
+        : Object.values(sheet.attributes).filter((a) => isTabMatching(a.tab, activeTab)),
+    [sheet.attributes, mode, activeTab],
+  );
 
-  const statList =
-    mode === 'attr'
-      ? []
-      : Object.values(sheet.stats).filter((s) => {
-        if (!activeTab || activeTab === 'Geral' || activeTab === 'Principal') return true;
-        return !s.tab || s.tab === activeTab;
-      });
+  const statList = useMemo(
+    () =>
+      mode === 'attr'
+        ? []
+        : Object.values(sheet.stats).filter((s) => isTabMatching(s.tab, activeTab)),
+    [sheet.stats, mode, activeTab],
+  );
+
+  const attrGroups = useMemo(() => {
+    const groups: Array<{ title?: string; items: EvaluatedStat[] }> = [];
+    const map = new Map<string, EvaluatedStat[]>();
+    for (const a of attrList) {
+      const key = a.blockTitle || sheet.blockTitles.attributes || 'Atributos';
+      if (!map.has(key)) {
+        map.set(key, []);
+        groups.push({ title: key, items: map.get(key)! });
+      }
+      map.get(key)!.push(a);
+    }
+    return groups;
+  }, [attrList, sheet.blockTitles.attributes]);
+
+  const statGroups = useMemo(() => {
+    const groups: Array<{ title?: string; items: EvaluatedStat[] }> = [];
+    const map = new Map<string, EvaluatedStat[]>();
+    for (const s of statList) {
+      const key = s.blockTitle || sheet.blockTitles.stats || 'Status';
+      if (!map.has(key)) {
+        map.set(key, []);
+        groups.push({ title: key, items: map.get(key)! });
+      }
+      map.get(key)!.push(s);
+    }
+    return groups;
+  }, [statList, sheet.blockTitles.stats]);
 
   if (attrList.length === 0 && statList.length === 0) return null;
 
@@ -54,9 +88,6 @@ export function AttributesStatsSection({
     displayOverride ?? attrLayout?.display ?? 'cards';
   const statDisplay: ModuleDisplayStyle =
     displayOverride ?? statLayout?.display ?? 'cards';
-
-  const customTitle = sheet.blockTitles.attributes;
-  const customStatsTitle = sheet.blockTitles.stats;
 
   const renderStatValueColor = (item: EvaluatedStat, defaultClass: string) => {
     const isBuffed =
@@ -180,12 +211,28 @@ export function AttributesStatsSection({
         </span>
 
         {Object.keys(attr.children).length > 0 && (
-          <div className="flex items-center gap-1.5 mt-1 text-[10px] font-mono text-[#8d8d99]">
-            {Object.entries(attr.children).map(([k, v]) => (
-              <span key={k}>
-                {k}: {formatEvaluatedValue(v)}
-              </span>
-            ))}
+          <div className="flex flex-col items-center gap-1 mt-1.5 w-full">
+            {Object.entries(attr.children).map(([k, v]) => {
+              const isDesc =
+                k.toLowerCase() === 'desc' ||
+                k.toLowerCase() === 'descricao' ||
+                k.toLowerCase() === 'info';
+              if (isDesc) {
+                return (
+                  <p
+                    key={k}
+                    className="text-[10px] text-zinc-400 text-center leading-snug line-clamp-3 px-1 italic"
+                  >
+                    {String(v)}
+                  </p>
+                );
+              }
+              return (
+                <span key={k} className="text-[10px] font-mono text-zinc-400">
+                  {k}: {formatEvaluatedValue(v)}
+                </span>
+              );
+            })}
           </div>
         )}
       </div>
@@ -359,28 +406,28 @@ export function AttributesStatsSection({
   };
 
   return (
-    <div className="space-y-3">
-      {attrList.length > 0 && (
-        <section className="space-y-2">
-          {customTitle && (
+    <div className="space-y-4">
+      {attrGroups.map((group, idx) => (
+        <section key={`attr_grp_${idx}`} className="space-y-2">
+          {group.title && (
             <h3 className="text-xs font-bold uppercase tracking-wider text-[#a8a8b3] px-0.5">
-              {customTitle}
+              {group.title}
             </h3>
           )}
-          {renderItemsByDisplay(attrList, attrDisplay, true)}
+          {renderItemsByDisplay(group.items, attrDisplay, true)}
         </section>
-      )}
+      ))}
 
-      {statList.length > 0 && (
-        <section className="space-y-1.5">
-          {customStatsTitle && (
+      {statGroups.map((group, idx) => (
+        <section key={`stat_grp_${idx}`} className="space-y-2">
+          {group.title && (
             <h4 className="text-[11px] font-bold uppercase tracking-wider text-[#8d8d99] px-0.5">
-              {customStatsTitle}
+              {group.title}
             </h4>
           )}
-          {renderItemsByDisplay(statList, statDisplay, false)}
+          {renderItemsByDisplay(group.items, statDisplay, false)}
         </section>
-      )}
+      ))}
     </div>
   );
 }

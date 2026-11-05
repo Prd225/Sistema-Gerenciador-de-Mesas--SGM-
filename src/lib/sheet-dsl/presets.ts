@@ -429,4 +429,125 @@ export const SHEET_DSL_PRESETS: Record<string, SheetDSLPreset> = {
     PV: 8/8
     SP := 4`,
   },
+
+  mausritter: {
+    id: 'mausritter',
+    name: 'Pip, o Guardião da Toca (Mausritter)',
+    system: 'Mausritter',
+    paradigm: 'Roll-Under d20 + Grade Física de Slots (Patas, Corpo, Mochila) + Fadiga & Condições em Espaços',
+    source: `@meta "Pip, o Guardião da Toca" [archetype: "Rato Aventureiro", system: "Mausritter", level: 1, theme: "amber"]
+
+# ==============================================================================
+# ABA 1: RATO AVENTUREIRO
+# ==============================================================================
+@tab "Rato Aventureiro"
+
+@profile "Pip" [col1, md]
+  background: "Guarda da Toca"
+  birthsign: "A Estrela"
+  coat: "Marrom Rajado"
+  look: "Cicatriz na orelha e capa de folha seca"
+  level: 1
+  xp: 0
+
+@attr "Atributos do Rato" [col1, cards]
+  FOR "Força"    := 10 [roll: "1d20 <= FOR", desc: "Resistência física, carga, escaladas e testes de vigor."]
+  DES "Destreza" := 12 [roll: "1d20 <= DES", desc: "Agilidade, esquiva, corrida, furtividade e acrobacias."]
+  VON "Vontade"  := 8  [roll: "1d20 <= VON", desc: "Força mental, moral, feitiços e resistência ao medo."]
+
+@res "Recursos Vitais" [col2]
+  HP "Pontos de Proteção": 4 / 6 [red]
+  Grit "Determinação": 1 / 1     [purple]
+  Pips "Pips Carregados": 45 / 250 [amber]
+
+@stat "Progressão & Resistência" [col2]
+  nivel "Nível" = level
+  xp_proximo "XP para Nível 2" := 1000
+  condicoes_ignoradas "Condições Ignoradas pelo Grit" = Grit
+
+@desc "Condições e Estados Atuais" [col1]
+  condicoes_info: "Condições ocupam slots na mochila até que o descanso adequado seja realizado."
+  tag "Ferido" [active: false] -> FOR -= 2
+  tag "Exausto" [active: false] -> DES -= 2
+  tag "Assustado" [active: false] -> VON -= 2
+
+@texto "Regras Rápidas de Mausritter" [col2]
+  "Combate e Sobrevivência:"
+  - Testes: Role 1d20. Se o resultado for menor ou igual ao atributo, você teve sucesso.
+  - Dano: O dano reduz primeiro o HP. Quando o HP chega a 0, o dano excedente reduz a Força diretamente.
+  - Morte: Se sua Força chegar a 0, o ratinho falece.
+
+# ==============================================================================
+# ABA 2: INVENTÁRIO & SLOTS
+# ==============================================================================
+@tab "Inventário & Slots"
+
+@slots "Equipamento em Uso" [col1, cols: 2]
+  main_paw "Pata Principal: Espada de Agulha" [state: filled]
+  off_paw "Pata Secundária: Escudo de Botão" [state: filled]
+  body_1 "Corpo: Armadura de Besouro" [state: filled, double]
+  body_2 "Capa de Chuva" [state: filled]
+
+@slots "Mochila (6 Espaços)" [col2, cols: 3]
+  pack_1 "Ração Seca": 3/3
+  pack_2 "Tochas de Fósforo": 4/6
+  pack_3 "Corda de Barbante" [state: filled]
+  pack_4 "Pederneira e Giz" [state: filled]
+  pack_5 "Slot 5: Vazio" [state: empty]
+  pack_6 "Slot 6: Vazio" [state: empty]
+
+@inv "Detalhes dos Itens Carregados" [col1]
+  unit = "slots"
+  max_load = 10
+
+  item "Espada de Agulha" [weight: 1, qty: 1, !equipped, #arma]
+    desc: "Feita a partir de uma agulha de costura polida."
+    action "Ataque com Espada" [type: "Principal"]
+      damage: 1d6
+      desc: "Dano físico direto. Dano excedente reduz Força."
+
+  item "Escudo de Botão" [weight: 1, qty: 1, !equipped, #escudo]
+    desc: "Botão de latão preso ao braço com barbante. Ignora 1 de dano."
+
+  item "Armadura de Besouro" [weight: 2, qty: 1, !equipped, #armadura]
+    desc: "Carapaça resistente que ocupa 2 espaços de corpo."
+
+  item "Feitiço: Dardos de Centelha" [weight: 1, qty: 1, !carried, #magia]
+    desc: "Pedra rúnica gravada que dispara fagulhas incandescentes."
+    action "Disparar Fagulho" [type: "Feitiço"]
+      damage: 1d6
+      desc: "Cada 4..6 rolado no feitiço gera 1 Fadiga na mochila."
+
+@texto "Cofre & Banco do Assentamento" [col2]
+  "Tesouros guardados com segurança na Toca dos Ratos (Ecktown):"
+  - Sementes Guardadas no Cofre: 320 pips
+  - 1x Anel de Prata polido (vale 150 pips)
+  - 2x Frascos de Mel Silvestre (cura total de Força após descanso)
+
+# ==============================================================================
+# ABA 3: MERCENÁRIOS & DIÁRIO
+# ==============================================================================
+@tab "Mercenários & Diário"
+
+@slots "Mercenário: Bramble (Espadachim)" [col1, cols: 2]
+  hire_paw1 "Pata Principal: Lança de Espinho" [state: filled]
+  hire_paw2 "Pata Secundária: Escudo de Noz" [state: filled]
+  hire_pack1 "Slot 1: Ração": 2/3
+  hire_pack2 "Slot 2: Tocha": 3/6
+  hire_pack3 "Slot 3: Vazio" [state: empty]
+  hire_pack4 "Slot 4: Vazio" [state: empty]
+
+@stat "Perfil do Mercenário (Bramble)" [col1]
+  hire_tipo "Descrição": "Rato veterano caolho. Disposição Leal. Custo: 5 pips/dia."
+  hire_str "Bramble Força"    := 9  [roll: "1d20 <= hire_str"]
+  hire_dex "Bramble Destreza" := 11 [roll: "1d20 <= hire_dex"]
+  hire_wil "Bramble Vontade"  := 7  [roll: "1d20 <= hire_wil"]
+  hire_hp "Bramble HP": 3 / 4
+
+@texto "Diário de Campanhas & Rumores" [col2]
+  "Anotações de Exploração e Boatos:"
+  - A Toca do Velho Carvalho: Há relatos de um gato caolho rondando as raízes ao anoitecer.
+  - Rumor dos Sapos: O líder do pântano troca um mapa secreto por 50 pips ou comida fresca.
+  - Missão Ativa: Recuperar a chave de cobre perdida no celeiro das corujas.`,
+  },
 };

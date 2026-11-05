@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Dices, Search, Lock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import type { CompiledSheet, ModuleDisplayStyle } from '@/lib/sheet-dsl';
+import { isTabMatching, type CompiledSheet, type ModuleDisplayStyle } from '@/lib/sheet-dsl';
 import { formatEvaluatedValue, type OnExecuteRoll } from './types';
 
 interface SkillsSectionProps {
@@ -20,10 +20,9 @@ export function SkillsSection({
   const [search, setSearch] = useState('');
   const [attrFilter, setAttrFilter] = useState<string>('ALL');
 
-  const skillList = Object.values(sheet.skills).filter((sk) => {
-    if (!activeTab || activeTab === 'Geral' || activeTab === 'Principal') return true;
-    return !sk.tab || sk.tab === activeTab;
-  });
+  const skillList = Object.values(sheet.skills).filter((sk) =>
+    isTabMatching(sk.tab, activeTab),
+  );
 
   if (skillList.length === 0) return null;
 

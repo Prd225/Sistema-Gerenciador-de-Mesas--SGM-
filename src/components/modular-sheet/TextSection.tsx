@@ -6,8 +6,32 @@ interface TextSectionProps {
   block: EvaluatedTextBlock;
 }
 
+const LAYOUT_TAGS_SET = new Set([
+  'col1',
+  'col2',
+  'full',
+  'auto',
+  'tall',
+  'short',
+  'compact',
+  'cards',
+  'list',
+  'pyramid',
+  'grid',
+  'table',
+  'segments',
+  'dots',
+  'pie',
+  'bar',
+  'fill',
+  'md',
+  'lg',
+  'sm',
+]);
+
 export const TextSection: React.FC<TextSectionProps> = ({ block }) => {
   const isTall = Boolean(block.tall);
+  const displayTags = block.tags.filter((t) => !LAYOUT_TAGS_SET.has(t.toLowerCase()));
 
   return (
     <div className="space-y-2">
@@ -87,9 +111,9 @@ export const TextSection: React.FC<TextSectionProps> = ({ block }) => {
         </div>
 
         {/* Tags / Marcadores */}
-        {block.tags.length > 0 && (
+        {displayTags.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-zinc-800/60">
-            {block.tags.map((tag) => (
+            {displayTags.map((tag) => (
               <span
                 key={tag}
                 className="px-2 py-0.5 rounded-md bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-400 flex items-center gap-1 font-mono"
