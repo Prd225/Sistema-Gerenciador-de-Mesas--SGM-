@@ -336,7 +336,7 @@ function DieShapeSVG({
       {/* Contorno externo nítido */}
       <path d={g.outline} fill="none" stroke={edge} strokeWidth={edgeWidth} strokeLinejoin="round" />
 
-      {/* Traço tracejado de seleção seguindo fielmente a geometria/formato do dado */}
+      {/* Contorno contínuo completo de seleção seguindo fielmente a geometria/formato do dado */}
       {isSelected && (
         <g className="animate-pulse pointer-events-none">
           {/* Brilho difuso externo na cor do dado */}
@@ -347,16 +347,15 @@ function DieShapeSVG({
             strokeWidth={5}
             strokeLinejoin="round"
             strokeLinecap="round"
-            opacity={0.35}
+            opacity={0.4}
             transform="translate(-4, -4) scale(1.08)"
           />
-          {/* Linha tracejada nítida contornando o formato geométrico */}
+          {/* Linha sólida contínua (borda completa) contornando o formato geométrico */}
           <path
             d={g.outline}
             fill="none"
             stroke={color}
-            strokeWidth={2.6}
-            strokeDasharray="6 4"
+            strokeWidth={2.8}
             strokeLinejoin="round"
             strokeLinecap="round"
             transform="translate(-4, -4) scale(1.08)"
