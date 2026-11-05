@@ -45,14 +45,14 @@ function paintButton(progress: number) {
   const borderC = [76, 29, 149].map((from, i) => Math.round(from + ([69, 10, 10][i] - from) * progress));
   button.style.backgroundColor = `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
   button.style.borderBottomColor = `rgb(${borderC[0]}, ${borderC[1]}, ${borderC[2]})`;
-  // O botão permanece fixo sem translações ou alterações de borda que desloquem o layout
+  // Depressão mecânica 3D enquanto pressionado/segurado (via transform, sem alterar dimensões do box layout)
+  button.style.transform = 'translateY(4px)';
 }
 
 function resetButton() {
   if (!button) return;
   button.style.backgroundColor = '';
   button.style.borderBottomColor = '';
-  button.style.borderBottomWidth = '';
   button.style.transform = '';
 }
 
@@ -94,6 +94,26 @@ function loop(now: number) {
     return;
   }
 
+  const selectedIds = state.selectedDieIds;
+  const isPartial = selectedIds && selectedIds.length > 0;
+  const activeDice = isPartial
+    ? state.dice.filter((d) => selectedIds.includes(d.id))
+    : state.dice;
+
+  // Se houver seleção parcial, restaura qualquer dado que não esteja selecionado mas estava 'touched'
+  if (isPartial) {
+    state.dice.forEach((d) => {
+      if (!selectedIds.includes(d.id) && touched.has(d.id)) {
+        const refs = diceDOMRegistry.get(d.id);
+        if (refs) {
+          setDieAnimating(refs, false);
+          writeDiePose(refs, { ...REST_POSE, rot: d.rotation });
+        }
+        touched.delete(d.id);
+      }
+    });
+  }
+
   const progress = holdProgress(now);
   const target = mode === 'hold' ? HOVER_AMP + (1 - HOVER_AMP) * progress : mode === 'hover' ? HOVER_AMP : 0;
   amp += (target - amp) * Math.min(1, dtMs * 0.015);
@@ -105,10 +125,11 @@ function loop(now: number) {
 
     // Alterna os valores dos dados enquanto segura (sensação dinâmica de aleatoriedade)
     // Conforme o botão é segurado, o sorteio acelera de 140ms para até 32ms
+    // Se houver dados selecionados, altera APENAS os selecionados; senão, todos.
     const scrambleInterval = Math.max(32, 140 - progress * 105);
     if (now - lastFaceScramble > scrambleInterval) {
       lastFaceScramble = now;
-      for (const d of state.dice) {
+      for (const d of activeDice) {
         const refs = diceDOMRegistry.get(d.id);
         if (!refs) continue;
         const face = rollDieFace(d.faces);
@@ -133,7 +154,7 @@ function loop(now: number) {
 
   const t = now;
   const pick = Math.min(1, amp / HOVER_AMP); // "pegar" os dados
-  for (const d of state.dice) {
+  for (const d of activeDice) {
     const refs = diceDOMRegistry.get(d.id);
     if (!refs) continue;
     if (!touched.has(d.id)) {

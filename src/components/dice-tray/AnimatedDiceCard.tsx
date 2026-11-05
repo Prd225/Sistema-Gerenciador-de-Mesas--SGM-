@@ -162,9 +162,8 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
         willChange: isRolling ? 'transform, left, top' : 'auto',
         transition: isRolling ? 'none' : isDragging ? 'transform 0.15s ease-out' : 'transform 0.2s ease-out',
       }}
-      className={`group absolute select-none cursor-grab active:cursor-grabbing touch-none ${
-        isDragging ? 'z-50' : isRolling ? 'z-20' : 'z-10'
-      }`}
+      className={`group absolute select-none cursor-grab active:cursor-grabbing touch-none ${isDragging ? 'z-50' : isRolling ? 'z-20' : 'z-10'
+        }`}
     >
       <div className="relative flex items-center justify-center">
         {/* Sombra Esfumaçada Suave (Smoky Soft Shadow - sem bordas duras, difusa no feltro) */}
@@ -187,13 +186,28 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
           }}
         />
 
-        {/* Indicador de Dado Selecionado para Rolagem Parcial (Ctrl no PC ou clique segurado no móvel) */}
+        {/* Indicador de Seleção: Setinha e Tracejado na cor do dado */}
         {isSelected && (
-          <div className="absolute inset-0 -m-2 rounded-full border-2 border-[#8257e5] bg-[#8257e5]/25 shadow-[0_0_20px_rgba(130,87,229,0.7)] pointer-events-none animate-pulse z-30 flex items-start justify-end p-0.5">
-            <span className="w-4 h-4 rounded-full bg-[#8257e5] text-white flex items-center justify-center text-[10px] font-black shadow-md border border-white">
-              ✓
-            </span>
-          </div>
+          <>
+            {/* Setinha apontando para o dado na cor da borda do dado */}
+            <div
+              className="absolute -top-5 left-1/2 -translate-x-1/2 pointer-events-none z-30 flex flex-col items-center animate-bounce"
+              style={{ color: die.color }}
+            >
+              <svg
+                className="w-4 h-4 fill-current drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
+                viewBox="0 0 24 24"
+              >
+                <path d="M12 18l-6-7h12l-6 7z" />
+              </svg>
+            </div>
+
+            {/* Tracejado circular na cor da borda do dado */}
+            <div
+              className="absolute inset-0 -m-1.5 rounded-full border-2 border-dashed pointer-events-none z-20 animate-pulse drop-shadow-[0_0_6px_rgba(0,0,0,0.6)]"
+              style={{ borderColor: die.color }}
+            />
+          </>
         )}
 
         {/* Recipiente com Rotação, Altura e Perspectiva 3D */}
