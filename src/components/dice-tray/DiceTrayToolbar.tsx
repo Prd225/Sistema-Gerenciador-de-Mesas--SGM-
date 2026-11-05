@@ -66,6 +66,8 @@ export default function DiceTrayToolbar({
   const undo = useDiceTrayStore((state) => state.undo);
   const redo = useDiceTrayStore((state) => state.redo);
   const clearTray = useDiceTrayStore((state) => state.clearTray);
+  const selectedDieIds = useDiceTrayStore((state) => state.selectedDieIds);
+  const clearSelectedDice = useDiceTrayStore((state) => state.clearSelectedDice);
 
   const [isModifiersExpanded, setIsModifiersExpanded] = useState(false);
   const rollBtnRef = useRef<HTMLButtonElement>(null);
@@ -229,6 +231,22 @@ export default function DiceTrayToolbar({
           </div>
         )}
 
+        {/* Banner de Dados Selecionados (Rolagem Parcial Mobile) */}
+        {selectedDieIds.length > 0 && (
+          <div className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-[#8257e5]/20 border border-[#8257e5]/40 text-xs animate-in fade-in">
+            <span className="text-[11px] font-semibold text-[#a78bfa]">
+              {selectedDieIds.length} dado(s) selecionado(s)
+            </span>
+            <button
+              type="button"
+              onClick={clearSelectedDice}
+              className="text-[10px] text-white hover:text-purple-200 font-bold underline cursor-pointer"
+            >
+              Desmarcar todos
+            </button>
+          </div>
+        )}
+
         {/* 2. Área Central: 2 Colunas Verticais de Dados à Esquerda + Botão Rolar Gigante à Direita (Exatamente como o rascunho do usuário) */}
         <div className="flex items-stretch gap-2">
           {/* Grid de 2 Colunas Verticais de Dados */}
@@ -316,8 +334,12 @@ export default function DiceTrayToolbar({
             className="w-24 sm:w-28 shrink-0 rounded-2xl bg-violet-600 hover:bg-violet-500 border border-violet-400/20 border-b-[5px] border-b-violet-900 active:border-b-[1px] active:translate-y-[4px] disabled:opacity-40 disabled:border-b-2 disabled:translate-y-0 text-white shadow-md flex flex-col items-center justify-center gap-1.5 cursor-pointer select-none touch-manipulation transition-colors"
           >
             <Dices className={`w-8 h-8 ${isRolling ? 'animate-spin' : ''}`} />
-            <span className="font-black text-xs sm:text-sm tracking-wider uppercase">
-              {isRolling ? '...' : 'ROLAR'}
+            <span className="font-black text-xs sm:text-sm tracking-wider uppercase text-center leading-tight">
+              {isRolling
+                ? '...'
+                : selectedDieIds.length > 0
+                ? `ROLAR (${selectedDieIds.length})`
+                : 'ROLAR'}
             </span>
           </button>
         </div>
@@ -551,7 +573,23 @@ export default function DiceTrayToolbar({
         )}
       </div>
 
-      {/* Botão de Rolar Dados Elevado 3D no Desktop / Landscape */}
+      {/* Banner de Dados Selecionados (Desktop / Landscape) */}
+      {selectedDieIds.length > 0 && (
+        <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-[#8257e5]/20 border border-[#8257e5]/40 text-xs animate-in fade-in">
+          <span className="text-xs font-semibold text-[#a78bfa]">
+            {selectedDieIds.length} de {dice.length} dado(s) selecionado(s)
+          </span>
+          <button
+            type="button"
+            onClick={clearSelectedDice}
+            className="text-xs text-white hover:text-purple-200 font-bold underline cursor-pointer"
+          >
+            Desmarcar
+          </button>
+        </div>
+      )}
+
+      {/* Botão de Rolar Dados Elevado 3D no Desktop / Landscape (100% Fixo sem deslocamento no clique) */}
       <button
         ref={rollBtnRef}
         type="button"
@@ -562,10 +600,16 @@ export default function DiceTrayToolbar({
         onPointerCancel={handlePointerCancel}
         onContextMenu={(e) => e.preventDefault()}
         disabled={isRolling || dice.length === 0}
-        className="w-full relative flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-violet-600 hover:bg-violet-500 border border-violet-400/20 border-b-4 border-b-violet-900 active:border-b-0 active:translate-y-1 disabled:opacity-40 disabled:border-b-2 disabled:translate-y-0 text-white font-bold text-sm tracking-wide shadow-md cursor-pointer select-none touch-manipulation transition-colors"
+        className="w-full relative flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-violet-600 hover:bg-violet-500 border border-violet-400/20 border-b-4 border-b-violet-900 active:brightness-90 active:bg-violet-700 disabled:opacity-40 disabled:border-b-4 text-white font-bold text-sm tracking-wide shadow-md cursor-pointer select-none touch-manipulation transition-colors"
       >
         <Dices className={`w-4 h-4 ${isRolling ? 'animate-spin' : ''}`} />
-        <span>{isRolling ? 'Rolando...' : 'Rolar Dados'}</span>
+        <span>
+          {isRolling
+            ? 'Rolando...'
+            : selectedDieIds.length > 0
+            ? `Rolar Selecionados (${selectedDieIds.length})`
+            : 'Rolar Dados'}
+        </span>
       </button>
 
       {/* Visibilidade da Rolagem */}

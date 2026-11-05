@@ -18,6 +18,9 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
   const removeDie = useDiceTrayStore((state) => state.removeDie);
   const updateDiePosition = useDiceTrayStore((state) => state.updateDiePosition);
   const rules = useDiceTrayStore((state) => state.rules);
+  const selectedDieIds = useDiceTrayStore((state) => state.selectedDieIds);
+  const toggleSelectDie = useDiceTrayStore((state) => state.toggleSelectDie);
+  const isSelected = selectedDieIds.includes(die.id);
 
   // Refs de acesso direto ao DOM para a animação de física e balanço a 144 FPS
   const cardRef = useRef<HTMLDivElement>(null);
@@ -51,14 +54,39 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
   const isCrit = !isRolling && isD20 && die.currentValue >= rules.critPositive;
   const isFumble = !isRolling && isD20 && die.currentValue <= rules.critNegative;
 
-  // Iniciar arrasto livre pelo feltro da bandeja
+  // Iniciar arrasto livre pelo feltro da bandeja ou seleção por clique
   const handlePointerDown = (e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest('button')) return;
 
+    // 1. Seleção no PC com Ctrl ou Cmd (ou se já houver dados selecionados)
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleSelectDie(die.id);
+      diceAudio.playSelect();
+      diceHaptics.pickup();
+      return;
+    }
+
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(true);
 
+    // 2. Detecção de clique segurado no dispositivo móvel (long press ~400ms para selecionar)
+    const isTouch = e.pointerType === 'touch';
+    let isLongPress = false;
+    let longPressTimeout: any = null;
+
+    if (isTouch) {
+      longPressTimeout = setTimeout(() => {
+        isLongPress = true;
+        toggleSelectDie(die.id);
+        diceAudio.playSelect();
+        diceHaptics.pickup();
+        setIsDragging(false);
+      }, 400);
+    }
+
+    setIsDragging(true);
     diceAudio.playSelect();
     diceHaptics.pickup();
 
@@ -70,6 +98,16 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
     };
 
     const handlePointerMove = (moveEv: PointerEvent) => {
+      const dist = Math.hypot(
+        moveEv.clientX - dragStartRef.current.startX,
+        moveEv.clientY - dragStartRef.current.startY,
+      );
+      if (dist > 8 && longPressTimeout) {
+        clearTimeout(longPressTimeout);
+        longPressTimeout = null;
+      }
+      if (isLongPress) return;
+
       if (!canvasRef.current) return;
       const rect = canvasRef.current.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) return;
@@ -88,9 +126,15 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
     };
 
     const handlePointerUp = () => {
-      setIsDragging(false);
-      diceAudio.playRelease();
-      diceHaptics.drop();
+      if (longPressTimeout) {
+        clearTimeout(longPressTimeout);
+        longPressTimeout = null;
+      }
+      if (!isLongPress) {
+        setIsDragging(false);
+        diceAudio.playRelease();
+        diceHaptics.drop();
+      }
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
     };
@@ -142,6 +186,15 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
             willChange: isRolling ? 'transform, opacity' : 'auto',
           }}
         />
+
+        {/* Indicador de Dado Selecionado para Rolagem Parcial (Ctrl no PC ou clique segurado no móvel) */}
+        {isSelected && (
+          <div className="absolute inset-0 -m-2 rounded-full border-2 border-[#8257e5] bg-[#8257e5]/25 shadow-[0_0_20px_rgba(130,87,229,0.7)] pointer-events-none animate-pulse z-30 flex items-start justify-end p-0.5">
+            <span className="w-4 h-4 rounded-full bg-[#8257e5] text-white flex items-center justify-center text-[10px] font-black shadow-md border border-white">
+              ✓
+            </span>
+          </div>
+        )}
 
         {/* Recipiente com Rotação, Altura e Perspectiva 3D */}
         <div

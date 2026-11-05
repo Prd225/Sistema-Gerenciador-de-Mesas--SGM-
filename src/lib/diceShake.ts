@@ -45,8 +45,7 @@ function paintButton(progress: number) {
   const borderC = [76, 29, 149].map((from, i) => Math.round(from + ([69, 10, 10][i] - from) * progress));
   button.style.backgroundColor = `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
   button.style.borderBottomColor = `rgb(${borderC[0]}, ${borderC[1]}, ${borderC[2]})`;
-  button.style.borderBottomWidth = '1px';
-  button.style.transform = 'translateY(4px)';
+  // O botão permanece fixo sem translações ou alterações de borda que desloquem o layout
 }
 
 function resetButton() {

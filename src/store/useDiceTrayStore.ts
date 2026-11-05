@@ -29,12 +29,17 @@ export interface TrayDie {
 
 export type RollOutcomeTier = 'crit' | 'extreme' | 'success' | 'fail' | 'fumble' | 'neutral';
 
+export type DiceRuleMode = 'sum' | 'pool' | 'highest' | 'lowest' | 'roll_keep' | 'percentile';
+
 export interface DiceTrayRules {
   critPositive: number; // Ex: 20
   critNegative: number; // Ex: 1
   successDC: number | null; // Ex: 15
   poolThreshold: number | null; // Ex: 6 (sucessos em parada de dados)
-  ruleMode: 'sum' | 'pool' | 'highest' | 'lowest';
+  keepCount: number; // Ex: 2 (quantos dados manter no Roll & Keep)
+  keepMode: 'highest' | 'lowest';
+  percentileTarget: number; // Ex: 50 (% alvo para testes de perícia d100)
+  ruleMode: DiceRuleMode;
 }
 
 export interface DiceRollEntry {
@@ -89,6 +94,9 @@ export interface DiceTrayState {
   history: DiceRollEntry[];
   undoStack: ActiveTraySnapshot[];
   redoStack: ActiveTraySnapshot[];
+  selectedDieIds: string[];
+  toggleSelectDie: (dieId: string) => void;
+  clearSelectedDice: () => void;
 
   // Ações de Janela
   setIsOpen: (isOpen: boolean) => void;
@@ -142,6 +150,9 @@ const DEFAULT_RULES: DiceTrayRules = {
   critNegative: 1,
   successDC: null,
   poolThreshold: null,
+  keepCount: 2,
+  keepMode: 'highest',
+  percentileTarget: 50,
   ruleMode: 'sum',
 };
 
@@ -204,7 +215,44 @@ export function generateSideFaces(faces: DieFaceCount, centerVal: number): numbe
 }
 
 // Formata fórmula e discriminação detalhada com modificadores por dado e global
-function formatFormulaAndBreakdown(dice: TrayDie[], globalModifier: number) {
+function formatFormulaAndBreakdown(dice: TrayDie[], globalModifier: number, rules?: DiceTrayRules) {
+  if (rules?.ruleMode === 'roll_keep') {
+    const keepCount = Math.max(1, Math.min(dice.length, rules.keepCount || 2));
+    const sorted = [...dice].sort((a, b) => {
+      const valA = a.currentValue + (a.modifier || 0);
+      const valB = b.currentValue + (b.modifier || 0);
+      return rules.keepMode === 'lowest' ? valA - valB : valB - valA;
+    });
+    const kept = sorted.slice(0, keepCount);
+    const discarded = sorted.slice(keepCount);
+    const keptParts = kept.map((d) => `${d.currentValue}${d.modifier ? (d.modifier > 0 ? `+${d.modifier}` : d.modifier) : ''}`);
+    const discardedParts = discarded.map((d) => `${d.currentValue}${d.modifier ? (d.modifier > 0 ? `+${d.modifier}` : d.modifier) : ''}`);
+
+    let formula = `Manter ${keepCount} (${rules.keepMode === 'lowest' ? 'Menores' : 'Maiores'}) de ${dice.length}d`;
+    if (globalModifier !== 0) formula += globalModifier > 0 ? ` + ${globalModifier}` : ` - ${Math.abs(globalModifier)}`;
+
+    let breakdown = `[${keptParts.join(' + ')}]`;
+    if (discardedParts.length > 0) {
+      breakdown += ` (descartados: ${discardedParts.join(', ')})`;
+    }
+    if (globalModifier !== 0) {
+      breakdown += globalModifier > 0 ? ` + ${globalModifier}` : ` - ${Math.abs(globalModifier)}`;
+    }
+    return { formula, breakdown };
+  }
+
+  if (rules?.ruleMode === 'percentile') {
+    const target = rules.percentileTarget ?? 50;
+    const formula = `d100 vs ${target}%`;
+    const diceTotal = dice.reduce((acc, d) => acc + d.currentValue + (d.modifier || 0), 0);
+    let breakdown = `${diceTotal}`;
+    if (globalModifier !== 0) {
+      breakdown += globalModifier > 0 ? ` + ${globalModifier}` : ` - ${Math.abs(globalModifier)}`;
+    }
+    breakdown += ` [Alvo: ${target}% | 1/2: ${Math.floor(target / 2)} | 1/5: ${Math.floor(target / 5)}]`;
+    return { formula, breakdown };
+  }
+
   const formulaParts = dice.map((d) => {
     const mod = d.modifier || 0;
     if (mod === 0) return `d${d.faces}`;
@@ -235,6 +283,56 @@ function evaluateOutcome(
   rules: DiceTrayRules,
 ): { total: number; diceTotal: number; outcomeTier: RollOutcomeTier; outcomeLabel: string } {
   const d20Dice = dice.filter((d) => d.faces === 20);
+
+  // 1. Roll & Keep
+  if (rules.ruleMode === 'roll_keep') {
+    const keepCount = Math.max(1, Math.min(dice.length, rules.keepCount || 2));
+    const sorted = [...dice].sort((a, b) => {
+      const valA = a.currentValue + (a.modifier || 0);
+      const valB = b.currentValue + (b.modifier || 0);
+      return rules.keepMode === 'lowest' ? valA - valB : valB - valA;
+    });
+    const kept = sorted.slice(0, keepCount);
+    const diceTotal = kept.reduce((acc, d) => acc + d.currentValue + (d.modifier || 0), 0);
+    const total = diceTotal + modifier;
+    const isCrit = d20Dice.some((d) => d.currentValue >= rules.critPositive);
+    const isFumble = !isCrit && d20Dice.some((d) => d.currentValue <= rules.critNegative);
+    const outcomeTier: RollOutcomeTier = isCrit ? 'crit' : isFumble ? 'fumble' : 'neutral';
+    const outcomeLabel = `Roll & Keep (${keepCount} ${rules.keepMode === 'lowest' ? 'Menores' : 'Maiores'})`;
+    return { total, diceTotal, outcomeTier, outcomeLabel };
+  }
+
+  // 2. Verificação de Porcentagem (d100 / Call of Cthulhu / BRP)
+  if (rules.ruleMode === 'percentile') {
+    const diceTotal = dice.reduce((acc, d) => acc + d.currentValue + (d.modifier || 0), 0);
+    const total = diceTotal + modifier;
+    const target = rules.percentileTarget ?? 50;
+
+    let outcomeTier: RollOutcomeTier = 'neutral';
+    let outcomeLabel = '';
+
+    if (total <= rules.critPositive) {
+      outcomeTier = 'crit';
+      outcomeLabel = `SUCESSO CRÍTICO (${total} ≤ ${rules.critPositive})`;
+    } else if (total >= rules.critNegative) {
+      outcomeTier = 'fumble';
+      outcomeLabel = `DESASTRE CRÍTICO (${total} ≥ ${rules.critNegative})`;
+    } else if (total <= Math.floor(target / 5)) {
+      outcomeTier = 'extreme';
+      outcomeLabel = `SUCESSO EXTREMO (${total} ≤ ${Math.floor(target / 5)})`;
+    } else if (total <= Math.floor(target / 2)) {
+      outcomeTier = 'success';
+      outcomeLabel = `SUCESSO DIFÍCIL (${total} ≤ ${Math.floor(target / 2)})`;
+    } else if (total <= target) {
+      outcomeTier = 'success';
+      outcomeLabel = `SUCESSO REGULAR (${total} ≤ ${target})`;
+    } else {
+      outcomeTier = 'fail';
+      outcomeLabel = `FALHA (${total} > ${target})`;
+    }
+
+    return { total, diceTotal, outcomeTier, outcomeLabel };
+  }
 
   if (rules.ruleMode === 'pool' && rules.poolThreshold !== null) {
     const successCount = dice.filter(
@@ -336,6 +434,14 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
   history: [],
   undoStack: [],
   redoStack: [],
+  selectedDieIds: [],
+  toggleSelectDie: (dieId) =>
+    set((state) => ({
+      selectedDieIds: state.selectedDieIds.includes(dieId)
+        ? state.selectedDieIds.filter((id) => id !== dieId)
+        : [...state.selectedDieIds, dieId],
+    })),
+  clearSelectedDice: () => set({ selectedDieIds: [] }),
 
   setIsOpen: (isOpen) => set({ isOpen }),
   toggleOpen: () => set((state) => ({ isOpen: !state.isOpen, isMinimized: false })),
@@ -401,10 +507,11 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
 
   // Remover Dado
   removeDie: (dieId) => {
-    const { dice, modifier, undoStack } = get();
+    const { dice, modifier, undoStack, selectedDieIds } = get();
     const newSnapshot = takeSnapshot(dice, modifier);
     set({
       dice: dice.filter((d) => d.id !== dieId),
+      selectedDieIds: selectedDieIds.filter((id) => id !== dieId),
       undoStack: [newSnapshot, ...undoStack].slice(0, 5),
       redoStack: [],
     });
@@ -433,7 +540,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
 
   // Incrementar valor do dado (Ajuste pós-resultado)
   incrementDie: (dieId) => {
-    const { dice, modifier, rules, undoStack } = get();
+    const { dice, modifier, undoStack } = get();
     const newSnapshot = takeSnapshot(dice, modifier);
     const updatedDice = dice.map((d) => {
       if (d.id !== dieId) return d;
@@ -446,20 +553,8 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
       };
     });
 
-    const evaluated = evaluateOutcome(updatedDice, modifier, rules);
-    const { formula, breakdown } = formatFormulaAndBreakdown(updatedDice, modifier);
-
     set({
       dice: updatedDice,
-      lastRollResult: {
-        total: evaluated.total,
-        diceTotal: evaluated.diceTotal,
-        modifier,
-        formula,
-        outcomeTier: evaluated.outcomeTier,
-        outcomeLabel: evaluated.outcomeLabel,
-        breakdown,
-      },
       undoStack: [newSnapshot, ...undoStack].slice(0, 5),
       redoStack: [],
     });
@@ -467,7 +562,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
 
   // Decrementar valor do dado (Ajuste pós-resultado)
   decrementDie: (dieId) => {
-    const { dice, modifier, rules, undoStack } = get();
+    const { dice, modifier, undoStack } = get();
     const newSnapshot = takeSnapshot(dice, modifier);
     const updatedDice = dice.map((d) => {
       if (d.id !== dieId) return d;
@@ -480,20 +575,8 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
       };
     });
 
-    const evaluated = evaluateOutcome(updatedDice, modifier, rules);
-    const { formula, breakdown } = formatFormulaAndBreakdown(updatedDice, modifier);
-
     set({
       dice: updatedDice,
-      lastRollResult: {
-        total: evaluated.total,
-        diceTotal: evaluated.diceTotal,
-        modifier,
-        formula,
-        outcomeTier: evaluated.outcomeTier,
-        outcomeLabel: evaluated.outcomeLabel,
-        breakdown,
-      },
       undoStack: [newSnapshot, ...undoStack].slice(0, 5),
       redoStack: [],
     });
@@ -501,7 +584,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
 
   // Definir valor exato
   setDieValue: (dieId, val) => {
-    const { dice, modifier, rules, undoStack } = get();
+    const { dice, modifier, undoStack } = get();
     const newSnapshot = takeSnapshot(dice, modifier);
     const updatedDice = dice.map((d) => {
       if (d.id !== dieId) return d;
@@ -514,20 +597,8 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
       };
     });
 
-    const evaluated = evaluateOutcome(updatedDice, modifier, rules);
-    const { formula, breakdown } = formatFormulaAndBreakdown(updatedDice, modifier);
-
     set({
       dice: updatedDice,
-      lastRollResult: {
-        total: evaluated.total,
-        diceTotal: evaluated.diceTotal,
-        modifier,
-        formula,
-        outcomeTier: evaluated.outcomeTier,
-        outcomeLabel: evaluated.outcomeLabel,
-        breakdown,
-      },
       undoStack: [newSnapshot, ...undoStack].slice(0, 5),
       redoStack: [],
     });
@@ -535,24 +606,12 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
 
   // Modificador Isolado do Dado
   setDieModifier: (dieId, mod) => {
-    const { dice, modifier, rules, undoStack } = get();
+    const { dice, modifier, undoStack } = get();
     const newSnapshot = takeSnapshot(dice, modifier);
     const clamped = Math.max(-99, Math.min(99, mod));
     const updatedDice = dice.map((d) => (d.id === dieId ? { ...d, modifier: clamped } : d));
-    const evaluated = evaluateOutcome(updatedDice, modifier, rules);
-    const { formula, breakdown } = formatFormulaAndBreakdown(updatedDice, modifier);
-
     set({
       dice: updatedDice,
-      lastRollResult: {
-        total: evaluated.total,
-        diceTotal: evaluated.diceTotal,
-        modifier,
-        formula,
-        outcomeTier: evaluated.outcomeTier,
-        outcomeLabel: evaluated.outcomeLabel,
-        breakdown,
-      },
       undoStack: [newSnapshot, ...undoStack].slice(0, 5),
       redoStack: [],
     });
@@ -590,14 +649,42 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
     const newSnapshot = takeSnapshot(dice, modifier);
     const newUndo = [newSnapshot, ...undoStack].slice(0, 5);
 
-    // Toca som proporcional à quantidade de dados e à intensidade do arremesso
-    diceAudio.playRoll(dice.length, intensity);
+    // Suporte a rolar apenas dados selecionados (ou todos caso nenhum esteja selecionado)
+    const { selectedDieIds } = get();
+    const isPartialRoll = selectedDieIds.length > 0;
+    const diceToRoll = isPartialRoll ? dice.filter((d) => selectedDieIds.includes(d.id)) : dice;
 
-    const finalValues = dice.map((d) => rollDieFace(d.faces));
+    diceAudio.playRoll(diceToRoll.length, intensity);
 
-    // Inicialização da física (impulsionada com alto vigor pela intensidade do arremesso)
+    // Gera valores novos apenas para os dados que estão rolando
+    const finalValues = dice.map((d) => {
+      const isRollingThis = diceToRoll.some((r) => r.id === d.id);
+      return isRollingThis ? rollDieFace(d.faces) : d.currentValue;
+    });
+
     const speedBoost = 1 + Math.pow(intensity || 0, 1.25) * 2.5;
     const physics = dice.map((d, i) => {
+      const isRollingThis = diceToRoll.some((r) => r.id === d.id);
+      if (!isRollingThis) {
+        return {
+          id: d.id,
+          x: d.x,
+          y: d.y,
+          vx: 0,
+          vy: 0,
+          rotation: d.rotation,
+          rotSpeed: 0,
+          rotX: 0,
+          rotY: 0,
+          lift: 0,
+          duration: 0,
+          settled: true,
+          lastFaceSwap: 0,
+          faceInterval: 99999,
+          sideFaces: [...d.sideFaces],
+        };
+      }
+
       const angle = Math.random() * Math.PI * 2;
       const speed = (110 + Math.random() * 70) * speedBoost;
       const spinDirection = Math.random() > 0.5 ? 1 : -1;
@@ -626,6 +713,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
     // Inicia estado de rolagem (UMA ÚNICA re-renderização React para ligar isRolling)
     set({
       isRolling: true,
+      lastRollResult: null,
       undoStack: newUndo,
       redoStack: [],
       dice: dice.map((d) => ({ ...d, isRolling: true })),
@@ -900,7 +988,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
           diceAudio.playFumble();
         }
 
-        const { formula, breakdown } = formatFormulaAndBreakdown(settledDice, modifier);
+        const { formula, breakdown } = formatFormulaAndBreakdown(settledDice, modifier, rules);
 
         const newEntry: DiceRollEntry = {
           id: generateId(),
@@ -988,6 +1076,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
     const newSnapshot = takeSnapshot(dice, modifier);
     set({
       dice: [],
+      selectedDieIds: [],
       lastRollResult: null,
       undoStack: [newSnapshot, ...undoStack].slice(0, 5),
       redoStack: [],

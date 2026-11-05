@@ -13,23 +13,28 @@ export default function DiceTrayCanvas({ isMobileLandscape: _isMobileLandscape =
   const lastRollResult = useDiceTrayStore((state) => state.lastRollResult);
   const isRolling = useDiceTrayStore((state) => state.isRolling);
   const clearLastRollResult = useDiceTrayStore((state) => state.clearLastRollResult);
+  const selectedDieIds = useDiceTrayStore((state) => state.selectedDieIds);
+  const clearSelectedDice = useDiceTrayStore((state) => state.clearSelectedDice);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Fecha automaticamente o pop-up de resultado central após alguns segundos
+  // Fecha o expansor quando um novo resultado for limpo
   useEffect(() => {
     if (!lastRollResult) {
       setIsExpanded(false);
-      return;
     }
-    const timer = setTimeout(() => {
-      clearLastRollResult();
-    }, 5500);
-    return () => clearTimeout(timer);
-  }, [lastRollResult, clearLastRollResult]);
+  }, [lastRollResult]);
+
+  const handleCanvasPointerDown = (e: React.PointerEvent) => {
+    // Se clicar no feltro vazio e houver dados selecionados, desmarca a seleção
+    if (e.target === canvasRef.current && selectedDieIds.length > 0) {
+      clearSelectedDice();
+    }
+  };
 
   return (
     <div
       ref={canvasRef}
+      onPointerDown={handleCanvasPointerDown}
       className="relative flex-1 w-full h-full min-h-[160px] bg-[#121214] overflow-hidden select-none touch-none"
     >
       {/* Feltro com Textura Tátil e Bordas Suaves */}
@@ -61,7 +66,7 @@ export default function DiceTrayCanvas({ isMobileLandscape: _isMobileLandscape =
         <AnimatedDiceCard key={die.id} die={die} canvasRef={canvasRef} />
       ))}
 
-      {/* Pop-up Central de Resultado (Apenas para o jogador que realizou a rolagem) */}
+      {/* Pop-up Central de Resultado (Permanece até clicar no X) */}
       {lastRollResult && !isRolling && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30 p-4">
           <div className="pointer-events-auto relative flex flex-col items-center bg-[#18181b]/95 border border-[#323238] rounded-2xl shadow-2xl p-4 sm:p-5 min-w-[210px] max-w-[280px] sm:max-w-xs backdrop-blur-md animate-in zoom-in-95 fade-in duration-200">
@@ -71,6 +76,7 @@ export default function DiceTrayCanvas({ isMobileLandscape: _isMobileLandscape =
               onClick={clearLastRollResult}
               className="absolute top-2.5 right-2.5 p-1 text-[#71717a] hover:text-white rounded-lg hover:bg-[#27272a] transition-colors cursor-pointer touch-manipulation"
               aria-label="Fechar resultado"
+              title="Fechar resultado (X)"
             >
               <X className="w-4 h-4" />
             </button>
@@ -80,6 +86,8 @@ export default function DiceTrayCanvas({ isMobileLandscape: _isMobileLandscape =
               className={`text-xs font-bold uppercase tracking-wider text-center ${
                 lastRollResult.outcomeTier === 'crit'
                   ? 'text-amber-400 font-black drop-shadow-[0_0_8px_rgba(251,191,36,0.3)]'
+                  : lastRollResult.outcomeTier === 'extreme'
+                  ? 'text-emerald-400 font-black drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]'
                   : lastRollResult.outcomeTier === 'fumble'
                   ? 'text-red-400 font-black drop-shadow-[0_0_8px_rgba(248,113,113,0.3)]'
                   : lastRollResult.outcomeTier === 'success'
@@ -97,6 +105,8 @@ export default function DiceTrayCanvas({ isMobileLandscape: _isMobileLandscape =
               className={`text-5xl sm:text-6xl font-black font-mono tracking-tight my-1.5 text-center ${
                 lastRollResult.outcomeTier === 'crit'
                   ? 'text-amber-400'
+                  : lastRollResult.outcomeTier === 'extreme'
+                  ? 'text-emerald-400'
                   : lastRollResult.outcomeTier === 'fumble'
                   ? 'text-red-400'
                   : lastRollResult.outcomeTier === 'success'
@@ -107,23 +117,23 @@ export default function DiceTrayCanvas({ isMobileLandscape: _isMobileLandscape =
               {lastRollResult.total}
             </span>
 
-            {/* Expansor de cálculo exclusivo para mobile (no PC não precisa, histórico fica disponível) */}
-            <div className="w-full flex flex-col items-center sm:hidden mt-1">
+            {/* Expansor de cálculo retrátil (Disponível tanto no PC quanto no Mobile) */}
+            <div className="w-full flex flex-col items-center mt-1">
               <button
                 type="button"
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="flex items-center gap-1 text-[11px] font-medium text-[#a1a1aa] hover:text-white py-0.5 px-2 rounded-lg hover:bg-[#27272a] transition-colors cursor-pointer touch-manipulation"
+                className="flex items-center gap-1 text-[11px] font-medium text-[#a1a1aa] hover:text-white py-0.5 px-2.5 rounded-lg bg-[#202024]/60 border border-[#27272a] hover:bg-[#27272a] transition-colors cursor-pointer touch-manipulation"
               >
                 <span>{isExpanded ? 'Ocultar cálculo' : 'Ver cálculo'}</span>
                 {isExpanded ? (
-                  <ChevronUp className="w-3 h-3 text-[#8257e5]" />
+                  <ChevronUp className="w-3.5 h-3.5 text-[#8257e5]" />
                 ) : (
-                  <ChevronDown className="w-3 h-3 text-[#71717a]" />
+                  <ChevronDown className="w-3.5 h-3.5 text-[#71717a]" />
                 )}
               </button>
 
               {isExpanded && (
-                <div className="w-full mt-2 text-center text-xs font-mono text-[#a1a1aa] bg-[#121214]/90 p-2 rounded-xl border border-[#27272a] animate-in fade-in duration-150">
+                <div className="w-full mt-2 text-center text-xs font-mono text-[#a1a1aa] bg-[#121214]/90 p-2.5 rounded-xl border border-[#27272a] animate-in fade-in duration-150">
                   <div className="text-white font-semibold">{lastRollResult.formula}</div>
                   <div className="text-[11px] text-[#71717a] mt-0.5 break-all">
                     [{lastRollResult.breakdown}]
