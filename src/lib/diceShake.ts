@@ -47,7 +47,7 @@ function paintButton(progress: number) {
   button.style.borderBottomColor = `rgb(${borderC[0]}, ${borderC[1]}, ${borderC[2]})`;
   // Depressão mecânica push-button 3D ("entra" ao pressionar/segurar dentro do wrapper fixo)
   button.style.borderBottomWidth = '0px';
-  button.style.transform = 'translateY(4px)';
+  button.style.transform = 'translateY(5px)';
 }
 
 function resetButton() {

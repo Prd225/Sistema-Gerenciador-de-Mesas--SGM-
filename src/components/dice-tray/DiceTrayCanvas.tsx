@@ -134,8 +134,10 @@ export default function DiceTrayCanvas({ isMobileLandscape: _isMobileLandscape =
 
               {isExpanded && (
                 <div className="w-full mt-2 text-center text-xs font-mono text-[#a1a1aa] bg-[#121214]/90 p-2.5 rounded-xl border border-[#27272a] animate-in fade-in duration-150">
-                  <div className="text-white font-semibold">{lastRollResult.formula}</div>
-                  <div className="text-[11px] text-[#71717a] mt-0.5 break-all">
+                  <div className="text-white font-semibold break-words max-h-24 overflow-y-auto">
+                    {lastRollResult.formula}
+                  </div>
+                  <div className="text-[11px] text-[#71717a] mt-0.5 break-all max-h-24 overflow-y-auto">
                     [{lastRollResult.breakdown}]
                   </div>
                 </div>

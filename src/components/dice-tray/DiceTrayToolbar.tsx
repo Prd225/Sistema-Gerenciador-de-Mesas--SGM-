@@ -553,8 +553,8 @@ export default function DiceTrayToolbar({
         )}
       </div>
 
-      {/* Botão de Rolar Dados Elevado 3D Push Button no Desktop / Landscape */}
-      <div className="w-full h-11 relative">
+      {/* Botão de Rolar Dados Elevado 3D Push Button no Desktop / Landscape (Maior e mais tátil) */}
+      <div className="w-full h-[52px] relative">
         <button
           ref={rollBtnRef}
           type="button"
@@ -565,9 +565,9 @@ export default function DiceTrayToolbar({
           onPointerCancel={handlePointerCancel}
           onContextMenu={(e) => e.preventDefault()}
           disabled={isRolling || dice.length === 0}
-          className="w-full h-full relative flex items-center justify-center gap-2 px-4 rounded-xl bg-violet-600 hover:bg-violet-500 border border-violet-400/20 border-b-4 border-b-violet-900 active:border-b-0 active:translate-y-1 active:bg-violet-700 disabled:opacity-40 disabled:border-b-4 disabled:translate-y-0 disabled:cursor-not-allowed text-white font-bold text-sm tracking-wide shadow-md cursor-pointer select-none touch-manipulation transition-all duration-75"
+          className="w-full h-full relative flex items-center justify-center gap-2.5 px-4 rounded-2xl bg-violet-600 hover:bg-violet-500 border border-violet-400/20 border-b-[5px] border-b-violet-950 active:border-b-0 active:translate-y-[5px] active:bg-violet-700 disabled:opacity-40 disabled:border-b-[5px] disabled:translate-y-0 disabled:cursor-not-allowed text-white font-black text-[15px] sm:text-base tracking-wider shadow-lg shadow-violet-950/40 cursor-pointer select-none touch-manipulation transition-all duration-75"
         >
-          <Dices className={`w-4 h-4 ${isRolling ? 'animate-spin' : ''}`} />
+          <Dices className={`w-5 h-5 ${isRolling ? 'animate-spin' : ''}`} />
           <span>{isRolling ? 'Rolando...' : 'Rolar Dados'}</span>
         </button>
       </div>

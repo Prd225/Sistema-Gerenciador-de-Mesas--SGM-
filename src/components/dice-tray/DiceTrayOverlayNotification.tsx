@@ -65,7 +65,7 @@ export default function DiceTrayOverlayNotification() {
 
   return (
     <div
-      className="fixed top-[calc(0.75rem+env(safe-area-inset-top,0px))] left-1/2 -translate-x-1/2 z-[250] pointer-events-none select-none w-[calc(100vw-1.5rem)] max-w-md animate-in fade-in slide-in-from-top-4 duration-200"
+      className="fixed top-[calc(0.75rem+env(safe-area-inset-top,0px))] left-1/2 z-[250] pointer-events-none select-none w-[calc(100vw-1.5rem)] max-w-md animate-in fade-in slide-in-from-top-4 duration-200"
       style={{
         transform: isExiting
           ? 'translate3d(-50%, -120%, 0)'
