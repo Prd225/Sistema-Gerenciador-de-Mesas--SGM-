@@ -149,13 +149,12 @@ export function DescriptorsSection({
                 key={`${d.kind}-${d.id}`}
                 type="button"
                 onClick={() => setToggleState(sheetId, d.id, !d.active)}
-                className={`flex items-center justify-between gap-3 p-2.5 rounded-md border text-left transition-all ${
-                  d.active
+                className={`flex items-center justify-between gap-3 p-2.5 rounded-md border text-left transition-all ${d.active
                     ? isConsequence
                       ? 'border-rose-500/60 bg-rose-500/15'
                       : 'border-[var(--sheet-accent)] bg-[var(--sheet-accent-subtle)]'
                     : 'hover:border-[var(--sheet-accent)]'
-                }`}
+                  }`}
                 style={{
                   backgroundColor: d.active ? undefined : 'var(--sheet-item-bg, #121214)',
                   borderColor: d.active ? undefined : 'var(--sheet-item-border, #29292e)',
@@ -183,11 +182,10 @@ export function DescriptorsSection({
                       {d.effectSummaries.map((eff, idx) => (
                         <span
                           key={idx}
-                          className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
-                            d.active
+                          className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${d.active
                               ? 'bg-[#8257e5]/30 text-[#e1e1e6]'
                               : 'bg-[#202024] text-[#8d8d99]'
-                          }`}
+                            }`}
                         >
                           {eff}
                         </span>
@@ -197,13 +195,12 @@ export function DescriptorsSection({
                 </div>
 
                 <span
-                  className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase shrink-0 ${
-                    d.active
+                  className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase shrink-0 ${d.active
                       ? isConsequence
                         ? 'bg-rose-500 text-white'
                         : 'bg-[#8257e5] text-white'
                       : 'bg-[#202024] text-[#8d8d99] border border-[#323238]'
-                  }`}
+                    }`}
                 >
                   {d.active ? 'Ativo' : 'Inativo'}
                 </span>

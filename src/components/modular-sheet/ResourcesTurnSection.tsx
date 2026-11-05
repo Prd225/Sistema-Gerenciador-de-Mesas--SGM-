@@ -156,8 +156,8 @@ export function ResourcesTurnSection({
                           setResourceCurrent(sheetId, res.id, newCurrent);
                         }}
                         className={`w-7 h-7 rounded border font-mono text-xs font-bold flex items-center justify-center transition-colors ${boxState !== (states[0] ?? '.')
-                            ? 'bg-[#8257e5] border-[#996dff] text-white'
-                            : 'bg-[#18181b] border-[#323238] text-[#71717a] hover:border-[#8257e5]'
+                          ? 'bg-[#8257e5] border-[#996dff] text-white'
+                          : 'bg-[#18181b] border-[#323238] text-[#71717a] hover:border-[#8257e5]'
                           }`}
                       >
                         {boxState === (states[0] ?? '.') ? '' : boxState}
@@ -266,8 +266,8 @@ export function ResourcesTurnSection({
                       setTurnSlotCurrent(sheetId, slot.id, cur > 0 ? cur - 1 : max)
                     }
                     className={`px-2.5 py-1 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors ${isReady
-                        ? 'border-[#8257e5]/50 bg-[#8257e5]/20 text-[#c4b5fd] hover:bg-[#8257e5]/30'
-                        : 'border-[#323238] bg-[#18181b] text-[#71717a] line-through'
+                      ? 'border-[#8257e5]/50 bg-[#8257e5]/20 text-[#c4b5fd] hover:bg-[#8257e5]/30'
+                      : 'border-[#323238] bg-[#18181b] text-[#71717a] line-through'
                       }`}
                   >
                     <span>{slot.label || slot.id}</span>

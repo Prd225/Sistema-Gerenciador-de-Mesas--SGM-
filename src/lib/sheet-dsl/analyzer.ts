@@ -1090,11 +1090,21 @@ export class SheetAnalyzer {
       rollFormula = rollFormula.replace(/\(self\)/g, String(val)).replace(/\bself\b/g, String(val));
     }
 
+    let displayFraction: string | undefined;
+    if (decl.expr.type === 'BinaryExpr' && decl.expr.op === '/') {
+      const leftVal = this.evalExpr(decl.expr.left);
+      const rightVal = this.evalExpr(decl.expr.right);
+      if (typeof leftVal === 'number' && typeof rightVal === 'number' && rightVal > 0) {
+        displayFraction = `${leftVal} / ${rightVal}`;
+      }
+    }
+
     return {
       id: decl.id,
       label: decl.label || decl.id,
       baseValue: val,
       finalValue: val,
+      displayFraction,
       mode: decl.mode,
       locked: isLocked,
       traces: [{ source: 'Base', op: decl.mode, value: numVal }],

@@ -403,11 +403,10 @@ export default function ModularSheetsModal() {
                       key={t.id}
                       type="button"
                       onClick={() => handleChangeTheme(t.id)}
-                      className={`w-4 h-4 rounded-full transition-all ${
-                        isCurrent
+                      className={`w-4 h-4 rounded-full transition-all ${isCurrent
                           ? 'scale-125 ring-2 ring-white shadow-md'
                           : 'opacity-50 hover:opacity-100 hover:scale-110'
-                      }`}
+                        }`}
                       style={{ backgroundColor: t.dotColor }}
                       title={`Tema: ${t.name}`}
                     />
@@ -420,11 +419,10 @@ export default function ModularSheetsModal() {
                 <button
                   type="button"
                   onClick={() => setViewMode('visual')}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs font-bold transition-colors ${
-                    viewMode === 'visual'
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs font-bold transition-colors ${viewMode === 'visual'
                       ? currentTheme.buttonActive
                       : 'text-[#a8a8b3] hover:text-white'
-                  }`}
+                    }`}
                   title="Visualizar a Ficha Automatizada"
                 >
                   <Eye className="w-3.5 h-3.5" />
@@ -433,11 +431,10 @@ export default function ModularSheetsModal() {
                 <button
                   type="button"
                   onClick={() => setViewMode('split')}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs font-bold transition-colors ${
-                    viewMode === 'split'
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs font-bold transition-colors ${viewMode === 'split'
                       ? currentTheme.buttonActive
                       : 'text-[#a8a8b3] hover:text-white'
-                  }`}
+                    }`}
                   title="Editar DSL ao lado da Ficha Visual"
                 >
                   <Columns className="w-3.5 h-3.5" />
@@ -446,11 +443,10 @@ export default function ModularSheetsModal() {
                 <button
                   type="button"
                   onClick={() => setViewMode('code')}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs font-bold transition-colors ${
-                    viewMode === 'code'
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs font-bold transition-colors ${viewMode === 'code'
                       ? currentTheme.buttonActive
                       : 'text-[#a8a8b3] hover:text-white'
-                  }`}
+                    }`}
                   title="Editar código-fonte SGM-SDL"
                 >
                   <Code2 className="w-3.5 h-3.5" />
@@ -485,8 +481,8 @@ export default function ModularSheetsModal() {
                 type="button"
                 onClick={() => setView('list')}
                 className={`px-3 py-1 rounded text-xs font-bold transition-colors ${view === 'list'
-                    ? 'bg-[#8257e5] text-white'
-                    : 'text-[#a8a8b3] hover:text-white'
+                  ? 'bg-[#8257e5] text-white'
+                  : 'text-[#a8a8b3] hover:text-white'
                   }`}
               >
                 Fichas ({sheets.length})
@@ -495,8 +491,8 @@ export default function ModularSheetsModal() {
                 type="button"
                 onClick={handleStartCreateView}
                 className={`inline-flex items-center gap-1 px-3 py-1 rounded text-xs font-bold transition-colors ${view === 'create'
-                    ? 'bg-[#8257e5] text-white'
-                    : 'text-[#a8a8b3] hover:text-white'
+                  ? 'bg-[#8257e5] text-white'
+                  : 'text-[#a8a8b3] hover:text-white'
                   }`}
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -698,8 +694,8 @@ export default function ModularSheetsModal() {
                       key={card.id}
                       onClick={() => handleSelectPreset(card.id)}
                       className={`cursor-pointer rounded-2xl border-2 p-4 flex flex-col justify-between transition-all ${isSelected
-                          ? `${card.accentCls} scale-[1.01]`
-                          : 'border-[#29292e] bg-[#18181b] hover:border-[#3f3f46]'
+                        ? `${card.accentCls} scale-[1.01]`
+                        : 'border-[#29292e] bg-[#18181b] hover:border-[#3f3f46]'
                         }`}
                     >
                       <div className="space-y-2">
@@ -749,8 +745,8 @@ export default function ModularSheetsModal() {
                         type="button"
                         onClick={() => toggleDraftToken(token.id)}
                         className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-2 transition-colors ${isAssigned
-                            ? 'border-[#8257e5] bg-[#8257e5]/20 text-[#c4b5fd]'
-                            : 'border-[#323238] bg-[#121214] text-[#8d8d99] hover:text-white'
+                          ? 'border-[#8257e5] bg-[#8257e5]/20 text-[#c4b5fd]'
+                          : 'border-[#323238] bg-[#121214] text-[#8d8d99] hover:text-white'
                           }`}
                       >
                         <span
@@ -796,9 +792,8 @@ export default function ModularSheetsModal() {
           <div className="flex-1 min-h-0 flex overflow-hidden">
             {/* BARRA LATERAL RETRÁTIL DE ABAS VERTICAIS À ESQUERDA (IMAGEM 1) */}
             <aside
-              className={`border-r flex flex-col justify-between shrink-0 transition-all duration-200 z-10 ${
-                isSidebarCollapsed ? 'w-12' : 'w-44 sm:w-48'
-              }`}
+              className={`border-r flex flex-col justify-between shrink-0 transition-all duration-200 z-10 ${isSidebarCollapsed ? 'w-12' : 'w-44 sm:w-48'
+                }`}
               style={{
                 backgroundColor: 'var(--sheet-sidebar-bg)',
                 borderColor: 'var(--sheet-sidebar-border)',
@@ -839,13 +834,11 @@ export default function ModularSheetsModal() {
                       type="button"
                       onClick={() => setSelectedTab(tab.id)}
                       title={tab.label}
-                      className={`w-full rounded-xl px-3 py-2.5 text-xs font-extrabold flex items-center transition-all ${
-                        isSidebarCollapsed ? 'justify-center' : 'justify-start gap-2'
-                      } ${
-                        isActive
+                      className={`w-full rounded-xl px-3 py-2.5 text-xs font-extrabold flex items-center transition-all ${isSidebarCollapsed ? 'justify-center' : 'justify-start gap-2'
+                        } ${isActive
                           ? currentTheme.tabActive
                           : 'text-[#a8a8b3] hover:text-white hover:bg-white/5'
-                      }`}
+                        }`}
                     >
                       <Layers className="w-4 h-4 shrink-0" />
                       {!isSidebarCollapsed && (
@@ -862,9 +855,8 @@ export default function ModularSheetsModal() {
                   type="button"
                   onClick={handleAddNewTab}
                   title="Adicionar nova aba"
-                  className={`w-full rounded-xl border border-dashed hover:bg-white/5 text-[#71717a] hover:text-white px-3 py-2 text-xs font-bold flex items-center justify-center transition-colors ${
-                    isSidebarCollapsed ? 'h-10' : 'gap-1.5'
-                  }`}
+                  className={`w-full rounded-xl border border-dashed hover:bg-white/5 text-[#71717a] hover:text-white px-3 py-2 text-xs font-bold flex items-center justify-center transition-colors ${isSidebarCollapsed ? 'h-10' : 'gap-1.5'
+                    }`}
                   style={{
                     borderColor: 'var(--sheet-card-border)',
                   }}
@@ -884,8 +876,8 @@ export default function ModularSheetsModal() {
               {(viewMode === 'split' || viewMode === 'code') && (
                 <div
                   className={`flex flex-col min-h-0 ${viewMode === 'split'
-                      ? 'lg:w-[45%] border-b lg:border-b-0 lg:border-r h-1/2 lg:h-full'
-                      : 'w-full h-full'
+                    ? 'lg:w-[45%] border-b lg:border-b-0 lg:border-r h-1/2 lg:h-full'
+                    : 'w-full h-full'
                     }`}
                   style={{
                     backgroundColor: 'var(--sheet-code-bg)',
@@ -925,8 +917,8 @@ export default function ModularSheetsModal() {
 
                     <span
                       className={`text-[10px] font-mono font-bold ${compiledActiveSheet.diagnostics.length === 0
-                          ? 'text-emerald-400'
-                          : 'text-amber-400'
+                        ? 'text-emerald-400'
+                        : 'text-amber-400'
                         }`}
                     >
                       {compiledActiveSheet.diagnostics.length === 0

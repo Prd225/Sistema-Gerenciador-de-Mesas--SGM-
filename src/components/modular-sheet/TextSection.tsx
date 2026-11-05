@@ -45,9 +45,8 @@ export const TextSection: React.FC<TextSectionProps> = ({ block }) => {
       )}
 
       <div
-        className={`relative rounded-xl border p-4 space-y-3 transition-colors ${
-          isTall ? 'min-h-[280px] flex flex-col' : ''
-        }`}
+        className={`relative rounded-xl border p-4 space-y-3 transition-colors ${isTall ? 'min-h-[280px] flex flex-col' : ''
+          }`}
         style={{
           backgroundColor: 'var(--sheet-card-bg, #18181b)',
           borderColor: 'var(--sheet-card-border, #29292e)',

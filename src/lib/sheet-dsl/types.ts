@@ -520,6 +520,7 @@ export interface EvaluatedStat {
   label: string;
   baseValue: EvaluatedValue;
   finalValue: EvaluatedValue;
+  displayFraction?: string;
   mode: AssignMode;
   locked: boolean;
   traces: ModifierTrace[];

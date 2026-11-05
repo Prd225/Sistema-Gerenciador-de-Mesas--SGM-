@@ -123,11 +123,10 @@ export function AbilitiesSection({
     return (
       <div
         key={ab.id}
-        className={`rounded-lg border p-3 space-y-2.5 transition-all ${
-          ab.isToggleable && ab.active
+        className={`rounded-lg border p-3 space-y-2.5 transition-all ${ab.isToggleable && ab.active
             ? 'border-[var(--sheet-accent)]'
             : ''
-        }`}
+          }`}
         style={{
           backgroundColor: 'var(--sheet-item-bg, #121214)',
           borderColor: ab.isToggleable && ab.active ? undefined : 'var(--sheet-item-border, #29292e)',
@@ -168,11 +167,10 @@ export function AbilitiesSection({
               <button
                 type="button"
                 onClick={() => setToggleState(sheetId, ab.id, !ab.active)}
-                className={`inline-flex items-center gap-1 h-7 px-2.5 rounded-md border text-xs font-bold transition-colors ${
-                  ab.active
+                className={`inline-flex items-center gap-1 h-7 px-2.5 rounded-md border text-xs font-bold transition-colors ${ab.active
                     ? 'border-[#8257e5] bg-[#8257e5] text-white'
                     : 'border-[#323238] bg-[#202024] text-[#a8a8b3] hover:text-white'
-                }`}
+                  }`}
               >
                 <Power className="w-3 h-3" />
                 {ab.active ? 'Efeito Ativo' : 'Ativar Efeito'}
@@ -194,13 +192,12 @@ export function AbilitiesSection({
                     ),
                   );
                 }}
-                className={`inline-flex items-center gap-1 h-7 px-2.5 rounded-md border text-xs font-bold transition-colors ${
-                  !matchedResource
+                className={`inline-flex items-center gap-1 h-7 px-2.5 rounded-md border text-xs font-bold transition-colors ${!matchedResource
                     ? 'border-amber-500/40 bg-amber-500/15 text-amber-300 cursor-default'
                     : canAffordResource
                       ? 'border-amber-500/60 bg-amber-500/15 hover:bg-amber-500/30 text-amber-200 cursor-pointer'
                       : 'border-rose-500/40 bg-rose-500/10 text-rose-400 cursor-not-allowed opacity-70'
-                }`}
+                  }`}
                 title={
                   matchedResource
                     ? canAffordResource
@@ -229,11 +226,10 @@ export function AbilitiesSection({
             {ab.effectSummaries.map((eff, idx) => (
               <span
                 key={idx}
-                className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${
-                  !ab.isToggleable || ab.active
+                className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${!ab.isToggleable || ab.active
                     ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-300'
                     : 'bg-[#202024] text-[#8d8d99]'
-                }`}
+                  }`}
               >
                 {eff}
               </span>
@@ -254,11 +250,10 @@ export function AbilitiesSection({
                   key={enh.id}
                   type="button"
                   onClick={() => toggleEnhancement(ab.id, enh.id)}
-                  className={`w-full flex items-start justify-between gap-2 p-1.5 rounded border text-left transition-colors ${
-                    checked
+                  className={`w-full flex items-start justify-between gap-2 p-1.5 rounded border text-left transition-colors ${checked
                       ? 'border-[#8257e5]/70 bg-[#8257e5]/15'
                       : 'border-transparent hover:bg-white/5'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-start gap-2 min-w-0">
                     {checked ? (
@@ -398,11 +393,10 @@ export function AbilitiesSection({
               <button
                 type="button"
                 onClick={() => setCategoryFilter('ALL')}
-                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-colors ${
-                  categoryFilter === 'ALL'
+                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-colors ${categoryFilter === 'ALL'
                     ? 'text-white'
                     : 'border text-[#a8a8b3] hover:text-white'
-                }`}
+                  }`}
                 style={{
                   backgroundColor: categoryFilter === 'ALL' ? 'var(--sheet-accent)' : 'var(--sheet-item-bg, #121214)',
                   borderColor: categoryFilter === 'ALL' ? 'var(--sheet-accent)' : 'var(--sheet-item-border, #323238)',
@@ -415,11 +409,10 @@ export function AbilitiesSection({
                   key={cat}
                   type="button"
                   onClick={() => setCategoryFilter(cat)}
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-colors ${
-                    categoryFilter === cat
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-colors ${categoryFilter === cat
                       ? 'text-white'
                       : 'border text-[#a8a8b3] hover:text-white'
-                  }`}
+                    }`}
                   style={{
                     backgroundColor: categoryFilter === cat ? 'var(--sheet-accent)' : 'var(--sheet-item-bg, #121214)',
                     borderColor: categoryFilter === cat ? 'var(--sheet-accent)' : 'var(--sheet-item-border, #323238)',

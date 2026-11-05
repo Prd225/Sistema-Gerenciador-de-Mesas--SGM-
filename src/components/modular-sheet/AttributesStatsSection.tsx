@@ -122,13 +122,44 @@ export function AttributesStatsSection({
 
     const hasRoll = Boolean(attr.rollFormula);
     const displayName = attr.label || attr.id;
+    const displayVal = attr.displayFraction ?? formatEvaluatedValue(attr.finalValue);
+
+    const isDescriptiveText =
+      typeof attr.finalValue === 'string' &&
+      (attr.finalValue.length > 20 ||
+        attr.id.includes('tipo') ||
+        attr.id.includes('desc') ||
+        attr.id.includes('nota') ||
+        attr.id.includes('info'));
+
+    if (isDescriptiveText) {
+      return (
+        <div
+          key={attr.id}
+          className="w-full rounded-xl border p-3 text-xs leading-relaxed transition-colors flex items-start gap-2.5 col-span-full"
+          style={{
+            backgroundColor: 'var(--sheet-item-bg, #121214)',
+            borderColor: 'var(--sheet-item-border, #29292e)',
+          }}
+        >
+          <span className="font-bold uppercase tracking-wider text-zinc-300 shrink-0">
+            {displayName}:
+          </span>
+          <span className="text-zinc-300 italic flex-1 leading-relaxed">
+            {typeof attr.finalValue === 'string'
+              ? attr.finalValue
+              : formatEvaluatedValue(attr.finalValue)}
+          </span>
+        </div>
+      );
+    }
 
     if (!isPrimary) {
       return (
         <div
           key={attr.id}
           onClick={() => handleStatClick(attr)}
-          className={`rounded-lg border px-3 py-2 flex items-center justify-between gap-2 transition-all ${
+          className={`rounded-lg border px-3 py-2 flex items-center justify-between gap-2.5 transition-all min-w-0 ${
             hasRoll ? 'cursor-pointer hover:border-[var(--sheet-accent)] rollable-interactive' : ''
           }`}
           style={{
@@ -136,19 +167,26 @@ export function AttributesStatsSection({
             borderColor: 'var(--sheet-item-border, #29292e)',
           }}
         >
-          <span className="text-xs font-medium text-[#a8a8b3] truncate">
+          <span
+            className="text-xs font-semibold text-[#a8a8b3] truncate flex-1 min-w-0"
+            title={displayName}
+          >
             {displayName}
           </span>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0 pl-1.5">
             <span
               className={`font-mono text-sm font-bold ${renderStatValueColor(
                 attr,
                 'text-[#e1e1e6]',
               )}`}
             >
-              {formatEvaluatedValue(attr.finalValue)}
+              {displayVal}
             </span>
-            {hasRoll && <Dices className="w-3 h-3 text-[#71717a] rollable-dice-icon" />}
+            {hasRoll && (
+              <span className="w-3.5 h-3.5 flex items-center justify-center shrink-0">
+                <Dices className="w-3.5 h-3.5 text-[#71717a] group-hover:text-[var(--sheet-accent-text)] rollable-dice-icon shrink-0" />
+              </span>
+            )}
           </div>
         </div>
       );
@@ -158,9 +196,10 @@ export function AttributesStatsSection({
       <div
         key={attr.id}
         onClick={() => handleStatClick(attr)}
-        className={`group relative rounded-xl border p-3 flex flex-col items-center justify-center transition-all min-w-[84px] ${
+        className={`group relative rounded-xl border p-2.5 sm:p-3 flex flex-col items-center justify-between transition-all min-w-[84px] ${
           hasRoll ? 'cursor-pointer hover:border-[var(--sheet-accent)] rollable-interactive' : ''
-        } ${attr.locked
+        } ${
+          attr.locked
             ? 'border-amber-500/50'
             : isBuffed
               ? 'border-emerald-500/40'
@@ -176,30 +215,35 @@ export function AttributesStatsSection({
               : 'var(--sheet-card-border, #29292e)',
         }}
       >
-        {attr.locked && (
-          <span
-            title="Valor Travado (:! / !lock)"
-            className="absolute top-2 left-2 text-amber-400"
-          >
-            <Lock className="w-3 h-3" />
-          </span>
-        )}
+        {/* Header seguro com ícones nas extremidades e texto no centro (evita interpolação com letras) */}
+        <div className="w-full flex items-center justify-between gap-1 mb-1">
+          <div className="w-4 h-4 flex items-center justify-center shrink-0">
+            {attr.locked && (
+              <span title="Valor Travado (:! / !lock)" className="text-amber-400">
+                <Lock className="w-3 h-3" />
+              </span>
+            )}
+          </div>
 
-        {hasRoll && (
           <span
-            title={`Rolar: ${attr.rollFormula}`}
-            className="absolute top-2 right-2 text-[#71717a] group-hover:text-[var(--sheet-accent-text)] transition-colors"
+            className="text-xs font-semibold tracking-wide text-center uppercase truncate flex-1 min-w-0 px-1"
+            style={{ color: 'var(--sheet-accent-text, #c4b5fd)' }}
+            title={displayName}
           >
-            <Dices className="w-3.5 h-3.5 rollable-dice-icon" />
+            {displayName}
           </span>
-        )}
 
-        <span
-          className="text-xs font-semibold tracking-wide text-center uppercase truncate max-w-full"
-          style={{ color: 'var(--sheet-accent-text, #c4b5fd)' }}
-        >
-          {displayName}
-        </span>
+          <div className="w-4 h-4 flex items-center justify-center shrink-0">
+            {hasRoll && (
+              <span
+                title={`Rolar: ${attr.rollFormula}`}
+                className="text-[#71717a] group-hover:text-[var(--sheet-accent-text)] transition-colors flex items-center justify-center"
+              >
+                <Dices className="w-3.5 h-3.5 rollable-dice-icon shrink-0" />
+              </span>
+            )}
+          </div>
+        </div>
 
         <span
           className={`mt-1 font-mono text-2xl font-black text-center ${renderStatValueColor(
@@ -207,7 +251,7 @@ export function AttributesStatsSection({
             'text-white',
           )}`}
         >
-          {formatEvaluatedValue(attr.finalValue)}
+          {displayVal}
         </span>
 
         {Object.keys(attr.children).length > 0 && (
@@ -387,13 +431,44 @@ export function AttributesStatsSection({
 
     // 5. PADRÃO: MODO CARDS
     if (!isPrimary) {
+      const textNotes = items.filter(
+        (s) =>
+          typeof s.finalValue === 'string' &&
+          (s.finalValue.length > 20 ||
+            s.id.includes('tipo') ||
+            s.id.includes('desc') ||
+            s.id.includes('nota') ||
+            s.id.includes('info')),
+      );
+      const normalStats = items.filter(
+        (s) =>
+          !(
+            typeof s.finalValue === 'string' &&
+            (s.finalValue.length > 20 ||
+              s.id.includes('tipo') ||
+              s.id.includes('desc') ||
+              s.id.includes('nota') ||
+              s.id.includes('info'))
+          ),
+      );
+
       return (
-        <div className="flex flex-wrap gap-2">
-          {items.map((stat) => (
-            <div key={stat.id} className="flex-1 min-w-[130px]">
-              {renderCardItem(stat, false)}
+        <div className="space-y-2">
+          {textNotes.length > 0 && (
+            <div className="space-y-1.5 w-full">
+              {textNotes.map((stat) => renderCardItem(stat, false))}
             </div>
-          ))}
+          )}
+
+          {normalStats.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              {normalStats.map((stat) => (
+                <div key={stat.id} className="min-w-0">
+                  {renderCardItem(stat, false)}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       );
     }

@@ -53,22 +53,22 @@ export function InventorySection({
       label: string;
       icon: React.ReactNode;
     }> = [
-      {
-        value: 'equipped',
-        label: 'Equipado',
-        icon: <Shield className="w-3 h-3" />,
-      },
-      {
-        value: 'carried',
-        label: 'Mochila',
-        icon: <Package className="w-3 h-3" />,
-      },
-      {
-        value: 'stash',
-        label: 'Reserva',
-        icon: <Archive className="w-3 h-3" />,
-      },
-    ];
+        {
+          value: 'equipped',
+          label: 'Equipado',
+          icon: <Shield className="w-3 h-3" />,
+        },
+        {
+          value: 'carried',
+          label: 'Mochila',
+          icon: <Package className="w-3 h-3" />,
+        },
+        {
+          value: 'stash',
+          label: 'Reserva',
+          icon: <Archive className="w-3 h-3" />,
+        },
+      ];
 
     return (
       <div className="inline-flex rounded-md border border-[#323238] bg-[#18181b] p-0.5">
@@ -79,15 +79,14 @@ export function InventorySection({
               key={opt.value}
               type="button"
               onClick={() => setItemState(sheetId, item.id, opt.value)}
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${
-                selected
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${selected
                   ? opt.value === 'equipped'
                     ? 'bg-[#8257e5] text-white'
                     : opt.value === 'carried'
                       ? 'bg-[#323238] text-white'
                       : 'bg-amber-600/30 text-amber-200'
                   : 'text-[#8d8d99] hover:text-white'
-              }`}
+                }`}
               title={
                 opt.value === 'equipped'
                   ? 'Equipado: soma peso e aplica bônus passivos'
@@ -131,9 +130,8 @@ export function InventorySection({
         <div className="flex items-center gap-2 text-xs font-mono">
           <span className="text-[#a8a8b3]">Carga:</span>
           <span
-            className={`font-black ${
-              inv.isOverloaded ? 'text-rose-400' : 'text-white'
-            }`}
+            className={`font-black ${inv.isOverloaded ? 'text-rose-400' : 'text-white'
+              }`}
           >
             {inv.currentLoad} / {inv.maxCapacity} {inv.unit}
           </span>
@@ -155,13 +153,12 @@ export function InventorySection({
           }}
         >
           <div
-            className={`h-full transition-all duration-300 ${
-              inv.isOverloaded
+            className={`h-full transition-all duration-300 ${inv.isOverloaded
                 ? 'bg-gradient-to-r from-rose-600 to-red-500'
                 : pct >= 85
                   ? 'bg-gradient-to-r from-amber-500 to-orange-400'
                   : 'bg-gradient-to-r from-emerald-600 to-teal-400'
-            }`}
+              }`}
             style={{ width: `${inv.isOverloaded ? 100 : pct}%` }}
           />
         </div>
@@ -197,13 +194,12 @@ export function InventorySection({
         {inv.items.map((item) => (
           <div
             key={item.id}
-            className={`rounded-lg border p-3 space-y-2 transition-colors ${
-              item.state === 'equipped'
+            className={`rounded-lg border p-3 space-y-2 transition-colors ${item.state === 'equipped'
                 ? 'border-[var(--sheet-accent)]'
                 : item.state === 'stash'
                   ? 'opacity-75'
                   : ''
-            }`}
+              }`}
             style={{
               backgroundColor: 'var(--sheet-item-bg, #121214)',
               borderColor: item.state === 'equipped' ? undefined : 'var(--sheet-item-border, #29292e)',
@@ -250,11 +246,10 @@ export function InventorySection({
                     {item.effectSummaries.map((eff, idx) => (
                       <span
                         key={idx}
-                        className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${
-                          item.state === 'equipped'
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${item.state === 'equipped'
                             ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
                             : 'bg-[#202024] text-[#8d8d99] line-through'
-                        }`}
+                          }`}
                       >
                         {eff}
                       </span>

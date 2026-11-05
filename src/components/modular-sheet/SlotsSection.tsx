@@ -87,8 +87,7 @@ function SlotBlockGrid({
             <div
               key={slot.id}
               onClick={() => onCycleSlot(slot)}
-              className={`group relative rounded-lg border p-2.5 flex flex-col justify-between transition-all cursor-pointer select-none min-h-[74px] ${spanClass} ${
-                isDamaged
+              className={`group relative rounded-lg border p-2.5 flex flex-col justify-between transition-all cursor-pointer select-none min-h-[74px] ${spanClass} ${isDamaged
                   ? 'border-rose-500/60 bg-rose-950/20 hover:border-rose-400'
                   : isCondition
                     ? 'border-amber-500/50 bg-amber-950/20 hover:border-amber-400'
@@ -97,7 +96,7 @@ function SlotBlockGrid({
                       : isFilled
                         ? 'hover:border-[var(--sheet-accent)]'
                         : 'border-dashed hover:border-[var(--sheet-accent)]'
-              }`}
+                }`}
               style={{
                 backgroundColor:
                   isDamaged || isCondition
@@ -164,8 +163,8 @@ function SlotBlockGrid({
                         key={i}
                         onClick={() => onSetCurrent(slot, i + 1 === slot.current ? i : i + 1)}
                         className={`w-2.5 h-2.5 rounded-full border cursor-pointer transition-colors ${i < (slot.current ?? 0)
-                            ? 'bg-[#8257e5] border-[#996dff]'
-                            : 'bg-[#202024] border-[#323238] hover:border-[#8257e5]'
+                          ? 'bg-[#8257e5] border-[#996dff]'
+                          : 'bg-[#202024] border-[#323238] hover:border-[#8257e5]'
                           }`}
                       />
                     ))}

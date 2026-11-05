@@ -144,22 +144,22 @@ export function SkillsSection({
                 title={`Rolar ${sk.rollFormula}`}
                 className="group cursor-pointer flex items-baseline justify-between gap-2 px-1.5 py-0.5 rounded hover:bg-zinc-800/60 transition-colors"
               >
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-semibold text-[#e1e1e6]">
+                <div className="flex items-center gap-1.5 min-w-0 truncate">
+                  <span className="text-xs font-semibold text-[#e1e1e6] truncate">
                     {sk.label}
                   </span>
                   {sk.baseAttr && (
-                    <span className="text-[10px] font-mono text-[#71717a]">
+                    <span className="text-[10px] font-mono text-[#71717a] shrink-0">
                       ({sk.baseAttr})
                     </span>
                   )}
                 </div>
-                <span className="flex-1 border-b border-dotted border-zinc-800 mx-1" />
-                <div className="flex items-center gap-1.5">
+                <span className="flex-1 border-b border-dotted border-zinc-800 mx-1 min-w-[12px]" />
+                <div className="flex items-center gap-1.5 shrink-0 pl-1">
                   <span className="text-xs font-black font-mono text-white">
                     {formatSkillValue(sk.bonus, isRollUnder)}
                   </span>
-                  <Dices className="w-3.5 h-3.5 text-[#71717a] group-hover:text-[var(--sheet-accent-text)] transition-colors rollable-dice-icon" />
+                  <Dices className="w-3.5 h-3.5 text-[#71717a] group-hover:text-[var(--sheet-accent-text)] transition-colors rollable-dice-icon shrink-0" />
                 </div>
               </div>
             );
@@ -188,21 +188,21 @@ export function SkillsSection({
                 title={`Rolar ${sk.rollFormula}`}
                 className="group cursor-pointer px-3 py-2 flex items-center justify-between gap-2 hover:bg-white/5 transition-colors"
               >
-                <div className="flex items-center gap-1.5 min-w-0">
+                <div className="flex items-center gap-1.5 min-w-0 flex-1 truncate">
                   <span className="text-xs font-semibold text-[#e1e1e6] truncate">
                     {sk.label}
                   </span>
                   {sk.baseAttr && (
-                    <span className="text-[10px] font-mono text-[#71717a]">
+                    <span className="text-[10px] font-mono text-[#71717a] shrink-0">
                       ({sk.baseAttr})
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 pl-1.5">
                   <span className="text-sm font-black font-mono text-white">
                     {formatSkillValue(sk.bonus, isRollUnder)}
                   </span>
-                  <Dices className="w-3.5 h-3.5 text-[#71717a] group-hover:text-[var(--sheet-accent-text)] transition-colors" />
+                  <Dices className="w-3.5 h-3.5 text-[#71717a] group-hover:text-[var(--sheet-accent-text)] transition-colors shrink-0" />
                 </div>
               </div>
             );
@@ -239,13 +239,13 @@ export function SkillsSection({
                   borderColor: 'var(--sheet-item-border, #29292e)',
                 }}
               >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
+                <div className="min-w-0 flex-1 truncate">
+                  <div className="flex items-center gap-1.5 min-w-0">
                     <span className="text-xs font-semibold text-[#e1e1e6] truncate">
                       {sk.label}
                     </span>
                     {sk.baseAttr && (
-                      <span className="text-[10px] font-mono text-[#71717a]">
+                      <span className="text-[10px] font-mono text-[#71717a] shrink-0">
                         ({sk.baseAttr})
                       </span>
                     )}
@@ -271,12 +271,12 @@ export function SkillsSection({
                   )}
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 pl-1.5">
                   <span className="text-sm font-black font-mono text-white">
                     {formatSkillValue(sk.bonus, isRollUnder)}
                   </span>
 
-                  <Dices className="w-3.5 h-3.5 text-[#71717a] group-hover:text-[var(--sheet-accent-text)] transition-colors rollable-dice-icon" />
+                  <Dices className="w-3.5 h-3.5 text-[#71717a] group-hover:text-[var(--sheet-accent-text)] transition-colors rollable-dice-icon shrink-0" />
                 </div>
               </div>
             );

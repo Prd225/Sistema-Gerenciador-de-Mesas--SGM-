@@ -539,10 +539,10 @@ export const SHEET_DSL_PRESETS: Record<string, SheetDSLPreset> = {
 
 @stat "Perfil do Mercenário (Bramble)" [col1]
   hire_tipo "Descrição": "Rato veterano caolho. Disposição Leal. Custo: 5 pips/dia."
-  hire_str "Bramble Força"    := 9  [roll: "1d20 <= hire_str"]
-  hire_dex "Bramble Destreza" := 11 [roll: "1d20 <= hire_dex"]
-  hire_wil "Bramble Vontade"  := 7  [roll: "1d20 <= hire_wil"]
-  hire_hp "Bramble HP": 3 / 4
+  hire_str "Força"    := 9  [roll: "1d20 <= hire_str"]
+  hire_dex "Destreza" := 11 [roll: "1d20 <= hire_dex"]
+  hire_wil "Vontade"  := 7  [roll: "1d20 <= hire_wil"]
+  hire_hp "HP": 3 / 4
 
 @texto "Diário de Campanhas & Rumores" [col2]
   "Anotações de Exploração e Boatos:"
