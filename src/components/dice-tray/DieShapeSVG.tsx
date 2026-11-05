@@ -207,6 +207,7 @@ interface DieShapeSVGProps {
   size?: number;
   mainNumRef?: RefObject<SVGTextElement | null>;
   sideNumRefs?: MutableRefObject<(SVGTextElement | null)[]>;
+  isSelected?: boolean;
 }
 
 function DieShapeSVG({
@@ -221,6 +222,7 @@ function DieShapeSVG({
   size = 84,
   mainNumRef,
   sideNumRefs,
+  isSelected,
 }: DieShapeSVGProps) {
   const g = GEOMETRY[faces];
   const uid = dieId.replace(/[^a-zA-Z0-9_-]/g, '');
@@ -333,6 +335,37 @@ function DieShapeSVG({
 
       {/* Contorno externo nítido */}
       <path d={g.outline} fill="none" stroke={edge} strokeWidth={edgeWidth} strokeLinejoin="round" />
+
+      {/* Traço tracejado de seleção seguindo fielmente a geometria/formato do dado */}
+      {isSelected && (
+        <g className="animate-pulse pointer-events-none">
+          {/* Brilho difuso externo na cor do dado */}
+          <path
+            d={g.outline}
+            fill="none"
+            stroke={color}
+            strokeWidth={5}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            opacity={0.35}
+            transform="translate(-4, -4) scale(1.08)"
+          />
+          {/* Linha tracejada nítida contornando o formato geométrico */}
+          <path
+            d={g.outline}
+            fill="none"
+            stroke={color}
+            strokeWidth={2.6}
+            strokeDasharray="6 4"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            transform="translate(-4, -4) scale(1.08)"
+            style={{
+              filter: `drop-shadow(0 0 5px ${color})`,
+            }}
+          />
+        </g>
+      )}
     </svg>
   );
 }

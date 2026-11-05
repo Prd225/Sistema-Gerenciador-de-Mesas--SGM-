@@ -66,7 +66,6 @@ export default function DiceTrayToolbar({
   const undo = useDiceTrayStore((state) => state.undo);
   const redo = useDiceTrayStore((state) => state.redo);
   const clearTray = useDiceTrayStore((state) => state.clearTray);
-  const selectedDieIds = useDiceTrayStore((state) => state.selectedDieIds);
 
   const [isModifiersExpanded, setIsModifiersExpanded] = useState(false);
   const rollBtnRef = useRef<HTMLButtonElement>(null);
@@ -305,26 +304,24 @@ export default function DiceTrayToolbar({
             </button>
           </div>
 
-          {/* Botão Rolar Elevado 3D para o Polegar (Lado Direito, altura total das 2 colunas como no rascunho) */}
-          <button
-            ref={mobileRollBtnRef}
-            type="button"
-            onPointerDown={(e) => handlePointerDown(e, mobileRollBtnRef.current)}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerCancel}
-            onContextMenu={(e) => e.preventDefault()}
-            disabled={isRolling || dice.length === 0}
-            className="w-24 sm:w-28 shrink-0 rounded-2xl bg-violet-600 hover:bg-violet-500 border border-violet-400/20 border-b-[5px] border-b-violet-900 active:translate-y-1 disabled:opacity-40 disabled:translate-y-0 disabled:cursor-not-allowed text-white shadow-md flex flex-col items-center justify-center gap-1.5 cursor-pointer select-none touch-manipulation transition-transform duration-75"
-          >
-            <Dices className={`w-8 h-8 ${isRolling ? 'animate-spin' : ''}`} />
-            <span className="font-black text-xs sm:text-sm tracking-wider uppercase text-center leading-tight">
-              {isRolling
-                ? '...'
-                : selectedDieIds.length > 0
-                ? `ROLAR (${selectedDieIds.length})`
-                : 'ROLAR'}
-            </span>
-          </button>
+          {/* Botão Rolar Elevado 3D Push Button para o Polegar (Lado Direito, altura total das 2 colunas como no rascunho) */}
+          <div className="w-24 sm:w-28 shrink-0 relative flex items-stretch">
+            <button
+              ref={mobileRollBtnRef}
+              type="button"
+              onPointerDown={(e) => handlePointerDown(e, mobileRollBtnRef.current)}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerCancel}
+              onContextMenu={(e) => e.preventDefault()}
+              disabled={isRolling || dice.length === 0}
+              className="w-full h-full rounded-2xl bg-violet-600 hover:bg-violet-500 border border-violet-400/20 border-b-[5px] border-b-violet-900 active:border-b-0 active:translate-y-[5px] active:bg-violet-700 disabled:opacity-40 disabled:border-b-[5px] disabled:translate-y-0 disabled:cursor-not-allowed text-white shadow-md flex flex-col items-center justify-center gap-1.5 cursor-pointer select-none touch-manipulation transition-all duration-75"
+            >
+              <Dices className={`w-8 h-8 ${isRolling ? 'animate-spin' : ''}`} />
+              <span className="font-black text-xs sm:text-sm tracking-wider uppercase text-center leading-tight">
+                {isRolling ? '...' : 'ROLAR'}
+              </span>
+            </button>
+          </div>
         </div>
 
         {/* 3. Rodapé Compacto: Visibilidade e Ações Rápidas (Desfazer, Refazer, Som) */}
@@ -556,28 +553,24 @@ export default function DiceTrayToolbar({
         )}
       </div>
 
-      {/* Botão de Rolar Dados Elevado 3D no Desktop / Landscape (Desce ao clicar em 3D, mantendo layout estático) */}
-      <button
-        ref={rollBtnRef}
-        type="button"
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        onPointerDown={(e) => handlePointerDown(e, rollBtnRef.current)}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerCancel}
-        onContextMenu={(e) => e.preventDefault()}
-        disabled={isRolling || dice.length === 0}
-        className="w-full relative flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-violet-600 hover:bg-violet-500 border border-violet-400/20 border-b-4 border-b-violet-900 active:translate-y-1 disabled:opacity-40 disabled:translate-y-0 disabled:cursor-not-allowed text-white font-bold text-sm tracking-wide shadow-md cursor-pointer select-none touch-manipulation transition-transform duration-75"
-      >
-        <Dices className={`w-4 h-4 ${isRolling ? 'animate-spin' : ''}`} />
-        <span>
-          {isRolling
-            ? 'Rolando...'
-            : selectedDieIds.length > 0
-            ? `Rolar Selecionados (${selectedDieIds.length})`
-            : 'Rolar Dados'}
-        </span>
-      </button>
+      {/* Botão de Rolar Dados Elevado 3D Push Button no Desktop / Landscape */}
+      <div className="w-full h-11 relative">
+        <button
+          ref={rollBtnRef}
+          type="button"
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          onPointerDown={(e) => handlePointerDown(e, rollBtnRef.current)}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
+          onContextMenu={(e) => e.preventDefault()}
+          disabled={isRolling || dice.length === 0}
+          className="w-full h-full relative flex items-center justify-center gap-2 px-4 rounded-xl bg-violet-600 hover:bg-violet-500 border border-violet-400/20 border-b-4 border-b-violet-900 active:border-b-0 active:translate-y-1 active:bg-violet-700 disabled:opacity-40 disabled:border-b-4 disabled:translate-y-0 disabled:cursor-not-allowed text-white font-bold text-sm tracking-wide shadow-md cursor-pointer select-none touch-manipulation transition-all duration-75"
+        >
+          <Dices className={`w-4 h-4 ${isRolling ? 'animate-spin' : ''}`} />
+          <span>{isRolling ? 'Rolando...' : 'Rolar Dados'}</span>
+        </button>
+      </div>
 
       {/* Visibilidade da Rolagem */}
       <div className="bg-[#202024]/40 border border-[#27272a] rounded-lg p-2 sm:p-2.5">

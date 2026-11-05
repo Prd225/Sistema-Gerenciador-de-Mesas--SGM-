@@ -186,28 +186,21 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
           }}
         />
 
-        {/* Indicador de Seleção: Setinha e Tracejado na cor do dado */}
+        {/* Indicador de Seleção: Setinha grande e alinhada ao centro do dado */}
         {isSelected && (
-          <>
-            {/* Setinha apontando para o dado na cor da borda do dado */}
-            <div
-              className="absolute -top-5 left-1/2 -translate-x-1/2 pointer-events-none z-30 flex flex-col items-center animate-bounce"
-              style={{ color: die.color }}
-            >
+          <div
+            className="absolute -top-7 left-1/2 -translate-x-1/2 pointer-events-none z-30 flex flex-col items-center"
+            style={{ color: die.color }}
+          >
+            <div className="animate-bounce flex items-center justify-center">
               <svg
-                className="w-4 h-4 fill-current drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
+                className="w-6 h-6 fill-current drop-shadow-[0_3px_8px_rgba(0,0,0,0.9)]"
                 viewBox="0 0 24 24"
               >
-                <path d="M12 18l-6-7h12l-6 7z" />
+                <path d="M12 20L3 7h18l-9 13z" />
               </svg>
             </div>
-
-            {/* Tracejado circular na cor da borda do dado */}
-            <div
-              className="absolute inset-0 -m-1.5 rounded-full border-2 border-dashed pointer-events-none z-20 animate-pulse drop-shadow-[0_0_6px_rgba(0,0,0,0.6)]"
-              style={{ borderColor: die.color }}
-            />
-          </>
+          </div>
         )}
 
         {/* Recipiente com Rotação, Altura e Perspectiva 3D */}
@@ -240,6 +233,7 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
             size={84}
             mainNumRef={mainNumRef}
             sideNumRefs={sideNumRefs}
+            isSelected={isSelected}
           />
         </div>
 
