@@ -565,7 +565,7 @@ export default function DiceTrayToolbar({
           onPointerCancel={handlePointerCancel}
           onContextMenu={(e) => e.preventDefault()}
           disabled={isRolling || dice.length === 0}
-          className="w-full h-full relative flex items-center justify-center gap-2.5 px-4 rounded-2xl bg-violet-600 hover:bg-violet-500 border border-violet-400/20 border-b-[5px] border-b-violet-950 active:border-b-0 active:translate-y-[5px] active:bg-violet-700 disabled:opacity-40 disabled:border-b-[5px] disabled:translate-y-0 disabled:cursor-not-allowed text-white font-black text-[15px] sm:text-base tracking-wider shadow-lg shadow-violet-950/40 cursor-pointer select-none touch-manipulation transition-all duration-75"
+          className="w-full h-full relative flex items-center justify-center gap-2.5 px-4 rounded-2xl bg-violet-600 hover:bg-violet-500 border border-violet-400/20 border-b-[5px] border-b-violet-950 active:border-b-0 active:translate-y-[5px] active:bg-violet-700 disabled:opacity-40 disabled:border-b-[5px] disabled:translate-y-0 disabled:cursor-not-allowed text-white font-black text-[15px] sm:text-base tracking-wider cursor-pointer select-none touch-manipulation transition-all duration-75"
         >
           <Dices className={`w-5 h-5 ${isRolling ? 'animate-spin' : ''}`} />
           <span>{isRolling ? 'Rolando...' : 'Rolar Dados'}</span>

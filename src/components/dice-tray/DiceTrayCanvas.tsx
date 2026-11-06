@@ -15,6 +15,8 @@ export default function DiceTrayCanvas({ isMobileLandscape: _isMobileLandscape =
   const clearLastRollResult = useDiceTrayStore((state) => state.clearLastRollResult);
   const selectedDieIds = useDiceTrayStore((state) => state.selectedDieIds);
   const clearSelectedDice = useDiceTrayStore((state) => state.clearSelectedDice);
+  const sheetRollContext = useDiceTrayStore((state) => state.sheetRollContext);
+  const clearSheetRollContext = useDiceTrayStore((state) => state.clearSheetRollContext);
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Fecha o expansor quando um novo resultado for limpo
@@ -48,10 +50,38 @@ export default function DiceTrayCanvas({ isMobileLandscape: _isMobileLandscape =
         <Dices className="w-56 h-56 text-white stroke-[1]" />
       </div>
 
+      {/* Cabeçalho da Fórmula carregada da Ficha Modular */}
+      {sheetRollContext && (
+        <div className="absolute top-2.5 left-3 right-3 flex justify-center pointer-events-none z-20">
+          <div className="pointer-events-auto inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#18181b]/95 border border-[#323238] text-xs max-w-full">
+            <Dices className="w-3.5 h-3.5 text-[#a78bfa] shrink-0" />
+            <span className="font-bold text-white truncate">
+              {sheetRollContext.title}
+            </span>
+            {sheetRollContext.subtitle && (
+              <span className="text-[#8d8d99] truncate hidden sm:inline">
+                • {sheetRollContext.subtitle}
+              </span>
+            )}
+            <span className="px-1.5 py-0.5 rounded bg-[#121214] border border-[#27272a] font-mono text-[11px] font-bold text-[#c4b5fd] shrink-0">
+              {sheetRollContext.formula}
+            </span>
+            <button
+              type="button"
+              onClick={clearSheetRollContext}
+              className="p-0.5 rounded text-[#71717a] hover:text-white transition-colors shrink-0"
+              title="Limpar vínculo da fórmula"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Instrução quando a bandeja estiver vazia */}
       {dice.length === 0 && (
         <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center pointer-events-none select-none z-0">
-          <div className="w-14 h-14 rounded-2xl bg-[#202024]/60 border border-[#27272a] flex items-center justify-center mb-3 text-[#71717a] shadow-inner">
+          <div className="w-14 h-14 rounded-2xl bg-[#202024]/60 border border-[#27272a] flex items-center justify-center mb-3 text-[#71717a]">
             <Dices className="w-7 h-7" />
           </div>
           <p className="text-sm font-semibold text-[#e4e4e7]">A bandeja está vazia</p>
@@ -69,7 +99,7 @@ export default function DiceTrayCanvas({ isMobileLandscape: _isMobileLandscape =
       {/* Pop-up Central de Resultado (Permanece até clicar no X) */}
       {lastRollResult && !isRolling && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30 p-4">
-          <div className="pointer-events-auto relative flex flex-col items-center bg-[#18181b]/95 border border-[#323238] rounded-2xl shadow-2xl p-4 sm:p-5 min-w-[210px] max-w-[280px] sm:max-w-xs backdrop-blur-md animate-in zoom-in-95 fade-in duration-200">
+          <div className="pointer-events-auto relative flex flex-col items-center bg-[#18181b]/95 border border-[#323238] rounded-2xl p-4 sm:p-5 min-w-[210px] max-w-[280px] sm:max-w-xs animate-in zoom-in-95 fade-in duration-200">
             {/* Botão de Fechar */}
             <button
               type="button"
@@ -85,11 +115,11 @@ export default function DiceTrayCanvas({ isMobileLandscape: _isMobileLandscape =
             <span
               className={`text-xs font-bold uppercase tracking-wider text-center ${
                 lastRollResult.outcomeTier === 'crit'
-                  ? 'text-amber-400 font-black drop-shadow-[0_0_8px_rgba(251,191,36,0.3)]'
+                  ? 'text-amber-400 font-black'
                   : lastRollResult.outcomeTier === 'extreme'
-                  ? 'text-emerald-400 font-black drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]'
+                  ? 'text-emerald-400 font-black'
                   : lastRollResult.outcomeTier === 'fumble'
-                  ? 'text-red-400 font-black drop-shadow-[0_0_8px_rgba(248,113,113,0.3)]'
+                  ? 'text-red-400 font-black'
                   : lastRollResult.outcomeTier === 'success'
                   ? 'text-emerald-400 font-black'
                   : lastRollResult.outcomeTier === 'fail'

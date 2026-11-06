@@ -6,9 +6,14 @@ import {
   FolderOpen,
   SlidersHorizontal,
   RotateCcw,
+  Pencil,
+  Plus,
+  Minus,
+  Trash2,
 } from 'lucide-react';
 import type { EvaluatedProfileBlock } from '@/lib/sheet-dsl';
 import { generateId } from '@/lib/uuid';
+import { useModularSheetStore } from '@/store/useModularSheetStore';
 
 export interface ProfileImageAdjustments {
   imageUrl: string;
@@ -22,8 +27,10 @@ export interface ProfileImageAdjustments {
 }
 
 interface ProfileSectionProps {
+  sheetId?: string;
   profile: EvaluatedProfileBlock;
   onUpdateProfileImage?: (adj: ProfileImageAdjustments) => void;
+  isEditMode?: boolean;
 }
 
 export function resolveSheetImageUrl(rawUrl?: string): string {
@@ -45,10 +52,21 @@ export function resolveSheetImageUrl(rawUrl?: string): string {
 }
 
 export const ProfileSection: React.FC<ProfileSectionProps> = ({
+  sheetId,
   profile,
   onUpdateProfileImage,
+  isEditMode = false,
 }) => {
+  const updateCharacterLevel = useModularSheetStore((s) => s.updateCharacterLevel);
+  const updateProfileFields = useModularSheetStore((s) => s.updateProfileFields);
+
   const [editing, setEditing] = useState(false);
+  const [editingFields, setEditingFields] = useState(false);
+  const [nameDraft, setNameDraft] = useState(profile.name || '');
+  const [archDraft, setArchDraft] = useState(profile.archetype || '');
+  const [levelDraft, setLevelDraft] = useState<number>(Number(profile.level) || 1);
+  const [descDraft, setDescDraft] = useState(profile.description || '');
+  const [extraDrafts, setExtraDrafts] = useState<Array<{ key: string; value: string }>>([]);
   const [urlDraft, setUrlDraft] = useState(profile.imageUrl || '');
   const [wDraft, setWDraft] = useState<string>(
     profile.imgWidth !== undefined ? String(profile.imgWidth) : '',
@@ -140,6 +158,30 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
       profile.showDesc ||
       filteredExtraFields.length > 0,
     );
+
+  const handleOpenFieldsEdit = () => {
+    setNameDraft(profile.name || '');
+    setArchDraft(profile.archetype || '');
+    setLevelDraft(Number(profile.level) || 1);
+    setDescDraft(profile.description || '');
+    setExtraDrafts(
+      filteredExtraFields.map((f) => ({ key: f.key, value: String(f.value) })),
+    );
+    setEditingFields(true);
+  };
+
+  const handleSaveFields = () => {
+    if (sheetId) {
+      updateProfileFields(sheetId, {
+        name: nameDraft.trim() || profile.name,
+        archetype: archDraft.trim(),
+        level: levelDraft,
+        desc: descDraft.trim(),
+        extraFields: extraDrafts.filter((f) => f.key.trim().length > 0),
+      });
+    }
+    setEditingFields(false);
+  };
 
   const isAvatarOnly = activeTextPos === 'none' || profile.size === 'avatar-only' || !hasAnyText;
 
@@ -244,15 +286,22 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   const imageBox = profile.showImage ? (
     <div
       onClick={() => {
+        if (!onUpdateProfileImage || !isEditMode) return;
+        setEditing((v) => !v);
+      }}
+      onDoubleClick={() => {
         if (!onUpdateProfileImage) return;
         setEditing((v) => !v);
       }}
       style={boxInlineStyle}
-      className={`group relative overflow-hidden border border-zinc-800 bg-zinc-950 flex items-center justify-center transition-colors ${onUpdateProfileImage ? 'cursor-pointer hover:border-indigo-500/40' : ''
-        } ${defaultBoxClasses}`}
+      className={`group relative overflow-hidden border border-zinc-800 bg-zinc-950 flex items-center justify-center transition-colors ${
+        onUpdateProfileImage && isEditMode ? 'cursor-pointer hover:border-indigo-500/40' : ''
+      } ${defaultBoxClasses}`}
       title={
         onUpdateProfileImage
-          ? 'Clique para trocar imagem ou ajustar posição (px)'
+          ? isEditMode
+            ? 'Clique para trocar imagem ou ajustar posição (px)'
+            : 'Duplo clique para ajustar imagem'
           : undefined
       }
     >
@@ -282,7 +331,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
           )}
         </div>
       )}
-      {onUpdateProfileImage && !editing && (
+      {isEditMode && onUpdateProfileImage && !editing && (
         <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
           <SlidersHorizontal className="w-4 h-4 text-white" />
           <span className="text-[9px] font-bold uppercase tracking-wider text-white px-2 text-center">
@@ -296,45 +345,93 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   const textContent = hasAnyText ? (
     <div
       className={`min-w-0 w-full space-y-2 ${activeTextPos === 'bottom' || activeTextPos === 'top'
-          ? 'text-center'
-          : 'flex-1 text-left'
+        ? 'text-center'
+        : 'flex-1 text-left'
         }`}
     >
       {(profile.showName || profile.showLevel) && (
         <div
           className={`flex items-center gap-2 flex-wrap ${activeTextPos === 'bottom' || activeTextPos === 'top'
-              ? 'justify-center'
-              : 'justify-between'
+            ? 'justify-center'
+            : 'justify-between'
             }`}
         >
           {profile.showName && profile.name && (
             <h2
+              onDoubleClick={() => {
+                if (sheetId) handleOpenFieldsEdit();
+              }}
               className={`${isSmall ? 'text-sm' : isLarge ? 'text-xl' : 'text-base'
-                } font-black text-zinc-100 tracking-tight truncate`}
+                } font-black text-zinc-100 tracking-tight break-words`}
+              title={sheetId ? 'Duplo clique para editar perfil' : undefined}
             >
               {profile.name}
             </h2>
           )}
-          {profile.showLevel && profile.level !== undefined && (
-            <span
-              className="px-2 py-0.5 rounded-md border text-[11px] font-mono font-bold transition-colors"
-              style={{
-                backgroundColor: 'var(--sheet-item-bg, #121214)',
-                borderColor: 'var(--sheet-item-border, #29292e)',
-                color: 'var(--sheet-accent-text, #c4b5fd)',
-              }}
-            >
-              NV {profile.level}
-            </span>
-          )}
+          <div className="flex items-center gap-1.5">
+            {profile.showLevel && profile.level !== undefined && (
+              <div
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-mono font-bold transition-colors"
+                style={{
+                  backgroundColor: 'var(--sheet-item-bg, #121214)',
+                  borderColor: 'var(--sheet-item-border, #29292e)',
+                  color: 'var(--sheet-accent-text, #c4b5fd)',
+                }}
+              >
+                {isEditMode && sheetId && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateCharacterLevel(
+                        sheetId,
+                        Math.max(0, (Number(profile.level) || 1) - 1),
+                      )
+                    }
+                    className="w-4 h-4 rounded hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white"
+                    title="Diminuir Nível"
+                  >
+                    <Minus className="w-2.5 h-2.5" />
+                  </button>
+                )}
+                <span className="px-0.5">NV {profile.level}</span>
+                {isEditMode && sheetId && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateCharacterLevel(sheetId, (Number(profile.level) || 1) + 1)
+                    }
+                    className="w-4 h-4 rounded hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white"
+                    title="Aumentar Nível"
+                  >
+                    <Plus className="w-2.5 h-2.5" />
+                  </button>
+                )}
+              </div>
+            )}
+            {isEditMode && sheetId && !editingFields && (
+              <button
+                type="button"
+                onClick={handleOpenFieldsEdit}
+                className="px-2 py-0.5 rounded-md border text-[10px] font-bold text-zinc-400 hover:text-white flex items-center gap-1 transition-colors"
+                style={{
+                  backgroundColor: 'var(--sheet-item-bg, #121214)',
+                  borderColor: 'var(--sheet-item-border, #29292e)',
+                }}
+                title="Editar dados do perfil"
+              >
+                <Pencil className="w-2.5 h-2.5" />
+                Editar
+              </button>
+            )}
+          </div>
         </div>
       )}
 
       {(profile.showArchetype || profile.showSystem) && (
         <div
           className={`flex flex-wrap items-center gap-1.5 ${activeTextPos === 'bottom' || activeTextPos === 'top'
-              ? 'justify-center'
-              : ''
+            ? 'justify-center'
+            : ''
             }`}
         >
           {profile.showArchetype && profile.archetype && (
@@ -366,8 +463,8 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
       {profile.showDesc && profile.description && (
         <p
           className={`text-xs text-zinc-400 leading-relaxed whitespace-pre-wrap ${activeTextPos === 'bottom' || activeTextPos === 'top'
-              ? 'text-center italic'
-              : ''
+            ? 'text-center italic'
+            : ''
             }`}
         >
           {profile.description}
@@ -431,12 +528,12 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
 
       <div
         className={`relative rounded-xl border p-3.5 transition-colors ${activeTextPos === 'bottom' || isBanner
+          ? 'flex flex-col items-center gap-3.5'
+          : activeTextPos === 'top'
             ? 'flex flex-col items-center gap-3.5'
-            : activeTextPos === 'top'
-              ? 'flex flex-col items-center gap-3.5'
-              : isAvatarOnly
-                ? 'flex flex-col items-center justify-center'
-                : 'flex flex-col sm:flex-row items-center gap-4'
+            : isAvatarOnly
+              ? 'flex flex-col items-center justify-center'
+              : 'flex flex-col sm:flex-row items-center gap-4'
           }`}
         style={{
           backgroundColor: 'var(--sheet-card-bg, #18181b)',
@@ -447,6 +544,184 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         {imageBox}
         {activeTextPos !== 'top' && textContent}
       </div>
+
+      {/* Painel de Edição de Dados do Perfil (Nome, Nível, Classe, Descrição e Campos Extras) */}
+      {editingFields && sheetId && (
+        <div
+          className="p-3 rounded-xl border space-y-2.5 transition-colors"
+          style={{
+            backgroundColor: 'var(--sheet-card-bg, #18181b)',
+            borderColor: 'var(--sheet-card-border, #29292e)',
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <span
+              className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5"
+              style={{ color: 'var(--sheet-accent-text, #c4b5fd)' }}
+            >
+              <Pencil className="w-3 h-3" />
+              Editar Perfil
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="space-y-1">
+              <label className="text-[10px] text-zinc-400 font-bold uppercase">
+                Nome
+              </label>
+              <input
+                type="text"
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                className="w-full rounded-lg border px-2.5 py-1 text-xs text-white focus:outline-none"
+                style={{
+                  backgroundColor: 'var(--sheet-item-bg, #121214)',
+                  borderColor: 'var(--sheet-item-border, #29292e)',
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] text-zinc-400 font-bold uppercase">
+                Arquétipo / Origem
+              </label>
+              <input
+                type="text"
+                value={archDraft}
+                onChange={(e) => setArchDraft(e.target.value)}
+                className="w-full rounded-lg border px-2.5 py-1 text-xs text-white focus:outline-none"
+                style={{
+                  backgroundColor: 'var(--sheet-item-bg, #121214)',
+                  borderColor: 'var(--sheet-item-border, #29292e)',
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] text-zinc-400 font-bold uppercase">
+                Nível
+              </label>
+              <input
+                type="number"
+                value={levelDraft}
+                onChange={(e) => setLevelDraft(Number(e.target.value) || 0)}
+                className="w-full rounded-lg border px-2.5 py-1 text-xs font-mono text-white focus:outline-none"
+                style={{
+                  backgroundColor: 'var(--sheet-item-bg, #121214)',
+                  borderColor: 'var(--sheet-item-border, #29292e)',
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] text-zinc-400 font-bold uppercase">
+              Descrição
+            </label>
+            <input
+              type="text"
+              value={descDraft}
+              onChange={(e) => setDescDraft(e.target.value)}
+              placeholder="Descrição curta..."
+              className="w-full rounded-lg border px-2.5 py-1 text-xs text-white focus:outline-none"
+              style={{
+                backgroundColor: 'var(--sheet-item-bg, #121214)',
+                borderColor: 'var(--sheet-item-border, #29292e)',
+              }}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] text-zinc-400 font-bold uppercase">
+                Campos Extras
+              </label>
+              <button
+                type="button"
+                onClick={() =>
+                  setExtraDrafts((prev) => [...prev, { key: '', value: '' }])
+                }
+                className="px-2 py-0.5 rounded border text-[10px] font-bold text-zinc-300 hover:text-white flex items-center gap-1"
+                style={{
+                  backgroundColor: 'var(--sheet-item-bg, #121214)',
+                  borderColor: 'var(--sheet-item-border, #29292e)',
+                }}
+              >
+                <Plus className="w-2.5 h-2.5" />
+                Campo
+              </button>
+            </div>
+            {extraDrafts.map((f, idx) => (
+              <div key={idx} className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  value={f.key}
+                  onChange={(e) =>
+                    setExtraDrafts((prev) =>
+                      prev.map((item, i) =>
+                        i === idx ? { ...item, key: e.target.value } : item,
+                      ),
+                    )
+                  }
+                  placeholder="Campo (ex: xp)"
+                  className="w-1/3 rounded-lg border px-2 py-1 text-xs font-mono text-zinc-200 focus:outline-none"
+                  style={{
+                    backgroundColor: 'var(--sheet-item-bg, #121214)',
+                    borderColor: 'var(--sheet-item-border, #29292e)',
+                  }}
+                />
+                <input
+                  type="text"
+                  value={f.value}
+                  onChange={(e) =>
+                    setExtraDrafts((prev) =>
+                      prev.map((item, i) =>
+                        i === idx ? { ...item, value: e.target.value } : item,
+                      ),
+                    )
+                  }
+                  placeholder="Valor"
+                  className="flex-1 rounded-lg border px-2 py-1 text-xs text-white focus:outline-none"
+                  style={{
+                    backgroundColor: 'var(--sheet-item-bg, #121214)',
+                    borderColor: 'var(--sheet-item-border, #29292e)',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setExtraDrafts((prev) => prev.filter((_, i) => i !== idx))
+                  }
+                  className="p-1 rounded text-zinc-500 hover:text-rose-400"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-end gap-1.5 pt-1">
+            <button
+              type="button"
+              onClick={() => setEditingFields(false)}
+              className="px-2.5 py-1 rounded-lg border text-xs text-zinc-400 hover:text-white"
+              style={{
+                backgroundColor: 'var(--sheet-item-bg, #121214)',
+                borderColor: 'var(--sheet-item-border, #29292e)',
+              }}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveFields}
+              className="px-3 py-1 rounded-lg text-xs font-bold text-white flex items-center gap-1"
+              style={{ backgroundColor: 'var(--sheet-accent, #8257e5)' }}
+            >
+              <Check className="w-3 h-3" />
+              Salvar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Painel de Edição de Caminho Local / URL + Ajuste Pixel-Perfect (w, h, x, y, zoom, fit, layout) */}
       {editing && onUpdateProfileImage && (
@@ -529,8 +804,8 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                 type="button"
                 onClick={() => setTextPosDraft(opt.id)}
                 className={`px-2 py-1 rounded-md text-[10px] font-bold transition-colors ${textPosDraft === opt.id
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-zinc-200'
                   }`}
               >
                 {opt.label}
@@ -555,8 +830,8 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                 type="button"
                 onClick={() => setFitDraft(opt.id)}
                 className={`px-2 py-1 rounded-md text-[10px] font-bold transition-colors ${fitDraft === opt.id
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-zinc-200'
                   }`}
               >
                 {opt.label}

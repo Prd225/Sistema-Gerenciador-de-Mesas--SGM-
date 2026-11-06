@@ -10,6 +10,10 @@ import {
   CheckSquare,
   Square,
   Power,
+  Plus,
+  Trash2,
+  Check,
+  X,
 } from 'lucide-react';
 import { useModularSheetStore } from '@/store/useModularSheetStore';
 import {
@@ -25,6 +29,7 @@ interface AbilitiesSectionProps {
   sheet: CompiledSheet;
   onExecuteRoll: OnExecuteRoll;
   activeTab?: string;
+  isEditMode?: boolean;
 }
 
 const CATEGORY_META: Record<
@@ -58,6 +63,7 @@ export function AbilitiesSection({
   sheet,
   onExecuteRoll,
   activeTab,
+  isEditMode = false,
 }: AbilitiesSectionProps) {
   const [categoryFilter, setCategoryFilter] = useState<'ALL' | AbilityCategory>('ALL');
   const [selectedEnhs, setSelectedEnhs] = useState<Record<string, string[]>>({});
@@ -65,6 +71,37 @@ export function AbilitiesSection({
 
   const setToggleState = useModularSheetStore((s) => s.setToggleState);
   const setResourceCurrent = useModularSheetStore((s) => s.setResourceCurrent);
+  const addAbilityItem = useModularSheetStore((s) => s.addAbilityItem);
+  const removeAbilityItem = useModularSheetStore((s) => s.removeAbilityItem);
+
+  const [isAdding, setIsAdding] = useState(false);
+  const [newCategory, setNewCategory] = useState<AbilityCategory>('ability');
+  const [newLabel, setNewLabel] = useState('');
+  const [newActionType, setNewActionType] = useState('');
+  const [newCost, setNewCost] = useState('');
+  const [newTestFormula, setNewTestFormula] = useState('');
+  const [newDamageFormula, setNewDamageFormula] = useState('');
+  const [newDesc, setNewDesc] = useState('');
+
+  const handleAddAbility = () => {
+    if (!newLabel.trim()) return;
+    addAbilityItem(sheetId, {
+      category: newCategory,
+      label: newLabel.trim(),
+      actionType: newActionType.trim() || undefined,
+      cost: newCost.trim() || undefined,
+      testFormula: newTestFormula.trim() || undefined,
+      damageFormula: newDamageFormula.trim() || undefined,
+      desc: newDesc.trim() || undefined,
+    });
+    setNewLabel('');
+    setNewActionType('');
+    setNewCost('');
+    setNewTestFormula('');
+    setNewDamageFormula('');
+    setNewDesc('');
+    setIsAdding(false);
+  };
 
   const tabAbilities = sheet.abilities.filter((a) =>
     isTabMatching(a.tab, activeTab),
@@ -124,8 +161,8 @@ export function AbilitiesSection({
       <div
         key={ab.id}
         className={`rounded-lg border p-3 space-y-2.5 transition-all ${ab.isToggleable && ab.active
-            ? 'border-[var(--sheet-accent)]'
-            : ''
+          ? 'border-[var(--sheet-accent)]'
+          : ''
           }`}
         style={{
           backgroundColor: 'var(--sheet-item-bg, #121214)',
@@ -168,8 +205,8 @@ export function AbilitiesSection({
                 type="button"
                 onClick={() => setToggleState(sheetId, ab.id, !ab.active)}
                 className={`inline-flex items-center gap-1 h-7 px-2.5 rounded-md border text-xs font-bold transition-colors ${ab.active
-                    ? 'border-[#8257e5] bg-[#8257e5] text-white'
-                    : 'border-[#323238] bg-[#202024] text-[#a8a8b3] hover:text-white'
+                  ? 'border-[#8257e5] bg-[#8257e5] text-white'
+                  : 'border-[#323238] bg-[#202024] text-[#a8a8b3] hover:text-white'
                   }`}
               >
                 <Power className="w-3 h-3" />
@@ -193,10 +230,10 @@ export function AbilitiesSection({
                   );
                 }}
                 className={`inline-flex items-center gap-1 h-7 px-2.5 rounded-md border text-xs font-bold transition-colors ${!matchedResource
-                    ? 'border-amber-500/40 bg-amber-500/15 text-amber-300 cursor-default'
-                    : canAffordResource
-                      ? 'border-amber-500/60 bg-amber-500/15 hover:bg-amber-500/30 text-amber-200 cursor-pointer'
-                      : 'border-rose-500/40 bg-rose-500/10 text-rose-400 cursor-not-allowed opacity-70'
+                  ? 'border-amber-500/40 bg-amber-500/15 text-amber-300 cursor-default'
+                  : canAffordResource
+                    ? 'border-amber-500/60 bg-amber-500/15 hover:bg-amber-500/30 text-amber-200 cursor-pointer'
+                    : 'border-rose-500/40 bg-rose-500/10 text-rose-400 cursor-not-allowed opacity-70'
                   }`}
                 title={
                   matchedResource
@@ -210,6 +247,17 @@ export function AbilitiesSection({
                 {matchedResource
                   ? `Gastar ${totalCost} ${costResourceName}`
                   : `Custo: ${totalCost} ${costResourceName}`}
+              </button>
+            )}
+
+            {isEditMode && (
+              <button
+                type="button"
+                onClick={() => removeAbilityItem(sheetId, ab.label)}
+                className="p-1 rounded hover:bg-rose-500/20 text-zinc-500 hover:text-rose-400 transition-colors"
+                title="Remover habilidade"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
@@ -227,8 +275,8 @@ export function AbilitiesSection({
               <span
                 key={idx}
                 className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${!ab.isToggleable || ab.active
-                    ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-300'
-                    : 'bg-[#202024] text-[#8d8d99]'
+                  ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-300'
+                  : 'bg-[#202024] text-[#8d8d99]'
                   }`}
               >
                 {eff}
@@ -251,8 +299,8 @@ export function AbilitiesSection({
                   type="button"
                   onClick={() => toggleEnhancement(ab.id, enh.id)}
                   className={`w-full flex items-start justify-between gap-2 p-1.5 rounded border text-left transition-colors ${checked
-                      ? 'border-[#8257e5]/70 bg-[#8257e5]/15'
-                      : 'border-transparent hover:bg-white/5'
+                    ? 'border-[#8257e5]/70 bg-[#8257e5]/15'
+                    : 'border-transparent hover:bg-white/5'
                     }`}
                 >
                   <div className="flex items-start gap-2 min-w-0">
@@ -378,24 +426,24 @@ export function AbilitiesSection({
         borderColor: 'var(--sheet-card-border, #29292e)',
       }}
     >
-      {(customTitle || presentCategories.length > 1) && (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          {customTitle ? (
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#a8a8b3] px-0.5">
-              {customTitle}
-            </h3>
-          ) : (
-            <div />
-          )}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {customTitle ? (
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#a8a8b3] px-0.5">
+            {customTitle}
+          </h3>
+        ) : (
+          <div />
+        )}
 
+        <div className="flex flex-wrap items-center gap-1.5">
           {presentCategories.length > 1 && (
             <div className="flex flex-wrap items-center gap-1">
               <button
                 type="button"
                 onClick={() => setCategoryFilter('ALL')}
                 className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-colors ${categoryFilter === 'ALL'
-                    ? 'text-white'
-                    : 'border text-[#a8a8b3] hover:text-white'
+                  ? 'text-white'
+                  : 'border text-[#a8a8b3] hover:text-white'
                   }`}
                 style={{
                   backgroundColor: categoryFilter === 'ALL' ? 'var(--sheet-accent)' : 'var(--sheet-item-bg, #121214)',
@@ -410,8 +458,8 @@ export function AbilitiesSection({
                   type="button"
                   onClick={() => setCategoryFilter(cat)}
                   className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-colors ${categoryFilter === cat
-                      ? 'text-white'
-                      : 'border text-[#a8a8b3] hover:text-white'
+                    ? 'text-white'
+                    : 'border text-[#a8a8b3] hover:text-white'
                     }`}
                   style={{
                     backgroundColor: categoryFilter === cat ? 'var(--sheet-accent)' : 'var(--sheet-item-bg, #121214)',
@@ -423,6 +471,107 @@ export function AbilitiesSection({
               ))}
             </div>
           )}
+
+          {isEditMode && (
+            <button
+              type="button"
+              onClick={() => setIsAdding((v) => !v)}
+              className="px-2 py-0.5 rounded border text-[10px] font-bold text-zinc-400 hover:text-white flex items-center gap-1 transition-colors"
+              style={{
+                backgroundColor: 'var(--sheet-item-bg, #121214)',
+                borderColor: 'var(--sheet-item-border, #29292e)',
+              }}
+            >
+              <Plus className="w-2.5 h-2.5" />
+              Habilidade
+            </button>
+          )}
+        </div>
+      </div>
+
+      {isEditMode && isAdding && (
+        <div
+          className="rounded-lg border p-2.5 space-y-2 transition-colors"
+          style={{
+            backgroundColor: 'var(--sheet-item-bg, #121214)',
+            borderColor: 'var(--sheet-item-border, #29292e)',
+          }}
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+            <select
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value as AbilityCategory)}
+              className="rounded border bg-zinc-950 border-zinc-800 px-2 py-1 text-xs text-zinc-200 focus:outline-none"
+            >
+              <option value="ability">Habilidade</option>
+              <option value="action">Ação</option>
+              <option value="spell">Magia</option>
+              <option value="move">Movimento</option>
+            </select>
+            <input
+              type="text"
+              value={newLabel}
+              onChange={(e) => setNewLabel(e.target.value)}
+              placeholder="Nome da habilidade..."
+              className="sm:col-span-2 rounded border bg-zinc-950 border-zinc-800 px-2 py-1 text-xs text-white focus:outline-none"
+            />
+            <input
+              type="text"
+              value={newCost}
+              onChange={(e) => setNewCost(e.target.value)}
+              placeholder="Custo (ex: 2 PE)"
+              className="rounded border bg-zinc-950 border-zinc-800 px-2 py-1 text-xs font-mono text-white focus:outline-none"
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <input
+              type="text"
+              value={newActionType}
+              onChange={(e) => setNewActionType(e.target.value)}
+              placeholder="Tipo (ex: Padrão, Livre)"
+              className="rounded border bg-zinc-950 border-zinc-800 px-2 py-1 text-xs text-zinc-300 focus:outline-none"
+            />
+            <input
+              type="text"
+              value={newTestFormula}
+              onChange={(e) => setNewTestFormula(e.target.value)}
+              placeholder="Fórmula Teste (ex: 1d20 + FOR)"
+              className="rounded border bg-zinc-950 border-zinc-800 px-2 py-1 text-xs font-mono text-zinc-300 focus:outline-none"
+            />
+            <input
+              type="text"
+              value={newDamageFormula}
+              onChange={(e) => setNewDamageFormula(e.target.value)}
+              placeholder="Fórmula Dano (ex: 2d6)"
+              className="rounded border bg-zinc-950 border-zinc-800 px-2 py-1 text-xs font-mono text-zinc-300 focus:outline-none"
+            />
+          </div>
+          <input
+            type="text"
+            value={newDesc}
+            onChange={(e) => setNewDesc(e.target.value)}
+            placeholder="Descrição do efeito..."
+            className="w-full rounded border bg-zinc-950 border-zinc-800 px-2 py-1 text-xs text-zinc-300 focus:outline-none"
+          />
+          <div className="flex items-center justify-end gap-1.5">
+            <button
+              type="button"
+              onClick={() => setIsAdding(false)}
+              className="px-2 py-1 rounded border border-zinc-800 bg-zinc-900 text-[11px] text-zinc-400 hover:text-white flex items-center gap-1"
+            >
+              <X className="w-3 h-3" />
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleAddAbility}
+              className="px-2.5 py-1 rounded text-[11px] font-bold text-white flex items-center gap-1"
+              style={{ backgroundColor: 'var(--sheet-accent, #8257e5)' }}
+            >
+              <Check className="w-3 h-3" />
+              Adicionar
+            </button>
+          </div>
         </div>
       )}
 

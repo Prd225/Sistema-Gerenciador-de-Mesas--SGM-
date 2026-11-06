@@ -672,6 +672,190 @@ export class SheetDiceEngine {
       .join(', ');
     return `[${dicePart}] = ${total}`;
   }
+
+  public extractTraySetup(
+    formulaOrAst: string | ASTExpr,
+    localVars: Record<string, number> = {},
+  ): TrayFormulaSetup {
+    let expr: ASTExpr =
+      typeof formulaOrAst === 'string'
+        ? this.parseFormulaToExpr(formulaOrAst)
+        : formulaOrAst;
+
+    const activeVars: Record<string, number> = { ...localVars };
+
+    // Se for chamada a perfil @roll (ex: pbta_move(2)), desempacota o rollExpr com os argumentos
+    if (expr.type === 'CallExpr' && this.sheet?.resolutions[expr.callee]) {
+      const profile = this.sheet.resolutions[expr.callee];
+      for (let i = 0; i < profile.params.length; i++) {
+        const paramName = profile.params[i];
+        activeVars[paramName] = expr.args[i] ? this.evalNumeric(expr.args[i], localVars) : 0;
+      }
+      expr = profile.rollExpr;
+    }
+
+    const diceList: Array<{ faces: 4 | 6 | 8 | 10 | 12 | 20 | 100 }> = [];
+    let modifier = 0;
+    let ruleMode: TrayFormulaSetup['ruleMode'] = 'sum';
+    let keepCount: number | undefined;
+    let keepMode: 'highest' | 'lowest' | undefined;
+    let successDC: number | null = null;
+    let poolThreshold: number | null = null;
+    let percentileTarget: number | undefined;
+    let rollUnderTarget: number | null = null;
+    const formulaParts: string[] = [];
+
+    const collectDiceAndMod = (node: ASTExpr, sign: 1 | -1) => {
+      if (node.type === 'BinaryExpr' && (node.op === '+' || node.op === '-')) {
+        collectDiceAndMod(node.left, sign);
+        collectDiceAndMod(node.right, node.op === '+' ? sign : (sign === 1 ? -1 : 1));
+        return;
+      }
+      if (node.type === 'UnaryExpr' && (node.op === '+' || node.op === '-')) {
+        collectDiceAndMod(node.operand, node.op === '+' ? sign : (sign === 1 ? -1 : 1));
+        return;
+      }
+      if (node.type === 'DiceExpr') {
+        const count = Math.max(1, Math.min(20, Math.round(this.evalNumeric(node.count, activeVars))));
+        const rawFaces =
+          node.faces === 'F' ? 6 : Math.round(this.evalNumeric(node.faces, activeVars));
+        const faces = snapToValidDieFaces(rawFaces);
+        for (let i = 0; i < count; i++) {
+          diceList.push({ faces });
+        }
+
+        let modSuffix = '';
+        for (const m of node.modifiers) {
+          if (m.kind === 'keep_highest') {
+            modSuffix += `kh${m.count}`;
+            if (m.count === 1) {
+              ruleMode = 'highest';
+            } else {
+              ruleMode = 'roll_keep';
+              keepCount = m.count;
+              keepMode = 'highest';
+            }
+          } else if (m.kind === 'keep_lowest') {
+            modSuffix += `kl${m.count}`;
+            if (m.count === 1) {
+              ruleMode = 'lowest';
+            } else {
+              ruleMode = 'roll_keep';
+              keepCount = m.count;
+              keepMode = 'lowest';
+            }
+          }
+        }
+        formulaParts.push(`${sign < 0 ? '- ' : formulaParts.length > 0 ? '+ ' : ''}${count}d${faces}${modSuffix}`);
+        return;
+      }
+
+      if (node.type === 'CallExpr' && (node.callee === 'max' || node.callee === 'min')) {
+        for (const arg of node.args) {
+          collectDiceAndMod(arg, sign);
+        }
+        ruleMode = node.callee === 'max' ? 'highest' : 'lowest';
+        return;
+      }
+
+      const val = Math.round(this.evalNumeric(node, activeVars));
+      if (!Number.isNaN(val) && val !== 0) {
+        modifier += sign * val;
+      }
+    };
+
+    if (
+      expr.type === 'BinaryExpr' &&
+      (expr.op === '<=' || expr.op === '<' || expr.op === '>=' || expr.op === '>')
+    ) {
+      const rawTarget = Math.round(this.evalNumeric(expr.right, activeVars));
+      collectDiceAndMod(expr.left, 1);
+
+      if (expr.op === '<=' || expr.op === '<') {
+        const limit = expr.op === '<' ? rawTarget - 1 : rawTarget;
+        if (diceList.length > 0 && diceList[0].faces === 100) {
+          ruleMode = 'percentile';
+          percentileTarget = limit;
+        } else {
+          ruleMode = 'roll_under';
+          rollUnderTarget = limit;
+        }
+      } else {
+        const threshold = expr.op === '>' ? rawTarget + 1 : rawTarget;
+        if (diceList.length > 1 && modifier === 0 && ruleMode === 'sum') {
+          ruleMode = 'pool';
+          poolThreshold = threshold;
+        } else {
+          ruleMode = 'sum';
+          successDC = threshold;
+        }
+      }
+    } else {
+      collectDiceAndMod(expr, 1);
+    }
+
+    if (diceList.length === 0) {
+      diceList.push({ faces: 20 });
+      formulaParts.push('1d20');
+    }
+
+    let resolvedFormula = formulaParts.join(' ');
+    if (modifier !== 0) {
+      resolvedFormula += modifier > 0 ? ` + ${modifier}` : ` - ${Math.abs(modifier)}`;
+    }
+    if (ruleMode === 'roll_under' && rollUnderTarget !== null) {
+      resolvedFormula += ` <= ${rollUnderTarget}`;
+    } else if (ruleMode === 'percentile' && percentileTarget !== undefined) {
+      resolvedFormula += ` <= ${percentileTarget}%`;
+    } else if (ruleMode === 'pool' && poolThreshold !== null) {
+      resolvedFormula += ` >= ${poolThreshold}`;
+    } else if (successDC !== null) {
+      resolvedFormula += ` >= ${successDC}`;
+    }
+
+    return {
+      dice: diceList,
+      modifier,
+      ruleMode,
+      keepCount,
+      keepMode,
+      successDC,
+      poolThreshold,
+      percentileTarget,
+      rollUnderTarget,
+      resolvedFormula,
+    };
+  }
+}
+
+export interface TrayFormulaSetup {
+  dice: Array<{ faces: 4 | 6 | 8 | 10 | 12 | 20 | 100 }>;
+  modifier: number;
+  ruleMode: 'sum' | 'pool' | 'highest' | 'lowest' | 'roll_keep' | 'percentile' | 'roll_under';
+  keepCount?: number;
+  keepMode?: 'highest' | 'lowest';
+  successDC?: number | null;
+  poolThreshold?: number | null;
+  percentileTarget?: number;
+  rollUnderTarget?: number | null;
+  resolvedFormula: string;
+}
+
+function snapToValidDieFaces(raw: number): 4 | 6 | 8 | 10 | 12 | 20 | 100 {
+  const valid: Array<4 | 6 | 8 | 10 | 12 | 20 | 100> = [4, 6, 8, 10, 12, 20, 100];
+  if (valid.includes(raw as 4 | 6 | 8 | 10 | 12 | 20 | 100)) {
+    return raw as 4 | 6 | 8 | 10 | 12 | 20 | 100;
+  }
+  let closest: 4 | 6 | 8 | 10 | 12 | 20 | 100 = 20;
+  let minDiff = Infinity;
+  for (const v of valid) {
+    const diff = Math.abs(v - raw);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closest = v;
+    }
+  }
+  return closest;
 }
 
 export function rollSheetFormula(
@@ -682,5 +866,14 @@ export function rollSheetFormula(
 ): RollExecutionResult {
   const engine = new SheetDiceEngine(sheet, customRng);
   return engine.roll(formulaOrAst, localVars);
+}
+
+export function resolveSheetFormulaForTray(
+  formulaOrAst: string | ASTExpr,
+  sheet?: CompiledSheet,
+  localVars?: Record<string, number>,
+): TrayFormulaSetup {
+  const engine = new SheetDiceEngine(sheet);
+  return engine.extractTraySetup(formulaOrAst, localVars);
 }
 

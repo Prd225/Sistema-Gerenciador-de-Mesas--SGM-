@@ -21,6 +21,7 @@ const COLOR_TO = [127, 29, 29]; //     #7f1d1d (vermelho escuro)
 let mode: Mode = 'idle';
 let amp = 0; // amplitude suavizada atual (0..1)
 let holdStart = 0;
+let holdAudioTimer: number | null = null;
 let lastFaceScramble = 0;
 let raf = 0;
 let last = 0;
@@ -84,15 +85,18 @@ function loop(now: number) {
   last = now;
   const state = useDiceTrayStore.getState();
 
-  // Durante a rolagem a física assume o controle; só aguardamos
+  // Durante a rolagem ("Rolando...") a física assume o controle e o som de mexer dados deve estar parado
   if (state.isRolling) {
-    touched.clear();
-    if (mode === 'idle') {
-      raf = 0;
-      amp = 0;
-      return;
+    if (holdAudioTimer !== null) {
+      clearTimeout(holdAudioTimer);
+      holdAudioTimer = null;
     }
-    raf = requestAnimationFrame(loop);
+    diceAudio.stopHold();
+    resetButton();
+    touched.clear();
+    mode = 'idle';
+    raf = 0;
+    amp = 0;
     return;
   }
 
@@ -200,12 +204,27 @@ export const diceShake = {
   },
 
   holdStart(btn: HTMLElement | null) {
-    if (useDiceTrayStore.getState().dice.length === 0) return;
+    const state = useDiceTrayStore.getState();
+    if (state.dice.length === 0) return;
+    const activeCount =
+      state.selectedDieIds && state.selectedDieIds.length > 0
+        ? state.selectedDieIds.length
+        : state.dice.length;
     button = btn;
     mode = 'hold';
     holdStart = performance.now();
     lastFaceScramble = 0;
-    diceAudio.startHold();
+    if (holdAudioTimer !== null) {
+      clearTimeout(holdAudioTimer);
+    }
+    // Aguarda 135ms antes de iniciar o áudio de chocalhar para que um clique rápido
+    // (sem segurar) dispare direto o som sincronizado de rolagem sem engasgo inicial
+    holdAudioTimer = window.setTimeout(() => {
+      holdAudioTimer = null;
+      if (mode === 'hold') {
+        diceAudio.startHold(activeCount);
+      }
+    }, 135);
     ensureLoop();
   },
 
@@ -215,7 +234,13 @@ export const diceShake = {
 
   /** Solta o botão: para o balanço, dispara vibração tátil e retorna a intensidade acumulada (0..1). */
   release(stillHovering: boolean): number {
-    const intensity = holdProgress(performance.now());
+    const heldMs = performance.now() - holdStart;
+    const rawIntensity = holdProgress(performance.now());
+    const intensity = heldMs < 145 ? 0 : rawIntensity;
+    if (holdAudioTimer !== null) {
+      clearTimeout(holdAudioTimer);
+      holdAudioTimer = null;
+    }
     diceAudio.stopHold();
     diceHaptics.launch(intensity);
     resetButton();
@@ -228,6 +253,10 @@ export const diceShake = {
 
   /** Cancela o segurar sem rolar (ex: perdeu o ponteiro). */
   cancel() {
+    if (holdAudioTimer !== null) {
+      clearTimeout(holdAudioTimer);
+      holdAudioTimer = null;
+    }
     diceAudio.stopHold();
     diceHaptics.stop();
     resetButton();

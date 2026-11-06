@@ -8,14 +8,16 @@ import { DICE_SOUNDS, type DiceSoundEvent } from './diceSoundConfig';
 interface PlayOpts {
   volume?: number; // multiplicador 0..2
   rate?: number; // playbackRate
+  trackAsRoll?: boolean; // rastreia source ativa da rolagem para fade-out sincronizado
 }
 
 class DiceAudioEngine {
   private ctx: AudioContext | null = null;
+  private decodeCtx: OfflineAudioContext | null = null;
   private master: GainNode | null = null;
   private isMuted = false;
   private buffers = new Map<string, AudioBuffer>();
-  private loading = new Set<string>();
+  private loadingPromises = new Map<string, Promise<AudioBuffer | null>>();
   private lastPlay = new Map<DiceSoundEvent, number>();
 
   // Loop do "segurar para rolar"
@@ -23,6 +25,45 @@ class DiceAudioEngine {
   private holdGain: GainNode | null = null;
   private holdTimer: number | null = null;
   private holdIntensity = 0;
+
+  // Source principal da rolagem ativa (permite sincronizar término com a física)
+  private rollSource: AudioBufferSourceNode | null = null;
+  private rollGain: GainNode | null = null;
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      // Pré-carrega e pré-decodifica todos os arquivos .wav em background logo ao iniciar,
+      // usando OfflineAudioContext (que não exige gesto do usuário), garantindo que o
+      // primeiro som ao abrir a bandeja já use o áudio real e nunca o sintetizador placeholder.
+      const startPreload = () => this.preloadAll();
+      if ('requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(startPreload, { timeout: 600 });
+      } else {
+        setTimeout(startPreload, 80);
+      }
+
+      // Aquece o AudioContext no primeiro gesto do usuário em qualquer lugar do app
+      const unlock = () => {
+        this.initCtx();
+        window.removeEventListener('pointerdown', unlock, true);
+        window.removeEventListener('keydown', unlock, true);
+      };
+      window.addEventListener('pointerdown', unlock, { capture: true, passive: true });
+      window.addEventListener('keydown', unlock, { capture: true, passive: true });
+    }
+  }
+
+  private getDecoder(): BaseAudioContext | null {
+    if (this.ctx) return this.ctx;
+    if (!this.decodeCtx && typeof window !== 'undefined') {
+      const OfflineCtx =
+        window.OfflineAudioContext || (window as any).webkitOfflineAudioContext;
+      if (OfflineCtx) {
+        this.decodeCtx = new OfflineCtx(1, 1, 44100);
+      }
+    }
+    return this.decodeCtx;
+  }
 
   private initCtx(): boolean {
     if (!this.ctx) {
@@ -63,38 +104,110 @@ class DiceAudioEngine {
     );
   }
 
-  private load(url: string) {
-    if (!this.ctx || this.buffers.has(url) || this.loading.has(url)) return;
-    this.loading.add(url);
-    fetch(url)
+  private load(url: string): Promise<AudioBuffer | null> {
+    if (this.buffers.has(url)) {
+      return Promise.resolve(this.buffers.get(url)!);
+    }
+    const existing = this.loadingPromises.get(url);
+    if (existing) return existing;
+
+    const decoder = this.getDecoder();
+    if (!decoder) return Promise.resolve(null);
+
+    const promise = fetch(url)
       .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(r.status)))
-      .then((data) => this.ctx!.decodeAudioData(data))
-      .then((buf) => this.buffers.set(url, buf))
-      .catch(() => console.warn(`[diceAudio] Falha ao carregar som: ${url}`))
-      .finally(() => this.loading.delete(url));
+      .then((data) => decoder.decodeAudioData(data))
+      .then((buf) => {
+        this.buffers.set(url, buf);
+        return buf;
+      })
+      .catch(() => {
+        console.warn(`[diceAudio] Falha ao carregar som: ${url}`);
+        return null;
+      })
+      .finally(() => {
+        this.loadingPromises.delete(url);
+      });
+
+    this.loadingPromises.set(url, promise);
+    return promise;
   }
 
   private bufferFor(event: DiceSoundEvent): AudioBuffer | null {
-    const list = this.sourcesOf(event).filter((u) => this.buffers.has(u));
+    const sources = this.sourcesOf(event);
+    sources.forEach((u) => {
+      if (!this.buffers.has(u) && !this.loadingPromises.has(u)) {
+        this.load(u);
+      }
+    });
+    const list = sources.filter((u) => this.buffers.has(u));
     if (list.length === 0) return null;
     return this.buffers.get(list[Math.floor(Math.random() * list.length)]) || null;
   }
 
-  // Toca o arquivo configurado; retorna false se não houver (=> usar procedural)
-  private playSample(event: DiceSoundEvent, opts: PlayOpts = {}): boolean {
-    if (!this.ctx || !this.master) return false;
-    const buf = this.bufferFor(event);
-    if (!buf) return false;
-    const entry = DICE_SOUNDS[event].src ? DICE_SOUNDS[event] : DICE_SOUNDS.place;
+  private playDecodedBuffer(buf: AudioBuffer, entryVolume: number, opts: PlayOpts = {}) {
+    if (!this.ctx || !this.master || this.isMuted) return;
     const src = this.ctx.createBufferSource();
     const gain = this.ctx.createGain();
     src.buffer = buf;
     src.playbackRate.value = opts.rate ?? 0.94 + Math.random() * 0.12;
-    gain.gain.value = entry.volume * (opts.volume ?? 1);
+    gain.gain.value = entryVolume * (opts.volume ?? 1);
     src.connect(gain);
     gain.connect(this.master);
+    if (opts.trackAsRoll) {
+      this.stopRollFadeOut(40);
+      this.rollSource = src;
+      this.rollGain = gain;
+      src.onended = () => {
+        if (this.rollSource === src) {
+          this.rollSource = null;
+          this.rollGain = null;
+        }
+      };
+    }
     src.start();
+  }
+
+  // Toca o arquivo configurado; se ainda estiver terminando de decodificar, aguarda a Promise
+  // ao invés de cair no sintetizador placeholder!
+  private playSample(event: DiceSoundEvent, opts: PlayOpts = {}): boolean {
+    if (!this.ctx || !this.master) return false;
+    const sources = this.sourcesOf(event);
+    if (sources.length === 0) return false;
+
+    const entry = DICE_SOUNDS[event].src ? DICE_SOUNDS[event] : DICE_SOUNDS.place;
+    const buf = this.bufferFor(event);
+    if (buf) {
+      this.playDecodedBuffer(buf, entry.volume, opts);
+      return true;
+    }
+
+    // Se há arquivos configurados mas ainda estão decodificando no primeiro instante,
+    // aguarda a decodificação e toca imediatamente (nunca usa o som placeholder)
+    const targetUrl = sources[Math.floor(Math.random() * sources.length)];
+    this.load(targetUrl).then((loadedBuf) => {
+      if (loadedBuf) {
+        this.playDecodedBuffer(loadedBuf, entry.volume, opts);
+      }
+    });
     return true;
+  }
+
+  /** Faz fade-out suave do áudio de rolagem quando todos os dados assentam na mesa */
+  public stopRollFadeOut(fadeMs = 110) {
+    if (!this.ctx || !this.rollSource || !this.rollGain) return;
+    const src = this.rollSource;
+    const gain = this.rollGain;
+    this.rollSource = null;
+    this.rollGain = null;
+    try {
+      const now = this.ctx.currentTime;
+      const dur = Math.max(0.02, fadeMs / 1000);
+      gain.gain.cancelScheduledValues(now);
+      gain.gain.setValueAtTime(Math.max(0.0001, gain.gain.value), now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+      src.stop(now + dur + 0.01);
+    } catch {}
   }
 
   private throttled(event: DiceSoundEvent, ms: number): boolean {
@@ -130,12 +243,34 @@ class DiceAudioEngine {
     this.synthDrop(0.75);
   }
 
-  /** Rolagem: escolhe o evento conforme a quantidade de dados */
+  /** Rolagem: corta imediatamente qualquer som de "mexer dados" (hold) e toca apenas a queda/quique na bandeja */
   public playRoll(diceCount = 1, intensity = 0) {
+    this.stopHold();
     if (this.isMuted || !this.initCtx()) return;
+    if (intensity >= 0.18) {
+      const releaseEvent: DiceSoundEvent =
+        diceCount <= 1 ? 'releaseSingle' : diceCount <= 4 ? 'releaseFew' : 'releaseMany';
+      if (
+        this.playSample(releaseEvent, {
+          volume: 1 + intensity * 0.25,
+          rate: 0.98 + Math.random() * 0.04,
+          trackAsRoll: true,
+        })
+      )
+        return;
+    }
     const event: DiceSoundEvent =
       diceCount <= 1 ? 'rollSingle' : diceCount <= 4 ? 'rollFew' : 'rollMany';
-    if (this.playSample(event, { volume: 1 + intensity * 0.3 })) return;
+    // Em clique rápido (sem segurar), mantém playbackRate = 1.0 (±1%) para travar
+    // o impacto de queda do áudio (~1180ms) exatamente com a frenagem visual na bandeja
+    if (
+      this.playSample(event, {
+        volume: 1 + intensity * 0.25,
+        rate: 0.99 + Math.random() * 0.02,
+        trackAsRoll: true,
+      })
+    )
+      return;
     this.synthRoll(diceCount, intensity);
   }
 
@@ -155,31 +290,43 @@ class DiceAudioEngine {
     this.synthClack(this.ctx!.currentTime, 0.95 + Math.random() * 0.5, 0.14);
   }
 
-  /** Início do "segurar para rolar" (loop que intensifica) */
-  public startHold() {
+  /** Início do "segurar para rolar" (usa a gravação progressiva conforme a quantidade de dados) */
+  public startHold(diceCount = 2) {
     if (this.isMuted || !this.initCtx()) return;
     this.stopHold();
     this.holdIntensity = 0;
-    const buf = this.bufferFor('holdLoop');
-    if (buf && this.ctx && this.master) {
+    const preferredEvent: DiceSoundEvent =
+      diceCount <= 1 ? 'holdSingle' : diceCount <= 4 ? 'holdFew' : 'holdMany';
+    const preferredSources = this.sourcesOf(preferredEvent);
+    const entry =
+      preferredSources.length > 0 ? DICE_SOUNDS[preferredEvent] : DICE_SOUNDS.holdLoop;
+
+    const startWithBuf = (buf: AudioBuffer) => {
+      if (!this.ctx || !this.master || this.isMuted) return;
+      this.stopHold();
       this.holdSource = this.ctx.createBufferSource();
       this.holdGain = this.ctx.createGain();
       this.holdSource.buffer = buf;
       this.holdSource.loop = true;
-      this.holdGain.gain.value = DICE_SOUNDS.holdLoop.volume * 0.4;
+      this.holdGain.gain.value = entry.volume * 0.55;
       this.holdSource.connect(this.holdGain);
       this.holdGain.connect(this.master);
       this.holdSource.start();
+    };
+
+    const buf = this.bufferFor(preferredEvent) || this.bufferFor('holdLoop');
+    if (buf) {
+      startWithBuf(buf);
       return;
     }
-    // Fallback procedural: chocalhar que acelera com a intensidade
-    const rattle = () => {
-      if (!this.ctx || this.isMuted) return;
-      const i = this.holdIntensity;
-      this.synthClack(this.ctx.currentTime, 0.8 + Math.random() * 0.6, 0.025 + i * 0.07);
-      this.holdTimer = window.setTimeout(rattle, 150 - i * 105 + Math.random() * 40);
-    };
-    rattle();
+
+    const urls = preferredSources.length > 0 ? preferredSources : this.sourcesOf('holdLoop');
+    if (urls.length > 0) {
+      this.load(urls[0]).then((loaded) => {
+        if (loaded) startWithBuf(loaded);
+      });
+      return;
+    }
   }
 
   /** Atualiza a intensidade do loop de segurar (0..1) */

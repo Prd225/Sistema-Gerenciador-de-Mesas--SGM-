@@ -142,6 +142,7 @@ export interface ASTModuleLayoutMeta {
   display: ModuleDisplayStyle;
   tall?: boolean;
   cols?: number;
+  color?: string;
   order: number;
 }
 
@@ -699,6 +700,7 @@ export interface EvaluatedProfileBlock {
 
 export interface EvaluatedTextBlock {
   id: string;
+  blockIndex: number;
   title?: string;
   tab?: string;
   placement: ModulePlacement;
@@ -743,6 +745,26 @@ export interface SheetRuntimeOverrides {
 
 export type SheetTheme = 'dark' | 'purple' | 'red' | 'blue' | 'green' | 'amber';
 
+export type TabNavPosition = 'top' | 'bottom' | 'left' | 'right' | 'hidden';
+export type TabNavAlign = 'left' | 'center' | 'right' | 'stretch';
+
+export interface CustomThemeHexColors {
+  accent?: string;
+  bg?: string;
+  cardBg?: string;
+  cardBorder?: string;
+  itemBg?: string;
+  itemBorder?: string;
+  headerBg?: string;
+  text?: string;
+}
+
+export interface TabNavMetaConfig {
+  position: TabNavPosition;
+  showLabels: boolean;
+  align: TabNavAlign;
+}
+
 export interface CompiledSheet {
   meta: {
     name: string;
@@ -750,6 +772,8 @@ export interface CompiledSheet {
     system?: string;
     level?: number;
     theme: SheetTheme;
+    customThemeColors?: CustomThemeHexColors;
+    tabNav: TabNavMetaConfig;
     props: Record<string, EvaluatedValue>;
     tags: string[];
   };

@@ -18,9 +18,8 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
   const removeDie = useDiceTrayStore((state) => state.removeDie);
   const updateDiePosition = useDiceTrayStore((state) => state.updateDiePosition);
   const rules = useDiceTrayStore((state) => state.rules);
-  const selectedDieIds = useDiceTrayStore((state) => state.selectedDieIds);
+  const isSelected = useDiceTrayStore((state) => state.selectedDieIds.includes(die.id));
   const toggleSelectDie = useDiceTrayStore((state) => state.toggleSelectDie);
-  const isSelected = selectedDieIds.includes(die.id);
 
   // Refs de acesso direto ao DOM para a animação de física e balanço a 144 FPS
   const cardRef = useRef<HTMLDivElement>(null);
@@ -97,6 +96,11 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
       initialDieY: die.y,
     };
 
+    let latestX = die.x;
+    let latestY = die.y;
+    let didMove = false;
+    const rect = canvasRef.current?.getBoundingClientRect();
+
     const handlePointerMove = (moveEv: PointerEvent) => {
       const dist = Math.hypot(
         moveEv.clientX - dragStartRef.current.startX,
@@ -106,11 +110,7 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
         clearTimeout(longPressTimeout);
         longPressTimeout = null;
       }
-      if (isLongPress) return;
-
-      if (!canvasRef.current) return;
-      const rect = canvasRef.current.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) return;
+      if (isLongPress || !rect || rect.width === 0 || rect.height === 0) return;
 
       const deltaPixelX = moveEv.clientX - dragStartRef.current.startX;
       const deltaPixelY = moveEv.clientY - dragStartRef.current.startY;
@@ -118,11 +118,17 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
       const deltaPercentX = (deltaPixelX / rect.width) * 100;
       const deltaPercentY = (deltaPixelY / rect.height) * 100;
 
-      const newX = Math.max(10, Math.min(90, dragStartRef.current.initialDieX + deltaPercentX));
-      const newY = Math.max(12, Math.min(88, dragStartRef.current.initialDieY + deltaPercentY));
+      latestX = Math.max(10, Math.min(90, dragStartRef.current.initialDieX + deltaPercentX));
+      latestY = Math.max(12, Math.min(88, dragStartRef.current.initialDieY + deltaPercentY));
+      didMove = true;
 
-      // Ao arrastar, alinha a rotação e inclinação para 0 fluidamente ("retinho")
-      updateDiePosition(die.id, Math.round(newX * 10) / 10, Math.round(newY * 10) / 10, 0, 0, 0);
+      // Escreve direto na GPU via transform durante o arrasto (zero re-renderizações React!)
+      if (cardRef.current) {
+        const clampedDxPx = ((latestX - dragStartRef.current.initialDieX) / 100) * rect.width;
+        const clampedDyPx = ((latestY - dragStartRef.current.initialDieY) / 100) * rect.height;
+        cardRef.current.style.transition = 'none';
+        cardRef.current.style.transform = `translate3d(calc(-50% + ${clampedDxPx.toFixed(1)}px), calc(-50% + ${clampedDyPx.toFixed(1)}px), 0) scale(1.08)`;
+      }
     };
 
     const handlePointerUp = () => {
@@ -131,6 +137,13 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
         longPressTimeout = null;
       }
       if (!isLongPress) {
+        if (cardRef.current) {
+          cardRef.current.style.transition = '';
+          cardRef.current.style.transform = `translate3d(-50%, -50%, 0) scale(1)`;
+        }
+        if (didMove) {
+          updateDiePosition(die.id, Math.round(latestX * 10) / 10, Math.round(latestY * 10) / 10, 0, 0, 0);
+        }
         setIsDragging(false);
         diceAudio.playRelease();
         diceHaptics.drop();
@@ -159,26 +172,26 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
         top: `${die.y}%`,
         transform: `translate3d(-50%, -50%, 0) scale(${isDragging ? 1.08 : 1})`,
         touchAction: 'none',
-        willChange: isRolling ? 'transform, left, top' : 'auto',
+        willChange: isRolling ? 'transform' : 'auto',
         transition: isRolling ? 'none' : isDragging ? 'transform 0.15s ease-out' : 'transform 0.2s ease-out',
       }}
       className={`group absolute select-none cursor-grab active:cursor-grabbing touch-none ${isDragging ? 'z-50' : isRolling ? 'z-20' : 'z-10'
         }`}
     >
       <div className="relative flex items-center justify-center">
-        {/* Sombra Esfumaçada Suave (Smoky Soft Shadow - sem bordas duras, difusa no feltro) */}
+        {/* Sombra Esfumaçada Suave via radial-gradient puro (sem filter:blur que causa stutter de GPU) */}
         <div
           ref={shadowRef}
           className="absolute pointer-events-none rounded-full"
           style={{
-            width: '78px',
-            height: '78px',
+            width: '90px',
+            height: '90px',
             left: '50%',
             top: '50%',
-            marginLeft: '-39px',
-            marginTop: '-35px',
-            background: 'radial-gradient(circle, rgba(0,0,0,0.68) 0%, rgba(0,0,0,0.32) 42%, rgba(0,0,0,0) 74%)',
-            filter: 'blur(7px)',
+            marginLeft: '-45px',
+            marginTop: '-41px',
+            background:
+              'radial-gradient(circle, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.34) 30%, rgba(0,0,0,0.12) 52%, rgba(0,0,0,0) 74%)',
             transform: `translate3d(${currentLift * 0.45}px, ${currentLift * 0.55}px, 0) scale(${1 + currentLift * 0.02})`,
             opacity: Math.max(0.2, 0.65 - currentLift * 0.02),
             transition: isRolling ? 'none' : 'transform 0.15s ease-out, opacity 0.15s ease-out',

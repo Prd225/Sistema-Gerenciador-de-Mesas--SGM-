@@ -293,25 +293,25 @@ function DieShapeSVG({
         {/* Brilho especular suave */}
         <path d={g.outline} fill={`url(#${glossId})`} />
 
-        {/* Números das faces laterais (somente durante a rolagem) */}
-        {isRolling &&
-          g.sides.map((s, i) => (
-            <text
-              key={i}
-              ref={(el) => {
-                if (sideNumRefs) sideNumRefs.current[i] = el;
-              }}
-              transform={`translate(${s.x} ${s.y}) rotate(${s.rot ?? 0})`}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fill="rgba(255,255,255,0.55)"
-              fontSize={g.sideSize}
-              fontWeight={800}
-              fontFamily="ui-monospace, monospace"
-            >
-              {sideFaces[i] ?? ''}
-            </text>
-          ))}
+        {/* Números das faces laterais (mantidos no DOM para evitar mount/unmount durante o início do giro) */}
+        {g.sides.map((s, i) => (
+          <text
+            key={i}
+            ref={(el) => {
+              if (sideNumRefs) sideNumRefs.current[i] = el;
+            }}
+            transform={`translate(${s.x} ${s.y}) rotate(${s.rot ?? 0})`}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fill="rgba(255,255,255,0.55)"
+            opacity={isRolling ? 1 : 0}
+            fontSize={g.sideSize}
+            fontWeight={800}
+            fontFamily="ui-monospace, monospace"
+          >
+            {sideFaces[i] ?? ''}
+          </text>
+        ))}
 
         {/* Número principal (contorno escuro via paint-order: sem texto duplicado) */}
         <text
@@ -359,9 +359,6 @@ function DieShapeSVG({
             strokeLinejoin="round"
             strokeLinecap="round"
             transform="translate(-4, -4) scale(1.08)"
-            style={{
-              filter: `drop-shadow(0 0 5px ${color})`,
-            }}
           />
         </g>
       )}

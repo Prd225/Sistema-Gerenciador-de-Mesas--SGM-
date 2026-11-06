@@ -257,49 +257,88 @@ export class SheetAnalyzer {
         metaProps.cor ??
         metaProps.color ??
         '',
-    ).toLowerCase();
+    ).trim();
+    const themeLower = themeRaw.toLowerCase();
+
+    const normalizeHex = (val?: EvaluatedValue): string | undefined => {
+      if (val === undefined || val === null) return undefined;
+      const s = String(val).trim();
+      if (/^#[0-9a-fA-F]{3,8}$/.test(s)) return s;
+      if (/^[0-9a-fA-F]{6}$/.test(s)) return `#${s}`;
+      return undefined;
+    };
+
+    let customAccent =
+      normalizeHex(metaProps.accent) ??
+      normalizeHex(metaProps.cor) ??
+      normalizeHex(metaProps.color) ??
+      normalizeHex(metaProps.hex) ??
+      normalizeHex(metaProps.theme) ??
+      normalizeHex(metaProps.tema);
+
+    if (!customAccent) {
+      for (const t of this.ast.meta.tags) {
+        if (/^[0-9a-fA-F]{6}$/.test(t) || /^[0-9a-fA-F]{3}$/.test(t)) {
+          customAccent = `#${t}`;
+          break;
+        }
+      }
+    }
+
+    const customThemeColors: import('./types').CustomThemeHexColors = {
+      accent: customAccent,
+      bg: normalizeHex(metaProps.bg ?? metaProps.fundo ?? metaProps.background),
+      cardBg: normalizeHex(metaProps.card ?? metaProps.card_bg ?? metaProps.cardbg),
+      cardBorder: normalizeHex(metaProps.border ?? metaProps.borda ?? metaProps.card_border),
+      itemBg: normalizeHex(metaProps.item ?? metaProps.item_bg ?? metaProps.itembg),
+      itemBorder: normalizeHex(metaProps.item_border ?? metaProps.borda_item),
+      headerBg: normalizeHex(metaProps.header ?? metaProps.header_bg),
+      text: normalizeHex(metaProps.text ?? metaProps.texto_cor),
+    };
+
+    const hasAnyCustomColor = Object.values(customThemeColors).some(Boolean);
 
     let theme: import('./types').SheetTheme = 'purple';
     if (
-      themeRaw === 'red' ||
-      themeRaw === 'vermelho' ||
-      themeRaw === 'sangue' ||
-      themeRaw === 'crimson'
+      themeLower === 'red' ||
+      themeLower === 'vermelho' ||
+      themeLower === 'sangue' ||
+      themeLower === 'crimson'
     ) {
       theme = 'red';
     } else if (
-      themeRaw === 'blue' ||
-      themeRaw === 'azul' ||
-      themeRaw === 'ciano' ||
-      themeRaw === 'ocean'
+      themeLower === 'blue' ||
+      themeLower === 'azul' ||
+      themeLower === 'ciano' ||
+      themeLower === 'ocean'
     ) {
       theme = 'blue';
     } else if (
-      themeRaw === 'green' ||
-      themeRaw === 'verde' ||
-      themeRaw === 'emerald' ||
-      themeRaw === 'floresta'
+      themeLower === 'green' ||
+      themeLower === 'verde' ||
+      themeLower === 'emerald' ||
+      themeLower === 'floresta'
     ) {
       theme = 'green';
     } else if (
-      themeRaw === 'purple' ||
-      themeRaw === 'roxo' ||
-      themeRaw === 'violeta' ||
-      themeRaw === 'arcano'
+      themeLower === 'purple' ||
+      themeLower === 'roxo' ||
+      themeLower === 'violeta' ||
+      themeLower === 'arcano'
     ) {
       theme = 'purple';
     } else if (
-      themeRaw === 'amber' ||
-      themeRaw === 'amarelo' ||
-      themeRaw === 'ouro' ||
-      themeRaw === 'gold'
+      themeLower === 'amber' ||
+      themeLower === 'amarelo' ||
+      themeLower === 'ouro' ||
+      themeLower === 'gold'
     ) {
       theme = 'amber';
     } else if (
-      themeRaw === 'dark' ||
-      themeRaw === 'cinza' ||
-      themeRaw === 'classico' ||
-      themeRaw === 'padrao'
+      themeLower === 'dark' ||
+      themeLower === 'cinza' ||
+      themeLower === 'classico' ||
+      themeLower === 'padrao'
     ) {
       theme = 'dark';
     } else {
@@ -319,6 +358,98 @@ export class SheetAnalyzer {
       }
     }
 
+    // Meta-configuração da barra de navegação de abas (@nav / @abas / @meta)
+    const allMetaMarkers = new Set([
+      ...this.ast.meta.tags.map((t) => t.toLowerCase()),
+      ...this.ast.meta.flags.map((f) => f.toLowerCase()),
+    ]);
+    const rawTabPos = String(
+      metaProps.tabs_pos ??
+        metaProps.tab_pos ??
+        metaProps.nav_pos ??
+        metaProps.abas_pos ??
+        metaProps.abas ??
+        metaProps.nav ??
+        metaProps.pos ??
+        '',
+    ).toLowerCase();
+
+    let tabPosition: import('./types').TabNavPosition = 'top';
+    if (
+      rawTabPos === 'left' ||
+      rawTabPos === 'esquerda' ||
+      rawTabPos === 'esq' ||
+      allMetaMarkers.has('tabs_left') ||
+      allMetaMarkers.has('abas_esquerda') ||
+      allMetaMarkers.has('esquerda')
+    ) {
+      tabPosition = 'left';
+    } else if (
+      rawTabPos === 'right' ||
+      rawTabPos === 'direita' ||
+      rawTabPos === 'dir' ||
+      allMetaMarkers.has('tabs_right') ||
+      allMetaMarkers.has('abas_direita') ||
+      allMetaMarkers.has('direita')
+    ) {
+      tabPosition = 'right';
+    } else if (
+      rawTabPos === 'bottom' ||
+      rawTabPos === 'baixo' ||
+      rawTabPos === 'rodape' ||
+      rawTabPos === 'inferior' ||
+      allMetaMarkers.has('tabs_bottom') ||
+      allMetaMarkers.has('abas_baixo')
+    ) {
+      tabPosition = 'bottom';
+    } else if (
+      rawTabPos === 'hidden' ||
+      rawTabPos === 'none' ||
+      rawTabPos === 'oculto' ||
+      rawTabPos === 'sem_abas' ||
+      allMetaMarkers.has('sem_abas') ||
+      allMetaMarkers.has('no_tabs')
+    ) {
+      tabPosition = 'hidden';
+    }
+
+    const rawLabelsProp =
+      metaProps.tabs_labels ??
+      metaProps.tab_labels ??
+      metaProps.labels ??
+      metaProps.nomes ??
+      metaProps.mostrar_nomes;
+    let showLabels = true;
+    if (rawLabelsProp !== undefined) {
+      const s = String(rawLabelsProp).toLowerCase();
+      showLabels = !(s === 'false' || s === '0' || s === 'no' || s === 'nao' || s === 'não' || s === 'none');
+    } else if (
+      allMetaMarkers.has('icons_only') ||
+      allMetaMarkers.has('so_icone') ||
+      allMetaMarkers.has('so_icones') ||
+      allMetaMarkers.has('sem_nome') ||
+      allMetaMarkers.has('sem_nomes') ||
+      allMetaMarkers.has('no_labels')
+    ) {
+      showLabels = false;
+    }
+
+    const rawTabAlign = String(
+      metaProps.tabs_align ??
+        metaProps.tab_align ??
+        metaProps.align ??
+        metaProps.alinhamento ??
+        '',
+    ).toLowerCase();
+    let tabAlign: import('./types').TabNavAlign = 'left';
+    if (rawTabAlign === 'center' || rawTabAlign === 'centro' || allMetaMarkers.has('center') || allMetaMarkers.has('centro')) {
+      tabAlign = 'center';
+    } else if (rawTabAlign === 'right' || rawTabAlign === 'fim' || allMetaMarkers.has('align_right')) {
+      tabAlign = 'right';
+    } else if (rawTabAlign === 'stretch' || rawTabAlign === 'expandir' || rawTabAlign === 'full' || allMetaMarkers.has('stretch')) {
+      tabAlign = 'stretch';
+    }
+
     return {
       meta: {
         name: String(metaProps.name ?? 'Sem Nome'),
@@ -326,6 +457,12 @@ export class SheetAnalyzer {
         system: metaProps.system !== undefined ? String(metaProps.system) : undefined,
         level: typeof metaProps.level === 'number' ? metaProps.level : undefined,
         theme,
+        customThemeColors: hasAnyCustomColor ? customThemeColors : undefined,
+        tabNav: {
+          position: tabPosition,
+          showLabels,
+          align: tabAlign,
+        },
         props: metaProps,
         tags: this.ast.meta.tags,
       },
@@ -774,7 +911,8 @@ export class SheetAnalyzer {
 
   private evaluateTextBlocks(): import('./types').EvaluatedTextBlock[] {
     const out: import('./types').EvaluatedTextBlock[] = [];
-    for (const block of this.ast.texts) {
+    for (let idx = 0; idx < this.ast.texts.length; idx++) {
+      const block = this.ast.texts[idx];
       const paragraphs: string[] = [];
       for (const rawParagraph of block.content) {
         const interpolated = this.interpolateText(rawParagraph);
@@ -783,6 +921,7 @@ export class SheetAnalyzer {
       const content = paragraphs.join('\n\n');
       out.push({
         id: block.id,
+        blockIndex: idx,
         title: block.title,
         tab: block.tab,
         placement: block.placement,
@@ -1034,6 +1173,32 @@ export class SheetAnalyzer {
     'style',
     'size',
     'tamanho',
+    'accent',
+    'hex',
+    'bg',
+    'fundo',
+    'background',
+    'card',
+    'card_bg',
+    'border',
+    'borda',
+    'item',
+    'item_bg',
+    'header',
+    'header_bg',
+    'tabs_pos',
+    'tab_pos',
+    'nav_pos',
+    'abas_pos',
+    'abas',
+    'nav',
+    'tabs_labels',
+    'tab_labels',
+    'labels',
+    'nomes',
+    'mostrar_nomes',
+    'tabs_align',
+    'tab_align',
   ]);
 
   private static readonly COLOR_TAG_ALIASES: Record<string, string> = {

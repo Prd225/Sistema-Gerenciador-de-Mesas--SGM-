@@ -1,4 +1,4 @@
-import type { SheetTheme } from '@/lib/sheet-dsl';
+import type { SheetTheme, CustomThemeHexColors } from '@/lib/sheet-dsl';
 
 export type { SheetTheme };
 
@@ -189,24 +189,164 @@ export const SHEET_THEMES: Record<SheetTheme, ThemeColors> = {
   },
 };
 
-export function getThemeRootVars(themeId?: SheetTheme): React.CSSProperties {
-  const t = SHEET_THEMES[themeId ?? 'purple'] || SHEET_THEMES.purple;
+export const MODULE_COLOR_PALETTE: Array<{ id: string; label: string; hex: string }> = [
+  { id: 'purple', label: 'Roxo', hex: '#8257e5' },
+  { id: 'red', label: 'Rubi', hex: '#e11d48' },
+  { id: 'amber', label: 'Âmbar', hex: '#d97706' },
+  { id: 'emerald', label: 'Esmeralda', hex: '#059669' },
+  { id: 'blue', label: 'Azul', hex: '#0284c7' },
+  { id: 'cyan', label: 'Ciano', hex: '#06b6d4' },
+  { id: 'pink', label: 'Rosa', hex: '#db2777' },
+  { id: 'dark', label: 'Neutro', hex: '#52525b' },
+];
+
+const NAMED_COLOR_TO_HEX: Record<string, string> = {
+  purple: '#8257e5',
+  roxo: '#8257e5',
+  violet: '#7c3aed',
+  violeta: '#7c3aed',
+  red: '#e11d48',
+  vermelho: '#e11d48',
+  rose: '#f43f5e',
+  rubi: '#e11d48',
+  blue: '#0284c7',
+  azul: '#0284c7',
+  sky: '#0ea5e9',
+  cyan: '#06b6d4',
+  ciano: '#06b6d4',
+  green: '#059669',
+  verde: '#059669',
+  emerald: '#10b981',
+  esmeralda: '#10b981',
+  amber: '#d97706',
+  ambar: '#d97706',
+  'âmbar': '#d97706',
+  gold: '#eab308',
+  dourado: '#eab308',
+  yellow: '#eab308',
+  amarelo: '#eab308',
+  orange: '#ea580c',
+  laranja: '#ea580c',
+  pink: '#db2777',
+  rosa: '#db2777',
+  dark: '#52525b',
+  zinc: '#52525b',
+  cinza: '#52525b',
+};
+
+export function resolveColorToHex(raw?: string): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim().toLowerCase();
+  if (NAMED_COLOR_TO_HEX[trimmed]) return NAMED_COLOR_TO_HEX[trimmed];
+  const cleanHex = trimmed.startsWith('#') ? trimmed.slice(1) : trimmed;
+  if (/^[0-9a-f]{3}$/.test(cleanHex)) {
+    return `#${cleanHex[0]}${cleanHex[0]}${cleanHex[1]}${cleanHex[1]}${cleanHex[2]}${cleanHex[2]}`;
+  }
+  if (/^[0-9a-f]{6}$/.test(cleanHex)) {
+    return `#${cleanHex}`;
+  }
+  return null;
+}
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const resolved = resolveColorToHex(hex);
+  if (!resolved) return null;
+  const num = parseInt(resolved.slice(1), 16);
   return {
-    '--sheet-bg': t.appBg,
-    '--sheet-header-bg': t.headerBg,
-    '--sheet-header-border': t.headerBorder,
-    '--sheet-sidebar-bg': t.sidebarBg,
-    '--sheet-sidebar-border': t.sidebarBorder,
-    '--sheet-card-bg': t.cardBg,
-    '--sheet-card-border': t.cardBorder,
-    '--sheet-card-hover': t.cardHover,
-    '--sheet-item-bg': t.itemBg,
-    '--sheet-item-border': t.itemBorder,
-    '--sheet-item-hover': t.itemHover,
-    '--sheet-code-bg': t.codeBg,
-    '--sheet-accent': t.accent,
-    '--sheet-accent-subtle': t.accentSubtle,
-    '--sheet-accent-border': t.cardBorder,
-    '--sheet-accent-text': t.accentText,
+    r: (num >> 16) & 255,
+    g: (num >> 8) & 255,
+    b: num & 255,
+  };
+}
+
+function mixHexColors(hex1: string, hex2: string, ratio1: number): string {
+  const c1 = hexToRgb(hex1);
+  const c2 = hexToRgb(hex2);
+  if (!c1 || !c2) return hex1;
+  const r = Math.round(c1.r * ratio1 + c2.r * (1 - ratio1));
+  const g = Math.round(c1.g * ratio1 + c2.g * (1 - ratio1));
+  const b = Math.round(c1.b * ratio1 + c2.b * (1 - ratio1));
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
+
+export function getThemeRootVars(
+  themeId?: SheetTheme,
+  customColors?: CustomThemeHexColors,
+): React.CSSProperties {
+  const t = SHEET_THEMES[themeId ?? 'purple'] || SHEET_THEMES.purple;
+
+  const customAccentHex = resolveColorToHex(customColors?.accent);
+  const rgb = customAccentHex ? hexToRgb(customAccentHex) : null;
+
+  const appBg =
+    resolveColorToHex(customColors?.bg) ??
+    (customAccentHex ? mixHexColors(customAccentHex, '#0b0b0e', 0.08) : t.appBg);
+  const headerBg =
+    resolveColorToHex(customColors?.headerBg) ??
+    (customAccentHex ? mixHexColors(customAccentHex, '#121216', 0.14) : t.headerBg);
+  const headerBorder = customAccentHex
+    ? mixHexColors(customAccentHex, '#1f1f26', 0.28)
+    : t.headerBorder;
+  const cardBg =
+    resolveColorToHex(customColors?.cardBg) ??
+    (customAccentHex ? mixHexColors(customAccentHex, '#141418', 0.14) : t.cardBg);
+  const cardBorder =
+    resolveColorToHex(customColors?.cardBorder) ??
+    (customAccentHex ? mixHexColors(customAccentHex, '#222228', 0.34) : t.cardBorder);
+  const cardHover = customAccentHex
+    ? mixHexColors(customAccentHex, '#27272e', 0.45)
+    : t.cardHover;
+  const itemBg =
+    resolveColorToHex(customColors?.itemBg) ??
+    (customAccentHex ? mixHexColors(customAccentHex, '#0f0f13', 0.09) : t.itemBg);
+  const itemBorder =
+    resolveColorToHex(customColors?.itemBorder) ??
+    (customAccentHex ? mixHexColors(customAccentHex, '#1e1e24', 0.25) : t.itemBorder);
+  const itemHover = customAccentHex
+    ? mixHexColors(customAccentHex, '#1a1a20', 0.22)
+    : t.itemHover;
+  const codeBg = customAccentHex
+    ? mixHexColors(customAccentHex, '#08080b', 0.06)
+    : t.codeBg;
+  const accent = customAccentHex ?? t.accent;
+  const accentText =
+    resolveColorToHex(customColors?.text) ??
+    (customAccentHex ? mixHexColors(customAccentHex, '#ffffff', 0.55) : t.accentText);
+  const accentSubtle = rgb
+    ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.18)`
+    : t.accentSubtle;
+
+  return {
+    '--sheet-bg': appBg,
+    '--sheet-header-bg': headerBg,
+    '--sheet-header-border': headerBorder,
+    '--sheet-sidebar-bg': headerBg,
+    '--sheet-sidebar-border': headerBorder,
+    '--sheet-card-bg': cardBg,
+    '--sheet-card-border': cardBorder,
+    '--sheet-card-hover': cardHover,
+    '--sheet-item-bg': itemBg,
+    '--sheet-item-border': itemBorder,
+    '--sheet-item-hover': itemHover,
+    '--sheet-code-bg': codeBg,
+    '--sheet-accent': accent,
+    '--sheet-accent-subtle': accentSubtle,
+    '--sheet-accent-border': cardBorder,
+    '--sheet-accent-text': accentText,
+  } as React.CSSProperties;
+}
+
+export function getModuleColorVars(rawColor?: string): React.CSSProperties | undefined {
+  const hex = resolveColorToHex(rawColor);
+  if (!hex) return undefined;
+  const rgb = hexToRgb(hex);
+  return {
+    '--sheet-accent': hex,
+    '--sheet-accent-text': mixHexColors(hex, '#ffffff', 0.55),
+    '--sheet-accent-subtle': rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.18)` : undefined,
+    '--sheet-card-bg': mixHexColors(hex, '#141418', 0.14),
+    '--sheet-card-border': mixHexColors(hex, '#242429', 0.36),
+    '--sheet-item-bg': mixHexColors(hex, '#0f0f13', 0.09),
+    '--sheet-item-border': mixHexColors(hex, '#1f1f25', 0.26),
   } as React.CSSProperties;
 }

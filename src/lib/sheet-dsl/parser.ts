@@ -255,11 +255,30 @@ export class SheetParser {
   private parseMetaDirective(doc: ASTSheetDocument): void {
     if (this.check('STRING') || this.check('IDENTIFIER')) {
       const nameTok = this.advance();
-      doc.meta.props.name = {
-        type: 'StringLit',
-        value: nameTok.value,
-        span: nameTok.span,
-      };
+      const rawVal = nameTok.value.trim();
+      const lowerVal = rawVal.toLowerCase();
+      const isHex = /^#?[0-9a-fA-F]{6}$/.test(rawVal) || /^#[0-9a-fA-F]{3,8}$/.test(rawVal);
+      const isNavPos = ['top', 'bottom', 'left', 'right', 'topo', 'baixo', 'esquerda', 'direita', 'hidden', 'oculto'].includes(lowerVal);
+
+      if (isHex) {
+        doc.meta.props.color = {
+          type: 'StringLit',
+          value: rawVal.startsWith('#') ? rawVal : `#${rawVal}`,
+          span: nameTok.span,
+        };
+      } else if (isNavPos) {
+        doc.meta.props.tabs_pos = {
+          type: 'StringLit',
+          value: lowerVal,
+          span: nameTok.span,
+        };
+      } else {
+        doc.meta.props.name = {
+          type: 'StringLit',
+          value: nameTok.value,
+          span: nameTok.span,
+        };
+      }
     }
 
     if (this.check('LBRACKET')) {
@@ -844,6 +863,7 @@ export class SheetParser {
     display: ModuleDisplayStyle;
     tall: boolean;
     cols?: number;
+    color?: string;
     meta: ASTMetadataMap;
   } {
     let title: string | undefined;
@@ -976,7 +996,52 @@ export class SheetParser {
       cols = meta.props.colunas.value;
     }
 
-    return { title, tab, placement, display, tall, cols, meta };
+    let color: string | undefined;
+    const rawColorExpr =
+      meta.props.color ??
+      meta.props.cor ??
+      meta.props.accent ??
+      meta.props.hex ??
+      meta.props.theme ??
+      meta.props.tema;
+    if (rawColorExpr) {
+      const cStr = extractTokenStr(rawColorExpr).trim();
+      if (cStr) {
+        color = /^[0-9a-fA-F]{3,8}$/.test(cStr) ? `#${cStr}` : cStr;
+      }
+    }
+    if (!color) {
+      const namedColors = new Set([
+        'purple', 'roxo', 'violet', 'violeta',
+        'red', 'vermelho', 'rose', 'rubi',
+        'blue', 'azul', 'sky', 'cyan', 'ciano',
+        'green', 'verde', 'emerald', 'esmeralda',
+        'amber', 'ambar', 'âmbar', 'gold', 'dourado', 'yellow', 'amarelo', 'orange', 'laranja',
+        'pink', 'rosa', 'dark', 'zinc', 'cinza',
+      ]);
+      for (const t of meta.tags) {
+        const lower = t.toLowerCase();
+        if (/^[0-9a-fA-F]{3}$/.test(lower) || /^[0-9a-fA-F]{6}$/.test(lower)) {
+          color = `#${lower}`;
+          break;
+        }
+        if (namedColors.has(lower)) {
+          color = lower;
+          break;
+        }
+      }
+      if (!color) {
+        for (const f of meta.flags) {
+          const lower = f.toLowerCase();
+          if (namedColors.has(lower)) {
+            color = lower;
+            break;
+          }
+        }
+      }
+    }
+
+    return { title, tab, placement, display, tall, cols, color, meta };
   }
 
   private registerModuleLayout(
@@ -995,6 +1060,7 @@ export class SheetParser {
       display: header.display,
       tall: header.tall,
       cols: header.cols,
+      color: header.color,
       order: doc.moduleLayouts.length,
     });
   }

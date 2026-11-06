@@ -262,16 +262,16 @@ export function DiagramsRulesSection({
                 }`}
               >
                 <div className="min-w-0 space-y-1">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     {rule.isActive ? (
                       <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                     ) : (
                       <Circle className="w-3.5 h-3.5 text-[#8d8d99] shrink-0" />
                     )}
-                    <span className="text-xs font-bold text-white truncate">
+                    <span className="text-xs font-bold text-white break-words leading-snug">
                       {rule.id}
                     </span>
-                    <code className="text-[10px] font-mono text-[#a8a8b3] bg-black/30 px-1.5 py-0.2 rounded truncate">
+                    <code className="text-[10px] font-mono text-[#a8a8b3] bg-black/30 px-1.5 py-0.2 rounded break-all">
                       se ({rule.conditionText})
                     </code>
                   </div>

@@ -29,7 +29,7 @@ export interface TrayDie {
 
 export type RollOutcomeTier = 'crit' | 'extreme' | 'success' | 'fail' | 'fumble' | 'neutral';
 
-export type DiceRuleMode = 'sum' | 'pool' | 'highest' | 'lowest' | 'roll_keep' | 'percentile';
+export type DiceRuleMode = 'sum' | 'pool' | 'highest' | 'lowest' | 'roll_keep' | 'percentile' | 'roll_under';
 
 export interface DiceTrayRules {
   critPositive: number; // Ex: 20
@@ -39,6 +39,7 @@ export interface DiceTrayRules {
   keepCount: number; // Ex: 2 (quantos dados manter no Roll & Keep)
   keepMode: 'highest' | 'lowest';
   percentileTarget: number; // Ex: 50 (% alvo para testes de perícia d100)
+  rollUnderTarget?: number | null; // Ex: 10 (alvo para testes Roll-Under como Mausritter 1d20 <= 10)
   ruleMode: DiceRuleMode;
 }
 
@@ -90,6 +91,13 @@ export interface DiceTrayState {
   // Regras de Crítico & Sucesso (definidas pelo Mestre)
   rules: DiceTrayRules;
 
+  // Contexto de Rolagem vindo da Ficha Modular
+  sheetRollContext: {
+    title: string;
+    subtitle?: string;
+    formula: string;
+  } | null;
+
   // Histórico & Desfazer / Refazer (limite de 5)
   history: DiceRollEntry[];
   undoStack: ActiveTraySnapshot[];
@@ -103,6 +111,15 @@ export interface DiceTrayState {
   toggleOpen: () => void;
   setIsMinimized: (isMin: boolean) => void;
   setActiveTab: (tab: 'tray' | 'history' | 'rules') => void;
+  openWithSheetRoll: (params: {
+    title: string;
+    subtitle?: string;
+    formula: string;
+    dice: Array<{ faces: DieFaceCount; color?: string }>;
+    modifier: number;
+    rules?: Partial<DiceTrayRules>;
+  }) => void;
+  clearSheetRollContext: () => void;
 
   // Ações de Bandeja
   addDie: (faces: DieFaceCount, color?: string) => void;
@@ -241,6 +258,20 @@ function formatFormulaAndBreakdown(dice: TrayDie[], globalModifier: number, rule
     return { formula, breakdown };
   }
 
+  if (rules?.ruleMode === 'roll_under' && rules.rollUnderTarget !== undefined && rules.rollUnderTarget !== null) {
+    const target = rules.rollUnderTarget;
+    const dicePart = dice.map((d) => `d${d.faces}`).join(' + ');
+    let formula = `${dicePart}`;
+    if (globalModifier !== 0) {
+      formula += globalModifier > 0 ? ` + ${globalModifier}` : ` - ${Math.abs(globalModifier)}`;
+    }
+    formula += ` <= ${target}`;
+    const diceTotal = dice.reduce((acc, d) => acc + d.currentValue + (d.modifier || 0), 0);
+    const total = diceTotal + globalModifier;
+    const breakdown = `${total} vs Alvo ≤ ${target}`;
+    return { formula, breakdown };
+  }
+
   if (rules?.ruleMode === 'percentile') {
     const target = rules.percentileTarget ?? 50;
     const formula = `d100 vs ${target}%`;
@@ -332,6 +363,24 @@ function evaluateOutcome(
     }
 
     return { total, diceTotal, outcomeTier, outcomeLabel };
+  }
+
+  // 2.5. Verificação Roll-Under Direta (Ex: Mausritter 1d20 <= Atributo, GURPS 3d6 <= Perícia)
+  if (rules.ruleMode === 'roll_under' && rules.rollUnderTarget !== undefined && rules.rollUnderTarget !== null) {
+    const diceTotal = dice.reduce((acc, d) => acc + d.currentValue + (d.modifier || 0), 0);
+    const total = diceTotal + modifier;
+    const target = rules.rollUnderTarget;
+
+    if (d20Dice.length === 1 && d20Dice[0].currentValue === 1) {
+      return { total, diceTotal, outcomeTier: 'crit', outcomeLabel: `SUCESSO CRÍTICO (${total} ≤ ${target})` };
+    }
+    if (d20Dice.length === 1 && d20Dice[0].currentValue === 20) {
+      return { total, diceTotal, outcomeTier: 'fumble', outcomeLabel: `FALHA CRÍTICA (${total} > ${target})` };
+    }
+    if (total <= target) {
+      return { total, diceTotal, outcomeTier: 'success', outcomeLabel: `SUCESSO (${total} ≤ ${target})` };
+    }
+    return { total, diceTotal, outcomeTier: 'fail', outcomeLabel: `FALHA (${total} > ${target})` };
   }
 
   if (rules.ruleMode === 'pool' && rules.poolThreshold !== null) {
@@ -430,6 +479,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
   activeNotification: null,
 
   rules: DEFAULT_RULES,
+  sheetRollContext: null,
 
   history: [],
   undoStack: [],
@@ -447,6 +497,59 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
   toggleOpen: () => set((state) => ({ isOpen: !state.isOpen, isMinimized: false })),
   setIsMinimized: (isMinimized) => set({ isMinimized }),
   setActiveTab: (activeTab) => set({ activeTab }),
+  clearSheetRollContext: () => set({ sheetRollContext: null }),
+
+  openWithSheetRoll: ({ title, subtitle, formula, dice: diceSpecs, modifier, rules: partialRules }) => {
+    const { dice: prevDice, modifier: prevMod, undoStack, rules: currentRules } = get();
+    const newSnapshot = takeSnapshot(prevDice, prevMod);
+
+    diceAudio.playDieDrop();
+    diceHaptics.drop();
+
+    const newDice: TrayDie[] = diceSpecs.map((spec, idx) => {
+      const pos = getRandomTrayPosition(idx);
+      const initialVal = rollDieFace(spec.faces);
+      return {
+        id: generateId(),
+        faces: spec.faces,
+        currentValue: initialVal,
+        animatedFace: initialVal,
+        sideFaces: generateSideFaces(spec.faces, initialVal),
+        isRolling: false,
+        color: spec.color || DIE_COLORS[spec.faces] || '#8257e5',
+        modifier: 0,
+        x: pos.x,
+        y: pos.y,
+        vx: 0,
+        vy: 0,
+        rotation: pos.rotation,
+        rotX: 0,
+        rotY: 0,
+        lift: 0,
+      };
+    });
+
+    set({
+      isOpen: true,
+      isMinimized: false,
+      activeTab: 'tray',
+      dice: newDice,
+      modifier,
+      selectedDieIds: [],
+      lastRollResult: null,
+      sheetRollContext: { title, subtitle, formula },
+      rules: {
+        ...currentRules,
+        successDC: null,
+        poolThreshold: null,
+        rollUnderTarget: null,
+        ruleMode: 'sum',
+        ...(partialRules || {}),
+      },
+      undoStack: [newSnapshot, ...undoStack].slice(0, 5),
+      redoStack: [],
+    });
+  },
 
   setVisibility: (visibility) => set({ visibility }),
   setSoundEnabled: (soundEnabled) => {
@@ -663,11 +766,14 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
     });
 
     const speedBoost = 1 + Math.pow(intensity || 0, 1.25) * 2.5;
-    const physics = dice.map((d, i) => {
+    let activeRollIndex = 0;
+    const physics = dice.map((d) => {
       const isRollingThis = diceToRoll.some((r) => r.id === d.id);
       if (!isRollingThis) {
         return {
           id: d.id,
+          startX: d.x,
+          startY: d.y,
           x: d.x,
           y: d.y,
           vx: 0,
@@ -685,14 +791,25 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
         };
       }
 
+      const rollIdx = activeRollIndex++;
       const angle = Math.random() * Math.PI * 2;
       const speed = (110 + Math.random() * 70) * speedBoost;
       const spinDirection = Math.random() > 0.5 ? 1 : -1;
       const rotSpeed = spinDirection * (1000 + Math.random() * 900) * (1 + Math.pow(intensity || 0, 1.2) * 1.8);
-      const duration = (1350 + i * 160 + Math.random() * 150) * (1 + (intensity || 0) * 0.65);
+      // Sincroniza a janela de voo livre + frenagem com a duração exata dos samples de áudio:
+      // - Clique rápido (intensity < 0.18): lançamento instantâneo (< 1s) — dá apenas uma
+      //   "mini giradinha" e já sai batendo na bandeja (~420ms–650ms de voo livre + ~180ms de frenagem),
+      //   casando com os áudios curtos de lançamento instantâneo (440ms single / 630ms few / 750ms many).
+      // - Segurar e soltar (intensity >= 0.18): arremesso proporcional à carga acumulada.
+      const isQuickClick = (intensity || 0) < 0.18;
+      const duration = isQuickClick
+        ? 420 + Math.min(rollIdx, 4) * 55 + Math.random() * 45
+        : (680 + Math.min(rollIdx, 4) * 110 + Math.random() * 90) * (1 + (intensity || 0) * 0.55);
 
       return {
         id: d.id,
+        startX: d.x,
+        startY: d.y,
         x: d.x,
         y: d.y,
         vx: Math.cos(angle) * speed,
@@ -705,7 +822,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
         duration,
         settled: false,
         lastFaceSwap: 0,
-        faceInterval: 28,
+        faceInterval: 45,
         sideFaces: [...d.sideFaces],
       };
     });
@@ -719,10 +836,19 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
       dice: dice.map((d) => ({ ...d, isRolling: true })),
     });
 
-    // Desliga transições CSS em todos os dados durante o loop de física
+    // Desliga transições CSS em todos os dados durante o loop de física e mede o canvas uma única vez
+    let canvasWidth = 520;
+    let canvasHeight = 380;
     physics.forEach((p) => {
       const dom = diceDOMRegistry.get(p.id);
-      if (dom) setDieAnimating(dom, true);
+      if (dom) {
+        setDieAnimating(dom, true);
+        const parent = dom.card.current?.parentElement;
+        if (parent && parent.clientWidth > 0 && parent.clientHeight > 0) {
+          canvasWidth = parent.clientWidth;
+          canvasHeight = parent.clientHeight;
+        }
+      }
     });
 
     const startTime = performance.now();
@@ -886,32 +1012,25 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
         }
       }
 
-      // 3. Atualização direta do DOM via GPU transforms (Zero re-renderizações React durante o giro)
+      // 3. Atualização direta do DOM via GPU transforms (Zero Layout/Reflow e zero re-renderizações React)
       for (let idx = 0; idx < physics.length; idx++) {
         const p = physics[idx];
         const dom = diceDOMRegistry.get(p.id);
         if (!dom) continue;
 
         if (dom.card.current) {
-          dom.card.current.style.left = `${Math.round(p.x * 10) / 10}%`;
-          dom.card.current.style.top = `${Math.round(p.y * 10) / 10}%`;
-          dom.card.current.style.transform = `translate3d(-50%, -50%, 0)`;
+          const dxPx = ((p.x - p.startX) / 100) * canvasWidth;
+          const dyPx = ((p.y - p.startY) / 100) * canvasHeight;
+          dom.card.current.style.transform = `translate3d(calc(-50% + ${dxPx.toFixed(1)}px), calc(-50% + ${dyPx.toFixed(1)}px), 0)`;
         }
 
         if (dom.body.current) {
-          dom.body.current.style.transform = `
-            translate3d(0, ${Math.round(-p.lift * 0.55 * 10) / 10}px, 0)
-            rotate(${Math.round(p.rotation * 10) / 10}deg)
-            perspective(550px)
-            rotateX(${Math.round(p.rotX * 10) / 10}deg)
-            rotateY(${Math.round(p.rotY * 10) / 10}deg)
-            scale(1.04)
-          `;
+          dom.body.current.style.transform = `translate3d(0, ${(-p.lift * 0.55).toFixed(1)}px, 0) rotate(${p.rotation.toFixed(1)}deg) perspective(550px) rotateX(${p.rotX.toFixed(1)}deg) rotateY(${p.rotY.toFixed(1)}deg) scale(1.04)`;
         }
 
         if (dom.shadow.current) {
-          dom.shadow.current.style.transform = `translate3d(${Math.round(p.lift * 0.45 * 10) / 10}px, ${Math.round(p.lift * 0.55 * 10) / 10}px, 0) scale(${Math.round((1 + p.lift * 0.02) * 100) / 100})`;
-          dom.shadow.current.style.opacity = `${Math.max(0.18, 0.65 - p.lift * 0.02)}`;
+          dom.shadow.current.style.transform = `translate3d(${(p.lift * 0.45).toFixed(1)}px, ${(p.lift * 0.55).toFixed(1)}px, 0) scale(${(1 + p.lift * 0.02).toFixed(2)})`;
+          dom.shadow.current.style.opacity = `${Math.max(0.18, 0.65 - p.lift * 0.02).toFixed(2)}`;
         }
 
         // Troca rápida de faces no SVG com desaceleração e revelação da face final
@@ -953,6 +1072,11 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
           const dom = diceDOMRegistry.get(p.id);
           if (dom) {
             setDieAnimating(dom, false);
+            if (dom.card.current) {
+              dom.card.current.style.left = `${Math.round(p.x * 10) / 10}%`;
+              dom.card.current.style.top = `${Math.round(p.y * 10) / 10}%`;
+              dom.card.current.style.transform = `translate3d(-50%, -50%, 0)`;
+            }
             if (dom.body.current) dom.body.current.style.transform = '';
             if (dom.shadow.current) {
               dom.shadow.current.style.transform = '';
@@ -980,6 +1104,8 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
         }));
 
         const evaluated = evaluateOutcome(settledDice, modifier, rules);
+        diceAudio.stopHold();
+        diceAudio.stopRollFadeOut(45);
         diceHaptics.settle();
 
         if (evaluated.outcomeTier === 'crit') {
@@ -988,7 +1114,9 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
           diceAudio.playFumble();
         }
 
-        const { formula, breakdown } = formatFormulaAndBreakdown(settledDice, modifier, rules);
+        const { formula: rawFormula, breakdown } = formatFormulaAndBreakdown(settledDice, modifier, rules);
+        const ctx = get().sheetRollContext;
+        const formula = ctx ? `${ctx.title} (${rawFormula})` : rawFormula;
 
         const newEntry: DiceRollEntry = {
           id: generateId(),
@@ -1078,6 +1206,7 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
       dice: [],
       selectedDieIds: [],
       lastRollResult: null,
+      sheetRollContext: null,
       undoStack: [newSnapshot, ...undoStack].slice(0, 5),
       redoStack: [],
     });

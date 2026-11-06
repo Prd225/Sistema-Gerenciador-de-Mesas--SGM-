@@ -144,6 +144,111 @@ interface ModularSheetState {
   setCounterCurrent: (sheetId: string, counterId: string, current: number) => void;
   setActiveTab: (sheetId: string, tabId: string) => void;
   resetRuntimeOverrides: (sheetId: string) => void;
+
+  // Edição Direta de Módulos pela Interface Visual (Sincronizada com a DSL)
+  updateCharacterLevel: (sheetId: string, newLevel: number) => void;
+  updateProfileFields: (
+    sheetId: string,
+    updates: {
+      name?: string;
+      archetype?: string;
+      level?: number | string;
+      desc?: string;
+      extraFields?: Array<{ key: string; value: string }>;
+    },
+  ) => void;
+  updateStatBaseValue: (sheetId: string, statId: string, newValue: number | string) => void;
+  addStatOrAttr: (
+    sheetId: string,
+    kind: 'attr' | 'stat',
+    tabOrItem:
+      | string
+      | undefined
+      | { id: string; label: string; value: string | number; roll?: string },
+    maybeItem?: { id: string; label: string; value: string | number; roll?: string },
+  ) => void;
+  updateTextBlock: (
+    sheetId: string,
+    blockIndex: number,
+    title: string | undefined,
+    contentText: string,
+  ) => void;
+  addInventoryItem: (
+    sheetId: string,
+    tab: string | undefined,
+    item: {
+      label: string;
+      weight: number;
+      qty: number;
+      state: 'equipped' | 'carried' | 'stash';
+      desc?: string;
+      effect?: string;
+      testFormula?: string;
+      damageFormula?: string;
+    },
+  ) => void;
+  removeInventoryItem: (sheetId: string, itemLabel: string) => void;
+  addSkillItem: (
+    sheetId: string,
+    tabOrSkill:
+      | string
+      | undefined
+      | { label: string; baseAttr?: string; bonus: number; roll?: string },
+    maybeSkill?: { label: string; baseAttr?: string; bonus: number; roll?: string },
+  ) => void;
+  updateSkillBonus: (sheetId: string, skillId: string, newBonus: number) => void;
+  removeSkillItem: (sheetId: string, skillId: string) => void;
+  addSlotItem: (
+    sheetId: string,
+    blockIndex: number,
+    slot: { label: string; max?: number; colSpan?: number; isCondition?: boolean },
+  ) => void;
+  addAbilityItem: (
+    sheetId: string,
+    tabOrAbility:
+      | string
+      | undefined
+      | {
+          category?: string;
+          label: string;
+          actionType?: string;
+          cost?: string;
+          desc?: string;
+          testFormula?: string;
+          damageFormula?: string;
+        },
+    maybeAbility?: {
+      category?: string;
+      label: string;
+      actionType?: string;
+      cost?: string;
+      desc?: string;
+      testFormula?: string;
+      damageFormula?: string;
+    },
+  ) => void;
+  removeAbilityItem: (sheetId: string, abilityLabel: string) => void;
+  addDescriptorItem: (
+    sheetId: string,
+    tabOrDesc:
+      | string
+      | undefined
+      | { kind: string; label: string; value?: string | number; effect?: string },
+    maybeDesc?: { kind: string; label: string; value?: string | number; effect?: string },
+  ) => void;
+  updateTabNavConfig: (
+    sheetId: string,
+    config: {
+      position?: 'top' | 'bottom' | 'left' | 'right' | 'hidden';
+      showLabels?: boolean;
+      align?: 'left' | 'center' | 'right' | 'stretch';
+    },
+  ) => void;
+  updateModuleColor: (
+    sheetId: string,
+    modOrderIndex: number,
+    color: string | undefined,
+  ) => void;
 }
 
 export const useModularSheetStore = create<ModularSheetState>((set, get) => ({
@@ -747,6 +852,549 @@ export const useModularSheetStore = create<ModularSheetState>((set, get) => ({
       ),
     }));
     triggerAutoSave();
+  },
+
+  updateCharacterLevel: (sheetId, newLevel) => {
+    const rec = get().sheets.find((s) => s.id === sheetId);
+    if (!rec) return;
+    const clamped = Math.max(0, Math.round(newLevel));
+    let src = rec.dslSource;
+
+    // 1. Atualiza level em @meta [...]
+    src = src.replace(/(@meta\b[^\n]*)/i, (line) => {
+      if (/\b(?:level|nivel|nível|nex)\s*[:=]\s*\d+/i.test(line)) {
+        return line.replace(/(\b(?:level|nivel|nível|nex)\s*[:=]\s*)\d+/i, `$1${clamped}`);
+      }
+      return line;
+    });
+
+    // 2. Atualiza level: X dentro de @profile ou @stat
+    src = src.replace(/^([ \t]*(?:level|nivel|nível|nex)\s*(?::=|[:=])\s*)\d+/gim, `$1${clamped}`);
+
+    get().updateSheetSource(sheetId, src);
+  },
+
+  updateProfileFields: (sheetId, updates) => {
+    const rec = get().sheets.find((s) => s.id === sheetId);
+    if (!rec) return;
+    let src = rec.dslSource;
+
+    if (updates.name && updates.name.trim()) {
+      src = replaceMetaTitleInDSL(src, updates.name.trim());
+      src = src.replace(
+        /(@(?:profile|perfil|identidade)\s+)"[^"]*"/i,
+        `$1"${updates.name.trim().replace(/"/g, '\\"')}"`,
+      );
+    }
+
+    if (updates.level !== undefined && updates.level !== '') {
+      const lvlNum = Number(updates.level);
+      if (!Number.isNaN(lvlNum)) {
+        src = src.replace(/(@meta\b[^\n]*)/i, (line) => {
+          if (/\b(?:level|nivel|nível|nex)\s*[:=]\s*\d+/i.test(line)) {
+            return line.replace(/(\b(?:level|nivel|nível|nex)\s*[:=]\s*)\d+/i, `$1${lvlNum}`);
+          }
+          return line;
+        });
+      }
+    }
+
+    const profileRegex =
+      /(@(?:profile|perfil|img|imagem|avatar|retrato|identidade)\b[^\n]*\n)((?:[ \t]+[^\n]*\n?)*)/i;
+
+    if (profileRegex.test(src)) {
+      src = src.replace(profileRegex, (_m, headerLine: string, bodyLines: string) => {
+        const lines = bodyLines.split('\n').filter((l) => l.trim().length > 0);
+        const upsertProp = (key: string, val: string | number | undefined, isNumeric = false) => {
+          if (val === undefined) return;
+          const strVal = isNumeric ? String(val) : `"${String(val).replace(/"/g, '\\"')}"`;
+          const keyRe = new RegExp(`^[ \\t]*${key}\\s*[:=]`, 'i');
+          const idx = lines.findIndex((l) => keyRe.test(l));
+          if (idx >= 0) {
+            lines[idx] = `  ${key}: ${strVal}`;
+          } else if (String(val).trim() !== '') {
+            lines.push(`  ${key}: ${strVal}`);
+          }
+        };
+
+        if (updates.name !== undefined) upsertProp('name', updates.name);
+        if (updates.archetype !== undefined) upsertProp('archetype', updates.archetype);
+        if (updates.level !== undefined && updates.level !== '') {
+          const isNum = !Number.isNaN(Number(updates.level));
+          upsertProp('level', updates.level, isNum);
+        }
+        if (updates.desc !== undefined) upsertProp('desc', updates.desc);
+
+        if (updates.extraFields) {
+          for (const ef of updates.extraFields) {
+            const safeKey = ef.key
+              .trim()
+              .replace(/[^a-zA-Z0-9_À-ÖØ-öø-ÿ]/g, '_');
+            if (!safeKey) continue;
+            const isNum = ef.value.trim() !== '' && !Number.isNaN(Number(ef.value));
+            upsertProp(safeKey, isNum ? Number(ef.value) : ef.value, isNum);
+          }
+        }
+
+        return `${headerLine}${lines.join('\n')}\n`;
+      });
+    }
+
+    get().updateSheetSource(sheetId, src);
+  },
+
+  updateStatBaseValue: (sheetId, statId, newValue) => {
+    const rec = get().sheets.find((s) => s.id === sheetId);
+    if (!rec) return;
+    let src = rec.dslSource;
+    const escapedId = statId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Casa linhas como: FOR "Força" := 10 [roll: ...] ou hire_hp "HP": 3 / 4
+    const lineRegex = new RegExp(
+      `^([ \\t]*${escapedId}(?:\\s+"[^"]*")?\\s*(?::=|=|:)\\s*)([^\\[\\n#]+)(.*)$`,
+      'm',
+    );
+    if (lineRegex.test(src)) {
+      const formattedVal =
+        typeof newValue === 'number'
+          ? String(newValue)
+          : /^\d+\s*\/\s*\d+$/.test(String(newValue).trim()) || !Number.isNaN(Number(newValue))
+            ? String(newValue).trim()
+            : `"${String(newValue).replace(/"/g, '\\"')}"`;
+
+      src = src.replace(lineRegex, (_m, prefix: string, _oldExpr: string, suffix: string) => {
+        const cleanSuffix = suffix.trim() ? ` ${suffix.trim()}` : '';
+        return `${prefix}${formattedVal}${cleanSuffix}`;
+      });
+      get().updateSheetSource(sheetId, src);
+    }
+  },
+
+  addStatOrAttr: (sheetId, kind, tabOrItem, maybeItem) => {
+    const tab = typeof tabOrItem === 'string' ? tabOrItem : undefined;
+    const item = (typeof tabOrItem === 'object' && tabOrItem !== null ? tabOrItem : maybeItem)!;
+    if (!item) return;
+    const rec = get().sheets.find((s) => s.id === sheetId);
+    if (!rec) return;
+    const safeId =
+      item.id
+        .trim()
+        .replace(/[^a-zA-Z0-9_]/g, '_') || `stat_${Date.now().toString(36)}`;
+    const safeLabel = (item.label.trim() || safeId).replace(/"/g, '\\"');
+    const rawVal = String(item.value).trim() || '0';
+    const isNumOrFraction =
+      !Number.isNaN(Number(rawVal)) || /^\d+\s*\/\s*\d+$/.test(rawVal);
+    const valExpr = isNumOrFraction ? rawVal : `"${rawVal.replace(/"/g, '\\"')}"`;
+    const rollPart = item.roll?.trim()
+      ? ` [roll: "${item.roll.trim().replace(/"/g, '\\"')}"]`
+      : '';
+    const newLine = `  ${safeId} "${safeLabel}" := ${valExpr}${rollPart}`;
+
+    let src = rec.dslSource;
+    const dirPattern =
+      kind === 'attr'
+        ? /(@(?:attr|attrs|attributes|atributo|atributos)\b[^\n]*\n(?:[ \t]+[^\n]*\n?)*)/gi
+        : /(@(?:stat|stats|status|defesas|derivados)\b[^\n]*\n(?:[ \t]+[^\n]*\n?)*)/gi;
+
+    let matches = Array.from(src.matchAll(dirPattern));
+    if (matches.length > 0) {
+      const lastMatch = matches[matches.length - 1];
+      const matchText = lastMatch[0];
+      const matchIndex = lastMatch.index ?? 0;
+      const updatedBlock = `${matchText.replace(/\n*$/, '')}\n${newLine}\n`;
+      src =
+        src.slice(0, matchIndex) +
+        updatedBlock +
+        src.slice(matchIndex + matchText.length);
+    } else {
+      const header = kind === 'attr' ? '@attr "Atributos" [col1]' : '@stat "Status" [col1]';
+      const tabHeader = tab && tab !== 'Principal' && tab !== 'Geral' ? `\n@tab "${tab}"\n` : '\n';
+      src = `${src.trimEnd()}\n${tabHeader}${header}\n${newLine}\n`;
+    }
+
+    get().updateSheetSource(sheetId, src);
+  },
+
+  updateTextBlock: (sheetId, blockIndex, title, contentText) => {
+    const rec = get().sheets.find((s) => s.id === sheetId);
+    if (!rec) return;
+    let src = rec.dslSource;
+
+    const textBlockRegex =
+      /(@(?:text|texts|texto|textos|note|notes|nota|notas|anotacao|anotacoes|anotações|bio|biografia|lore|historia|história)\b[^\n]*)(\n(?:[ \t]+[^\n]*\n?)*)/gi;
+
+    let currentIdx = 0;
+    let replaced = false;
+
+    src = src.replace(textBlockRegex, (fullMatch, headerLine: string, _body: string) => {
+      if (currentIdx !== blockIndex) {
+        currentIdx++;
+        return fullMatch;
+      }
+      currentIdx++;
+      replaced = true;
+
+      let updatedHeader = headerLine;
+      if (title !== undefined && title.trim() !== '') {
+        const safeTitle = title.trim().replace(/"/g, '\\"');
+        if (/"[^"]*"/.test(updatedHeader)) {
+          updatedHeader = updatedHeader.replace(/"[^"]*"/, `"${safeTitle}"`);
+        } else {
+          updatedHeader = updatedHeader.replace(/^(@\S+)/, `$1 "${safeTitle}"`);
+        }
+      }
+
+      const rawLines = contentText
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0);
+
+      const formattedLines = rawLines.map((line) => {
+        if (
+          line.startsWith('- ') ||
+          line.startsWith('* ') ||
+          line.startsWith('>') ||
+          line.startsWith('#') ||
+          /^[A-Za-zÀ-ÖØ-öø-ÿ0-9_\s]{2,20}\s*:\s*.+$/.test(line)
+        ) {
+          return `  ${line}`;
+        }
+        const unquoted = line.replace(/^"(.*)"$/, '$1').replace(/"/g, '\\"');
+        return `  "${unquoted}"`;
+      });
+
+      const newBody = formattedLines.length > 0 ? `\n${formattedLines.join('\n')}\n` : '\n';
+      return `${updatedHeader}${newBody}`;
+    });
+
+    if (replaced) {
+      get().updateSheetSource(sheetId, src);
+    }
+  },
+
+  addInventoryItem: (sheetId, tab, item) => {
+    const rec = get().sheets.find((s) => s.id === sheetId);
+    if (!rec) return;
+    const safeLabel = (item.label.trim() || 'Novo Item').replace(/"/g, '\\"');
+    const stateFlag =
+      item.state === 'equipped'
+        ? '!equipped'
+        : item.state === 'stash'
+          ? '!stash'
+          : '!carried';
+
+    const lines: string[] = [
+      `  item "${safeLabel}" [weight: ${item.weight}, qty: ${item.qty}, ${stateFlag}]`,
+    ];
+    if (item.desc?.trim()) {
+      lines.push(`    desc: "${item.desc.trim().replace(/"/g, '\\"')}"`);
+    }
+    if (item.effect?.trim()) {
+      lines.push(`    when equipped -> ${item.effect.trim()}`);
+    }
+    if (item.testFormula?.trim() || item.damageFormula?.trim()) {
+      lines.push(`    action "Usar / Atacar" [type: "Padrão"]`);
+      if (item.testFormula?.trim()) {
+        lines.push(`      test: ${item.testFormula.trim()}`);
+      }
+      if (item.damageFormula?.trim()) {
+        lines.push(`      damage: ${item.damageFormula.trim()}`);
+      }
+    }
+
+    const snippet = lines.join('\n');
+    let src = rec.dslSource;
+    const invRegex = /(@(?:inv|inventory|inventario|itens)\b[^\n]*\n(?:[ \t]+[^\n]*\n?)*)/gi;
+    const matches = Array.from(src.matchAll(invRegex));
+
+    if (matches.length > 0) {
+      const last = matches[matches.length - 1];
+      const idx = last.index ?? 0;
+      const updated = `${last[0].replace(/\n*$/, '')}\n\n${snippet}\n`;
+      src = src.slice(0, idx) + updated + src.slice(idx + last[0].length);
+    } else {
+      const tabHeader = tab && tab !== 'Principal' && tab !== 'Geral' ? `\n@tab "${tab}"\n` : '\n';
+      src = `${src.trimEnd()}\n${tabHeader}@inv "Inventário" [col1]\n${snippet}\n`;
+    }
+
+    get().updateSheetSource(sheetId, src);
+  },
+
+  removeInventoryItem: (sheetId, itemLabel) => {
+    const rec = get().sheets.find((s) => s.id === sheetId);
+    if (!rec) return;
+    const escaped = itemLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const itemBlockRe = new RegExp(
+      `^[ \\t]*(?:item|weapon|armor|shield|consumable)\\s+"${escaped}"[^\\n]*\\n(?:[ \\t]{4,}[^\\n]*\\n?)*`,
+      'im',
+    );
+    const nextSrc = rec.dslSource.replace(itemBlockRe, '');
+    if (nextSrc !== rec.dslSource) {
+      get().updateSheetSource(sheetId, nextSrc);
+    }
+  },
+
+  addSkillItem: (sheetId, tabOrSkill, maybeSkill) => {
+    const tab = typeof tabOrSkill === 'string' ? tabOrSkill : undefined;
+    const skill = (typeof tabOrSkill === 'object' && tabOrSkill !== null ? tabOrSkill : maybeSkill)!;
+    if (!skill) return;
+    const rec = get().sheets.find((s) => s.id === sheetId);
+    if (!rec) return;
+    const rawLabel = skill.label.trim() || 'Nova Perícia';
+    const safeId = rawLabel
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9_]/g, '_')
+      .replace(/^_+|_+$/g, '') || `skill_${Date.now().toString(36)}`;
+    const attrPart = skill.baseAttr?.trim() ? ` (${skill.baseAttr.trim()})` : '';
+    const rollPart = skill.roll?.trim()
+      ? ` [roll: "${skill.roll.trim().replace(/"/g, '\\"')}"]`
+      : '';
+    const newLine = `  ${safeId} "${rawLabel.replace(/"/g, '\\"')}"${attrPart} := ${skill.bonus}${rollPart}`;
+
+    let src = rec.dslSource;
+    const skillRegex = /(@(?:skill|skills|pericia|pericias)\b[^\n]*\n(?:[ \t]+[^\n]*\n?)*)/gi;
+    const matches = Array.from(src.matchAll(skillRegex));
+
+    if (matches.length > 0) {
+      const last = matches[matches.length - 1];
+      const idx = last.index ?? 0;
+      const updated = `${last[0].replace(/\n*$/, '')}\n${newLine}\n`;
+      src = src.slice(0, idx) + updated + src.slice(idx + last[0].length);
+    } else {
+      const tabHeader = tab && tab !== 'Principal' && tab !== 'Geral' ? `\n@tab "${tab}"\n` : '\n';
+      src = `${src.trimEnd()}\n${tabHeader}@skill "Perícias" [col2, roll: 1d20 + attr + self]\n${newLine}\n`;
+    }
+
+    get().updateSheetSource(sheetId, src);
+  },
+
+  updateSkillBonus: (sheetId, skillId, newBonus) => {
+    const rec = get().sheets.find((s) => s.id === sheetId);
+    if (!rec) return;
+    let src = rec.dslSource;
+    const escapedId = skillId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const lineRe = new RegExp(
+      `^([ \\t]*${escapedId}(?:\\s+"[^"]*")?(?:\\s*\\([^)]*\\))?\\s*(?::=|=|:)\\s*)(-?\\d+)(.*)$`,
+      'm',
+    );
+    if (lineRe.test(src)) {
+      src = src.replace(lineRe, `$1${newBonus}$3`);
+      get().updateSheetSource(sheetId, src);
+    }
+  },
+
+  removeSkillItem: (sheetId, skillId) => {
+    const rec = get().sheets.find((s) => s.id === sheetId);
+    if (!rec) return;
+    const escapedId = skillId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const lineRe = new RegExp(
+      `^[ \\t]*${escapedId}(?:\\s+"[^"]*")?(?:\\s*\\([^)]*\\))?\\s*(?::=|=|:)[^\\n]*\\n?`,
+      'm',
+    );
+    const nextSrc = rec.dslSource.replace(lineRe, '');
+    if (nextSrc !== rec.dslSource) {
+      get().updateSheetSource(sheetId, nextSrc);
+    }
+  },
+
+  addSlotItem: (sheetId, blockIndex, slot) => {
+    const rec = get().sheets.find((s) => s.id === sheetId);
+    if (!rec) return;
+    let src = rec.dslSource;
+    const safeLabel = (slot.label.trim() || 'Novo Slot').replace(/"/g, '\\"');
+    const slotId = `slot_${Date.now().toString(36).slice(-4)}`;
+    const tags: string[] = [];
+    if (slot.colSpan && slot.colSpan > 1) tags.push(`span: ${slot.colSpan}`);
+    if (slot.isCondition) tags.push('condition');
+    if (!slot.max || slot.max <= 0) {
+      tags.push(slot.label.trim() ? 'state: filled' : 'state: empty');
+    }
+    const bracketStr = tags.length > 0 ? ` [${tags.join(', ')}]` : '';
+    const valStr = slot.max && slot.max > 0 ? `: ${slot.max}/${slot.max}` : '';
+    const newLine = `  ${slotId} "${safeLabel}"${valStr}${bracketStr}`;
+
+    const slotsRegex = /(@(?:slots|slot|caixas|grade_slots)\b[^\n]*\n(?:[ \t]+[^\n]*\n?)*)/gi;
+    let currentIdx = 0;
+    src = src.replace(slotsRegex, (fullMatch) => {
+      if (currentIdx !== blockIndex) {
+        currentIdx++;
+        return fullMatch;
+      }
+      currentIdx++;
+      return `${fullMatch.replace(/\n*$/, '')}\n${newLine}\n`;
+    });
+
+    get().updateSheetSource(sheetId, src);
+  },
+
+  addAbilityItem: (sheetId, tabOrAbility, maybeAbility) => {
+    const tab = typeof tabOrAbility === 'string' ? tabOrAbility : undefined;
+    const ability = (typeof tabOrAbility === 'object' && tabOrAbility !== null ? tabOrAbility : maybeAbility)!;
+    if (!ability) return;
+    const rec = get().sheets.find((s) => s.id === sheetId);
+    if (!rec) return;
+    const safeLabel = (ability.label.trim() || 'Nova Habilidade').replace(/"/g, '\\"');
+    const metaParts: string[] = [];
+    if (ability.actionType?.trim()) {
+      metaParts.push(`type: "${ability.actionType.trim().replace(/"/g, '\\"')}"`);
+    }
+    if (ability.cost?.trim()) {
+      metaParts.push(`cost: ${ability.cost.trim()}`);
+    }
+    const bracket = metaParts.length > 0 ? ` [${metaParts.join(', ')}]` : '';
+    const lines: string[] = [`  ability "${safeLabel}"${bracket}`];
+    if (ability.testFormula?.trim()) {
+      lines.push(`    test: ${ability.testFormula.trim()}`);
+    }
+    if (ability.damageFormula?.trim()) {
+      lines.push(`    damage: ${ability.damageFormula.trim()}`);
+    }
+    if (ability.desc?.trim()) {
+      lines.push(`    desc: "${ability.desc.trim().replace(/"/g, '\\"')}"`);
+    }
+
+    const snippet = lines.join('\n');
+    let src = rec.dslSource;
+    const abRegex =
+      /(@(?:ability|abilities|action|actions|move|moves|magic|powers|habilidade|habilidades|acoes|magias|poderes|rituais)\b[^\n]*\n(?:[ \t]+[^\n]*\n?)*)/gi;
+    const matches = Array.from(src.matchAll(abRegex));
+
+    if (matches.length > 0) {
+      const last = matches[matches.length - 1];
+      const idx = last.index ?? 0;
+      const updated = `${last[0].replace(/\n*$/, '')}\n\n${snippet}\n`;
+      src = src.slice(0, idx) + updated + src.slice(idx + last[0].length);
+    } else {
+      const tabHeader = tab && tab !== 'Principal' && tab !== 'Geral' ? `\n@tab "${tab}"\n` : '\n';
+      src = `${src.trimEnd()}\n${tabHeader}@ability "Habilidades" [col2]\n${snippet}\n`;
+    }
+
+    get().updateSheetSource(sheetId, src);
+  },
+
+  removeAbilityItem: (sheetId, abilityLabel) => {
+    const rec = get().sheets.find((s) => s.id === sheetId);
+    if (!rec) return;
+    const escaped = abilityLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const abBlockRe = new RegExp(
+      `^[ \\t]*(?:ability|action|move|spell|power|passive|reaction)\\s+"${escaped}"[^\\n]*\\n(?:[ \\t]{4,}[^\\n]*\\n?)*`,
+      'im',
+    );
+    const nextSrc = rec.dslSource.replace(abBlockRe, '');
+    if (nextSrc !== rec.dslSource) {
+      get().updateSheetSource(sheetId, nextSrc);
+    }
+  },
+
+  addDescriptorItem: (sheetId, tabOrDesc, maybeDesc) => {
+    const tab = typeof tabOrDesc === 'string' ? tabOrDesc : undefined;
+    const desc = (typeof tabOrDesc === 'object' && tabOrDesc !== null ? tabOrDesc : maybeDesc)!;
+    if (!desc) return;
+    const rec = get().sheets.find((s) => s.id === sheetId);
+    if (!rec) return;
+    const safeLabel = (desc.label.trim() || 'Nova Condição').replace(/"/g, '\\"');
+    const kw = desc.kind || 'tag';
+    const effectPart = desc.effect?.trim()
+      ? ` [active: false] -> ${desc.effect.trim()}`
+      : '';
+    const newLine = `  ${kw} "${safeLabel}"${effectPart}`;
+
+    let src = rec.dslSource;
+    const descRegex =
+      /(@(?:desc|descriptors|narrative|descritores|narrativa|aspectos)\b[^\n]*\n(?:[ \t]+[^\n]*\n?)*)/gi;
+    const matches = Array.from(src.matchAll(descRegex));
+
+    if (matches.length > 0) {
+      const last = matches[matches.length - 1];
+      const idx = last.index ?? 0;
+      const updated = `${last[0].replace(/\n*$/, '')}\n${newLine}\n`;
+      src = src.slice(0, idx) + updated + src.slice(idx + last[0].length);
+    } else {
+      const tabHeader = tab && tab !== 'Principal' && tab !== 'Geral' ? `\n@tab "${tab}"\n` : '\n';
+      src = `${src.trimEnd()}\n${tabHeader}@desc "Condições & Estados" [col1]\n${newLine}\n`;
+    }
+
+    get().updateSheetSource(sheetId, src);
+  },
+
+  updateTabNavConfig: (sheetId, config) => {
+    const rec = get().sheets.find((s) => s.id === sheetId);
+    if (!rec) return;
+    let src = rec.dslSource;
+
+    const upsertMetaBracketKey = (headerLine: string, key: string, val: string) => {
+      const keyRe = new RegExp(`\\b${key}\\s*[:=]\\s*(?:"[^"]*"|[a-zA-Z0-9_]+)`, 'i');
+      if (keyRe.test(headerLine)) {
+        return headerLine.replace(keyRe, `${key}: ${val}`);
+      }
+      const bracketMatch = headerLine.match(/\[([^\]]*)\]/);
+      if (bracketMatch) {
+        const inner = bracketMatch[1].trim();
+        const newInner = inner ? `${inner}, ${key}: ${val}` : `${key}: ${val}`;
+        return headerLine.replace(/\[[^\]]*\]/, `[${newInner}]`);
+      }
+      return `${headerLine} [${key}: ${val}]`;
+    };
+
+    const metaRegex = /(@meta\b[^\n]*)/i;
+    if (!metaRegex.test(src)) {
+      src = `@meta "${rec.name}"\n\n${src}`;
+    }
+
+    src = src.replace(metaRegex, (line) => {
+      let updated = line;
+      if (config.position !== undefined) {
+        updated = upsertMetaBracketKey(updated, 'tabs_pos', `"${config.position}"`);
+      }
+      if (config.showLabels !== undefined) {
+        updated = upsertMetaBracketKey(updated, 'tabs_labels', config.showLabels ? 'true' : 'false');
+      }
+      if (config.align !== undefined) {
+        updated = upsertMetaBracketKey(updated, 'tabs_align', `"${config.align}"`);
+      }
+      return updated;
+    });
+
+    get().updateSheetSource(sheetId, src);
+  },
+
+  updateModuleColor: (sheetId, modOrderIndex, color) => {
+    const rec = get().sheets.find((s) => s.id === sheetId);
+    if (!rec) return;
+    let src = rec.dslSource;
+
+    // Encontra diretivas de módulos que geram layout (na mesma ordem do parser)
+    const moduleDirectiveRegex =
+      /^([ \t]*@(?:profile|perfil|img|imagem|avatar|retrato|identidade|counter|counters|contador|contadores|tracker|trackers|segment|segments|segmento|segmentos|attr|attrs|attributes|atributo|atributos|stat|stats|status|defesas|derivados|res|resource|resources|recurso|recursos|turn|action_economy|turno|desc|descriptors|narrative|descritores|narrativa|aspectos|skill|skills|pericia|pericias|inv|inventory|inventario|itens|ability|abilities|action|actions|move|moves|magic|powers|habilidade|habilidades|acoes|magias|poderes|rituais|diagram|quadro|diagrama|slots|slot|caixas|grade_slots|text|texts|texto|textos|note|notes|nota|notas|anotacao|anotacoes|anotações|bio|biografia|lore|historia|história)\b[^\n]*)/gim;
+
+    let currentOrder = 0;
+    src = src.replace(moduleDirectiveRegex, (headerLine) => {
+      if (currentOrder !== modOrderIndex) {
+        currentOrder++;
+        return headerLine;
+      }
+      currentOrder++;
+
+      if (!color) {
+        return headerLine
+          .replace(/,?\s*\b(?:cor|color|accent|hex)\s*[:=]\s*"?#[0-9a-fA-F]{3,8}"?/gi, '')
+          .replace(/,?\s*\b(?:cor|color|accent|hex)\s*[:=]\s*"?[a-zA-Z]+"?/gi, '');
+      }
+
+      const colorPropRe = /\b(?:cor|color|accent|hex)\s*[:=]\s*(?:"[^"]*"|#[0-9a-fA-F]{3,8}|[a-zA-Z0-9_]+)/i;
+      if (colorPropRe.test(headerLine)) {
+        return headerLine.replace(colorPropRe, `cor: "${color}"`);
+      }
+      const bracketMatch = headerLine.match(/\[([^\]]*)\]/);
+      if (bracketMatch) {
+        const inner = bracketMatch[1].trim();
+        const newInner = inner ? `${inner}, cor: "${color}"` : `cor: "${color}"`;
+        return headerLine.replace(/\[[^\]]*\]/, `[${newInner}]`);
+      }
+      return `${headerLine} [cor: "${color}"]`;
+    });
+
+    get().updateSheetSource(sheetId, src);
   },
 }));
 

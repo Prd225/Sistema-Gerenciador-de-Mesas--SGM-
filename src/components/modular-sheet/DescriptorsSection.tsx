@@ -1,4 +1,5 @@
-import { Eye, ShieldCheck, ShieldAlert, Flame, Sparkles, Tag, Info } from 'lucide-react';
+import { useState } from 'react';
+import { Eye, ShieldCheck, ShieldAlert, Flame, Sparkles, Tag, Info, Plus, Check, X } from 'lucide-react';
 import { useModularSheetStore } from '@/store/useModularSheetStore';
 import { isTabMatching, type CompiledSheet } from '@/lib/sheet-dsl';
 import { formatEvaluatedValue } from './types';
@@ -7,14 +8,43 @@ interface DescriptorsSectionProps {
   sheetId: string;
   sheet: CompiledSheet;
   activeTab?: string;
+  isEditMode?: boolean;
 }
 
 export function DescriptorsSection({
   sheetId,
   sheet,
   activeTab,
+  isEditMode = false,
 }: DescriptorsSectionProps) {
   const setToggleState = useModularSheetStore((s) => s.setToggleState);
+  const addDescriptorItem = useModularSheetStore((s) => s.addDescriptorItem);
+
+  const [isAdding, setIsAdding] = useState(false);
+  const [newKind, setNewKind] = useState<'tag' | 'consequence' | 'resistance' | 'immunity' | 'vulnerability' | 'sense'>('tag');
+  const [newLabel, setNewLabel] = useState('');
+  const [newValue, setNewValue] = useState('');
+  const [newEffect, setNewEffect] = useState('');
+
+  const handleAddDescriptor = () => {
+    if (!newLabel.trim()) return;
+    const numVal = Number(newValue.trim());
+    addDescriptorItem(sheetId, {
+      kind: newKind,
+      label: newLabel.trim(),
+      value:
+        newValue.trim() === ''
+          ? undefined
+          : !Number.isNaN(numVal)
+            ? numVal
+            : newValue.trim(),
+      effect: newEffect.trim() || undefined,
+    });
+    setNewLabel('');
+    setNewValue('');
+    setNewEffect('');
+    setIsAdding(false);
+  };
 
   const visibleDescriptors = sheet.descriptors.filter((d) =>
     isTabMatching(d.tab, activeTab),
@@ -25,7 +55,7 @@ export function DescriptorsSection({
   // 1. Notas explicativas estáticas (ex: condicoes_info: "Condições ocupam...")
   const infoNotes = visibleDescriptors.filter(
     (d) =>
-      !d.hasEffects &&
+      d.effectSummaries.length === 0 &&
       typeof d.value === 'string' &&
       (d.value.length > 25 || d.id.includes('info') || d.id.includes('nota')),
   );
@@ -33,9 +63,10 @@ export function DescriptorsSection({
   // 2. Modificadores táticos interativos (possuem efeitos que alteram atributos/rolagens ou consequência)
   const interactiveDescs = visibleDescriptors.filter(
     (d) =>
-      d.effectSummaries.length > 0 ||
-      d.kind === 'consequence' ||
-      (d.hasEffects && d.active !== undefined && d.effectSummaries.length > 0),
+      !infoNotes.some((n) => n.id === d.id) &&
+      (d.effectSummaries.length > 0 ||
+        d.kind === 'consequence' ||
+        (d.hasEffects && d.active !== undefined && d.effectSummaries.length > 0)),
   );
 
   // 3. Chips estáticos (resistências, sentidos, imunidades, divindades, etc.)
@@ -90,10 +121,93 @@ export function DescriptorsSection({
         borderColor: 'var(--sheet-card-border, #29292e)',
       }}
     >
-      {customTitle && (
-        <h3 className="text-xs font-bold uppercase tracking-wider text-[#a8a8b3] px-0.5">
-          {customTitle}
-        </h3>
+      <div className="flex items-center justify-between gap-2">
+        {customTitle ? (
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#a8a8b3] px-0.5 break-words">
+            {customTitle}
+          </h3>
+        ) : (
+          <span />
+        )}
+        {isEditMode && (
+          <button
+            type="button"
+            onClick={() => setIsAdding((v) => !v)}
+            className="px-2 py-0.5 rounded border text-[10px] font-bold text-zinc-400 hover:text-white flex items-center gap-1 transition-colors shrink-0"
+            style={{
+              backgroundColor: 'var(--sheet-item-bg, #121214)',
+              borderColor: 'var(--sheet-item-border, #29292e)',
+            }}
+          >
+            <Plus className="w-2.5 h-2.5" />
+            Condição
+          </button>
+        )}
+      </div>
+
+      {isEditMode && isAdding && (
+        <div
+          className="rounded-lg border p-2.5 space-y-2 transition-colors"
+          style={{
+            backgroundColor: 'var(--sheet-item-bg, #121214)',
+            borderColor: 'var(--sheet-item-border, #29292e)',
+          }}
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+            <select
+              value={newKind}
+              onChange={(e) => setNewKind(e.target.value as typeof newKind)}
+              className="rounded border bg-zinc-950 border-zinc-800 px-2 py-1 text-xs text-zinc-200 focus:outline-none"
+            >
+              <option value="tag">Condição / Tag</option>
+              <option value="consequence">Consequência</option>
+              <option value="resistance">Resistência (RD)</option>
+              <option value="immunity">Imunidade</option>
+              <option value="vulnerability">Vulnerabilidade</option>
+              <option value="sense">Sentido</option>
+            </select>
+            <input
+              type="text"
+              value={newLabel}
+              onChange={(e) => setNewLabel(e.target.value)}
+              placeholder="Nome (ex: Exausto)"
+              className="rounded border bg-zinc-950 border-zinc-800 px-2 py-1 text-xs text-white focus:outline-none"
+            />
+            <input
+              type="text"
+              value={newEffect}
+              onChange={(e) => setNewEffect(e.target.value)}
+              placeholder="Efeito (ex: STR -= 2)"
+              className="rounded border bg-zinc-950 border-zinc-800 px-2 py-1 text-xs font-mono text-zinc-300 focus:outline-none"
+            />
+            <input
+              type="text"
+              value={newValue}
+              onChange={(e) => setNewValue(e.target.value)}
+              placeholder="Valor / Nota opcional"
+              className="rounded border bg-zinc-950 border-zinc-800 px-2 py-1 text-xs text-zinc-300 focus:outline-none"
+            />
+          </div>
+          <div className="flex items-center justify-end gap-1.5">
+            <button
+              type="button"
+              onClick={() => setIsAdding(false)}
+              className="px-2 py-1 rounded border border-zinc-800 bg-zinc-900 text-[11px] text-zinc-400 hover:text-white flex items-center gap-1"
+            >
+              <X className="w-3 h-3" />
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleAddDescriptor}
+              className="px-2.5 py-1 rounded text-[11px] font-bold text-white flex items-center gap-1"
+              style={{ backgroundColor: 'var(--sheet-accent, #8257e5)' }}
+            >
+              <Check className="w-3 h-3" />
+              Adicionar
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Notas Informativas Estáticas */}
@@ -150,28 +264,28 @@ export function DescriptorsSection({
                 type="button"
                 onClick={() => setToggleState(sheetId, d.id, !d.active)}
                 className={`flex items-center justify-between gap-3 p-2.5 rounded-md border text-left transition-all ${d.active
-                    ? isConsequence
-                      ? 'border-rose-500/60 bg-rose-500/15'
-                      : 'border-[var(--sheet-accent)] bg-[var(--sheet-accent-subtle)]'
-                    : 'hover:border-[var(--sheet-accent)]'
+                  ? isConsequence
+                    ? 'border-rose-500/60 bg-rose-500/15'
+                    : 'border-[var(--sheet-accent)] bg-[var(--sheet-accent-subtle)]'
+                  : 'hover:border-[var(--sheet-accent)]'
                   }`}
                 style={{
                   backgroundColor: d.active ? undefined : 'var(--sheet-item-bg, #121214)',
                   borderColor: d.active ? undefined : 'var(--sheet-item-border, #29292e)',
                 }}
               >
-                <div className="min-w-0 space-y-1">
-                  <div className="flex items-center gap-1.5">
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     {isConsequence ? (
                       <ShieldAlert className="w-3.5 h-3.5 text-rose-400 shrink-0" />
                     ) : (
                       <Sparkles className="w-3.5 h-3.5 text-[#ffd700] shrink-0" />
                     )}
-                    <span className="text-xs font-bold text-white truncate">
+                    <span className="text-xs font-bold text-white break-words leading-snug">
                       {d.label}
                     </span>
                     {d.value !== undefined && typeof d.value === 'string' && d.value !== d.label && (
-                      <span className="text-xs italic text-[#ffd700] truncate">
+                      <span className="text-xs italic text-[#ffd700] break-words leading-snug">
                         “{d.value}”
                       </span>
                     )}
@@ -183,8 +297,8 @@ export function DescriptorsSection({
                         <span
                           key={idx}
                           className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${d.active
-                              ? 'bg-[#8257e5]/30 text-[#e1e1e6]'
-                              : 'bg-[#202024] text-[#8d8d99]'
+                            ? 'bg-[#8257e5]/30 text-[#e1e1e6]'
+                            : 'bg-[#202024] text-[#8d8d99]'
                             }`}
                         >
                           {eff}
@@ -196,10 +310,10 @@ export function DescriptorsSection({
 
                 <span
                   className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase shrink-0 ${d.active
-                      ? isConsequence
-                        ? 'bg-rose-500 text-white'
-                        : 'bg-[#8257e5] text-white'
-                      : 'bg-[#202024] text-[#8d8d99] border border-[#323238]'
+                    ? isConsequence
+                      ? 'bg-rose-500 text-white'
+                      : 'bg-[#8257e5] text-white'
+                    : 'bg-[#202024] text-[#8d8d99] border border-[#323238]'
                     }`}
                 >
                   {d.active ? 'Ativo' : 'Inativo'}

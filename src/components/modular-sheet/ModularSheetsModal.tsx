@@ -7,6 +7,7 @@ import {
   type ModularSheetPresetChoice,
 } from '@/store/useModularSheetStore';
 import { useTokenStore } from '@/store/useTokenStore';
+import { useDiceTrayStore } from '@/store/useDiceTrayStore';
 import { SHEET_DSL_PRESETS, compileSheetDSL } from '@/lib/sheet-dsl';
 import { isPlayerMode } from '@/lib/roomRole';
 import { timeAgo } from '@/lib/utils';
@@ -15,7 +16,6 @@ import {
   Plus,
   Search,
   ChevronLeft,
-  ChevronRight,
   Eye,
   Columns,
   Code2,
@@ -28,8 +28,8 @@ import {
   Swords,
   FileCode,
   X,
-  Layers,
   Palette,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { TokenAssignmentPopover } from './TokenAssignmentPopover';
 import { VisualSheetView } from './VisualSheetView';
@@ -83,6 +83,18 @@ const DSL_QUICK_SNIPPETS: Array<{ label: string; snippet: string }> = [
   {
     label: '+ @ability',
     snippet: `\n@ability [col2]\n  ability "Golpe Poderoso" [type: "Livre", cost: 1 PE]\n    damage: 2d6\n    desc: "Adiciona dano extra ao ataque."\n`,
+  },
+  {
+    label: '+ @texto',
+    snippet: `\n@texto "Anotações" [col2]\n  Escreva suas notas livres ou regras aqui.\n`,
+  },
+  {
+    label: '+ @nav',
+    snippet: `\n@nav [pos: "top", labels: true, align: "left"]\n`,
+  },
+  {
+    label: '+ @tema #hex',
+    snippet: `\n@tema [cor: "#d97706", bg: "#0c0a09", card: "#161311"]\n`,
   },
 ];
 
@@ -199,9 +211,8 @@ export default function ModularSheetsModal() {
   );
   const [draftTokenIds, setDraftTokenIds] = useState<string[]>([]);
 
-  // Estado da barra lateral de abas (Imagens 1 & 2)
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [selectedTab, setSelectedTab] = useState<string>('Principal');
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
 
   const activeSheet = useMemo(
     () => sheets.find((s) => s.id === activeSheetId) ?? null,
@@ -226,10 +237,15 @@ export default function ModularSheetsModal() {
     }
   }, [compiledActiveSheet, selectedTab]);
 
-  // Fecha com a tecla Escape
+  // Fecha com a tecla Escape (se a bandeja de dados estiver aberta sobre a ficha, fecha a bandeja primeiro)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
+        const trayState = useDiceTrayStore.getState();
+        if (trayState.isOpen) {
+          trayState.setIsOpen(false);
+          return;
+        }
         closeManager();
       }
     };
@@ -294,33 +310,58 @@ export default function ModularSheetsModal() {
 
   const activeThemeId: SheetTheme = compiledActiveSheet?.meta.theme ?? 'purple';
   const currentTheme = SHEET_THEMES[activeThemeId] || SHEET_THEMES.purple;
-  const themeVars = getThemeRootVars(activeThemeId);
+  const customThemeColors = compiledActiveSheet?.meta.customThemeColors;
+  const themeVars = getThemeRootVars(activeThemeId, customThemeColors);
 
   const handleChangeTheme = (themeId: SheetTheme) => {
     if (!activeSheet) return;
     let src = activeSheet.dslSource;
-    const metaRegex = /(@meta\b[^\n]*)/i;
+    const metaRegex = /(@(?:meta|tema|theme|cores|palette|config)\b[^\n]*)/i;
     if (metaRegex.test(src)) {
       src = src.replace(metaRegex, (headerLine) => {
-        if (/theme\s*[:=]\s*"?[a-zA-Z_]+"?/i.test(headerLine)) {
-          return headerLine.replace(/theme\s*[:=]\s*"?[a-zA-Z_]+"?/i, `theme: "${themeId}"`);
+        let updated = headerLine.replace(/,?\s*(?:cor|color|accent|hex)\s*[:=]\s*"?#[0-9a-fA-F]{3,8}"?/gi, '');
+        if (/theme\s*[:=]\s*"?[a-zA-Z0-9_#]+"?/i.test(updated)) {
+          return updated.replace(/theme\s*[:=]\s*"?[a-zA-Z0-9_#]+"?/i, `theme: "${themeId}"`);
         }
-        if (/tema\s*[:=]\s*"?[a-zA-Z_]+"?/i.test(headerLine)) {
-          return headerLine.replace(/tema\s*[:=]\s*"?[a-zA-Z_]+"?/i, `theme: "${themeId}"`);
+        if (/tema\s*[:=]\s*"?[a-zA-Z0-9_#]+"?/i.test(updated)) {
+          return updated.replace(/tema\s*[:=]\s*"?[a-zA-Z0-9_#]+"?/i, `theme: "${themeId}"`);
         }
-        if (/cor\s*[:=]\s*"?[a-zA-Z_]+"?/i.test(headerLine)) {
-          return headerLine.replace(/cor\s*[:=]\s*"?[a-zA-Z_]+"?/i, `theme: "${themeId}"`);
+        if (/cor\s*[:=]\s*"?[a-zA-Z0-9_#]+"?/i.test(updated)) {
+          return updated.replace(/cor\s*[:=]\s*"?[a-zA-Z0-9_#]+"?/i, `theme: "${themeId}"`);
+        }
+        const bracketMatch = updated.match(/\[([^\]]*)\]/);
+        if (bracketMatch) {
+          const inner = bracketMatch[1].trim().replace(/^,|,$/g, '').trim();
+          const newInner = inner ? `${inner}, theme: "${themeId}"` : `theme: "${themeId}"`;
+          return updated.replace(/\[[^\]]*\]/, `[${newInner}]`);
+        }
+        return `${updated} [theme: "${themeId}"]`;
+      });
+    } else {
+      src = `@meta "${activeSheet.name}" [theme: "${themeId}"]\n\n${src}`;
+    }
+    updateSheetSource(activeSheet.id, src);
+  };
+
+  const handleChangeCustomHex = (hex: string) => {
+    if (!activeSheet) return;
+    let src = activeSheet.dslSource;
+    const metaRegex = /(@(?:meta|tema|theme|cores|palette|config)\b[^\n]*)/i;
+    if (metaRegex.test(src)) {
+      src = src.replace(metaRegex, (headerLine) => {
+        if (/(?:cor|color|accent|hex)\s*[:=]\s*"?#[0-9a-fA-F]{3,8}"?/i.test(headerLine)) {
+          return headerLine.replace(/(?:cor|color|accent|hex)\s*[:=]\s*"?#[0-9a-fA-F]{3,8}"?/i, `cor: "${hex}"`);
         }
         const bracketMatch = headerLine.match(/\[([^\]]*)\]/);
         if (bracketMatch) {
           const inner = bracketMatch[1].trim();
-          const newInner = inner ? `${inner}, theme: "${themeId}"` : `theme: "${themeId}"`;
+          const newInner = inner ? `${inner}, cor: "${hex}"` : `cor: "${hex}"`;
           return headerLine.replace(/\[[^\]]*\]/, `[${newInner}]`);
         }
-        return `${headerLine} [theme: "${themeId}"]`;
+        return `${headerLine} [cor: "${hex}"]`;
       });
     } else {
-      src = `@meta "${activeSheet.name}" [theme: "${themeId}"]\n\n${src}`;
+      src = `@meta "${activeSheet.name}" [cor: "${hex}"]\n\n${src}`;
     }
     updateSheetSource(activeSheet.id, src);
   };
@@ -393,26 +434,70 @@ export default function ModularSheetsModal() {
                 assignedTokenIds={activeSheet.assignedTokenIds}
               />
 
-              {/* Seletor Rápido de Tema de Cores */}
-              <div className="hidden sm:flex items-center gap-1 rounded-lg border border-[#323238] bg-[#121214] px-2 py-1">
-                <Palette className="w-3.5 h-3.5 text-zinc-400 mr-1 shrink-0" />
+              {/* Seletor Rápido de Tema de Cores + Código Hexadecimal */}
+              <div className="hidden sm:flex items-center gap-1.5 rounded-lg border border-[#323238] bg-[#121214] px-2 py-1">
+                <Palette className="w-3.5 h-3.5 text-zinc-400 mr-0.5 shrink-0" />
                 {(Object.values(SHEET_THEMES) as ThemeColors[]).map((t) => {
-                  const isCurrent = (compiledActiveSheet?.meta.theme ?? 'purple') === t.id;
+                  const isCurrent =
+                    !customThemeColors?.accent &&
+                    (compiledActiveSheet?.meta.theme ?? 'purple') === t.id;
                   return (
                     <button
                       key={t.id}
                       type="button"
                       onClick={() => handleChangeTheme(t.id)}
-                      className={`w-4 h-4 rounded-full transition-all ${isCurrent
-                          ? 'scale-125 ring-2 ring-white shadow-md'
-                          : 'opacity-50 hover:opacity-100 hover:scale-110'
-                        }`}
+                      className={`w-3.5 h-3.5 rounded-full transition-transform ${
+                        isCurrent
+                          ? 'scale-110 border border-white'
+                          : 'opacity-60 hover:opacity-100'
+                      }`}
                       style={{ backgroundColor: t.dotColor }}
                       title={`Tema: ${t.name}`}
                     />
                   );
                 })}
+                <div className="h-3.5 w-px bg-[#29292e] mx-0.5" />
+                <label
+                  className="relative flex items-center gap-1 cursor-pointer text-[10px] font-mono text-zinc-300 hover:text-white px-1 py-0.5 rounded bg-[#18181b] border border-[#29292e]"
+                  title="Cor hexadecimal personalizada da ficha (@meta [cor: '#hex'])"
+                >
+                  <span
+                    className="w-2.5 h-2.5 rounded-full border border-white/30 shrink-0"
+                    style={{
+                      backgroundColor:
+                        customThemeColors?.accent || currentTheme.dotColor,
+                    }}
+                  />
+                  <span>
+                    {customThemeColors?.accent
+                      ? customThemeColors.accent.toUpperCase()
+                      : 'HEX'}
+                  </span>
+                  <input
+                    type="color"
+                    value={customThemeColors?.accent || currentTheme.dotColor}
+                    onChange={(e) => handleChangeCustomHex(e.target.value)}
+                    className="sr-only"
+                  />
+                </label>
               </div>
+
+              {/* Botão de Modo de Edição Visual / Personalização de Módulos */}
+              <button
+                type="button"
+                onClick={() => setIsEditMode((v) => !v)}
+                className={`h-8 px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-colors ${
+                  isEditMode
+                    ? 'border-[var(--sheet-accent)] bg-[var(--sheet-accent)] text-white'
+                    : 'border-[#323238] bg-[#121214] text-[#a8a8b3] hover:text-white'
+                }`}
+                title="Alternar modo de edição e personalização de módulos da ficha"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">
+                  {isEditMode ? 'Concluir Edição' : 'Personalizar'}
+                </span>
+              </button>
 
               {/* Seletor de Modo: Visual | Dividido | DSL */}
               <div className="inline-flex rounded-lg border border-[#323238] bg-[#121214] p-0.5">
@@ -536,7 +621,7 @@ export default function ModularSheetsModal() {
               <Button
                 type="button"
                 onClick={handleStartCreateView}
-                className="h-10 bg-[#8257e5] hover:bg-[#9466ff] text-white font-bold text-xs gap-2 px-4 shadow-lg shadow-[#8257e5]/20"
+                className="h-10 bg-[#8257e5] hover:bg-[#9466ff] text-white font-bold text-xs gap-2 px-4"
               >
                 <Plus className="w-4 h-4" />
                 Criar Nova Ficha
@@ -775,7 +860,7 @@ export default function ModularSheetsModal() {
               <Button
                 type="button"
                 onClick={handleConfirmCreate}
-                className="h-10 bg-[#8257e5] hover:bg-[#9466ff] text-white font-bold gap-2 px-6 shadow-lg shadow-[#8257e5]/20"
+                className="h-10 bg-[#8257e5] hover:bg-[#9466ff] text-white font-bold gap-2 px-6"
               >
                 <Plus className="w-4 h-4" />
                 Criar e Abrir Ficha
@@ -785,88 +870,10 @@ export default function ModularSheetsModal() {
         )}
 
         {/* ------------------------------------------------------------------
-            3. INTERFACE DA FICHA ABERTA COM ABAS LATERAIS RETRÁTEIS
-               (IMAGENS 1 & 2 DE REFERÊNCIA VISUAL DO USUÁRIO)
+            3. INTERFACE DA FICHA ABERTA (SEM BARRA LATERAL FIXA, COM NAVEGAÇÃO META-MÓDULO)
            ------------------------------------------------------------------ */}
         {view === 'sheet' && activeSheet && compiledActiveSheet && (
           <div className="flex-1 min-h-0 flex overflow-hidden">
-            {/* BARRA LATERAL RETRÁTIL DE ABAS VERTICAIS À ESQUERDA (IMAGEM 1) */}
-            <aside
-              className={`border-r flex flex-col justify-between shrink-0 transition-all duration-200 z-10 ${isSidebarCollapsed ? 'w-12' : 'w-44 sm:w-48'
-                }`}
-              style={{
-                backgroundColor: 'var(--sheet-sidebar-bg)',
-                borderColor: 'var(--sheet-sidebar-border)',
-              }}
-            >
-              {/* Cabeçalho da Barra Lateral com Toggle Embutido (Sem corte/sobreposição) */}
-              <div
-                className="flex items-center justify-between p-2 border-b shrink-0 transition-colors"
-                style={{ borderColor: 'var(--sheet-sidebar-border)' }}
-              >
-                {!isSidebarCollapsed && (
-                  <div className="px-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5 truncate">
-                    <Layers className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                    <span>Abas</span>
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                  title={isSidebarCollapsed ? 'Expandir abas' : 'Recolher abas'}
-                  className="p-1 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors ml-auto flex items-center justify-center shrink-0"
-                >
-                  {isSidebarCollapsed ? (
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  ) : (
-                    <ChevronLeft className="w-3.5 h-3.5" />
-                  )}
-                </button>
-              </div>
-
-              {/* Lista Vertical de Abas */}
-              <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-                {availableTabs.map((tab) => {
-                  const isActive = selectedTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => setSelectedTab(tab.id)}
-                      title={tab.label}
-                      className={`w-full rounded-xl px-3 py-2.5 text-xs font-extrabold flex items-center transition-all ${isSidebarCollapsed ? 'justify-center' : 'justify-start gap-2'
-                        } ${isActive
-                          ? currentTheme.tabActive
-                          : 'text-[#a8a8b3] hover:text-white hover:bg-white/5'
-                        }`}
-                    >
-                      <Layers className="w-4 h-4 shrink-0" />
-                      {!isSidebarCollapsed && (
-                        <span className="truncate uppercase tracking-wide">
-                          {tab.label}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-
-                {/* Botão [+] para Adicionar Nova Aba */}
-                <button
-                  type="button"
-                  onClick={handleAddNewTab}
-                  title="Adicionar nova aba"
-                  className={`w-full rounded-xl border border-dashed hover:bg-white/5 text-[#71717a] hover:text-white px-3 py-2 text-xs font-bold flex items-center justify-center transition-colors ${isSidebarCollapsed ? 'h-10' : 'gap-1.5'
-                    }`}
-                  style={{
-                    borderColor: 'var(--sheet-card-border)',
-                  }}
-                >
-                  <Plus className="w-4 h-4 shrink-0" />
-                  {!isSidebarCollapsed && <span>Nova Aba</span>}
-                </button>
-              </div>
-            </aside>
-
             {/* MIOLO CENTRAL: DIVIDIDO OU VISUAL OU DSL */}
             <div
               className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden transition-colors"
@@ -940,7 +947,7 @@ export default function ModularSheetsModal() {
                 </div>
               )}
 
-              {/* Painel Central Visual (4 Quadrantes conforme Imagens 1 & 2) */}
+              {/* Painel Central Visual */}
               {(viewMode === 'visual' || viewMode === 'split') && (
                 <div
                   className={`flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 transition-colors ${viewMode === 'split' ? 'h-1/2 lg:h-full' : 'h-full'
@@ -953,6 +960,8 @@ export default function ModularSheetsModal() {
                     activeTab={selectedTab}
                     onSelectTab={setSelectedTab}
                     availableTabs={availableTabs}
+                    onAddNewTab={handleAddNewTab}
+                    isEditMode={isEditMode}
                   />
                 </div>
               )}

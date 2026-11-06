@@ -162,7 +162,7 @@ export const CountersSection: React.FC<CountersSectionProps> = ({
           }}
         >
           <div className="w-full flex items-center justify-between gap-2">
-            <span className="text-xs font-bold text-zinc-200 truncate">
+            <span className="text-xs font-bold text-zinc-200 break-words leading-snug">
               {item.label}
             </span>
             <span className={`text-[11px] font-mono font-bold ${palette.text}`}>
@@ -265,7 +265,7 @@ export const CountersSection: React.FC<CountersSectionProps> = ({
           }}
         >
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-bold text-zinc-200 truncate">
+            <span className="text-xs font-bold text-zinc-200 break-words leading-snug">
               {item.label}
             </span>
             <span className={`text-[11px] font-mono font-bold ${palette.text}`}>
@@ -307,7 +307,7 @@ export const CountersSection: React.FC<CountersSectionProps> = ({
         }}
       >
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-bold text-zinc-200 truncate">
+          <span className="text-xs font-bold text-zinc-200 break-words leading-snug">
             {item.label}
           </span>
           <span className={`text-[11px] font-mono font-bold ${palette.text}`}>

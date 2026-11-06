@@ -233,8 +233,50 @@ export default function DiceTrayRulesConfig() {
               Utiliza apenas o menor valor (desvantagem)
             </p>
           </button>
+
+          {/* 7. Roll-Under (<= Alvo) */}
+          <button
+            type="button"
+            onClick={() => setRules({ ruleMode: 'roll_under', rollUnderTarget: rules.rollUnderTarget ?? 10 })}
+            className={`p-2.5 rounded-lg border text-xs text-left transition-all cursor-pointer ${
+              rules.ruleMode === 'roll_under'
+                ? 'bg-[#8257e5]/20 border-[#8257e5] text-white font-bold'
+                : 'border-[#27272a] bg-[#202024]/60 text-[#a1a1aa] hover:text-white'
+            }`}
+          >
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <Target className="w-3.5 h-3.5 text-amber-400" />
+              <span>Roll-Under (&lt;= Alvo)</span>
+            </div>
+            <p className="text-[10px] text-[#71717a] font-normal">
+              Sucesso se o resultado for menor ou igual ao atributo (Mausritter / OSR)
+            </p>
+          </button>
         </div>
       </div>
+
+      {rules.ruleMode === 'roll_under' && (
+        <div className="bg-[#18181b] border border-[#8257e5]/40 rounded-xl p-3.5 space-y-2.5 animate-in fade-in">
+          <div className="flex items-center gap-1.5 text-amber-400">
+            <Target className="w-4 h-4" />
+            <span className="text-xs font-bold uppercase tracking-wider">
+              Alvo Roll-Under (&lt;=)
+            </span>
+          </div>
+          <p className="text-xs text-[#71717a]">
+            A rolagem terá sucesso quando o resultado final for menor ou igual a este valor.
+          </p>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              value={rules.rollUnderTarget ?? 10}
+              onChange={(e) => setRules({ rollUnderTarget: Number(e.target.value) || 10 })}
+              className="w-24 px-3 py-1.5 rounded-lg bg-[#202024] border border-[#323238] text-sm font-mono text-white focus:outline-none focus:border-purple-400"
+            />
+            <span className="text-xs text-[#71717a]">ou menor para Sucesso</span>
+          </div>
+        </div>
+      )}
 
       {/* Configurações Específicas do Modo Ativo */}
       {rules.ruleMode === 'roll_keep' && (

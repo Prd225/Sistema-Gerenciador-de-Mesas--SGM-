@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Backpack,
   AlertTriangle,
@@ -9,6 +10,9 @@ import {
   Flame,
   Plus,
   Minus,
+  Trash2,
+  Check,
+  X,
 } from 'lucide-react';
 import { useModularSheetStore } from '@/store/useModularSheetStore';
 import { isTabMatching, type CompiledSheet, type EvaluatedItem } from '@/lib/sheet-dsl';
@@ -19,6 +23,7 @@ interface InventorySectionProps {
   sheet: CompiledSheet;
   onExecuteRoll: OnExecuteRoll;
   activeTab?: string;
+  isEditMode?: boolean;
 }
 
 export function InventorySection({
@@ -26,9 +31,38 @@ export function InventorySection({
   sheet,
   onExecuteRoll,
   activeTab,
+  isEditMode = false,
 }: InventorySectionProps) {
   const setItemState = useModularSheetStore((s) => s.setItemState);
   const setItemQty = useModularSheetStore((s) => s.setItemQty);
+  const addInventoryItem = useModularSheetStore((s) => s.addInventoryItem);
+  const removeInventoryItem = useModularSheetStore((s) => s.removeInventoryItem);
+
+  const [isAdding, setIsAdding] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newWeight, setNewWeight] = useState('1');
+  const [newQty, setNewQty] = useState('1');
+  const [newState, setNewState] = useState<'equipped' | 'carried' | 'stash'>('carried');
+  const [newDesc, setNewDesc] = useState('');
+  const [newDamage, setNewDamage] = useState('');
+
+  const handleAddItem = () => {
+    if (!newName.trim()) return;
+    addInventoryItem(sheetId, activeTab, {
+      label: newName.trim(),
+      weight: Number(newWeight) || 0,
+      qty: Math.max(1, Number(newQty) || 1),
+      state: newState,
+      desc: newDesc.trim() || undefined,
+      damageFormula: newDamage.trim() || undefined,
+    });
+    setNewName('');
+    setNewWeight('1');
+    setNewQty('1');
+    setNewDesc('');
+    setNewDamage('');
+    setIsAdding(false);
+  };
 
   const inv = sheet.inventory;
   if (!isTabMatching(inv.tab, activeTab)) return null;
@@ -140,8 +174,93 @@ export function InventorySection({
               (Máx: {inv.overloadLimit})
             </span>
           )}
+          {isEditMode && (
+            <button
+              type="button"
+              onClick={() => setIsAdding((v) => !v)}
+              className="ml-1 px-2 py-0.5 rounded border text-[10px] font-sans font-bold text-zinc-300 hover:text-white flex items-center gap-1 transition-colors"
+              style={{
+                backgroundColor: 'var(--sheet-item-bg, #121214)',
+                borderColor: 'var(--sheet-item-border, #29292e)',
+              }}
+            >
+              <Plus className="w-2.5 h-2.5" />
+              Item
+            </button>
+          )}
         </div>
       </div>
+
+      {isEditMode && isAdding && (
+        <div
+          className="rounded-lg border p-2.5 space-y-2 transition-colors"
+          style={{
+            backgroundColor: 'var(--sheet-item-bg, #121214)',
+            borderColor: 'var(--sheet-item-border, #29292e)',
+          }}
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Nome do item..."
+              className="sm:col-span-2 rounded border bg-zinc-950 border-zinc-800 px-2 py-1 text-xs text-white focus:outline-none"
+            />
+            <input
+              type="number"
+              value={newWeight}
+              onChange={(e) => setNewWeight(e.target.value)}
+              placeholder="Peso"
+              className="rounded border bg-zinc-950 border-zinc-800 px-2 py-1 text-xs font-mono text-white focus:outline-none"
+            />
+            <select
+              value={newState}
+              onChange={(e) => setNewState(e.target.value as 'equipped' | 'carried' | 'stash')}
+              className="rounded border bg-zinc-950 border-zinc-800 px-2 py-1 text-xs text-zinc-200 focus:outline-none"
+            >
+              <option value="carried">Na Mochila</option>
+              <option value="equipped">Equipado</option>
+              <option value="stash">Reserva</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input
+              type="text"
+              value={newDesc}
+              onChange={(e) => setNewDesc(e.target.value)}
+              placeholder="Descrição (opcional)"
+              className="rounded border bg-zinc-950 border-zinc-800 px-2 py-1 text-xs text-zinc-300 focus:outline-none"
+            />
+            <input
+              type="text"
+              value={newDamage}
+              onChange={(e) => setNewDamage(e.target.value)}
+              placeholder="Dano / Rolagem opcional (ex: 1d8)"
+              className="rounded border bg-zinc-950 border-zinc-800 px-2 py-1 text-xs font-mono text-zinc-300 focus:outline-none"
+            />
+          </div>
+          <div className="flex items-center justify-end gap-1.5">
+            <button
+              type="button"
+              onClick={() => setIsAdding(false)}
+              className="px-2 py-1 rounded border border-zinc-800 bg-zinc-900 text-[11px] text-zinc-400 hover:text-white flex items-center gap-1"
+            >
+              <X className="w-3 h-3" />
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleAddItem}
+              className="px-2.5 py-1 rounded text-[11px] font-bold text-white flex items-center gap-1"
+              style={{ backgroundColor: 'var(--sheet-accent, #8257e5)' }}
+            >
+              <Check className="w-3 h-3" />
+              Adicionar Item
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Barra de Capacidade */}
       <div className="space-y-1.5">
@@ -284,6 +403,17 @@ export function InventorySection({
                 </div>
 
                 {renderStateSwitcher(item)}
+
+                {isEditMode && (
+                  <button
+                    type="button"
+                    onClick={() => removeInventoryItem(sheetId, item.label)}
+                    className="p-1 rounded hover:bg-rose-500/20 text-zinc-500 hover:text-rose-400 transition-colors"
+                    title="Remover item"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             </div>
 
