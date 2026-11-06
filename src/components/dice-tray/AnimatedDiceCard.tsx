@@ -42,6 +42,7 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
   }, [die.id]);
 
   const [isDragging, setIsDragging] = useState(false);
+  const latestDragPosRef = useRef<{ x: number; y: number } | null>(null);
   const dragStartRef = useRef<{ startX: number; startY: number; initialDieX: number; initialDieY: number }>({
     startX: 0,
     startY: 0,
@@ -85,21 +86,19 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
       }, 400);
     }
 
-    setIsDragging(true);
-    diceAudio.playSelect();
-    diceHaptics.pickup();
-
     dragStartRef.current = {
       startX: e.clientX,
       startY: e.clientY,
       initialDieX: die.x,
       initialDieY: die.y,
     };
+    latestDragPosRef.current = { x: die.x, y: die.y };
 
-    let latestX = die.x;
-    let latestY = die.y;
+    setIsDragging(true);
+    diceAudio.playSelect();
+    diceHaptics.pickup();
+
     let didMove = false;
-    const rect = canvasRef.current?.getBoundingClientRect();
 
     const handlePointerMove = (moveEv: PointerEvent) => {
       const dist = Math.hypot(
@@ -110,7 +109,9 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
         clearTimeout(longPressTimeout);
         longPressTimeout = null;
       }
-      if (isLongPress || !rect || rect.width === 0 || rect.height === 0) return;
+      if (isLongPress || !canvasRef.current) return;
+      const rect = canvasRef.current.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
 
       const deltaPixelX = moveEv.clientX - dragStartRef.current.startX;
       const deltaPixelY = moveEv.clientY - dragStartRef.current.startY;
@@ -118,16 +119,15 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
       const deltaPercentX = (deltaPixelX / rect.width) * 100;
       const deltaPercentY = (deltaPixelY / rect.height) * 100;
 
-      latestX = Math.max(10, Math.min(90, dragStartRef.current.initialDieX + deltaPercentX));
-      latestY = Math.max(12, Math.min(88, dragStartRef.current.initialDieY + deltaPercentY));
+      const latestX = Math.round(Math.max(10, Math.min(90, dragStartRef.current.initialDieX + deltaPercentX)) * 10) / 10;
+      const latestY = Math.round(Math.max(12, Math.min(88, dragStartRef.current.initialDieY + deltaPercentY)) * 10) / 10;
+      latestDragPosRef.current = { x: latestX, y: latestY };
       didMove = true;
 
-      // Escreve direto na GPU via transform durante o arrasto (zero re-renderizações React!)
+      // Atualiza left/top diretamente no DOM do dado arrastado (zero re-render React e sem conflito de transition)
       if (cardRef.current) {
-        const clampedDxPx = ((latestX - dragStartRef.current.initialDieX) / 100) * rect.width;
-        const clampedDyPx = ((latestY - dragStartRef.current.initialDieY) / 100) * rect.height;
-        cardRef.current.style.transition = 'none';
-        cardRef.current.style.transform = `translate3d(calc(-50% + ${clampedDxPx.toFixed(1)}px), calc(-50% + ${clampedDyPx.toFixed(1)}px), 0) scale(1.08)`;
+        cardRef.current.style.left = `${latestX}%`;
+        cardRef.current.style.top = `${latestY}%`;
       }
     };
 
@@ -136,13 +136,11 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
         clearTimeout(longPressTimeout);
         longPressTimeout = null;
       }
+      const finalPos = latestDragPosRef.current;
+      latestDragPosRef.current = null;
       if (!isLongPress) {
-        if (cardRef.current) {
-          cardRef.current.style.transition = '';
-          cardRef.current.style.transform = `translate3d(-50%, -50%, 0) scale(1)`;
-        }
-        if (didMove) {
-          updateDiePosition(die.id, Math.round(latestX * 10) / 10, Math.round(latestY * 10) / 10, 0, 0, 0);
+        if (didMove && finalPos) {
+          updateDiePosition(die.id, finalPos.x, finalPos.y, 0, 0, 0);
         }
         setIsDragging(false);
         diceAudio.playRelease();
@@ -162,18 +160,20 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
   const currentLift = isDragging ? 8 : die.lift || 0;
   const individualMod = die.modifier || 0;
 
+  const displayX = isDragging && latestDragPosRef.current ? latestDragPosRef.current.x : die.x;
+  const displayY = isDragging && latestDragPosRef.current ? latestDragPosRef.current.y : die.y;
+
   return (
     <div
       ref={cardRef}
       onPointerDown={handlePointerDown}
       onContextMenu={(e) => e.preventDefault()}
       style={{
-        left: `${die.x}%`,
-        top: `${die.y}%`,
-        transform: `translate3d(-50%, -50%, 0) scale(${isDragging ? 1.08 : 1})`,
+        left: `${displayX}%`,
+        top: `${displayY}%`,
+        transform: 'translate3d(-50%, -50%, 0)',
         touchAction: 'none',
         willChange: isRolling ? 'transform' : 'auto',
-        transition: isRolling ? 'none' : isDragging ? 'transform 0.15s ease-out' : 'transform 0.2s ease-out',
       }}
       className={`group absolute select-none cursor-grab active:cursor-grabbing touch-none ${isDragging ? 'z-50' : isRolling ? 'z-20' : 'z-10'
         }`}
@@ -226,7 +226,7 @@ function AnimatedDiceCardComponent({ die, canvasRef }: AnimatedDiceCardProps) {
               perspective(550px)
               rotateX(${currentRotX}deg)
               rotateY(${currentRotY}deg)
-              scale(${isRolling ? 1.04 : 1})
+              scale(${isDragging ? 1.08 : isRolling ? 1.04 : 1})
             `,
             transformStyle: 'preserve-3d',
             willChange: isRolling ? 'transform' : 'auto',

@@ -85,13 +85,11 @@ export function writeDiePose(refs: DieDOMRefs, p: DiePose) {
   }
 }
 
-/** Liga/desliga a transição CSS do corpo (desligada durante loops de animação). */
+/** Liga/desliga a transição CSS do corpo e da sombra (desligada durante loops de animação). */
 export function setDieAnimating(refs: DieDOMRefs, animating: boolean) {
   const body = refs.body.current;
-  const card = refs.card.current;
   const shadow = refs.shadow.current;
   const tr = animating ? 'none' : '';
   if (body) body.style.transition = tr;
-  if (card) card.style.transition = tr;
   if (shadow) shadow.style.transition = tr;
 }

@@ -1067,21 +1067,24 @@ export const useDiceTrayStore = create<DiceTrayState>((set, get) => ({
       if (anyActive) {
         requestAnimationFrame(tick);
       } else {
-        // Limpa estilos inline de animação do DOM e restaura transição CSS
+        // Limpa estilos inline de animação do DOM e restaura pose de repouso exata
         physics.forEach((p) => {
           const dom = diceDOMRegistry.get(p.id);
           if (dom) {
-            setDieAnimating(dom, false);
+            const finalRot = Math.round(((p.rotation % 360) + 360) % 360);
             if (dom.card.current) {
               dom.card.current.style.left = `${Math.round(p.x * 10) / 10}%`;
               dom.card.current.style.top = `${Math.round(p.y * 10) / 10}%`;
-              dom.card.current.style.transform = `translate3d(-50%, -50%, 0)`;
+              dom.card.current.style.transform = 'translate3d(-50%, -50%, 0)';
             }
-            if (dom.body.current) dom.body.current.style.transform = '';
+            if (dom.body.current) {
+              dom.body.current.style.transform = `translate3d(0, 0px, 0) rotate(${finalRot}deg) perspective(550px) rotateX(0deg) rotateY(0deg) scale(1)`;
+            }
             if (dom.shadow.current) {
-              dom.shadow.current.style.transform = '';
-              dom.shadow.current.style.opacity = '';
+              dom.shadow.current.style.transform = 'translate3d(0px, 0px, 0) scale(1)';
+              dom.shadow.current.style.opacity = '0.65';
             }
+            setDieAnimating(dom, false);
           }
         });
 

@@ -303,8 +303,8 @@ function DieShapeSVG({
             transform={`translate(${s.x} ${s.y}) rotate(${s.rot ?? 0})`}
             textAnchor="middle"
             dominantBaseline="central"
-            fill="rgba(255,255,255,0.55)"
-            opacity={isRolling ? 1 : 0}
+            fill="#ffffff"
+            opacity={isRolling ? 0.55 : 0}
             fontSize={g.sideSize}
             fontWeight={800}
             fontFamily="ui-monospace, monospace"
