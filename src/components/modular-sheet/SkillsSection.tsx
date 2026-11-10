@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { Dices, Search, Lock, Plus, Minus, Trash2, Check, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { isTabMatching, type CompiledSheet, type ModuleDisplayStyle } from '@/lib/sheet-dsl';
+import {
+  isTabMatching,
+  type CompiledSheet,
+  type EvaluatedSkill,
+  type ModuleDisplayStyle,
+} from '@/lib/sheet-dsl';
 import { useModularSheetStore } from '@/store/useModularSheetStore';
 import { formatEvaluatedValue, type OnExecuteRoll } from './types';
 
@@ -11,6 +16,10 @@ interface SkillsSectionProps {
   onExecuteRoll: OnExecuteRoll;
   activeTab?: string;
   displayOverride?: ModuleDisplayStyle;
+  blockId?: string;
+  titleOverride?: string;
+  cols?: number;
+  isTall?: boolean;
   isEditMode?: boolean;
 }
 
@@ -20,6 +29,10 @@ export function SkillsSection({
   onExecuteRoll,
   activeTab,
   displayOverride,
+  blockId,
+  titleOverride,
+  cols,
+  isTall = false,
   isEditMode = false,
 }: SkillsSectionProps) {
   const addSkillItem = useModularSheetStore((s) => s.addSkillItem);
@@ -35,10 +48,12 @@ export function SkillsSection({
 
   const handleAddSkill = () => {
     if (!sheetId || !newName.trim()) return;
-    addSkillItem(sheetId, {
+    const trimmedBonus = newBonus.trim() || '0';
+    const parsedNum = Number(trimmedBonus);
+    addSkillItem(sheetId, activeTab, {
       label: newName.trim(),
       baseAttr: newBaseAttr.trim() || undefined,
-      bonus: Number(newBonus) || 0,
+      bonus: !Number.isNaN(parsedNum) && trimmedBonus !== '' ? parsedNum : trimmedBonus,
     });
     setNewName('');
     setNewBaseAttr('');
@@ -46,16 +61,19 @@ export function SkillsSection({
     setIsAdding(false);
   };
 
-  const skillList = Object.values(sheet.skills).filter((sk) =>
-    isTabMatching(sk.tab, activeTab),
+  const skillList = Object.values(sheet.skills).filter(
+    (sk) =>
+      isTabMatching(sk.tab, activeTab) &&
+      (!blockId || sk.blockId === blockId),
   );
 
   if (skillList.length === 0) return null;
 
-  const skillLayout = sheet.moduleLayouts.find((m) => m.kind === 'skill');
+  const skillLayout = sheet.moduleLayouts.find((m) =>
+    blockId ? m.id === blockId : m.kind === 'skill',
+  );
   const display: ModuleDisplayStyle =
     displayOverride ?? skillLayout?.display ?? 'cards';
-  const isFullWidth = skillLayout?.placement === 'full';
 
   const uniqueAttrs = Array.from(
     new Set(skillList.map((s) => s.baseAttr).filter(Boolean) as string[]),
@@ -72,14 +90,34 @@ export function SkillsSection({
     );
   });
 
-  const customTitle = sheet.blockTitles.skills;
+  const customTitle =
+    titleOverride ?? skillLayout?.title ?? sheet.blockTitles.skills;
 
-  const formatSkillValue = (bonus: number, isRollUnder: boolean) =>
-    isRollUnder ? `${bonus}%` : bonus >= 0 ? `+${bonus}` : `${bonus}`;
+  const formatSkillDisplay = (sk: EvaluatedSkill, isRollUnder: boolean) => {
+    if (sk.rawValue !== undefined) {
+      const dieStr = formatEvaluatedValue(sk.rawValue);
+      if (sk.bonus !== 0) {
+        return sk.bonus > 0 ? `${dieStr}+${sk.bonus}` : `${dieStr}${sk.bonus}`;
+      }
+      return dieStr;
+    }
+    return isRollUnder
+      ? `${sk.bonus}%`
+      : sk.bonus >= 0
+        ? `+${sk.bonus}`
+        : `${sk.bonus}`;
+  };
+
+  const cardsGridStyle: React.CSSProperties =
+    display === 'stacked' || (isTall && !cols)
+      ? { gridTemplateColumns: '1fr' }
+      : cols && cols > 0
+        ? { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }
+        : { gridTemplateColumns: 'repeat(auto-fit, minmax(205px, 1fr))' };
 
   return (
     <section
-      className="rounded-xl border p-3 space-y-2.5 h-full transition-colors"
+      className={`rounded-xl border p-3 space-y-2.5 transition-colors ${isTall ? 'flex-1 flex flex-col' : ''}`}
       style={{
         backgroundColor: 'var(--sheet-card-bg, #18181b)',
         borderColor: 'var(--sheet-card-border, #29292e)',
@@ -87,7 +125,7 @@ export function SkillsSection({
     >
       <div className="flex items-center justify-between gap-2">
         {customTitle ? (
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#a8a8b3] px-0.5 break-words">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#a8a8b3] px-0.5 truncate">
             {customTitle}
           </h3>
         ) : (
@@ -239,8 +277,8 @@ export function SkillsSection({
                 title={`Rolar ${sk.rollFormula}`}
                 className="group cursor-pointer flex items-baseline justify-between gap-2 px-1.5 py-0.5 rounded hover:bg-zinc-800/60 transition-colors"
               >
-                <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-                  <span className="text-xs font-semibold text-[#e1e1e6] break-words leading-snug">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-xs font-semibold text-[#e1e1e6] truncate leading-snug" title={sk.label}>
                     {sk.label}
                   </span>
                   {sk.baseAttr && (
@@ -251,8 +289,8 @@ export function SkillsSection({
                 </div>
                 <span className="flex-1 border-b border-dotted border-zinc-800 mx-1 min-w-[12px]" />
                 <div className="flex items-center gap-1.5 shrink-0 pl-1">
-                  <span className="text-xs font-black font-mono text-white">
-                    {formatSkillValue(sk.bonus, isRollUnder)}
+                  <span className="text-xs font-black font-mono text-white whitespace-nowrap">
+                    {formatSkillDisplay(sk, isRollUnder)}
                   </span>
                   <Dices className="w-3.5 h-3.5 text-[#71717a] group-hover:text-[var(--sheet-accent-text)] transition-colors rollable-dice-icon shrink-0" />
                 </div>
@@ -283,8 +321,8 @@ export function SkillsSection({
                 title={`Rolar ${sk.rollFormula}`}
                 className="group cursor-pointer px-3 py-2 flex items-center justify-between gap-2 hover:bg-white/5 transition-colors"
               >
-                <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
-                  <span className="text-xs font-semibold text-[#e1e1e6] break-words leading-snug">
+                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                  <span className="text-xs font-semibold text-[#e1e1e6] truncate leading-snug" title={sk.label}>
                     {sk.label}
                   </span>
                   {sk.baseAttr && (
@@ -294,8 +332,8 @@ export function SkillsSection({
                   )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0 pl-1.5">
-                  <span className="text-sm font-black font-mono text-white">
-                    {formatSkillValue(sk.bonus, isRollUnder)}
+                  <span className="text-sm font-black font-mono text-white whitespace-nowrap">
+                    {formatSkillDisplay(sk, isRollUnder)}
                   </span>
                   <Dices className="w-3.5 h-3.5 text-[#71717a] group-hover:text-[var(--sheet-accent-text)] transition-colors shrink-0" />
                 </div>
@@ -305,12 +343,8 @@ export function SkillsSection({
         </div>
       ) : (
         <div
-          className={`grid gap-1.5 ${display === 'stacked'
-            ? 'grid-cols-1'
-            : isFullWidth
-              ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
-              : 'grid-cols-1 md:grid-cols-2'
-            }`}
+          className="grid gap-1.5 content-start"
+          style={cardsGridStyle}
         >
           {filteredSkills.map((sk) => {
             const childrenEntries = Object.entries(sk.children);
@@ -327,15 +361,15 @@ export function SkillsSection({
                   )
                 }
                 title={`Rolar ${sk.rollFormula}`}
-                className="group cursor-pointer rounded-lg border hover:border-[var(--sheet-accent)] px-3 py-2 flex items-center justify-between gap-2 transition-all rollable-interactive"
+                className="group cursor-pointer rounded-lg border hover:border-[var(--sheet-accent)] px-3 py-2 flex items-center justify-between gap-2 transition-all rollable-interactive min-w-0"
                 style={{
                   backgroundColor: 'var(--sheet-item-bg, #121214)',
                   borderColor: 'var(--sheet-item-border, #29292e)',
                 }}
               >
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-                    <span className="text-xs font-semibold text-[#e1e1e6] break-words leading-snug">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-xs font-semibold text-[#e1e1e6] truncate leading-snug" title={sk.label}>
                       {sk.label}
                     </span>
                     {sk.baseAttr && (
@@ -366,7 +400,7 @@ export function SkillsSection({
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0 pl-1.5">
-                  {isEditMode && sheetId && !sk.locked && (
+                  {isEditMode && sheetId && !sk.locked && sk.rawValue === undefined && (
                     <button
                       type="button"
                       onClick={(e) => {
@@ -379,10 +413,10 @@ export function SkillsSection({
                       <Minus className="w-2.5 h-2.5" />
                     </button>
                   )}
-                  <span className="text-sm font-black font-mono text-white">
-                    {formatSkillValue(sk.bonus, isRollUnder)}
+                  <span className="text-sm font-black font-mono text-white whitespace-nowrap">
+                    {formatSkillDisplay(sk, isRollUnder)}
                   </span>
-                  {isEditMode && sheetId && !sk.locked && (
+                  {isEditMode && sheetId && !sk.locked && sk.rawValue === undefined && (
                     <button
                       type="button"
                       onClick={(e) => {

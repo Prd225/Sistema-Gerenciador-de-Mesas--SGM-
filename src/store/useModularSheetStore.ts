@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { generateId } from '@/lib/uuid';
 import { triggerAutoSave } from '@/lib/saveHelpers';
 import { isPlayerMode } from '@/lib/roomRole';
-import { SHEET_DSL_PRESETS, compileSheetDSL } from '@/lib/sheet-dsl';
+import { SHEET_DSL_PRESETS, compileSheetDSL, DIRECTIVE_ALIASES } from '@/lib/sheet-dsl';
 import type { SheetRuntimeOverrides } from '@/lib/sheet-dsl';
 
 export type ModularSheetPresetChoice = 'ordem_paranormal' | 'tormenta20' | 'mausritter' | 'blank';
@@ -57,7 +57,7 @@ export const BLANK_SHEET_DSL_TEMPLATE = `@meta "Novo Personagem" [archetype: "Av
 
   item "Arma Principal" [weight: 1, qty: 1, !equipped]
     action "Ataque Básico" [type: "Padrão"]
-      test: 1d20 + FOR + Luta
+      test: Luta.roll
       damage: 1d8 + FOR
       desc: "Ataque corpo a corpo padrão."
 
@@ -193,10 +193,10 @@ interface ModularSheetState {
     tabOrSkill:
       | string
       | undefined
-      | { label: string; baseAttr?: string; bonus: number; roll?: string },
-    maybeSkill?: { label: string; baseAttr?: string; bonus: number; roll?: string },
+      | { label: string; baseAttr?: string; bonus: number | string; roll?: string },
+    maybeSkill?: { label: string; baseAttr?: string; bonus: number | string; roll?: string },
   ) => void;
-  updateSkillBonus: (sheetId: string, skillId: string, newBonus: number) => void;
+  updateSkillBonus: (sheetId: string, skillId: string, newBonus: number | string) => void;
   removeSkillItem: (sheetId: string, skillId: string) => void;
   addSlotItem: (
     sheetId: string,
@@ -209,14 +209,14 @@ interface ModularSheetState {
       | string
       | undefined
       | {
-          category?: string;
-          label: string;
-          actionType?: string;
-          cost?: string;
-          desc?: string;
-          testFormula?: string;
-          damageFormula?: string;
-        },
+        category?: string;
+        label: string;
+        actionType?: string;
+        cost?: string;
+        desc?: string;
+        testFormula?: string;
+        damageFormula?: string;
+      },
     maybeAbility?: {
       category?: string;
       label: string;
@@ -954,12 +954,15 @@ export const useModularSheetStore = create<ModularSheetState>((set, get) => ({
       'm',
     );
     if (lineRegex.test(src)) {
-      const formattedVal =
-        typeof newValue === 'number'
-          ? String(newValue)
-          : /^\d+\s*\/\s*\d+$/.test(String(newValue).trim()) || !Number.isNaN(Number(newValue))
-            ? String(newValue).trim()
-            : `"${String(newValue).replace(/"/g, '\\"')}"`;
+      const trimmed = String(newValue).trim();
+      const isRawExpr =
+        typeof newValue === 'number' ||
+        !Number.isNaN(Number(trimmed)) ||
+        /^\d+\s*\/\s*\d+$/.test(trimmed) ||
+        /\b\d*d(?:\d+|F)\b/i.test(trimmed);
+      const formattedVal = isRawExpr
+        ? trimmed
+        : `"${trimmed.replace(/"/g, '\\"')}"`;
 
       src = src.replace(lineRegex, (_m, prefix: string, _oldExpr: string, suffix: string) => {
         const cleanSuffix = suffix.trim() ? ` ${suffix.trim()}` : '';
@@ -981,11 +984,13 @@ export const useModularSheetStore = create<ModularSheetState>((set, get) => ({
         .replace(/[^a-zA-Z0-9_]/g, '_') || `stat_${Date.now().toString(36)}`;
     const safeLabel = (item.label.trim() || safeId).replace(/"/g, '\\"');
     const rawVal = String(item.value).trim() || '0';
-    const isNumOrFraction =
-      !Number.isNaN(Number(rawVal)) || /^\d+\s*\/\s*\d+$/.test(rawVal);
-    const valExpr = isNumOrFraction ? rawVal : `"${rawVal.replace(/"/g, '\\"')}"`;
+    const isRawExpr =
+      !Number.isNaN(Number(rawVal)) ||
+      /^\d+\s*\/\s*\d+$/.test(rawVal) ||
+      /\b\d*d(?:\d+|F)\b/i.test(rawVal);
+    const valExpr = isRawExpr ? rawVal : `"${rawVal.replace(/"/g, '\\"')}"`;
     const rollPart = item.roll?.trim()
-      ? ` [roll: "${item.roll.trim().replace(/"/g, '\\"')}"]`
+      ? ` [roll: ${item.roll.trim().replace(/^"(.*)"$/, '$1')}]`
       : '';
     const newLine = `  ${safeId} "${safeLabel}" := ${valExpr}${rollPart}`;
 
@@ -1147,9 +1152,10 @@ export const useModularSheetStore = create<ModularSheetState>((set, get) => ({
       .replace(/^_+|_+$/g, '') || `skill_${Date.now().toString(36)}`;
     const attrPart = skill.baseAttr?.trim() ? ` (${skill.baseAttr.trim()})` : '';
     const rollPart = skill.roll?.trim()
-      ? ` [roll: "${skill.roll.trim().replace(/"/g, '\\"')}"]`
+      ? ` [roll: ${skill.roll.trim().replace(/^"(.*)"$/, '$1')}]`
       : '';
-    const newLine = `  ${safeId} "${rawLabel.replace(/"/g, '\\"')}"${attrPart} := ${skill.bonus}${rollPart}`;
+    const rawBonus = String(skill.bonus).trim() || '0';
+    const newLine = `  ${safeId} "${rawLabel.replace(/"/g, '\\"')}"${attrPart} := ${rawBonus}${rollPart}`;
 
     let src = rec.dslSource;
     const skillRegex = /(@(?:skill|skills|pericia|pericias)\b[^\n]*\n(?:[ \t]+[^\n]*\n?)*)/gi;
@@ -1174,11 +1180,14 @@ export const useModularSheetStore = create<ModularSheetState>((set, get) => ({
     let src = rec.dslSource;
     const escapedId = skillId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const lineRe = new RegExp(
-      `^([ \\t]*${escapedId}(?:\\s+"[^"]*")?(?:\\s*\\([^)]*\\))?\\s*(?::=|=|:)\\s*)(-?\\d+)(.*)$`,
+      `^([ \\t]*${escapedId}(?:\\s+"[^"]*")?(?:\\s*\\([^)]*\\))?\\s*(?::=|=|:)\\s*)([^\\[\\n#]+)(.*)$`,
       'm',
     );
     if (lineRe.test(src)) {
-      src = src.replace(lineRe, `$1${newBonus}$3`);
+      src = src.replace(lineRe, (_m, prefix: string, _oldExpr: string, suffix: string) => {
+        const cleanSuffix = suffix.trim() ? ` ${suffix.trim()}` : '';
+        return `${prefix}${String(newBonus).trim()}${cleanSuffix}`;
+      });
       get().updateSheetSource(sheetId, src);
     }
   },
@@ -1363,9 +1372,32 @@ export const useModularSheetStore = create<ModularSheetState>((set, get) => ({
     if (!rec) return;
     let src = rec.dslSource;
 
-    // Encontra diretivas de módulos que geram layout (na mesma ordem do parser)
-    const moduleDirectiveRegex =
-      /^([ \t]*@(?:profile|perfil|img|imagem|avatar|retrato|identidade|counter|counters|contador|contadores|tracker|trackers|segment|segments|segmento|segmentos|attr|attrs|attributes|atributo|atributos|stat|stats|status|defesas|derivados|res|resource|resources|recurso|recursos|turn|action_economy|turno|desc|descriptors|narrative|descritores|narrativa|aspectos|skill|skills|pericia|pericias|inv|inventory|inventario|itens|ability|abilities|action|actions|move|moves|magic|powers|habilidade|habilidades|acoes|magias|poderes|rituais|diagram|quadro|diagrama|slots|slot|caixas|grade_slots|text|texts|texto|textos|note|notes|nota|notas|anotacao|anotacoes|anotações|bio|biografia|lore|historia|história)\b[^\n]*)/gim;
+    // Encontra diretivas de módulos que geram layout (na mesma ordem exata do parser)
+    const layoutKinds = new Set([
+      'profile',
+      'counter',
+      'attr',
+      'stat',
+      'res',
+      'turn',
+      'desc',
+      'skill',
+      'inv',
+      'ability',
+      'diagram',
+      'rule',
+      'roll',
+      'slots',
+      'text',
+    ]);
+    const aliasKeys = Object.entries(DIRECTIVE_ALIASES)
+      .filter(([, kind]) => layoutKinds.has(kind))
+      .map(([alias]) => alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .sort((a, b) => b.length - a.length);
+    const moduleDirectiveRegex = new RegExp(
+      `^([ \\t]*@(?:${aliasKeys.join('|')})\\b[^\\n]*)`,
+      'gim',
+    );
 
     let currentOrder = 0;
     src = src.replace(moduleDirectiveRegex, (headerLine) => {

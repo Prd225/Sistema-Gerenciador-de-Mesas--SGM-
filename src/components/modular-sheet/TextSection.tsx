@@ -64,7 +64,7 @@ export const TextSection: React.FC<TextSectionProps> = ({
   };
 
   return (
-    <div className="space-y-2">
+    <div className={`space-y-2 ${isTall ? 'flex-1 flex flex-col' : ''}`}>
       <div className="px-1 flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
           <AlignLeft
@@ -97,7 +97,7 @@ export const TextSection: React.FC<TextSectionProps> = ({
         onDoubleClick={() => {
           if (sheetId && !isEditing) setIsEditing(true);
         }}
-        className={`relative rounded-xl border p-4 space-y-3 transition-colors ${isTall ? 'min-h-[280px] flex flex-col' : ''
+        className={`relative rounded-xl border p-4 space-y-3 transition-colors ${isTall ? 'flex-1 flex flex-col' : ''
           }`}
         style={{
           backgroundColor: 'var(--sheet-card-bg, #18181b)',

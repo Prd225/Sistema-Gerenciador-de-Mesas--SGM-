@@ -23,6 +23,8 @@ interface InventorySectionProps {
   sheet: CompiledSheet;
   onExecuteRoll: OnExecuteRoll;
   activeTab?: string;
+  titleOverride?: string;
+  isTall?: boolean;
   isEditMode?: boolean;
 }
 
@@ -31,6 +33,8 @@ export function InventorySection({
   sheet,
   onExecuteRoll,
   activeTab,
+  titleOverride,
+  isTall = false,
   isEditMode = false,
 }: InventorySectionProps) {
   const setItemState = useModularSheetStore((s) => s.setItemState);
@@ -115,12 +119,17 @@ export function InventorySection({
               onClick={() => setItemState(sheetId, item.id, opt.value)}
               className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${selected
                   ? opt.value === 'equipped'
-                    ? 'bg-[#8257e5] text-white'
+                    ? 'text-white'
                     : opt.value === 'carried'
                       ? 'bg-[#323238] text-white'
                       : 'bg-amber-600/30 text-amber-200'
                   : 'text-[#8d8d99] hover:text-white'
                 }`}
+              style={
+                selected && opt.value === 'equipped'
+                  ? { backgroundColor: 'var(--sheet-accent, #8257e5)' }
+                  : undefined
+              }
               title={
                 opt.value === 'equipped'
                   ? 'Equipado: soma peso e aplica bônus passivos'
@@ -138,11 +147,11 @@ export function InventorySection({
     );
   };
 
-  const customTitle = inv.title ?? sheet.blockTitles.inventory;
+  const customTitle = titleOverride ?? inv.title ?? sheet.blockTitles.inventory;
 
   return (
     <section
-      className="rounded-xl border p-3 space-y-2.5 transition-colors"
+      className={`rounded-xl border p-3 space-y-2.5 transition-colors ${isTall ? 'flex-1 flex flex-col' : ''}`}
       style={{
         backgroundColor: 'var(--sheet-card-bg, #18181b)',
         borderColor: 'var(--sheet-card-border, #29292e)',
@@ -167,9 +176,11 @@ export function InventorySection({
             className={`font-black ${inv.isOverloaded ? 'text-rose-400' : 'text-white'
               }`}
           >
-            {inv.currentLoad} / {inv.maxCapacity} {inv.unit}
+            {inv.maxCapacity > 0
+              ? `${inv.currentLoad} / ${inv.maxCapacity} ${inv.unit}`
+              : `${inv.currentLoad} ${inv.unit}`}
           </span>
-          {inv.overloadLimit > inv.maxCapacity && (
+          {inv.maxCapacity > 0 && inv.overloadLimit > inv.maxCapacity && (
             <span className="text-[10px] text-[#8d8d99]">
               (Máx: {inv.overloadLimit})
             </span>
@@ -263,50 +274,58 @@ export function InventorySection({
       )}
 
       {/* Barra de Capacidade */}
-      <div className="space-y-1.5">
-        <div
-          className="h-2.5 w-full rounded-full border overflow-hidden transition-colors"
-          style={{
-            backgroundColor: 'var(--sheet-item-bg, #121214)',
-            borderColor: 'var(--sheet-item-border, #29292e)',
-          }}
-        >
+      {inv.maxCapacity > 0 && (
+        <div className="space-y-1.5">
           <div
-            className={`h-full transition-all duration-300 ${inv.isOverloaded
-                ? 'bg-gradient-to-r from-rose-600 to-red-500'
-                : pct >= 85
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-400'
-                  : 'bg-gradient-to-r from-emerald-600 to-teal-400'
-              }`}
-            style={{ width: `${inv.isOverloaded ? 100 : pct}%` }}
-          />
-        </div>
-
-        {inv.isOverloaded && (
-          <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-md border border-rose-500/60 bg-rose-500/15 text-rose-200 text-xs">
-            <div className="flex items-center gap-2 font-bold">
-              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
-              <span>
-                #SOBRECARREGADO — Carga acima de {inv.maxCapacity} {inv.unit}!
-              </span>
-            </div>
-            {activeInvRules.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {activeInvRules.flatMap((r) =>
-                  r.effectSummaries.map((eff, i) => (
-                    <span
-                      key={`${r.id}-${i}`}
-                      className="px-1.5 py-0.5 rounded bg-rose-600/40 text-white font-mono text-[10px] font-bold"
-                    >
-                      {eff}
-                    </span>
-                  )),
-                )}
-              </div>
-            )}
+            className="h-2.5 w-full rounded-full border overflow-hidden transition-colors"
+            style={{
+              backgroundColor: 'var(--sheet-item-bg, #121214)',
+              borderColor: 'var(--sheet-item-border, #29292e)',
+            }}
+          >
+            <div
+              className={`h-full transition-all duration-300 ${inv.isOverloaded
+                  ? 'bg-gradient-to-r from-rose-600 to-red-500'
+                  : pct >= 85
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-400'
+                    : ''
+                }`}
+              style={{
+                width: `${inv.isOverloaded ? 100 : pct}%`,
+                backgroundColor:
+                  !inv.isOverloaded && pct < 85
+                    ? 'var(--sheet-accent, #10b981)'
+                    : undefined,
+              }}
+            />
           </div>
-        )}
-      </div>
+
+          {inv.isOverloaded && (
+            <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-md border border-rose-500/60 bg-rose-500/15 text-rose-200 text-xs">
+              <div className="flex items-center gap-2 font-bold">
+                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>
+                  #SOBRECARREGADO — Carga acima de {inv.maxCapacity} {inv.unit}!
+                </span>
+              </div>
+              {activeInvRules.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {activeInvRules.flatMap((r) =>
+                    r.effectSummaries.map((eff, i) => (
+                      <span
+                        key={`${r.id}-${i}`}
+                        className="px-1.5 py-0.5 rounded bg-rose-600/40 text-white font-mono text-[10px] font-bold"
+                      >
+                        {eff}
+                      </span>
+                    )),
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Lista de Itens */}
       <div className="space-y-2.5">
@@ -379,6 +398,18 @@ export function InventorySection({
 
               {/* Controles de Estado e Quantidade */}
               <div className="flex flex-wrap items-center gap-2 shrink-0">
+                {item.consumable && (
+                  <button
+                    type="button"
+                    disabled={item.qty <= 0}
+                    onClick={() => setItemQty(sheetId, item.id, Math.max(0, item.qty - 1))}
+                    className="h-6 px-2 rounded-md border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed text-[10px] font-bold text-emerald-200 transition-colors"
+                    title="Consumir 1 unidade"
+                  >
+                    Consumir (-1)
+                  </button>
+                )}
+
                 <div className="flex items-center gap-1 rounded-md border border-[#323238] bg-[#18181b] px-1.5 py-0.5">
                   <span className="text-[10px] text-[#8d8d99] mr-0.5">Qtd:</span>
                   <button

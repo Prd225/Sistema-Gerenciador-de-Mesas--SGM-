@@ -16,7 +16,48 @@ interface AttributesStatsSectionProps {
   activeTab?: string;
   mode?: 'both' | 'attr' | 'stat';
   displayOverride?: ModuleDisplayStyle;
+  blockId?: string;
+  titleOverride?: string;
+  cols?: number;
+  isTall?: boolean;
   isEditMode?: boolean;
+}
+
+const DIE_STEP_FACES = [4, 6, 8, 10, 12, 20] as const;
+
+function canStepValue(val: EvaluatedStat['baseValue'], hasFraction: boolean): boolean {
+  if (hasFraction) return false;
+  if (typeof val === 'number') return true;
+  if (typeof val === 'object' && val.kind === 'step_die') return val.faces !== 'F';
+  if (typeof val === 'string') {
+    return /^\d*d(?:4|6|8|10|12|20)$/i.test(val.trim());
+  }
+  return false;
+}
+
+function computeSteppedValue(
+  val: EvaluatedStat['baseValue'],
+  delta: number,
+): number | string | null {
+  if (typeof val === 'number') return val + delta;
+  if (typeof val === 'object' && val.kind === 'step_die') {
+    if (val.faces === 'F') return null;
+    const idx = (DIE_STEP_FACES as readonly number[]).indexOf(val.faces);
+    if (idx === -1) return null;
+    const next = DIE_STEP_FACES[Math.max(0, Math.min(DIE_STEP_FACES.length - 1, idx + delta))];
+    return `d${next}`;
+  }
+  if (typeof val === 'string') {
+    const m = val.trim().match(/^(\d*)d(4|6|8|10|12|20)$/i);
+    if (!m) return null;
+    const prefix = m[1] || '';
+    const faces = Number(m[2]) as (typeof DIE_STEP_FACES)[number];
+    const idx = DIE_STEP_FACES.indexOf(faces);
+    if (idx === -1) return null;
+    const next = DIE_STEP_FACES[Math.max(0, Math.min(DIE_STEP_FACES.length - 1, idx + delta))];
+    return `${prefix}d${next}`;
+  }
+  return null;
 }
 
 function buildPyramidRows<T>(items: T[]): T[][] {
@@ -38,6 +79,10 @@ export function AttributesStatsSection({
   activeTab,
   mode = 'both',
   displayOverride,
+  blockId,
+  titleOverride,
+  cols,
+  isTall = false,
   isEditMode = false,
 }: AttributesStatsSectionProps) {
   const updateStatBaseValue = useModularSheetStore((s) => s.updateStatBaseValue);
@@ -49,23 +94,54 @@ export function AttributesStatsSection({
   const [newStatLabel, setNewStatLabel] = useState('');
   const [newStatVal, setNewStatVal] = useState('10');
   const [newStatRoll, setNewStatRoll] = useState('');
+
+  const firstStatBlockIdOnTab = useMemo(
+    () =>
+      sheet.moduleLayouts.find(
+        (m) => m.kind === 'stat' && isTabMatching(m.tab, activeTab),
+      )?.id,
+    [sheet.moduleLayouts, activeTab],
+  );
+
   const attrList = useMemo(
     () =>
       mode === 'stat'
         ? []
-        : Object.values(sheet.attributes).filter((a) => isTabMatching(a.tab, activeTab)),
-    [sheet.attributes, mode, activeTab],
+        : Object.values(sheet.attributes).filter(
+            (a) =>
+              isTabMatching(a.tab, activeTab) &&
+              (!blockId || a.blockId === blockId),
+          ),
+    [sheet.attributes, mode, activeTab, blockId],
   );
 
   const statList = useMemo(
     () =>
       mode === 'attr'
         ? []
-        : Object.values(sheet.stats).filter((s) => isTabMatching(s.tab, activeTab)),
-    [sheet.stats, mode, activeTab],
+        : Object.values(sheet.stats).filter((s) => {
+            if (!isTabMatching(s.tab, activeTab)) return false;
+            if (!blockId) return true;
+            if (s.blockId) return s.blockId === blockId;
+            return blockId === firstStatBlockIdOnTab;
+          }),
+    [sheet.stats, mode, activeTab, blockId, firstStatBlockIdOnTab],
   );
 
   const attrGroups = useMemo(() => {
+    if (attrList.length === 0) return [];
+    if (blockId) {
+      return [
+        {
+          title:
+            titleOverride ??
+            attrList[0]?.blockTitle ??
+            sheet.blockTitles.attributes ??
+            'Atributos',
+          items: attrList,
+        },
+      ];
+    }
     const groups: Array<{ title?: string; items: EvaluatedStat[] }> = [];
     const map = new Map<string, EvaluatedStat[]>();
     for (const a of attrList) {
@@ -77,9 +153,22 @@ export function AttributesStatsSection({
       map.get(key)!.push(a);
     }
     return groups;
-  }, [attrList, sheet.blockTitles.attributes]);
+  }, [attrList, blockId, titleOverride, sheet.blockTitles.attributes]);
 
   const statGroups = useMemo(() => {
+    if (statList.length === 0) return [];
+    if (blockId) {
+      return [
+        {
+          title:
+            titleOverride ??
+            statList[0]?.blockTitle ??
+            sheet.blockTitles.stats ??
+            'Status',
+          items: statList,
+        },
+      ];
+    }
     const groups: Array<{ title?: string; items: EvaluatedStat[] }> = [];
     const map = new Map<string, EvaluatedStat[]>();
     for (const s of statList) {
@@ -91,12 +180,16 @@ export function AttributesStatsSection({
       map.get(key)!.push(s);
     }
     return groups;
-  }, [statList, sheet.blockTitles.stats]);
+  }, [statList, blockId, titleOverride, sheet.blockTitles.stats]);
 
   if (attrList.length === 0 && statList.length === 0) return null;
 
-  const attrLayout = sheet.moduleLayouts.find((m) => m.kind === 'attr');
-  const statLayout = sheet.moduleLayouts.find((m) => m.kind === 'stat');
+  const attrLayout = sheet.moduleLayouts.find((m) =>
+    blockId && mode === 'attr' ? m.id === blockId : m.kind === 'attr',
+  );
+  const statLayout = sheet.moduleLayouts.find((m) =>
+    blockId && mode === 'stat' ? m.id === blockId : m.kind === 'stat',
+  );
 
   const attrDisplay: ModuleDisplayStyle =
     displayOverride ?? attrLayout?.display ?? 'cards';
@@ -129,7 +222,7 @@ export function AttributesStatsSection({
     e.stopPropagation();
     if (!sheetId || item.locked) return;
     setEditingStatId(item.id);
-    setStatValDraft(String(item.baseValue));
+    setStatValDraft(item.displayFraction ?? formatEvaluatedValue(item.baseValue));
   };
 
   const handleCommitStatEdit = (e: React.MouseEvent | React.FormEvent, item: EvaluatedStat) => {
@@ -148,8 +241,10 @@ export function AttributesStatsSection({
 
   const handleStepStat = (e: React.MouseEvent, item: EvaluatedStat, delta: number) => {
     e.stopPropagation();
-    if (!sheetId || item.locked || typeof item.baseValue !== 'number') return;
-    updateStatBaseValue(sheetId, item.id, item.baseValue + delta);
+    if (!sheetId || item.locked) return;
+    const nextVal = computeSteppedValue(item.baseValue, delta);
+    if (nextVal === null) return;
+    updateStatBaseValue(sheetId, item.id, nextVal);
   };
 
   const handleConfirmAddStat = (kind: 'attr' | 'stat') => {
@@ -189,12 +284,7 @@ export function AttributesStatsSection({
     const displayVal = attr.displayFraction ?? formatEvaluatedValue(attr.finalValue);
 
     const isDescriptiveText =
-      typeof attr.finalValue === 'string' &&
-      (attr.finalValue.length > 20 ||
-        attr.id.includes('tipo') ||
-        attr.id.includes('desc') ||
-        attr.id.includes('nota') ||
-        attr.id.includes('info'));
+      typeof attr.finalValue === 'string' && attr.finalValue.length > 24;
 
     if (isDescriptiveText) {
       return (
@@ -219,11 +309,12 @@ export function AttributesStatsSection({
     }
 
     if (!isPrimary) {
+      const steppable = canStepValue(attr.baseValue, Boolean(attr.displayFraction));
       return (
         <div
           key={attr.id}
           onClick={() => handleStatClick(attr)}
-          className={`group rounded-lg border px-3 py-2 flex items-center justify-between gap-3 transition-all min-w-0 ${hasRoll ? 'cursor-pointer hover:border-[var(--sheet-accent)] rollable-interactive' : ''
+          className={`group rounded-lg border px-3 py-2 flex items-center justify-between gap-2.5 transition-all min-w-0 ${hasRoll ? 'cursor-pointer hover:border-[var(--sheet-accent)] rollable-interactive' : ''
             }`}
           style={{
             backgroundColor: 'var(--sheet-item-bg, #121214)',
@@ -231,12 +322,12 @@ export function AttributesStatsSection({
           }}
         >
           <span
-            className="text-xs font-semibold text-[#a8a8b3] break-words leading-snug flex-1 min-w-0"
+            className="text-xs font-semibold text-[#a8a8b3] leading-snug flex-1 min-w-0 truncate"
             title={displayName}
           >
             {displayName}
           </span>
-          <div className="flex items-center gap-1.5 shrink-0 pl-1">
+          <div className="flex items-center gap-1.5 shrink-0">
             {editingStatId === attr.id ? (
               <div
                 className="flex items-center gap-1"
@@ -251,7 +342,7 @@ export function AttributesStatsSection({
                     if (e.key === 'Escape') setEditingStatId(null);
                   }}
                   autoFocus
-                  className="w-14 bg-zinc-950 border border-zinc-700 rounded px-1.5 py-0.5 text-xs font-mono text-white text-center focus:outline-none"
+                  className="w-16 bg-zinc-950 border border-zinc-700 rounded px-1.5 py-0.5 text-xs font-mono text-white text-center focus:outline-none"
                 />
                 <button
                   type="button"
@@ -263,32 +354,32 @@ export function AttributesStatsSection({
               </div>
             ) : (
               <>
-                {isEditMode && sheetId && !attr.locked && typeof attr.baseValue === 'number' && !attr.displayFraction && (
+                {isEditMode && sheetId && !attr.locked && steppable && (
                   <button
                     type="button"
                     onClick={(e) => handleStepStat(e, attr, -1)}
                     className="w-4 h-4 rounded bg-zinc-900 border border-zinc-800 hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
-                    title="Diminuir valor"
+                    title="Diminuir valor / passo do dado"
                   >
                     <Minus className="w-2.5 h-2.5" />
                   </button>
                 )}
                 <span
                   onDoubleClick={(e) => handleStartEditStat(e, attr)}
-                  className={`font-mono text-sm font-bold ${renderStatValueColor(
+                  className={`font-mono text-sm font-bold whitespace-nowrap ${renderStatValueColor(
                     attr,
                     'text-[#e1e1e6]',
                   )}`}
-                  title={sheetId && !attr.locked ? 'Duplo clique para editar valor' : undefined}
+                  title={sheetId && !attr.locked ? 'Duplo clique para editar (ex: 10, d6, 1d8)' : undefined}
                 >
                   {displayVal}
                 </span>
-                {isEditMode && sheetId && !attr.locked && typeof attr.baseValue === 'number' && !attr.displayFraction && (
+                {isEditMode && sheetId && !attr.locked && steppable && (
                   <button
                     type="button"
                     onClick={(e) => handleStepStat(e, attr, 1)}
                     className="w-4 h-4 rounded bg-zinc-900 border border-zinc-800 hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
-                    title="Aumentar valor"
+                    title="Aumentar valor / passo do dado"
                   >
                     <Plus className="w-2.5 h-2.5" />
                   </button>
@@ -306,7 +397,10 @@ export function AttributesStatsSection({
               </>
             )}
             {hasRoll && (
-              <span className="w-3.5 h-3.5 flex items-center justify-center shrink-0">
+              <span
+                title={`Rolar: ${attr.rollFormula}`}
+                className="w-3.5 h-3.5 flex items-center justify-center shrink-0"
+              >
                 <Dices className="w-3.5 h-3.5 text-[#71717a] group-hover:text-[var(--sheet-accent-text)] rollable-dice-icon shrink-0" />
               </span>
             )}
@@ -315,11 +409,13 @@ export function AttributesStatsSection({
       );
     }
 
+    const steppable = canStepValue(attr.baseValue, Boolean(attr.displayFraction));
+
     return (
       <div
         key={attr.id}
         onClick={() => handleStatClick(attr)}
-        className={`group relative rounded-xl border p-2.5 sm:p-3 flex flex-col items-center justify-between transition-all min-w-[96px] ${hasRoll ? 'cursor-pointer hover:border-[var(--sheet-accent)] rollable-interactive' : ''
+        className={`group relative rounded-xl border px-3 py-2.5 flex flex-col items-center justify-between transition-all min-w-0 ${hasRoll ? 'cursor-pointer hover:border-[var(--sheet-accent)] rollable-interactive' : ''
           } ${attr.locked
             ? 'border-amber-500/50'
             : isBuffed
@@ -336,34 +432,34 @@ export function AttributesStatsSection({
               : 'var(--sheet-card-border, #29292e)',
         }}
       >
-        {/* Header seguro com ícones nas extremidades e texto no centro sem cortar */}
-        <div className="w-full flex items-start justify-between gap-1 mb-1">
-          <div className="w-4 h-4 flex items-center justify-center shrink-0">
-            {attr.locked && (
-              <span title="Valor Travado (:! / !lock)" className="text-amber-400">
-                <Lock className="w-3 h-3" />
-              </span>
-            )}
-          </div>
-
+        {attr.locked && (
           <span
-            className="text-xs font-semibold tracking-wide text-center uppercase break-words leading-tight flex-1 min-w-0 px-0.5"
+            title="Valor Travado (:! / !lock)"
+            className="absolute top-2 left-2 text-amber-400"
+          >
+            <Lock className="w-3 h-3" />
+          </span>
+        )}
+        {hasRoll && (
+          <span
+            title={`Rolar: ${attr.rollFormula}`}
+            className="absolute top-2 right-2 text-[#71717a] group-hover:text-[var(--sheet-accent-text)] transition-colors"
+          >
+            <Dices className="w-3.5 h-3.5 rollable-dice-icon" />
+          </span>
+        )}
+
+        {/* Título ocupa toda a largura útil sem quebrar sílabas no meio da palavra */}
+        <div
+          className={`w-full text-center mb-1 ${attr.locked || hasRoll ? 'px-4' : 'px-1'}`}
+        >
+          <span
+            className="block text-[11px] font-bold tracking-wide uppercase leading-snug truncate"
             style={{ color: 'var(--sheet-accent-text, #c4b5fd)' }}
             title={displayName}
           >
             {displayName}
           </span>
-
-          <div className="w-4 h-4 flex items-center justify-center shrink-0">
-            {hasRoll && (
-              <span
-                title={`Rolar: ${attr.rollFormula}`}
-                className="text-[#71717a] group-hover:text-[var(--sheet-accent-text)] transition-colors flex items-center justify-center"
-              >
-                <Dices className="w-3.5 h-3.5 rollable-dice-icon shrink-0" />
-              </span>
-            )}
-          </div>
         </div>
 
         {editingStatId === attr.id ? (
@@ -391,33 +487,33 @@ export function AttributesStatsSection({
             </button>
           </div>
         ) : (
-          <div className="mt-1 flex items-center justify-center gap-1.5 w-full">
-            {isEditMode && sheetId && !attr.locked && typeof attr.baseValue === 'number' && !attr.displayFraction && (
+          <div className="mt-0.5 flex items-center justify-center gap-1.5 w-full">
+            {isEditMode && sheetId && !attr.locked && steppable && (
               <button
                 type="button"
                 onClick={(e) => handleStepStat(e, attr, -1)}
-                className="w-5 h-5 rounded border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
-                title="Diminuir atributo"
+                className="w-5 h-5 rounded border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-colors shrink-0"
+                title="Diminuir atributo / passo do dado"
               >
                 <Minus className="w-3 h-3" />
               </button>
             )}
             <span
               onDoubleClick={(e) => handleStartEditStat(e, attr)}
-              className={`font-mono text-2xl font-black text-center ${renderStatValueColor(
+              className={`font-mono text-2xl font-black text-center whitespace-nowrap ${renderStatValueColor(
                 attr,
                 'text-white',
               )}`}
-              title={sheetId && !attr.locked ? 'Duplo clique para editar valor' : undefined}
+              title={sheetId && !attr.locked ? 'Duplo clique para editar (ex: 4, d6, 1d8)' : undefined}
             >
               {displayVal}
             </span>
-            {isEditMode && sheetId && !attr.locked && typeof attr.baseValue === 'number' && !attr.displayFraction && (
+            {isEditMode && sheetId && !attr.locked && steppable && (
               <button
                 type="button"
                 onClick={(e) => handleStepStat(e, attr, 1)}
-                className="w-5 h-5 rounded border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
-                title="Aumentar atributo"
+                className="w-5 h-5 rounded border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-colors shrink-0"
+                title="Aumentar atributo / passo do dado"
               >
                 <Plus className="w-3 h-3" />
               </button>
@@ -519,14 +615,14 @@ export function AttributesStatsSection({
     if (display === 'pyramid') {
       const rows = buildPyramidRows(items);
       return (
-        <div className="flex flex-col items-center gap-2.5">
+        <div className={`flex flex-col items-center justify-center gap-2.5 ${isTall ? 'flex-1' : ''}`}>
           {rows.map((row, rIdx) => (
             <div
               key={rIdx}
-              className="flex flex-wrap items-center justify-center gap-2.5 w-full"
+              className="flex flex-wrap items-stretch justify-center gap-2.5 w-full"
             >
               {row.map((item) => (
-                <div key={item.id} className="w-28 sm:w-32">
+                <div key={item.id} className="w-36 sm:w-40 max-w-full">
                   {renderCardItem(item, true)}
                 </div>
               ))}
@@ -602,29 +698,26 @@ export function AttributesStatsSection({
 
     // 5. PADRÃO: MODO CARDS
     if (!isPrimary) {
-      const textNotes = items.filter(
-        (s) =>
-          typeof s.finalValue === 'string' &&
-          (s.finalValue.length > 20 ||
-            s.id.includes('tipo') ||
-            s.id.includes('desc') ||
-            s.id.includes('nota') ||
-            s.id.includes('info')),
-      );
-      const normalStats = items.filter(
-        (s) =>
-          !(
-            typeof s.finalValue === 'string' &&
-            (s.finalValue.length > 20 ||
-              s.id.includes('tipo') ||
-              s.id.includes('desc') ||
-              s.id.includes('nota') ||
-              s.id.includes('info'))
-          ),
-      );
+      const isTextNoteStat = (s: EvaluatedStat) =>
+        typeof s.finalValue === 'string' &&
+        !canStepValue(s.finalValue, false) &&
+        (s.finalValue.length > 20 ||
+          s.id.includes('desc') ||
+          s.id.includes('nota') ||
+          s.id.includes('info'));
+
+      const textNotes = items.filter(isTextNoteStat);
+      const normalStats = items.filter((s) => !isTextNoteStat(s));
+
+      const statGridStyle: React.CSSProperties =
+        isTall && !cols
+          ? { gridTemplateColumns: '1fr' }
+          : cols && cols > 0
+            ? { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }
+            : { gridTemplateColumns: 'repeat(auto-fit, minmax(175px, 1fr))' };
 
       return (
-        <div className="space-y-2">
+        <div className={`space-y-2 ${isTall ? 'flex-1 flex flex-col' : ''}`}>
           {textNotes.length > 0 && (
             <div className="space-y-1.5 w-full">
               {textNotes.map((stat) => renderCardItem(stat, false))}
@@ -632,24 +725,25 @@ export function AttributesStatsSection({
           )}
 
           {normalStats.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {normalStats.map((stat) => (
-                <div key={stat.id} className="flex-1 min-w-[150px]">
-                  {renderCardItem(stat, false)}
-                </div>
-              ))}
+            <div className="grid gap-2 content-start" style={statGridStyle}>
+              {normalStats.map((stat) => renderCardItem(stat, false))}
             </div>
           )}
         </div>
       );
     }
 
+    const attrGridStyle: React.CSSProperties =
+      isTall && !cols
+        ? { gridTemplateColumns: '1fr' }
+        : cols && cols > 0
+          ? { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }
+          : { gridTemplateColumns: 'repeat(auto-fit, minmax(136px, 1fr))' };
+
     return (
       <div
-        className="grid gap-2.5"
-        style={{
-          gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-        }}
+        className={`grid gap-2.5 content-start ${isTall ? 'flex-1' : ''}`}
+        style={attrGridStyle}
       >
         {items.map((attr) => renderCardItem(attr, true))}
       </div>
@@ -678,7 +772,7 @@ export function AttributesStatsSection({
             type="text"
             value={newStatVal}
             onChange={(e) => setNewStatVal(e.target.value)}
-            placeholder="Valor inicial (ex: 10)"
+            placeholder="Valor (ex: 10, d6, 1d8)"
             className="rounded-lg border bg-zinc-950 border-zinc-800 px-2.5 py-1 text-xs font-mono text-white focus:outline-none"
           />
           <input
@@ -713,9 +807,9 @@ export function AttributesStatsSection({
   };
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${isTall ? 'flex-1 flex flex-col' : ''}`}>
       {attrGroups.map((group, idx) => (
-        <section key={`attr_grp_${idx}`} className="space-y-2">
+        <section key={`attr_grp_${idx}`} className={`space-y-2 ${isTall ? 'flex-1 flex flex-col' : ''}`}>
           <div className="flex items-center justify-between gap-2 px-0.5">
             {group.title ? (
               <h3 className="text-xs font-bold uppercase tracking-wider text-[#a8a8b3]">

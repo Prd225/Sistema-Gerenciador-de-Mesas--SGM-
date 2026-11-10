@@ -202,6 +202,39 @@ function youtubePlaylistPlugin(): Plugin {
         next();
       });
     },
+    configurePreviewServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        if (req.url && req.url.startsWith('/api/local-image')) {
+          const url = new URL(req.url, 'http://127.0.0.1:5173');
+          const rawPath = url.searchParams.get('path');
+          if (!rawPath) {
+            res.statusCode = 400;
+            res.end('Parâmetro path ausente');
+            return;
+          }
+          try {
+            const filePath = normalizeLocalFilePath(rawPath);
+            if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+              res.statusCode = 404;
+              res.end('Arquivo de imagem não encontrado');
+              return;
+            }
+            const ext = path.extname(filePath).toLowerCase();
+            const contentType = MIME_BY_EXT[ext] || 'application/octet-stream';
+            res.statusCode = 200;
+            res.setHeader('Content-Type', contentType);
+            res.setHeader('Cache-Control', 'no-cache');
+            fs.createReadStream(filePath).pipe(res);
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.end(err.message || 'Erro ao ler imagem local');
+            return;
+          }
+        }
+        next();
+      });
+    },
   };
 }
 
@@ -218,6 +251,26 @@ export default defineConfig({
     watch: {
       ignored: ['**/dist/**'],
     },
+    proxy: {
+      '/socket.io': {
+        target: 'http://127.0.0.1:3001',
+        ws: true,
+        changeOrigin: true,
+      },
+      '/uploads': {
+        target: 'http://127.0.0.1:3001',
+        changeOrigin: true,
+      },
+      '/api': {
+        target: 'http://127.0.0.1:3001',
+        changeOrigin: true,
+      },
+    },
+  },
+  preview: {
+    port: 5173,
+    host: true,
+    allowedHosts: true,
     proxy: {
       '/socket.io': {
         target: 'http://127.0.0.1:3001',

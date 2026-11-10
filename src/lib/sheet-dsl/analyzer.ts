@@ -19,6 +19,7 @@ import type {
   ASTStatDecl,
   ASTTableDecl,
   CompiledSheet,
+  DiceModifierNode,
   DSLDiagnostic,
   EvaluatedAbility,
   EvaluatedCounterBlock,
@@ -206,6 +207,8 @@ export class SheetAnalyzer {
         isActive: active,
         effectSummaries: rule.effects.map((e) => this.formatEffectSummary(e)),
         source,
+        tab: rule.tab,
+        blockId: rule.blockId,
       });
     }
 
@@ -217,8 +220,16 @@ export class SheetAnalyzer {
     // Reavalia dependentes caso alguma Regra Condicional ou Nó de Diagrama tenha alterado um atributo/status base
     this.recalculateDerivedStats(dependencyOrder, statDeclMap, attrIds);
 
-    // 12. Atualiza Fórmulas Finais de Perícias, Recursos e Habilidades
+    // 12. Atualiza Fórmulas Finais de Perícias, Recursos, Ações de Inventário e Habilidades
     this.finalizeSkillsAndResources();
+
+    for (let i = 0; i < this.ast.inventory.items.length; i++) {
+      const itemDecl = this.ast.inventory.items[i];
+      const evalItem = this.items[i];
+      if (evalItem) {
+        evalItem.actions = itemDecl.actions.map((act) => this.evaluateAbilityDecl(act));
+      }
+    }
 
     const evaluatedAbilities = this.ast.abilities.map((ab) => this.evaluateAbilityDecl(ab));
     const evaluatedTurnSlots: Record<string, EvaluatedResource> = {};
@@ -253,10 +264,10 @@ export class SheetAnalyzer {
 
     const themeRaw = String(
       metaProps.theme ??
-        metaProps.tema ??
-        metaProps.cor ??
-        metaProps.color ??
-        '',
+      metaProps.tema ??
+      metaProps.cor ??
+      metaProps.color ??
+      '',
     ).trim();
     const themeLower = themeRaw.toLowerCase();
 
@@ -365,13 +376,13 @@ export class SheetAnalyzer {
     ]);
     const rawTabPos = String(
       metaProps.tabs_pos ??
-        metaProps.tab_pos ??
-        metaProps.nav_pos ??
-        metaProps.abas_pos ??
-        metaProps.abas ??
-        metaProps.nav ??
-        metaProps.pos ??
-        '',
+      metaProps.tab_pos ??
+      metaProps.nav_pos ??
+      metaProps.abas_pos ??
+      metaProps.abas ??
+      metaProps.nav ??
+      metaProps.pos ??
+      '',
     ).toLowerCase();
 
     let tabPosition: import('./types').TabNavPosition = 'top';
@@ -436,10 +447,10 @@ export class SheetAnalyzer {
 
     const rawTabAlign = String(
       metaProps.tabs_align ??
-        metaProps.tab_align ??
-        metaProps.align ??
-        metaProps.alinhamento ??
-        '',
+      metaProps.tab_align ??
+      metaProps.align ??
+      metaProps.alinhamento ??
+      '',
     ).toLowerCase();
     let tabAlign: import('./types').TabNavAlign = 'left';
     if (rawTabAlign === 'center' || rawTabAlign === 'centro' || allMetaMarkers.has('center') || allMetaMarkers.has('centro')) {
@@ -501,6 +512,7 @@ export class SheetAnalyzer {
           tags: d.meta.tags,
           tab: d.tab,
           blockTitle: d.blockTitle,
+          blockId: d.blockId,
         };
       }),
       skills: this.skills,
@@ -513,7 +525,7 @@ export class SheetAnalyzer {
         currentLoad: this.currentLoad,
         maxCapacity: this.maxCapacity,
         overloadLimit: this.overloadLimit,
-        isOverloaded: this.currentLoad > this.maxCapacity,
+        isOverloaded: this.maxCapacity > 0 && this.currentLoad > this.maxCapacity,
         items: this.items,
         title: this.ast.inventory.title,
         tab: this.ast.inventory.tab,
@@ -537,6 +549,7 @@ export class SheetAnalyzer {
         counters: this.ast.blockTitles.counters,
         text: this.ast.blockTitles.text,
         turn: this.ast.blockTitles.turn,
+        rules: this.ast.blockTitles.rules,
       },
       diagnostics: this.diagnostics,
       dependencyOrder,
@@ -1206,22 +1219,167 @@ export class SheetAnalyzer {
     vermelho: 'red',
     crimson: 'crimson',
     sangue: 'crimson',
+    rose: 'rose',
+    rosa: 'pink',
+    pink: 'pink',
     blue: 'blue',
     azul: 'blue',
     amber: 'amber',
     amarelo: 'amber',
     dourado: 'amber',
+    gold: 'amber',
+    yellow: 'yellow',
+    orange: 'orange',
+    laranja: 'orange',
     purple: 'purple',
     roxo: 'purple',
+    violet: 'purple',
+    violeta: 'purple',
     green: 'green',
     verde: 'green',
-    emerald: 'green',
-    cyan: 'blue',
-    ciano: 'blue',
+    emerald: 'emerald',
+    esmeralda: 'emerald',
+    cyan: 'cyan',
+    ciano: 'cyan',
+    dark: 'dark',
+    cinza: 'dark',
   };
 
+  private normalizeStatOrSkillValue(val: EvaluatedValue): EvaluatedValue {
+    if (typeof val === 'string') {
+      const trimmed = val.trim();
+      const stepMatch = trimmed.match(/^d(\d+|F)$/i);
+      if (stepMatch) {
+        const raw = stepMatch[1].toUpperCase();
+        const numFaces = raw === 'F' ? 'F' : Number(raw);
+        if (raw === 'F' || [4, 6, 8, 10, 12, 20, 100].includes(numFaces as number)) {
+          return {
+            kind: 'step_die',
+            faces: numFaces as StepDieFaces,
+          };
+        }
+        return `1d${raw}`;
+      }
+      if (/^\d+d(?:\d+|F)\b/i.test(trimmed)) {
+        return trimmed;
+      }
+    }
+    return val;
+  }
+
+  private isDiceValue(val: EvaluatedValue | undefined): boolean {
+    if (val === undefined) return false;
+    if (typeof val === 'object' && val.kind === 'step_die') return true;
+    if (typeof val === 'string') {
+      return /\b\d*d(?:\d+|F)\b/i.test(val.trim());
+    }
+    return false;
+  }
+
+  private valueToFormulaToken(val: EvaluatedValue | undefined): string {
+    if (val === undefined) return '0';
+    if (typeof val === 'object' && val.kind === 'step_die') {
+      return `1d${val.faces}`;
+    }
+    if (typeof val === 'string') {
+      const trimmed = val.trim();
+      if (/^d(?:\d+|F)\b/i.test(trimmed)) {
+        return `1${trimmed}`;
+      }
+      return trimmed;
+    }
+    return String(val);
+  }
+
+  private coerceToDiceToken(val: EvaluatedValue | undefined): string {
+    if (val === undefined) return '1d6';
+    if (this.isDiceValue(val)) {
+      return this.valueToFormulaToken(val);
+    }
+    const faces = Math.max(1, Math.round(this.toNumber(val)) || 6);
+    return `1d${faces}`;
+  }
+
+  private isDefaultD20RollAst(expr: ASTExpr): boolean {
+    // Detecta se a fórmula herdada de cabeçalho (@attr / @skill) é um template clássico de 1d20
+    // (ex: `1d20 + attr + self`, `1d20 + self`, `(self)d20kh1`, `(attr)d20kh1 + self`)
+    // para que atributos/perícias definidos como dado puro (ex: FOR := 1d6) possam desmantelar o 1d20 automaticamente!
+    if (expr.type === 'DiceExpr') {
+      const facesVal = expr.faces === 'F' ? 'F' : expr.faces.type === 'NumberLit' ? expr.faces.value : 0;
+      if (facesVal === 20) {
+        if (expr.count.type === 'Ident' && (expr.count.name === 'self' || expr.count.name === 'attr')) {
+          return true;
+        }
+      }
+      return false;
+    }
+    if (expr.type === 'BinaryExpr' && (expr.op === '+' || expr.op === '-')) {
+      const hasD20Left =
+        (expr.left.type === 'DiceExpr' &&
+          expr.left.faces !== 'F' &&
+          expr.left.faces.type === 'NumberLit' &&
+          expr.left.faces.value === 20) ||
+        this.isDefaultD20RollAst(expr.left);
+      return hasD20Left;
+    }
+    return false;
+  }
+
+  private resolveStatRollFormula(
+    decl: ASTStatDecl,
+    val: EvaluatedValue,
+  ): { rollFormula?: string; rollAst?: ASTExpr } {
+    const rollExpr = decl.meta.props.roll ?? decl.meta.props.rolagem;
+    const isDie = this.isDiceValue(val);
+    const selfToken = this.valueToFormulaToken(val);
+
+    if (rollExpr) {
+      // Se a fórmula veio herdada do cabeçalho (@attr [roll: 1d20 + self]) e este atributo é um dado (1d6),
+      // usa diretamente o dado do atributo sem forçar 1d20!
+      if (decl.rollFromHeader && isDie && this.isDefaultD20RollAst(rollExpr)) {
+        return { rollFormula: selfToken };
+      }
+
+      if (rollExpr.type === 'StringLit') {
+        let formula = rollExpr.value.trim();
+        const diceToken = this.coerceToDiceToken(val);
+        if (isDie && decl.rollFromHeader && /\b1d20\s*\+\s*self\b/i.test(formula)) {
+          return { rollFormula: selfToken };
+        }
+        formula = formula
+          .replace(/(\d+)\s*d\s*\(\s*self\s*\)/gi, (_, c) => {
+            const m = diceToken.match(/^(\d*)d(\d+|F)(.*)$/i);
+            return m ? `${Number(c) * (m[1] ? Number(m[1]) : 1)}d${m[2]}${m[3]}` : `${c}d${selfToken}`;
+          })
+          .replace(/\bd\s*\(\s*self\s*\)/gi, diceToken)
+          .replace(/\bself\.(?:dice|dado|die)\b/gi, diceToken);
+        if (isDie && /\(?self\)?d\d+/i.test(formula)) {
+          formula = formula.replace(
+            /\(?self\)?d\d+(?:(?:kh|kl|dh|dl|r)\d+|!p?|!!)?/gi,
+            selfToken,
+          );
+        }
+        formula = formula
+          .replace(/\(self\)/g, selfToken)
+          .replace(/\bself\b/g, selfToken);
+        return { rollFormula: formula, rollAst: rollExpr };
+      }
+
+      const formula = this.exprToFormulaString(rollExpr, { selfVal: val });
+      return { rollFormula: formula, rollAst: rollExpr };
+    }
+
+    // Qualquer atributo/status cujo valor seja ou contenha dados (ex: FOR := 1d6) já é rolável por padrão,
+    // e mesmo atributos numéricos puros podem ser rolados caso desejado.
+    if (isDie) {
+      return { rollFormula: selfToken };
+    }
+
+    return {};
+  }
+
   private evaluateBaseStatDecl(decl: ASTStatDecl): EvaluatedStat {
-    const val = this.evalExpr(decl.expr);
+    const val = this.normalizeStatOrSkillValue(this.evalExpr(decl.expr));
     const isLocked = decl.mode === 'lock' || decl.meta.flags.includes('lock');
     const numVal = this.toNumber(val);
 
@@ -1242,17 +1400,9 @@ export class SheetAnalyzer {
       this.symbolValues[`${decl.id}.${child.id}`] = childVal;
     }
 
-    let rollFormula: string | undefined;
-    let rollAst: ASTExpr | undefined;
-    const rollExpr = decl.meta.props.roll ?? decl.meta.props.rolagem;
-    if (rollExpr) {
-      rollAst = rollExpr;
-      if (rollExpr.type === 'StringLit') {
-        rollFormula = rollExpr.value;
-      } else {
-        rollFormula = this.exprToRawCode(rollExpr);
-      }
-      rollFormula = rollFormula.replace(/\(self\)/g, String(val)).replace(/\bself\b/g, String(val));
+    const { rollFormula, rollAst } = this.resolveStatRollFormula(decl, val);
+    if (rollFormula) {
+      this.symbolValues[`${decl.id}.roll`] = rollFormula;
     }
 
     let displayFraction: string | undefined;
@@ -1279,52 +1429,67 @@ export class SheetAnalyzer {
       rollAst,
       tab: decl.tab,
       blockTitle: decl.blockTitle,
+      blockId: decl.blockId,
     };
   }
 
   private evaluateBaseSkillDecl(decl: ASTSheetDocument['skills'][0]): EvaluatedSkill {
     const baseAttrVal = decl.baseAttr ? this.symbolValues[decl.baseAttr] ?? 0 : undefined;
-    const rawVal = this.evalExpr(decl.expr, {
-      attrVal: baseAttrVal,
-      attrName: decl.baseAttr,
-    });
-    const bonus = this.toNumber(rawVal);
+    const rawVal = this.normalizeStatOrSkillValue(
+      this.evalExpr(decl.expr, {
+        attrVal: baseAttrVal,
+        attrName: decl.baseAttr,
+      }),
+    );
+    const isSkillDie = this.isDiceValue(rawVal);
+    const bonus = isSkillDie ? 0 : this.toNumber(rawVal);
     const isLocked = decl.mode === 'lock' || decl.meta.flags.includes('lock');
+    const selfCtxVal: EvaluatedValue = isSkillDie ? rawVal : bonus;
 
-    this.symbolValues[decl.id] = bonus;
+    this.symbolValues[decl.id] = selfCtxVal;
 
     const children: Record<string, EvaluatedValue> = {};
     for (const [propKey, propExpr] of Object.entries(decl.meta.props)) {
       if (!SheetAnalyzer.RESERVED_META_KEYS.has(propKey.toLowerCase())) {
-        const propVal = this.evalExpr(propExpr, { selfVal: bonus, attrVal: baseAttrVal });
+        const propVal = this.evalExpr(propExpr, { selfVal: selfCtxVal, attrVal: baseAttrVal });
         children[propKey] = propVal;
         this.symbolValues[`${decl.id}.${propKey}`] = propVal;
       }
     }
     for (const child of decl.children) {
-      const childVal = this.evalExpr(child.expr, { selfVal: bonus, attrVal: baseAttrVal });
+      const childVal = this.evalExpr(child.expr, { selfVal: selfCtxVal, attrVal: baseAttrVal });
       children[child.id] = childVal;
       this.symbolValues[`${decl.id}.${child.id}`] = childVal;
     }
 
     const rollAst = decl.rollOverride ?? this.ast.defaultSkillRoll;
-    const rollFormula = this.formatRollFormula(rollAst, decl.baseAttr, baseAttrVal, bonus);
+    const rollFormula = this.formatRollFormula(
+      rollAst,
+      decl.baseAttr,
+      baseAttrVal,
+      bonus,
+      isSkillDie ? rawVal : undefined,
+      decl.rollFromHeader,
+    );
+    this.symbolValues[`${decl.id}.roll`] = rollFormula;
 
     return {
       id: decl.id,
       label: decl.label || decl.id,
       baseAttr: decl.baseAttr,
       baseAttrValue: baseAttrVal,
+      rawValue: isSkillDie ? rawVal : undefined,
       bonus,
       mode: decl.mode,
       locked: isLocked,
-      traces: [{ source: 'Base', op: decl.mode, value: bonus }],
+      traces: [{ source: 'Base', op: decl.mode, value: this.toNumber(rawVal) }],
       rollFormula,
       rollAst,
       children,
       tags: decl.meta.tags,
       tab: decl.tab,
       blockTitle: decl.blockTitle,
+      blockId: decl.blockId,
     };
   }
 
@@ -1333,8 +1498,26 @@ export class SheetAnalyzer {
     applyOverride = true,
     registerGlobalSymbols = true,
   ): EvaluatedResource {
-    const baseCurVal = this.toNumber(this.evalExpr(decl.currentExpr));
-    const maxVal = decl.maxExpr ? this.toNumber(this.evalExpr(decl.maxExpr)) : baseCurVal;
+    let baseCurVal = 0;
+    let poolDie: string | undefined;
+
+    if (decl.kind === 'pool' && decl.currentExpr.type === 'DiceExpr') {
+      baseCurVal = Math.max(0, this.toNumber(this.evalExpr(decl.currentExpr.count)));
+      const facesStr =
+        decl.currentExpr.faces === 'F'
+          ? 'F'
+          : String(this.toNumber(this.evalExpr(decl.currentExpr.faces)));
+      poolDie = `d${facesStr}`;
+    } else {
+      baseCurVal = this.toNumber(this.evalExpr(decl.currentExpr));
+    }
+
+    const unbounded = decl.kind === 'counter' && !decl.maxExpr;
+    const maxVal = decl.maxExpr
+      ? this.toNumber(this.evalExpr(decl.maxExpr))
+      : unbounded
+        ? Math.max(99, baseCurVal)
+        : baseCurVal;
     const minVal = decl.meta.props.min ? this.toNumber(this.evalExpr(decl.meta.props.min)) : 0;
     const baseTempVal = decl.meta.props.temp ? this.toNumber(this.evalExpr(decl.meta.props.temp)) : 0;
     const colorExpr = decl.meta.props.color ?? decl.meta.props.cor;
@@ -1345,10 +1528,14 @@ export class SheetAnalyzer {
         color = SheetAnalyzer.COLOR_TAG_ALIASES[color.toLowerCase()];
       }
     } else {
-      for (const tag of decl.meta.tags) {
+      for (const tag of [...decl.meta.tags, ...decl.meta.flags]) {
         const mapped = SheetAnalyzer.COLOR_TAG_ALIASES[tag.toLowerCase()];
         if (mapped) {
           color = mapped;
+          break;
+        }
+        if (/^#?(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(tag)) {
+          color = tag.startsWith('#') ? tag : `#${tag}`;
           break;
         }
       }
@@ -1389,12 +1576,15 @@ export class SheetAnalyzer {
       max: maxVal,
       min: minVal,
       temp: tempVal,
+      unbounded,
+      poolDie,
       states: decl.states,
       boxes,
       color,
       tags: decl.meta.tags,
       tab: decl.tab,
       blockTitle: decl.blockTitle,
+      blockId: decl.blockId,
     };
   }
 
@@ -1447,6 +1637,13 @@ export class SheetAnalyzer {
         ? (this.evalExpr(itemDecl.meta.props.category) as string | number)
         : undefined;
 
+      const isConsumable =
+        itemDecl.meta.flags.includes('consumable') ||
+        itemDecl.meta.tags.some((t) => {
+          const low = t.toLowerCase();
+          return low === 'consumable' || low === 'consumivel' || low === 'consumível';
+        });
+
       this.items.push({
         id: itemDecl.id,
         label: itemDecl.label || itemDecl.id,
@@ -1454,6 +1651,7 @@ export class SheetAnalyzer {
         qty,
         totalWeight,
         state,
+        consumable: isConsumable,
         category,
         desc,
         effectSummaries: itemDecl.effects.map((e) => this.formatEffectSummary(e)),
@@ -1475,16 +1673,17 @@ export class SheetAnalyzer {
       this.symbolValues.max_load = this.maxCapacity;
       this.symbolValues.max_capacity = this.maxCapacity;
     } else {
-      const forVal = this.toNumber(this.symbolValues.FOR ?? this.symbolValues.Forca ?? 1);
-      this.maxCapacity = forVal > 0 ? forVal * 5 : 2;
-      this.symbolValues.max_load = this.maxCapacity;
-      this.symbolValues.max_capacity = this.maxCapacity;
+      this.maxCapacity = 0;
+      this.symbolValues.max_load = 0;
+      this.symbolValues.max_capacity = 0;
     }
 
     const overExpr = cfg.overload_limit ?? cfg.limite_sobrecarga;
     this.overloadLimit = overExpr
       ? this.toNumber(this.evalExpr(overExpr))
-      : this.maxCapacity * 2;
+      : this.maxCapacity > 0
+        ? this.maxCapacity * 2
+        : 0;
     this.symbolValues.overload_limit = this.overloadLimit;
 
     if (cfg.current_load) {
@@ -1531,14 +1730,22 @@ export class SheetAnalyzer {
       }
 
       if (eff.op === 'lock') {
-        targetStat.finalValue = val;
+        targetStat.finalValue = this.normalizeStatOrSkillValue(val);
         targetStat.locked = true;
       } else if (eff.op === 'pin' || eff.op === 'calc') {
-        targetStat.finalValue = val;
+        targetStat.finalValue = this.normalizeStatOrSkillValue(val);
       } else if (typeof targetStat.finalValue === 'object' && targetStat.finalValue.kind === 'step_die') {
         // Bônus em Step-Die sobe ou desce o passo do dado!
         const stepDelta = eff.op === 'sub' ? -numDelta : numDelta;
         targetStat.finalValue = this.stepDie(targetStat.finalValue.faces, stepDelta);
+      } else if (typeof targetStat.finalValue === 'string' && this.isDiceValue(targetStat.finalValue)) {
+        const delta = eff.op === 'sub' ? -numDelta : numDelta;
+        if (delta !== 0) {
+          targetStat.finalValue =
+            delta > 0
+              ? `${targetStat.finalValue} + ${delta}`
+              : `${targetStat.finalValue} - ${Math.abs(delta)}`;
+        }
       } else {
         const curNum = this.toNumber(targetStat.finalValue);
         targetStat.finalValue = eff.op === 'sub' ? curNum - numDelta : curNum + numDelta;
@@ -1558,10 +1765,17 @@ export class SheetAnalyzer {
     if (targetSkill) {
       if (targetSkill.locked && eff.op !== 'lock') return;
 
-      if (eff.op === 'lock') {
+      const normalizedVal = this.normalizeStatOrSkillValue(val);
+      if ((eff.op === 'lock' || eff.op === 'pin' || eff.op === 'calc') && this.isDiceValue(normalizedVal)) {
+        targetSkill.rawValue = normalizedVal;
+        targetSkill.bonus = 0;
+        if (eff.op === 'lock') targetSkill.locked = true;
+      } else if (eff.op === 'lock') {
+        targetSkill.rawValue = undefined;
         targetSkill.bonus = numDelta;
         targetSkill.locked = true;
       } else if (eff.op === 'pin' || eff.op === 'calc') {
+        targetSkill.rawValue = undefined;
         targetSkill.bonus = numDelta;
       } else {
         targetSkill.bonus = eff.op === 'sub' ? targetSkill.bonus - numDelta : targetSkill.bonus + numDelta;
@@ -1572,7 +1786,11 @@ export class SheetAnalyzer {
         op: eff.op,
         value: eff.op === 'sub' ? -numDelta : numDelta,
       });
-      this.symbolValues[eff.target] = targetSkill.bonus;
+      this.symbolValues[eff.target] = targetSkill.rawValue
+        ? targetSkill.bonus !== 0
+          ? `${this.valueToFormulaToken(targetSkill.rawValue)} ${targetSkill.bonus > 0 ? '+' : '-'} ${Math.abs(targetSkill.bonus)}`
+          : targetSkill.rawValue
+        : targetSkill.bonus;
       return;
     }
 
@@ -1604,14 +1822,19 @@ export class SheetAnalyzer {
 
       // Se for uma fórmula calculada ('calc'), reavalia a base com os novos símbolos
       if (decl.mode === 'calc') {
-        const newBase = this.evalExpr(decl.expr);
+        const newBase = this.normalizeStatOrSkillValue(this.evalExpr(decl.expr));
         const modSum = target.traces
           .slice(1)
           .reduce((acc, t) => acc + t.value, 0);
         target.baseValue = newBase;
         target.traces[0] = { source: 'Base', op: 'calc', value: this.toNumber(newBase) };
-        target.finalValue =
-          typeof newBase === 'number' ? newBase + modSum : newBase;
+        if (typeof newBase === 'number') {
+          target.finalValue = newBase + modSum;
+        } else if (typeof newBase === 'string' && this.isDiceValue(newBase) && modSum !== 0) {
+          target.finalValue = modSum > 0 ? `${newBase} + ${modSum}` : `${newBase} - ${Math.abs(modSum)}`;
+        } else {
+          target.finalValue = newBase;
+        }
         this.symbolValues[id] = target.finalValue;
       }
 
@@ -1628,6 +1851,14 @@ export class SheetAnalyzer {
         target.children[child.id] = childVal;
         this.symbolValues[`${id}.${child.id}`] = childVal;
       }
+
+      // Atualiza fórmula de rolagem caso o valor final ou símbolos referenciados tenham mudado
+      const resolvedRoll = this.resolveStatRollFormula(decl, target.finalValue);
+      target.rollFormula = resolvedRoll.rollFormula;
+      target.rollAst = resolvedRoll.rollAst;
+      if (resolvedRoll.rollFormula) {
+        this.symbolValues[`${id}.roll`] = resolvedRoll.rollFormula;
+      }
     }
   }
 
@@ -1639,19 +1870,32 @@ export class SheetAnalyzer {
       sk.baseAttrValue = baseAttrVal;
 
       if (skillDecl.mode === 'calc' && !sk.locked) {
-        const newBase = this.toNumber(
+        const rawEval = this.normalizeStatOrSkillValue(
           this.evalExpr(skillDecl.expr, { attrVal: baseAttrVal, attrName: sk.baseAttr }),
         );
         const modSum = sk.traces.slice(1).reduce((acc, t) => acc + t.value, 0);
-        sk.traces[0] = { source: 'Base', op: 'calc', value: newBase };
-        sk.bonus = newBase + modSum;
-        this.symbolValues[sk.id] = sk.bonus;
+        if (this.isDiceValue(rawEval)) {
+          sk.rawValue = rawEval;
+          sk.traces[0] = { source: 'Base', op: 'calc', value: this.toNumber(rawEval) };
+          sk.bonus = modSum;
+          this.symbolValues[sk.id] =
+            modSum !== 0
+              ? `${this.valueToFormulaToken(rawEval)} ${modSum > 0 ? '+' : '-'} ${Math.abs(modSum)}`
+              : rawEval;
+        } else {
+          const newBase = this.toNumber(rawEval);
+          sk.rawValue = undefined;
+          sk.traces[0] = { source: 'Base', op: 'calc', value: newBase };
+          sk.bonus = newBase + modSum;
+          this.symbolValues[sk.id] = sk.bonus;
+        }
       }
 
+      const selfCtxVal: EvaluatedValue = sk.rawValue ?? sk.bonus;
       for (const [propKey, propExpr] of Object.entries(skillDecl.meta.props)) {
         if (!SheetAnalyzer.RESERVED_META_KEYS.has(propKey.toLowerCase())) {
           const propVal = this.evalExpr(propExpr, {
-            selfVal: sk.bonus,
+            selfVal: selfCtxVal,
             attrVal: baseAttrVal,
           });
           sk.children[propKey] = propVal;
@@ -1660,14 +1904,22 @@ export class SheetAnalyzer {
       }
       for (const child of skillDecl.children) {
         const childVal = this.evalExpr(child.expr, {
-          selfVal: sk.bonus,
+          selfVal: selfCtxVal,
           attrVal: baseAttrVal,
         });
         sk.children[child.id] = childVal;
         this.symbolValues[`${sk.id}.${child.id}`] = childVal;
       }
 
-      sk.rollFormula = this.formatRollFormula(sk.rollAst, sk.baseAttr, baseAttrVal, sk.bonus);
+      sk.rollFormula = this.formatRollFormula(
+        sk.rollAst,
+        sk.baseAttr,
+        baseAttrVal,
+        sk.bonus,
+        sk.rawValue,
+        skillDecl.rollFromHeader,
+      );
+      this.symbolValues[`${sk.id}.roll`] = sk.rollFormula;
     }
 
     for (const resDecl of this.ast.resources) {
@@ -1716,6 +1968,7 @@ export class SheetAnalyzer {
     const damageAst = decl.props.damage ?? decl.props.dano ?? decl.props.heal ?? decl.props.cura;
     const damageFormula = damageAst ? this.exprToFormulaString(damageAst) : undefined;
 
+    const fallbackResourceName = Object.keys(this.resources)[0] ?? '';
     let cost: { amount: number; resource: string } | undefined;
     const costExpr = decl.meta.props.cost ?? decl.meta.props.custo ?? decl.props.cost;
     if (costExpr) {
@@ -1726,7 +1979,7 @@ export class SheetAnalyzer {
           ? resProp.type === 'Ident'
             ? resProp.name
             : String(this.evalExpr(resProp))
-          : 'PE',
+          : fallbackResourceName,
       };
     }
 
@@ -1750,6 +2003,14 @@ export class SheetAnalyzer {
       damageFormula,
       damageAst,
       effectSummaries,
+      bands:
+        decl.bands && decl.bands.length > 0
+          ? decl.bands.map((b) => ({
+            matcher: this.exprToRawCode(b.matcher),
+            label: b.label ? this.interpolateText(b.label) : undefined,
+            effects: b.effects.map((e) => this.formatEffectSummary(e)),
+          }))
+          : undefined,
       choices: decl.choices,
       enhancements: decl.enhancements.map((enh) => {
         const enhResProp = enh.meta.props.resource ?? enh.meta.props.recurso;
@@ -1761,7 +2022,7 @@ export class SheetAnalyzer {
             ? enhResProp.type === 'Ident'
               ? enhResProp.name
               : String(this.evalExpr(enhResProp))
-            : 'PE',
+            : cost?.resource ?? fallbackResourceName,
           requires: enh.meta.props.requires ? String(this.evalExpr(enh.meta.props.requires)) : undefined,
           desc: enh.props.desc ? this.interpolateText(String(this.evalExpr(enh.props.desc))) : undefined,
           damage: enh.props.damage ? this.exprToFormulaString(enh.props.damage) : undefined,
@@ -1770,6 +2031,7 @@ export class SheetAnalyzer {
       tags: decl.meta.tags,
       tab: decl.tab,
       blockTitle: decl.blockTitle,
+      blockId: decl.blockId,
     };
   }
 
@@ -1779,6 +2041,8 @@ export class SheetAnalyzer {
 
     return {
       id: decl.id,
+      title: decl.title,
+      tab: decl.tab,
       layout,
       hitRoll,
       nodes: decl.nodes.map((node) => {
@@ -1878,6 +2142,20 @@ export class SheetAnalyzer {
       }
 
       case 'MemberExpr': {
+        const propLow = expr.property.toLowerCase();
+        if (propLow === 'dice' || propLow === 'dado' || propLow === 'die') {
+          let baseVal: EvaluatedValue | undefined;
+          if (expr.object === 'self' && ctx.selfVal !== undefined) {
+            baseVal = ctx.selfVal;
+          } else if (expr.object === 'attr' && ctx.attrVal !== undefined) {
+            baseVal = ctx.attrVal;
+          } else if (ctx.localVars && expr.object in ctx.localVars) {
+            baseVal = ctx.localVars[expr.object];
+          } else if (expr.object in this.symbolValues) {
+            baseVal = this.symbolValues[expr.object];
+          }
+          return this.coerceToDiceToken(baseVal);
+        }
         const key = `${expr.object}.${expr.property}`;
         if (ctx.localVars && key in ctx.localVars) return ctx.localVars[key];
         if (key in this.symbolValues) return this.symbolValues[key];
@@ -1896,6 +2174,11 @@ export class SheetAnalyzer {
 
       case 'UnaryExpr': {
         const val = this.evalExpr(expr.operand, ctx);
+        if (this.isDiceValue(val)) {
+          const token = this.valueToFormulaToken(val);
+          if (expr.op === '-') return token.startsWith('-') ? token.slice(1).trim() : `-${token}`;
+          if (expr.op === '+') return token;
+        }
         if (expr.op === '-') return -this.toNumber(val);
         if (expr.op === '+') return this.toNumber(val);
         if (expr.op === '!') return this.isTruthy(val) ? 0 : 1;
@@ -1905,6 +2188,29 @@ export class SheetAnalyzer {
       case 'BinaryExpr': {
         const left = this.evalExpr(expr.left, ctx);
         const right = this.evalExpr(expr.right, ctx);
+
+        // Se qualquer operando for um dado (ex: FOR := 1d6 + 1d10, Dano = FOR + 2, Luta = attr + 1d4),
+        // preserva a expressão de dados nas operações aditivas (+ e -) em vez de converter 1d6 para 6!
+        if ((expr.op === '+' || expr.op === '-') && (this.isDiceValue(left) || this.isDiceValue(right))) {
+          const leftIsZero = !this.isDiceValue(left) && this.toNumber(left) === 0;
+          const rightIsZero = !this.isDiceValue(right) && this.toNumber(right) === 0;
+          const leftToken = this.valueToFormulaToken(left);
+          const rightToken = this.valueToFormulaToken(right);
+
+          if (rightIsZero) return leftToken;
+          if (leftIsZero) {
+            if (expr.op === '+') return rightToken;
+            return rightToken.startsWith('-') ? rightToken.slice(1).trim() : `-${rightToken}`;
+          }
+          if (expr.op === '+' && rightToken.startsWith('-')) {
+            return `${leftToken} - ${rightToken.slice(1).trim()}`;
+          }
+          if (expr.op === '-' && rightToken.startsWith('-')) {
+            return `${leftToken} + ${rightToken.slice(1).trim()}`;
+          }
+          return `${leftToken} ${expr.op} ${rightToken}`;
+        }
+
         const lNum = this.toNumber(left);
         const rNum = this.toNumber(right);
 
@@ -2012,8 +2318,18 @@ export class SheetAnalyzer {
       }
       case 'load':
       case 'carga':
+      case 'slots':
       case 'sum':
         return this.currentLoad;
+      case 'if':
+      case 'se': {
+        if (args.length < 2) return 0;
+        const cond = this.evalExpr(args[0], ctx);
+        if (this.isTruthy(cond)) {
+          return this.evalExpr(args[1], ctx);
+        }
+        return args[2] ? this.evalExpr(args[2], ctx) : 0;
+      }
       case 'qty':
       case 'qtd': {
         if (!args[0]) return 0;
@@ -2090,22 +2406,137 @@ export class SheetAnalyzer {
     baseAttrName: string | undefined,
     baseAttrVal: EvaluatedValue | undefined,
     skillBonus: number,
+    rawSkillVal?: EvaluatedValue,
+    rollFromHeader?: boolean,
   ): string {
-    if (!rollAst) {
-      // Padrão universal quando não especificado: 1d20 + bônus
-      if (typeof baseAttrVal === 'object' && baseAttrVal.kind === 'step_die') {
-        return skillBonus !== 0
-          ? `1d${baseAttrVal.faces}! + ${skillBonus}`
-          : `1d${baseAttrVal.faces}!`;
+    // Se o atributo base tem uma rolagem customizada explícita que já usa dados (ex: FOR := 1d6 [roll: self + 1d10]),
+    // utiliza a fórmula de rolagem do atributo como valor de `attr` nas perícias associadas!
+    const baseAttrStat = baseAttrName ? this.attributes[baseAttrName] ?? this.stats[baseAttrName] : undefined;
+    const effectiveAttrVal: EvaluatedValue | undefined =
+      baseAttrStat?.rollFormula && this.isDiceValue(baseAttrStat.rollFormula)
+        ? baseAttrStat.rollFormula
+        : baseAttrVal;
+
+    const isAttrDie = this.isDiceValue(effectiveAttrVal);
+    const isSkillDie = this.isDiceValue(rawSkillVal);
+    const selfVal: EvaluatedValue =
+      isSkillDie && rawSkillVal !== undefined ? rawSkillVal : skillBonus;
+
+    const buildDiceFallback = (): string => {
+      if (isSkillDie && rawSkillVal !== undefined) {
+        const skillToken = this.valueToFormulaToken(rawSkillVal);
+        if (isAttrDie && effectiveAttrVal !== undefined) {
+          const baseFormula = `${this.valueToFormulaToken(effectiveAttrVal)} + ${skillToken}`;
+          return skillBonus !== 0
+            ? skillBonus > 0
+              ? `${baseFormula} + ${skillBonus}`
+              : `${baseFormula} - ${Math.abs(skillBonus)}`
+            : baseFormula;
+        }
+        const flatMod =
+          (typeof effectiveAttrVal === 'number' ? effectiveAttrVal : 0) + skillBonus;
+        return flatMod !== 0
+          ? flatMod > 0
+            ? `${skillToken} + ${flatMod}`
+            : `${skillToken} - ${Math.abs(flatMod)}`
+          : skillToken;
       }
-      return skillBonus >= 0 ? `1d20 + ${skillBonus}` : `1d20 - ${Math.abs(skillBonus)}`;
+      if (isAttrDie && effectiveAttrVal !== undefined) {
+        const attrToken = this.valueToFormulaToken(effectiveAttrVal);
+        return skillBonus !== 0
+          ? skillBonus > 0
+            ? `${attrToken} + ${skillBonus}`
+            : `${attrToken} - ${Math.abs(skillBonus)}`
+          : attrToken;
+      }
+      // Se houver um perfil @roll global definido na ficha, utiliza sua expressão padrão
+      if (this.ast.resolutions.length > 0) {
+        return this.exprToFormulaString(this.ast.resolutions[0].rollExpr, {
+          selfVal,
+          attrVal: effectiveAttrVal ?? 0,
+          attrName: baseAttrName,
+        });
+      }
+      const totalMod =
+        (typeof effectiveAttrVal === 'number' ? effectiveAttrVal : 0) + skillBonus;
+      return totalMod >= 0 ? `1d20 + ${totalMod}` : `1d20 - ${Math.abs(totalMod)}`;
+    };
+
+    if (!rollAst) {
+      return buildDiceFallback();
+    }
+
+    // Se a perícia herdou um template 1d20 do cabeçalho (@skill [roll: 1d20 + attr + self]),
+    // mas o atributo ou a própria perícia foi modelado como Dado (ex: FOR := 1d6),
+    // desmantela o 1d20 automaticamente para rolar os dados reais do atributo/perícia!
+    if (rollFromHeader && (isAttrDie || isSkillDie) && this.isDefaultD20RollAst(rollAst)) {
+      return buildDiceFallback();
+    }
+
+    if (rollAst.type === 'StringLit') {
+      const selfToken = this.valueToFormulaToken(selfVal);
+      const attrToken = this.valueToFormulaToken(effectiveAttrVal ?? 0);
+      const selfDiceToken = this.coerceToDiceToken(selfVal);
+      const attrDiceToken = this.coerceToDiceToken(effectiveAttrVal ?? 0);
+      let formula = rollAst.value.trim();
+      if (rollFromHeader && (isAttrDie || isSkillDie) && /\b1d20\s*\+/i.test(formula)) {
+        return buildDiceFallback();
+      }
+      formula = formula
+        .replace(/(\d+)\s*d\s*\(\s*self\s*\)/gi, (_, c) => {
+          const m = selfDiceToken.match(/^(\d*)d(\d+|F)(.*)$/i);
+          return m ? `${Number(c) * (m[1] ? Number(m[1]) : 1)}d${m[2]}${m[3]}` : `${c}d${selfToken}`;
+        })
+        .replace(/\bd\s*\(\s*self\s*\)/gi, selfDiceToken)
+        .replace(/(\d+)\s*d\s*\(\s*attr\s*\)/gi, (_, c) => {
+          const m = attrDiceToken.match(/^(\d*)d(\d+|F)(.*)$/i);
+          return m ? `${Number(c) * (m[1] ? Number(m[1]) : 1)}d${m[2]}${m[3]}` : `${c}d${attrToken}`;
+        })
+        .replace(/\bd\s*\(\s*attr\s*\)/gi, attrDiceToken)
+        .replace(/\bself\.(?:dice|dado|die)\b/gi, selfDiceToken)
+        .replace(/\battr\.(?:dice|dado|die)\b/gi, attrDiceToken);
+      if (isSkillDie) {
+        formula = formula.replace(
+          /(?:\(self\)|self)d\d+(?:(?:kh|kl|dh|dl|r)\d+|!p?|!!)*/gi,
+          selfToken,
+        );
+      }
+      if (isAttrDie) {
+        formula = formula.replace(
+          /(?:\(attr\)|attr)d\d+(?:(?:kh|kl|dh|dl|r)\d+|!p?|!!)*/gi,
+          attrToken,
+        );
+      }
+      return formula
+        .replace(/\(self\)/g, selfToken)
+        .replace(/\bself\b/g, selfToken)
+        .replace(/\(attr\)/g, attrToken)
+        .replace(/\battr\b/g, attrToken);
     }
 
     return this.exprToFormulaString(rollAst, {
-      selfVal: skillBonus,
-      attrVal: baseAttrVal ?? 1,
+      selfVal,
+      attrVal: effectiveAttrVal ?? 1,
       attrName: baseAttrName,
     });
+  }
+
+  private formatDiceModifiers(modifiers: DiceModifierNode[]): string {
+    return modifiers
+      .map((m) => {
+        if (m.kind === 'keep_highest') return `kh${m.count}`;
+        if (m.kind === 'keep_lowest') return `kl${m.count}`;
+        if (m.kind === 'drop_highest') return `dh${m.count}`;
+        if (m.kind === 'drop_lowest') return `dl${m.count}`;
+        if (m.kind === 'reroll') return `r${m.value}`;
+        if (m.kind === 'explode') {
+          const bang = m.mode === 'compound' ? '!!' : m.mode === 'penetrating' ? '!p' : '!';
+          return m.threshold !== undefined ? `${bang}>=${m.threshold}` : bang;
+        }
+        if (m.kind === 'tag') return `#${m.tag}`;
+        return '';
+      })
+      .join('');
   }
 
   public exprToFormulaString(expr: ASTExpr, ctx: EvalContext = {}): string {
@@ -2116,21 +2547,44 @@ export class SheetAnalyzer {
         return expr.value;
       case 'StepDieLit':
         return `1d${expr.faces}`;
-      case 'Ident': {
-        const val = this.evalExpr(expr, ctx);
-        if (typeof val === 'object' && val.kind === 'step_die') {
-          return `1d${val.faces}`;
-        }
-        return String(val);
-      }
+      case 'Ident':
+        return this.valueToFormulaToken(this.evalExpr(expr, ctx));
       case 'MemberExpr':
-        return String(this.evalExpr(expr, ctx));
+        return this.valueToFormulaToken(this.evalExpr(expr, ctx));
+      case 'UnaryExpr': {
+        const inner = this.exprToFormulaString(expr.operand, ctx);
+        if (expr.op === '-') return inner.startsWith('-') ? inner.slice(1).trim() : `-${inner}`;
+        if (expr.op === '+') return inner;
+        return `${expr.op}${inner}`;
+      }
+      case 'TernaryExpr': {
+        const cond = this.evalExpr(expr.condition, ctx);
+        return this.isTruthy(cond)
+          ? this.exprToFormulaString(expr.consequent, ctx)
+          : this.exprToFormulaString(expr.alternate, ctx);
+      }
       case 'RangeExpr':
         return `${this.exprToFormulaString(expr.min, ctx)}..${this.exprToFormulaString(expr.max, ctx)}`;
       case 'DiceExpr': {
-        let rawCount = this.toNumber(this.evalExpr(expr.count, ctx));
+        const countVal = this.evalExpr(expr.count, ctx);
+        const modSuffix = this.formatDiceModifiers(expr.modifiers);
+        if (this.isDiceValue(countVal)) {
+          const baseToken = this.valueToFormulaToken(countVal);
+          return modSuffix && !baseToken.includes(modSuffix) ? `${baseToken}${modSuffix}` : baseToken;
+        }
+        let rawCount = this.toNumber(countVal);
+        const facesEval = expr.faces === 'F' ? 'F' : this.evalExpr(expr.faces, ctx);
+        if (expr.faces !== 'F' && this.isDiceValue(facesEval)) {
+          const facesToken = this.valueToFormulaToken(facesEval);
+          const m = facesToken.match(/^(\d*)d(\d+|F)(.*)$/i);
+          if (m) {
+            const mult = m[1] ? Number(m[1]) : 1;
+            const totalCount = Math.max(1, rawCount) * mult;
+            return `${totalCount}d${m[2]}${m[3] || modSuffix}`;
+          }
+        }
         const facesStr =
-          expr.faces === 'F' ? 'F' : String(this.toNumber(this.evalExpr(expr.faces, ctx)));
+          expr.faces === 'F' ? 'F' : String(this.toNumber(facesEval));
 
         // Regra de paradas d20kh1 com Atributo <= 0 (ex: Ordem Paranormal: 0 -> 2d20kl1, -1 -> 3d20kl1)
         const hasKeepHighest = expr.modifiers.some((m) => m.kind === 'keep_highest');
@@ -2144,32 +2598,22 @@ export class SheetAnalyzer {
           rawCount = 1;
         }
 
-        const modSuffix = effectiveModifiers
-          .map((m) => {
-            if (m.kind === 'keep_highest') return `kh${m.count}`;
-            if (m.kind === 'keep_lowest') return `kl${m.count}`;
-            if (m.kind === 'drop_highest') return `dh${m.count}`;
-            if (m.kind === 'drop_lowest') return `dl${m.count}`;
-            if (m.kind === 'reroll') return `r${m.value}`;
-            if (m.kind === 'explode') {
-              const bang = m.mode === 'compound' ? '!!' : m.mode === 'penetrating' ? '!p' : '!';
-              return m.threshold !== undefined ? `${bang}>=${m.threshold}` : bang;
-            }
-            if (m.kind === 'tag') return `#${m.tag}`;
-            return '';
-          })
-          .join('');
-
-        return `${rawCount}d${facesStr}${modSuffix}`;
+        return `${rawCount}d${facesStr}${this.formatDiceModifiers(effectiveModifiers)}`;
       }
       case 'BinaryExpr': {
         const leftStr = this.exprToFormulaString(expr.left, ctx);
         const rightStr = this.exprToFormulaString(expr.right, ctx);
         if (expr.op === '+' && rightStr.startsWith('-')) {
-          return `${leftStr} - ${rightStr.slice(1)}`;
+          return `${leftStr} - ${rightStr.slice(1).trim()}`;
+        }
+        if (expr.op === '-' && rightStr.startsWith('-')) {
+          return `${leftStr} + ${rightStr.slice(1).trim()}`;
         }
         if ((expr.op === '+' || expr.op === '-') && rightStr === '0') {
           return leftStr;
+        }
+        if (expr.op === '+' && leftStr === '0') {
+          return rightStr;
         }
         return `${leftStr} ${expr.op} ${rightStr}`;
       }
@@ -2264,6 +2708,14 @@ export class SheetAnalyzer {
     if (typeof val === 'number') return isNaN(val) ? 0 : val;
     if (typeof val === 'object' && val.kind === 'step_die') {
       return val.faces === 'F' ? 0 : val.faces;
+    }
+    if (typeof val === 'string') {
+      const diceMatch = val.trim().match(/^(\d*)d(4|6|8|10|12|20|100|F)\b/i);
+      if (diceMatch) {
+        if (diceMatch[2].toUpperCase() === 'F') return 0;
+        const cnt = diceMatch[1] ? Number(diceMatch[1]) : 1;
+        return cnt * Number(diceMatch[2]);
+      }
     }
     const parsed = Number(val);
     return isNaN(parsed) ? 0 : parsed;

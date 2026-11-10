@@ -12,6 +12,8 @@ interface SlotsSectionProps {
   sheetId: string;
   sheet: CompiledSheet;
   activeTab?: string;
+  blockId?: string;
+  isTall?: boolean;
   isEditMode?: boolean;
 }
 
@@ -19,22 +21,31 @@ export function SlotsSection({
   sheetId,
   sheet,
   activeTab,
+  blockId,
+  isTall = false,
   isEditMode = false,
 }: SlotsSectionProps) {
   const { cycleSlotState, setSlotCurrent } = useModularSheetStore();
 
-  const blocks = sheet.slots.filter((b) => isTabMatching(b.tab, activeTab));
+  const blocks = sheet.slots
+    .map((b, idx) => ({ block: b, originalIdx: idx }))
+    .filter(
+      ({ block }) =>
+        isTabMatching(block.tab, activeTab) &&
+        (!blockId || block.id === blockId),
+    );
 
   if (blocks.length === 0) return null;
 
   return (
-    <div className="space-y-4">
-      {blocks.map((block, bIdx) => (
+    <div className={`space-y-4 ${isTall ? 'flex-1 flex flex-col' : ''}`}>
+      {blocks.map(({ block, originalIdx }) => (
         <SlotBlockGrid
           key={block.id}
           block={block}
-          blockIndex={bIdx}
+          blockIndex={originalIdx}
           sheetId={sheetId}
+          isTall={isTall}
           isEditMode={isEditMode}
           onCycleSlot={(slot) => cycleSlotState(sheetId, `${block.id}.${slot.id}`, slot.state)}
           onSetCurrent={(slot, current) =>
@@ -50,6 +61,7 @@ function SlotBlockGrid({
   block,
   blockIndex,
   sheetId,
+  isTall,
   isEditMode,
   onCycleSlot,
   onSetCurrent,
@@ -57,6 +69,7 @@ function SlotBlockGrid({
   block: EvaluatedSlotsBlock;
   blockIndex: number;
   sheetId: string;
+  isTall: boolean;
   isEditMode: boolean;
   onCycleSlot: (slot: EvaluatedSlotItem) => void;
   onSetCurrent: (slot: EvaluatedSlotItem, current: number) => void;
@@ -93,7 +106,7 @@ function SlotBlockGrid({
 
   return (
     <section
-      className="rounded-xl border p-3 space-y-2.5 transition-colors"
+      className={`rounded-xl border p-3 space-y-2.5 transition-colors ${isTall ? 'flex-1 flex flex-col' : ''}`}
       style={{
         backgroundColor: 'var(--sheet-card-bg, #18181b)',
         borderColor: 'var(--sheet-card-border, #29292e)',

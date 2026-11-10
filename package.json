@@ -15,7 +15,10 @@
     "lint": "oxlint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prod": "concurrently -n client,server -c cyan,green \"vite preview\" \"tsx server/src/index.ts\"",
+    "prod:tunnel": "concurrently -n client,server,tunnel -c cyan,green,yellow \"vite preview\" \"tsx server/src/index.ts\" \"node scripts/tunnel.js\"",
+    "start:tunnel": "npm run build && npm run prod:tunnel"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

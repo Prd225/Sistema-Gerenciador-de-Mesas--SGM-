@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { TokenAssignmentPopover } from './TokenAssignmentPopover';
 import { VisualSheetView } from './VisualSheetView';
+import { SheetDSLEditor } from './SheetDSLEditor';
 import { SHEET_THEMES, getThemeRootVars, type SheetTheme, type ThemeColors } from './theme';
 
 const DSL_QUICK_SNIPPETS: Array<{ label: string; snippet: string }> = [
@@ -891,58 +892,13 @@ export default function ModularSheetsModal() {
                     borderColor: 'var(--sheet-card-border)',
                   }}
                 >
-                  {/* Atalhos Rápidos da DSL */}
-                  <div
-                    className="px-3 py-2 border-b flex flex-wrap items-center justify-between gap-2 shrink-0 transition-colors"
-                    style={{
-                      backgroundColor: 'var(--sheet-sidebar-bg)',
-                      borderColor: 'var(--sheet-card-border)',
-                    }}
-                  >
-                    <div className="flex flex-wrap items-center gap-1">
-                      {DSL_QUICK_SNIPPETS.map((item) => (
-                        <button
-                          key={item.label}
-                          type="button"
-                          onClick={() =>
-                            updateSheetSource(
-                              activeSheet.id,
-                              `${activeSheet.dslSource.trimEnd()}\n${item.snippet}`,
-                            )
-                          }
-                          className="px-2 py-0.5 rounded border text-[10px] font-mono font-bold hover:brightness-125 transition-all"
-                          style={{
-                            backgroundColor: 'var(--sheet-item-bg)',
-                            borderColor: 'var(--sheet-item-border)',
-                            color: 'var(--sheet-accent-text)',
-                          }}
-                        >
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    <span
-                      className={`text-[10px] font-mono font-bold ${compiledActiveSheet.diagnostics.length === 0
-                        ? 'text-emerald-400'
-                        : 'text-amber-400'
-                        }`}
-                    >
-                      {compiledActiveSheet.diagnostics.length === 0
-                        ? '● Compilado OK'
-                        : `▲ ${compiledActiveSheet.diagnostics.length} aviso(s)`}
-                    </span>
-                  </div>
-
-                  <textarea
+                  <SheetDSLEditor
+                    key={activeSheet.id}
                     value={activeSheet.dslSource}
-                    onChange={(e) =>
-                      updateSheetSource(activeSheet.id, e.target.value)
-                    }
-                    spellCheck={false}
-                    className="flex-1 w-full p-4 text-xs font-mono leading-relaxed text-[#e1e1e6] focus:outline-none resize-none overflow-y-auto transition-colors"
-                    style={{ backgroundColor: 'var(--sheet-code-bg)' }}
-                    placeholder="Escreva a definição da ficha modular em SGM-SDL..."
+                    onChange={(next) => updateSheetSource(activeSheet.id, next)}
+                    compiledSheet={compiledActiveSheet}
+                    quickSnippets={DSL_QUICK_SNIPPETS}
+                    compactLayout={viewMode === 'split'}
                   />
                 </div>
               )}
@@ -962,6 +918,7 @@ export default function ModularSheetsModal() {
                     availableTabs={availableTabs}
                     onAddNewTab={handleAddNewTab}
                     isEditMode={isEditMode}
+                    compactLayout={viewMode === 'split'}
                   />
                 </div>
               )}

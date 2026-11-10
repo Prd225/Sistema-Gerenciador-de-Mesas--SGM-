@@ -517,7 +517,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   ) : null;
 
   return (
-    <div className="space-y-2">
+    <div className={`space-y-2 ${isTall ? 'flex-1 flex flex-col' : ''}`}>
       {profile.title && (
         <div className="px-1">
           <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
@@ -527,7 +527,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
       )}
 
       <div
-        className={`relative rounded-xl border p-3.5 transition-colors ${activeTextPos === 'bottom' || isBanner
+        className={`relative rounded-xl border p-3.5 transition-colors ${isTall ? 'flex-1 justify-center ' : ''}${activeTextPos === 'bottom' || isBanner
           ? 'flex flex-col items-center gap-3.5'
           : activeTextPos === 'top'
             ? 'flex flex-col items-center gap-3.5'

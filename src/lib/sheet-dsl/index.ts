@@ -10,4 +10,5 @@ export { SheetDiceEngine, rollSheetFormula, resolveSheetFormulaForTray } from '.
 export type { RolledDie, RollExecutionResult, OutcomeTier, TrayFormulaSetup } from './diceEngine';
 export { SHEET_DSL_PRESETS } from './presets';
 export type { SheetDSLPreset } from './presets';
+export * from './editorIntelligence';
 

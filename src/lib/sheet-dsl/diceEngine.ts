@@ -352,19 +352,9 @@ export class SheetDiceEngine {
       case 'Ident': {
         if (expr.name in localVars) return localVars[expr.name];
         const sheetVal = this.resolveSheetSymbol(expr.name);
-        if (typeof sheetVal === 'object' && sheetVal.kind === 'step_die') {
-          return this.rollDiceNode(
-            {
-              type: 'DiceExpr',
-              count: { type: 'NumberLit', value: 1, span: expr.span },
-              faces: sheetVal.faces === 'F' ? 'F' : { type: 'NumberLit', value: sheetVal.faces, span: expr.span },
-              modifiers: [{ kind: 'explode', mode: 'simple' }],
-              span: expr.span,
-            },
-            localVars,
-            collectedDice,
-            tagTotals,
-          );
+        const diceAst = this.sheetValueToDiceAst(sheetVal);
+        if (diceAst) {
+          return this.evalRollNode(diceAst, localVars, collectedDice, tagTotals);
         }
         return typeof sheetVal === 'number' ? sheetVal : Number(sheetVal) || 0;
       }
@@ -373,6 +363,10 @@ export class SheetDiceEngine {
         const key = `${expr.object}.${expr.property}`;
         if (key in localVars) return localVars[key];
         const val = this.resolveSheetSymbol(key);
+        const diceAst = this.sheetValueToDiceAst(val);
+        if (diceAst) {
+          return this.evalRollNode(diceAst, localVars, collectedDice, tagTotals);
+        }
         return typeof val === 'number' ? val : Number(val) || 0;
       }
 
@@ -439,6 +433,43 @@ export class SheetDiceEngine {
     collectedDice: RolledDie[],
     tagTotals: Record<string, number>,
   ): number {
+    if (expr.count.type === 'Ident' && !(expr.count.name in localVars)) {
+      const countSheetVal = this.resolveSheetSymbol(expr.count.name);
+      const diceAst = this.sheetValueToDiceAst(countSheetVal);
+      if (diceAst) {
+        return this.evalRollNode(diceAst, localVars, collectedDice, tagTotals);
+      }
+    }
+
+    if (expr.faces !== 'F' && (expr.faces.type === 'Ident' || expr.faces.type === 'MemberExpr')) {
+      const symName =
+        expr.faces.type === 'Ident'
+          ? expr.faces.name
+          : `${expr.faces.object}.${expr.faces.property}`;
+      if (!(symName in localVars)) {
+        const facesSheetVal = this.resolveSheetSymbol(symName);
+        const diceAst = this.sheetValueToDiceAst(facesSheetVal);
+        if (diceAst && diceAst.type === 'DiceExpr') {
+          const multCount = Math.max(1, Math.round(this.evalNumeric(expr.count, localVars)));
+          const innerCount = Math.max(1, Math.round(this.evalNumeric(diceAst.count, localVars)));
+          return this.rollDiceNode(
+            {
+              ...diceAst,
+              count: {
+                type: 'NumberLit',
+                value: multCount * innerCount,
+                span: expr.span,
+              },
+              modifiers: [...diceAst.modifiers, ...expr.modifiers],
+            },
+            localVars,
+            collectedDice,
+            tagTotals,
+          );
+        }
+      }
+    }
+
     let rawCount = Math.round(this.evalNumeric(expr.count, localVars));
     const faces: number | 'F' =
       expr.faces === 'F' ? 'F' : Math.max(1, Math.round(this.evalNumeric(expr.faces, localVars)));
@@ -618,6 +649,23 @@ export class SheetDiceEngine {
     if (!this.sheet) return 0;
     if (name.includes('.')) {
       const [obj, prop] = name.split('.');
+      const propLow = prop.toLowerCase();
+      if (propLow === 'roll' || propLow === 'rolagem') {
+        if (this.sheet.attributes[obj]?.rollFormula) return this.sheet.attributes[obj].rollFormula!;
+        if (this.sheet.stats[obj]?.rollFormula) return this.sheet.stats[obj].rollFormula!;
+        if (this.sheet.skills[obj]?.rollFormula) return this.sheet.skills[obj].rollFormula;
+      }
+      if (propLow === 'dice' || propLow === 'dado' || propLow === 'die') {
+        const baseVal = this.resolveSheetSymbol(obj);
+        if (typeof baseVal === 'object' && baseVal.kind === 'step_die') {
+          return `1d${baseVal.faces}`;
+        }
+        if (typeof baseVal === 'string' && /\b\d*d(?:\d+|F)\b/i.test(baseVal)) {
+          return baseVal;
+        }
+        const faces = Math.max(1, Math.round(Number(baseVal)) || 6);
+        return `1d${faces}`;
+      }
       if (this.sheet.attributes[obj] && prop in this.sheet.attributes[obj].children) {
         return this.sheet.attributes[obj].children[prop];
       }
@@ -635,10 +683,51 @@ export class SheetDiceEngine {
     }
     if (this.sheet.attributes[name]) return this.sheet.attributes[name].finalValue;
     if (this.sheet.stats[name]) return this.sheet.stats[name].finalValue;
-    if (this.sheet.skills[name]) return this.sheet.skills[name].bonus;
+    if (this.sheet.skills[name]) {
+      const sk = this.sheet.skills[name];
+      if (sk.rawValue !== undefined) {
+        if (sk.bonus !== 0) {
+          const token =
+            typeof sk.rawValue === 'object' && sk.rawValue.kind === 'step_die'
+              ? `1d${sk.rawValue.faces}`
+              : String(sk.rawValue);
+          return sk.bonus > 0 ? `${token} + ${sk.bonus}` : `${token} - ${Math.abs(sk.bonus)}`;
+        }
+        return sk.rawValue;
+      }
+      return sk.bonus;
+    }
     if (this.sheet.resources[name]) return this.sheet.resources[name].current;
     if (name in this.sheet.meta.props) return this.sheet.meta.props[name];
     return 0;
+  }
+
+  private sheetValueToDiceAst(val: EvaluatedValue | undefined): ASTExpr | null {
+    if (val === undefined) return null;
+    const dummySpan = {
+      start: { line: 1, column: 1, offset: 0 },
+      end: { line: 1, column: 1, offset: 0 },
+    };
+    if (typeof val === 'object' && val.kind === 'step_die') {
+      return {
+        type: 'DiceExpr',
+        count: { type: 'NumberLit', value: 1, span: dummySpan },
+        faces: val.faces === 'F' ? 'F' : { type: 'NumberLit', value: val.faces, span: dummySpan },
+        modifiers: [],
+        span: dummySpan,
+      };
+    }
+    if (typeof val === 'string') {
+      const trimmed = val.trim();
+      if (/\b\d*d(?:\d+|F)\b/i.test(trimmed)) {
+        const normalized = trimmed.replace(/(^|[\s(+-])d(\d+|F)\b/gi, '$11d$2');
+        const parsed = this.parseFormulaToExpr(normalized);
+        if (parsed.type !== 'Ident') {
+          return parsed;
+        }
+      }
+    }
+    return null;
   }
 
   private parseFormulaToExpr(formula: string): ASTExpr {
@@ -715,17 +804,91 @@ export class SheetDiceEngine {
         collectDiceAndMod(node.operand, node.op === '+' ? sign : (sign === 1 ? -1 : 1));
         return;
       }
+      if (node.type === 'StepDieLit') {
+        const faces = snapToValidDieFaces(node.faces === 'F' ? 6 : node.faces);
+        diceList.push({ faces });
+        formulaParts.push(`${sign < 0 ? '- ' : formulaParts.length > 0 ? '+ ' : ''}1d${faces}`);
+        return;
+      }
+      if (node.type === 'Ident' && !(node.name in activeVars)) {
+        const sheetVal = this.resolveSheetSymbol(node.name);
+        const diceAst = this.sheetValueToDiceAst(sheetVal);
+        if (diceAst) {
+          collectDiceAndMod(diceAst, sign);
+          return;
+        }
+      }
+      if (node.type === 'MemberExpr') {
+        const key = `${node.object}.${node.property}`;
+        if (!(key in activeVars)) {
+          const sheetVal = this.resolveSheetSymbol(key);
+          const diceAst = this.sheetValueToDiceAst(sheetVal);
+          if (diceAst) {
+            collectDiceAndMod(diceAst, sign);
+            return;
+          }
+        }
+      }
       if (node.type === 'DiceExpr') {
-        const count = Math.max(1, Math.min(20, Math.round(this.evalNumeric(node.count, activeVars))));
+        if (node.count.type === 'Ident' && !(node.count.name in activeVars)) {
+          const countSheetVal = this.resolveSheetSymbol(node.count.name);
+          const diceAst = this.sheetValueToDiceAst(countSheetVal);
+          if (diceAst) {
+            collectDiceAndMod(diceAst, sign);
+            return;
+          }
+        }
+        if (
+          node.faces !== 'F' &&
+          (node.faces.type === 'Ident' || node.faces.type === 'MemberExpr')
+        ) {
+          const symName =
+            node.faces.type === 'Ident'
+              ? node.faces.name
+              : `${node.faces.object}.${node.faces.property}`;
+          if (!(symName in activeVars)) {
+            const facesSheetVal = this.resolveSheetSymbol(symName);
+            const diceAst = this.sheetValueToDiceAst(facesSheetVal);
+            if (diceAst && diceAst.type === 'DiceExpr') {
+              const multCount = Math.max(1, Math.round(this.evalNumeric(node.count, activeVars)));
+              collectDiceAndMod(
+                {
+                  ...diceAst,
+                  count: {
+                    type: 'NumberLit',
+                    value: multCount * Math.max(1, Math.round(this.evalNumeric(diceAst.count, activeVars))),
+                    span: node.span,
+                  },
+                  modifiers: [...diceAst.modifiers, ...node.modifiers],
+                },
+                sign,
+              );
+              return;
+            }
+          }
+        }
+
+        let rawCount = Math.round(this.evalNumeric(node.count, activeVars));
         const rawFaces =
           node.faces === 'F' ? 6 : Math.round(this.evalNumeric(node.faces, activeVars));
         const faces = snapToValidDieFaces(rawFaces);
+
+        let effectiveModifiers = [...node.modifiers];
+        const hasKeepHighest = effectiveModifiers.some((m) => m.kind === 'keep_highest');
+        if (rawCount <= 0 && hasKeepHighest && faces === 20) {
+          rawCount = Math.abs(rawCount) + 2;
+          effectiveModifiers = effectiveModifiers.map((m) =>
+            m.kind === 'keep_highest' ? { kind: 'keep_lowest', count: m.count } : m,
+          );
+        }
+
+        const count = Math.max(1, Math.min(20, rawCount));
         for (let i = 0; i < count; i++) {
           diceList.push({ faces });
         }
 
         let modSuffix = '';
-        for (const m of node.modifiers) {
+        for (const m of effectiveModifiers) {
           if (m.kind === 'keep_highest') {
             modSuffix += `kh${m.count}`;
             if (m.count === 1) {
@@ -795,8 +958,14 @@ export class SheetDiceEngine {
     }
 
     if (diceList.length === 0) {
-      diceList.push({ faces: 20 });
-      formulaParts.push('1d20');
+      const defaultRes = this.sheet ? Object.values(this.sheet.resolutions)[0] : undefined;
+      if (defaultRes) {
+        collectDiceAndMod(defaultRes.rollExpr, 1);
+      }
+      if (diceList.length === 0) {
+        diceList.push({ faces: 20 });
+        formulaParts.push('1d20');
+      }
     }
 
     let resolvedFormula = formulaParts.join(' ');

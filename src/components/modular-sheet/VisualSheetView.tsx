@@ -49,9 +49,10 @@ interface VisualSheetViewProps {
   availableTabs?: Array<{ id: string; label: string }>;
   onAddNewTab?: () => void;
   isEditMode?: boolean;
+  compactLayout?: boolean;
 }
 
-const DEFAULT_COL1_KINDS = new Set(['profile', 'attr', 'stat', 'desc', 'inv', 'text']);
+const DEFAULT_COL1_KINDS = new Set(['profile', 'attr', 'stat', 'desc', 'inv', 'text', 'rule']);
 
 type LayoutSectionBand =
   | {
@@ -72,6 +73,7 @@ export function VisualSheetView({
   availableTabs,
   onAddNewTab,
   isEditMode = false,
+  compactLayout = false,
 }: VisualSheetViewProps) {
   const {
     updateSheetSource,
@@ -208,7 +210,7 @@ export function VisualSheetView({
     [sheetId, sheet.meta.name, updateSheetSource],
   );
 
-  // Deduplica módulos de mesma espécie que renderizam agrupados
+  // Deduplica apenas estruturas globais únicas por aba (inv / turn); todos os demais módulos renderizam por bloco
   const seenSingletonKinds = new Set<string>();
   const visibleModules: ASTModuleLayoutMeta[] = [];
 
@@ -216,20 +218,15 @@ export function VisualSheetView({
     const matchesTab = isTabMatching(mod.tab, activeTab);
     if (!matchesTab) continue;
 
-    if (mod.kind === 'rule' || mod.kind === 'meta' || mod.kind === 'tab') continue;
+    if (mod.kind === 'meta' || mod.kind === 'tab') continue;
 
-    if (
-      mod.kind === 'profile' ||
-      mod.kind === 'counter' ||
-      mod.kind === 'slots' ||
-      mod.kind === 'text'
-    ) {
-      visibleModules.push(mod);
-    } else {
+    if (mod.kind === 'inv' || mod.kind === 'turn') {
       if (!seenSingletonKinds.has(mod.kind)) {
         seenSingletonKinds.add(mod.kind);
         visibleModules.push(mod);
       }
+    } else {
+      visibleModules.push(mod);
     }
   }
 
@@ -282,6 +279,8 @@ export function VisualSheetView({
         return (
           <CountersSection
             blocks={[cntBlock]}
+            cols={mod.cols}
+            isTall={mod.tall}
             onSetCounterCurrent={(counterKey, cur) =>
               setCounterCurrent(sheetId, counterKey, cur)
             }
@@ -297,6 +296,10 @@ export function VisualSheetView({
             activeTab={activeTab}
             mode="attr"
             displayOverride={mod.display}
+            blockId={mod.id}
+            titleOverride={mod.title}
+            cols={mod.cols}
+            isTall={mod.tall}
             isEditMode={isEditMode}
           />
         );
@@ -309,6 +312,10 @@ export function VisualSheetView({
             activeTab={activeTab}
             mode="stat"
             displayOverride={mod.display}
+            blockId={mod.id}
+            titleOverride={mod.title}
+            cols={mod.cols}
+            isTall={mod.tall}
             isEditMode={isEditMode}
           />
         );
@@ -320,6 +327,11 @@ export function VisualSheetView({
             activeTab={activeTab}
             mode="res"
             displayOverride={mod.display}
+            blockId={mod.id}
+            titleOverride={mod.title}
+            cols={mod.cols}
+            isTall={mod.tall}
+            onExecuteRoll={handleExecuteRoll}
           />
         );
       case 'turn':
@@ -330,17 +342,20 @@ export function VisualSheetView({
             activeTab={activeTab}
             mode="turn"
             displayOverride={mod.display}
+            titleOverride={mod.title}
+            isTall={mod.tall}
           />
         );
       case 'slots': {
         const slotBlock = sheet.slots.find((s) => s.id === mod.id);
         if (!slotBlock) return null;
-        const singleSlotSheet = { ...sheet, slots: [slotBlock] };
         return (
           <SlotsSection
             sheetId={sheetId}
-            sheet={singleSlotSheet}
+            sheet={sheet}
             activeTab={activeTab}
+            blockId={mod.id}
+            isTall={mod.tall}
             isEditMode={isEditMode}
           />
         );
@@ -351,6 +366,10 @@ export function VisualSheetView({
             sheetId={sheetId}
             sheet={sheet}
             activeTab={activeTab}
+            blockId={mod.id}
+            titleOverride={mod.title}
+            cols={mod.cols}
+            isTall={mod.tall}
             isEditMode={isEditMode}
           />
         );
@@ -362,6 +381,10 @@ export function VisualSheetView({
             onExecuteRoll={handleExecuteRoll}
             activeTab={activeTab}
             displayOverride={mod.display}
+            blockId={mod.id}
+            titleOverride={mod.title}
+            cols={mod.cols}
+            isTall={mod.tall}
             isEditMode={isEditMode}
           />
         );
@@ -372,6 +395,10 @@ export function VisualSheetView({
             sheet={sheet}
             onExecuteRoll={handleExecuteRoll}
             activeTab={activeTab}
+            blockId={mod.id}
+            titleOverride={mod.title}
+            cols={mod.cols}
+            isTall={mod.tall}
             isEditMode={isEditMode}
           />
         );
@@ -382,6 +409,8 @@ export function VisualSheetView({
             sheet={sheet}
             onExecuteRoll={handleExecuteRoll}
             activeTab={activeTab}
+            titleOverride={mod.title}
+            isTall={mod.tall}
             isEditMode={isEditMode}
           />
         );
@@ -391,6 +420,40 @@ export function VisualSheetView({
             sheetId={sheetId}
             sheet={sheet}
             onExecuteRoll={handleExecuteRoll}
+            mode="diagram"
+            diagramId={mod.id}
+            titleOverride={mod.title}
+            activeTab={activeTab}
+            cols={mod.cols}
+            isTall={mod.tall}
+          />
+        );
+      case 'rule':
+        return (
+          <DiagramsRulesSection
+            sheetId={sheetId}
+            sheet={sheet}
+            onExecuteRoll={handleExecuteRoll}
+            mode="rule"
+            ruleBlockId={mod.id}
+            titleOverride={mod.title}
+            activeTab={activeTab}
+            cols={mod.cols}
+            isTall={mod.tall}
+          />
+        );
+      case 'roll':
+        return (
+          <DiagramsRulesSection
+            sheetId={sheetId}
+            sheet={sheet}
+            onExecuteRoll={handleExecuteRoll}
+            mode="roll"
+            resolutionId={mod.id}
+            titleOverride={mod.title}
+            activeTab={activeTab}
+            cols={mod.cols}
+            isTall={mod.tall}
           />
         );
       case 'text': {
@@ -413,7 +476,7 @@ export function VisualSheetView({
     const content = renderModuleContent(mod);
     if (!content) return null;
 
-    const wrapperClass = mod.tall ? 'min-h-[420px] flex flex-col' : '';
+    const wrapperClass = mod.tall ? 'flex-1 flex flex-col' : '';
     const modColorVars = getModuleColorVars(mod.color);
     const currentModHex = resolveColorToHex(mod.color);
 
@@ -437,11 +500,10 @@ export function VisualSheetView({
                   key={c.id}
                   type="button"
                   onClick={() => updateModuleColor(sheetId, mod.order, c.hex)}
-                  className={`w-3.5 h-3.5 rounded-full border transition-transform ${
-                    currentModHex?.toLowerCase() === c.hex.toLowerCase()
+                  className={`w-3.5 h-3.5 rounded-full border transition-transform ${currentModHex?.toLowerCase() === c.hex.toLowerCase()
                       ? 'scale-110 border-white'
                       : 'border-white/20 opacity-75 hover:opacity-100'
-                  }`}
+                    }`}
                   style={{ backgroundColor: c.hex }}
                   title={c.label}
                 />
@@ -574,8 +636,8 @@ export function VisualSheetView({
           {isEditMode && (
             <div
               className={`pt-2 border-t flex ${tabNav.showLabels
-                  ? 'items-center justify-between'
-                  : 'flex-col items-center gap-1'
+                ? 'items-center justify-between'
+                : 'flex-col items-center gap-1'
                 }`}
               style={{ borderColor: 'var(--sheet-card-border, #29292e)' }}
             >
@@ -589,8 +651,8 @@ export function VisualSheetView({
                     }
                     title={b.title}
                     className={`p-1 rounded transition-colors ${tabNav.position === b.pos
-                        ? 'text-white bg-white/10'
-                        : 'text-zinc-500 hover:text-zinc-300'
+                      ? 'text-white bg-white/10'
+                      : 'text-zinc-500 hover:text-zinc-300'
                       }`}
                   >
                     {b.icon}
@@ -689,8 +751,8 @@ export function VisualSheetView({
                 onClick={() => updateTabNavConfig(sheetId, { position: b.pos })}
                 title={b.title}
                 className={`p-1 rounded transition-colors ${tabNav.position === b.pos
-                    ? 'text-white bg-white/10'
-                    : 'text-zinc-500 hover:text-zinc-300'
+                  ? 'text-white bg-white/10'
+                  : 'text-zinc-500 hover:text-zinc-300'
                   }`}
               >
                 {b.icon}
@@ -741,17 +803,49 @@ export function VisualSheetView({
 
         if (!hasCol1 && !hasCol2) return null;
 
+        const explicitCol1Only =
+          hasCol1 && !hasCol2 && band.col1.some((m) => m.placement === 'col1');
+        const explicitCol2Only =
+          hasCol2 && !hasCol1 && band.col2.some((m) => m.placement === 'col2');
+
         return (
           <div
             key={`band_cols_${idx}`}
-            className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start"
+            className={`grid grid-cols-1 ${compactLayout ? 'xl:grid-cols-12' : 'lg:grid-cols-12'
+              } gap-4 items-stretch`}
           >
-            <div className="lg:col-span-6 space-y-4">
-              {band.col1.map((mod) => renderModule(mod))}
-            </div>
-            <div className="lg:col-span-6 space-y-4">
-              {band.col2.map((mod) => renderModule(mod))}
-            </div>
+            {hasCol1 && (
+              <div
+                className={`${compactLayout
+                    ? hasCol2 || explicitCol1Only
+                      ? 'xl:col-span-6'
+                      : 'xl:col-span-12'
+                    : hasCol2 || explicitCol1Only
+                      ? 'lg:col-span-6'
+                      : 'lg:col-span-12'
+                  } flex flex-col gap-4 min-w-0`}
+              >
+                {band.col1.map((mod) => renderModule(mod))}
+              </div>
+            )}
+            {hasCol2 && (
+              <div
+                className={`${compactLayout
+                    ? hasCol1
+                      ? 'xl:col-span-6'
+                      : explicitCol2Only
+                        ? 'xl:col-span-6 xl:col-start-7'
+                        : 'xl:col-span-12'
+                    : hasCol1
+                      ? 'lg:col-span-6'
+                      : explicitCol2Only
+                        ? 'lg:col-span-6 lg:col-start-7'
+                        : 'lg:col-span-12'
+                  } flex flex-col gap-4 min-w-0`}
+              >
+                {band.col2.map((mod) => renderModule(mod))}
+              </div>
+            )}
           </div>
         );
       })}

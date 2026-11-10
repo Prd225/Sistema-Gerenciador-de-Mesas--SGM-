@@ -6,15 +6,43 @@ import {
   Circle,
   Plus,
   Minus,
+  Scale,
 } from 'lucide-react';
 import { useModularSheetStore } from '@/store/useModularSheetStore';
-import type { CompiledSheet } from '@/lib/sheet-dsl';
+import { isTabMatching, type ASTExpr, type CompiledSheet } from '@/lib/sheet-dsl';
 import { formatEvaluatedValue, type OnExecuteRoll } from './types';
 
 interface DiagramsRulesSectionProps {
   sheetId: string;
   sheet: CompiledSheet;
   onExecuteRoll: OnExecuteRoll;
+  mode?: 'all' | 'diagram' | 'rule' | 'roll';
+  diagramId?: string;
+  resolutionId?: string;
+  ruleBlockId?: string;
+  titleOverride?: string;
+  activeTab?: string;
+  cols?: number;
+  isTall?: boolean;
+}
+
+function formatMatcherLabel(expr: ASTExpr): string {
+  switch (expr.type) {
+    case 'NumberLit':
+      return String(expr.value);
+    case 'Ident':
+      return expr.name === 'default' ? 'Padrão' : expr.name;
+    case 'RangeExpr':
+      return `${formatMatcherLabel(expr.min)}..${formatMatcherLabel(expr.max)}`;
+    case 'BinaryExpr': {
+      const left = formatMatcherLabel(expr.left);
+      const right = formatMatcherLabel(expr.right);
+      if (left === 'result') return `${expr.op} ${right}`;
+      return `${left} ${expr.op} ${right}`;
+    }
+    default:
+      return '';
+  }
 }
 
 function matchesHitRange(hitRange: string | undefined, rollTotal: number): boolean {
@@ -36,6 +64,14 @@ export function DiagramsRulesSection({
   sheetId,
   sheet,
   onExecuteRoll,
+  mode = 'all',
+  diagramId,
+  resolutionId,
+  ruleBlockId,
+  titleOverride,
+  activeTab,
+  cols,
+  isTall = false,
 }: DiagramsRulesSectionProps) {
   const [highlightedNodes, setHighlightedNodes] = useState<
     Record<string, string | null>
@@ -45,9 +81,33 @@ export function DiagramsRulesSection({
     (s) => s.setDiagramNodeResource,
   );
 
-  const diagramList = Object.values(sheet.diagrams);
-  const resolutionList = Object.values(sheet.resolutions);
-  const ruleList = sheet.rules;
+  const diagramList =
+    mode === 'rule' || mode === 'roll'
+      ? []
+      : Object.values(sheet.diagrams).filter(
+          (d) =>
+            (!diagramId || d.id === diagramId) &&
+            isTabMatching(d.tab, activeTab),
+        );
+
+  const resolutionList =
+    mode === 'diagram' || mode === 'rule'
+      ? []
+      : Object.values(sheet.resolutions).filter(
+          (r) =>
+            (!resolutionId || r.id === resolutionId) &&
+            isTabMatching(r.tab, activeTab),
+        );
+
+  const ruleList =
+    mode === 'diagram' || mode === 'roll'
+      ? []
+      : sheet.rules.filter(
+          (r) =>
+            r.source === 'global' &&
+            isTabMatching(r.tab, activeTab) &&
+            (!ruleBlockId || r.blockId === ruleBlockId),
+        );
 
   if (
     diagramList.length === 0 &&
@@ -57,16 +117,22 @@ export function DiagramsRulesSection({
     return null;
   }
 
+  const gridStyle = (minPx: number): React.CSSProperties =>
+    cols && cols > 0
+      ? { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }
+      : { gridTemplateColumns: `repeat(auto-fit, minmax(${minPx}px, 1fr))` };
+
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${isTall ? 'flex-1 flex flex-col' : ''}`}>
       {/* @diagram - DIAGRAMAS ANATÔMICOS / SUB-SISTEMAS */}
       {diagramList.map((diag) => {
         const struckNodeId = highlightedNodes[diag.id] ?? null;
+        const diagTitle = titleOverride ?? diag.title ?? diag.id;
 
         const handleRollHitLocation = () => {
           if (!diag.hitRoll) return;
           const res = onExecuteRoll(
-            `Localização de Acerto (${diag.id})`,
+            `Localização de Acerto (${diagTitle})`,
             diag.hitRoll,
           );
           if (!res) return;
@@ -82,31 +148,31 @@ export function DiagramsRulesSection({
         return (
           <section
             key={diag.id}
-            className="rounded-xl border p-3 space-y-2.5 transition-colors"
+            className={`rounded-xl border p-3 space-y-2.5 transition-colors ${isTall ? 'flex-1 flex flex-col' : ''}`}
             style={{
               backgroundColor: 'var(--sheet-card-bg, #18181b)',
               borderColor: 'var(--sheet-card-border, #29292e)',
             }}
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
-                <Crosshair className="w-3.5 h-3.5 text-cyan-400" />
-                {diag.id}
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--sheet-accent-text,#c4b5fd)] flex items-center gap-1.5">
+                <Crosshair className="w-3.5 h-3.5 shrink-0" />
+                <span>{diagTitle}</span>
               </h3>
 
               {diag.hitRoll && (
                 <button
                   type="button"
                   onClick={handleRollHitLocation}
-                  className="h-7 px-2.5 rounded-md bg-cyan-500/15 hover:bg-cyan-500/30 border border-cyan-500/50 text-cyan-200 text-xs font-bold flex items-center gap-1.5 transition-colors"
+                  className="h-7 px-2.5 rounded-md border border-[#323238] bg-[#121214] hover:border-[var(--sheet-accent)] text-[#e1e1e6] text-xs font-bold flex items-center gap-1.5 transition-colors"
                 >
-                  <Dices className="w-3.5 h-3.5" />
+                  <Dices className="w-3.5 h-3.5 text-[var(--sheet-accent-text,#c4b5fd)]" />
                   Sortear ({diag.hitRoll})
                 </button>
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+            <div className="grid gap-2.5" style={gridStyle(185)}>
               {diag.nodes.map((node) => {
                 const isStruck = struckNodeId === node.id;
                 const nodeResList = Object.values(node.resources);
@@ -245,17 +311,21 @@ export function DiagramsRulesSection({
       {/* @rule - MONITOR DE REGRAS REATIVAS AUTOMATIZADAS */}
       {ruleList.length > 0 && (
         <section
-          className="rounded-xl border p-3 space-y-2 transition-colors"
+          className={`rounded-xl border p-3 space-y-2.5 transition-colors ${isTall ? 'flex-1 flex flex-col' : ''}`}
           style={{
             backgroundColor: 'var(--sheet-card-bg, #18181b)',
             borderColor: 'var(--sheet-card-border, #29292e)',
           }}
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#a8a8b3] flex items-center gap-1.5 px-0.5">
+            <Scale className="w-3.5 h-3.5 text-[var(--sheet-accent-text,#c4b5fd)] shrink-0" />
+            <span>{titleOverride ?? sheet.blockTitles.rules ?? 'Regras Reativas'}</span>
+          </h3>
+          <div className="grid gap-2" style={gridStyle(220)}>
             {ruleList.map((rule, idx) => (
               <div
                 key={`${rule.id}-${idx}`}
-                className={`rounded-md border p-2.5 flex items-center justify-between gap-2 ${
+                className={`rounded-md border p-2.5 flex items-center justify-between gap-2 min-w-0 ${
                   rule.isActive
                     ? 'border-amber-500/60 bg-amber-500/10'
                     : 'border-[#29292e] bg-[#121214] opacity-75'
@@ -268,10 +338,10 @@ export function DiagramsRulesSection({
                     ) : (
                       <Circle className="w-3.5 h-3.5 text-[#8d8d99] shrink-0" />
                     )}
-                    <span className="text-xs font-bold text-white break-words leading-snug">
+                    <span className="text-xs font-bold text-white leading-snug">
                       {rule.id}
                     </span>
-                    <code className="text-[10px] font-mono text-[#a8a8b3] bg-black/30 px-1.5 py-0.2 rounded break-all">
+                    <code className="text-[10px] font-mono text-[#a8a8b3] bg-black/30 px-1.5 py-0.2 rounded">
                       se ({rule.conditionText})
                     </code>
                   </div>
@@ -309,53 +379,91 @@ export function DiagramsRulesSection({
 
       {/* @roll - PERFIS DE RESOLUÇÃO */}
       {resolutionList.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {resolutionList.map((res) => (
-            <section
-              key={res.id}
-              className="rounded-xl border border-[#29292e] bg-[#18181b] p-3 space-y-2"
-            >
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[#c4b5fd] flex items-center gap-1.5">
-                  <Dices className="w-3.5 h-3.5 text-[#a78bfa]" />
-                  {res.id}
-                </h3>
-                <button
-                  type="button"
-                  onClick={() =>
-                    onExecuteRoll(
-                      `Teste (${res.id})`,
-                      `${res.id}(${res.params.map(() => '0').join(', ')})`,
-                    )
-                  }
-                  className="px-2 py-0.5 rounded bg-[#8257e5]/20 hover:bg-[#8257e5] border border-[#8257e5]/50 text-[10px] font-bold text-[#c4b5fd] hover:text-white transition-colors"
-                >
-                  Testar
-                </button>
-              </div>
+        <div
+          className={`grid gap-3 ${isTall ? 'flex-1' : ''}`}
+          style={resolutionList.length > 1 ? gridStyle(220) : { gridTemplateColumns: '1fr' }}
+        >
+          {resolutionList.map((res) => {
+            const resTitle = titleOverride ?? res.title ?? res.id;
+            const paramSig =
+              res.params.length > 0 ? `(${res.params.join(', ')})` : '';
+            return (
+              <section
+                key={res.id}
+                className="rounded-xl border p-3 space-y-2 transition-colors"
+                style={{
+                  backgroundColor: 'var(--sheet-card-bg, #18181b)',
+                  borderColor: 'var(--sheet-card-border, #29292e)',
+                }}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--sheet-accent-text,#c4b5fd)] flex items-center gap-1.5 min-w-0">
+                    <Dices className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{resTitle}</span>
+                    {paramSig && (
+                      <span className="font-mono text-[10px] text-[#71717a] lowercase shrink-0">
+                        {paramSig}
+                      </span>
+                    )}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onExecuteRoll(
+                        `Teste (${resTitle})`,
+                        `${res.id}(${res.params.map(() => '0').join(', ')})`,
+                      )
+                    }
+                    className="px-2.5 py-1 rounded border border-[#323238] bg-[#121214] hover:border-[var(--sheet-accent)] text-[11px] font-bold text-[#e1e1e6] flex items-center gap-1 transition-colors shrink-0"
+                  >
+                    <Dices className="w-3 h-3 text-[var(--sheet-accent-text,#c4b5fd)]" />
+                    Testar
+                  </button>
+                </div>
 
-              <div className="space-y-1">
-                {res.bands.map((b, idx) => {
-                  const tierExpr = b.meta.props.tier;
-                  const tierStr =
-                    tierExpr?.type === 'StringLit' ? tierExpr.value : undefined;
-                  return (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between text-xs px-2 py-1 rounded bg-[#121214] border border-[#29292e]"
-                    >
-                      <span className="text-[#e1e1e6]">{b.label}</span>
-                      {tierStr && (
-                        <span className="text-[10px] font-mono uppercase text-[#a78bfa]">
-                          [{tierStr}]
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
+                {res.bands.length > 0 && (
+                  <div className="space-y-1">
+                    {res.bands.map((b, idx) => {
+                      const tierExpr = b.meta.props.tier;
+                      const tierStr =
+                        tierExpr?.type === 'StringLit'
+                          ? tierExpr.value
+                          : tierExpr?.type === 'Ident'
+                            ? tierExpr.name
+                            : undefined;
+                      const matcherStr = formatMatcherLabel(b.matcher);
+                      return (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between gap-2 text-xs px-2.5 py-1.5 rounded border"
+                          style={{
+                            backgroundColor: 'var(--sheet-item-bg, #121214)',
+                            borderColor: 'var(--sheet-item-border, #29292e)',
+                          }}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            {matcherStr && (
+                              <span className="px-1.5 py-0.5 rounded bg-[#202024] border border-[#323238] font-mono text-[10px] font-bold text-amber-300 shrink-0">
+                                {matcherStr}
+                              </span>
+                            )}
+                            <span className="text-[#e1e1e6] leading-snug">
+                              {b.label}
+                            </span>
+                          </div>
+                          {tierStr && (
+                            <span className="text-[10px] font-mono uppercase text-[#a8a8b3] shrink-0">
+                              [{tierStr}]
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            );
+          })}
         </div>
       )}
     </div>

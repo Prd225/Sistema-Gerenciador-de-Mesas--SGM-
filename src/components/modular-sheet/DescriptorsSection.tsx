@@ -8,6 +8,10 @@ interface DescriptorsSectionProps {
   sheetId: string;
   sheet: CompiledSheet;
   activeTab?: string;
+  blockId?: string;
+  titleOverride?: string;
+  cols?: number;
+  isTall?: boolean;
   isEditMode?: boolean;
 }
 
@@ -15,6 +19,10 @@ export function DescriptorsSection({
   sheetId,
   sheet,
   activeTab,
+  blockId,
+  titleOverride,
+  cols,
+  isTall = false,
   isEditMode = false,
 }: DescriptorsSectionProps) {
   const setToggleState = useModularSheetStore((s) => s.setToggleState);
@@ -46,8 +54,10 @@ export function DescriptorsSection({
     setIsAdding(false);
   };
 
-  const visibleDescriptors = sheet.descriptors.filter((d) =>
-    isTabMatching(d.tab, activeTab),
+  const visibleDescriptors = sheet.descriptors.filter(
+    (d) =>
+      isTabMatching(d.tab, activeTab) &&
+      (!blockId || d.blockId === blockId),
   );
 
   if (visibleDescriptors.length === 0) return null;
@@ -76,7 +86,7 @@ export function DescriptorsSection({
       !interactiveDescs.some((i) => i.id === d.id),
   );
 
-  const customTitle = sheet.blockTitles.descriptors;
+  const customTitle = titleOverride ?? sheet.blockTitles.descriptors;
 
   const getBadgeStyle = (kind: string) => {
     switch (kind) {
@@ -115,7 +125,7 @@ export function DescriptorsSection({
 
   return (
     <section
-      className="rounded-xl border p-3 space-y-2.5 transition-colors"
+      className={`rounded-xl border p-3 space-y-2.5 transition-colors ${isTall ? 'flex-1 flex flex-col' : ''}`}
       style={{
         backgroundColor: 'var(--sheet-card-bg, #18181b)',
         borderColor: 'var(--sheet-card-border, #29292e)',
@@ -255,7 +265,14 @@ export function DescriptorsSection({
 
       {/* Descritores Interativos / Invocáveis (Aspects, Tags Táticas, Consequências) */}
       {interactiveDescs.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div
+          className="grid gap-2 content-start"
+          style={
+            cols && cols > 0
+              ? { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }
+              : { gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))' }
+          }
+        >
           {interactiveDescs.map((d) => {
             const isConsequence = d.kind === 'consequence';
             return (
@@ -297,9 +314,14 @@ export function DescriptorsSection({
                         <span
                           key={idx}
                           className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${d.active
-                            ? 'bg-[#8257e5]/30 text-[#e1e1e6]'
+                            ? 'text-[#e1e1e6]'
                             : 'bg-[#202024] text-[#8d8d99]'
                             }`}
+                          style={
+                            d.active
+                              ? { backgroundColor: 'var(--sheet-accent-subtle, rgba(130, 87, 229, 0.3))' }
+                              : undefined
+                          }
                         >
                           {eff}
                         </span>
@@ -312,9 +334,14 @@ export function DescriptorsSection({
                   className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase shrink-0 ${d.active
                     ? isConsequence
                       ? 'bg-rose-500 text-white'
-                      : 'bg-[#8257e5] text-white'
+                      : 'text-white'
                     : 'bg-[#202024] text-[#8d8d99] border border-[#323238]'
                     }`}
+                  style={
+                    d.active && !isConsequence
+                      ? { backgroundColor: 'var(--sheet-accent, #8257e5)' }
+                      : undefined
+                  }
                 >
                   {d.active ? 'Ativo' : 'Inativo'}
                 </span>

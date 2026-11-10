@@ -29,6 +29,10 @@ interface AbilitiesSectionProps {
   sheet: CompiledSheet;
   onExecuteRoll: OnExecuteRoll;
   activeTab?: string;
+  blockId?: string;
+  titleOverride?: string;
+  cols?: number;
+  isTall?: boolean;
   isEditMode?: boolean;
 }
 
@@ -63,6 +67,10 @@ export function AbilitiesSection({
   sheet,
   onExecuteRoll,
   activeTab,
+  blockId,
+  titleOverride,
+  cols,
+  isTall = false,
   isEditMode = false,
 }: AbilitiesSectionProps) {
   const [categoryFilter, setCategoryFilter] = useState<'ALL' | AbilityCategory>('ALL');
@@ -103,8 +111,10 @@ export function AbilitiesSection({
     setIsAdding(false);
   };
 
-  const tabAbilities = sheet.abilities.filter((a) =>
-    isTabMatching(a.tab, activeTab),
+  const tabAbilities = sheet.abilities.filter(
+    (a) =>
+      isTabMatching(a.tab, activeTab) &&
+      (!blockId || a.blockId === blockId),
   );
 
   if (tabAbilities.length === 0) return null;
@@ -146,9 +156,9 @@ export function AbilitiesSection({
     const enhCostSum = activeEnhObjs.reduce((acc, e) => acc + (e.cost ?? 0), 0);
     const totalCost = baseCostAmount + enhCostSum;
     const costResourceName =
-      ab.cost?.resource ?? activeEnhObjs[0]?.resource ?? 'PE';
+      ab.cost?.resource ?? activeEnhObjs[0]?.resource ?? Object.keys(sheet.resources)[0] ?? '';
     const matchedResource =
-      totalCost > 0 ? findSheetResource(costResourceName) : undefined;
+      totalCost > 0 && costResourceName ? findSheetResource(costResourceName) : undefined;
     const canAffordResource = matchedResource
       ? matchedResource.current >= totalCost
       : true;
@@ -205,9 +215,17 @@ export function AbilitiesSection({
                 type="button"
                 onClick={() => setToggleState(sheetId, ab.id, !ab.active)}
                 className={`inline-flex items-center gap-1 h-7 px-2.5 rounded-md border text-xs font-bold transition-colors ${ab.active
-                  ? 'border-[#8257e5] bg-[#8257e5] text-white'
+                  ? 'text-white'
                   : 'border-[#323238] bg-[#202024] text-[#a8a8b3] hover:text-white'
                   }`}
+                style={
+                  ab.active
+                    ? {
+                        backgroundColor: 'var(--sheet-accent, #8257e5)',
+                        borderColor: 'var(--sheet-accent, #8257e5)',
+                      }
+                    : undefined
+                }
               >
                 <Power className="w-3 h-3" />
                 {ab.active ? 'Efeito Ativo' : 'Ativar Efeito'}
@@ -374,6 +392,36 @@ export function AbilitiesSection({
           </div>
         )}
 
+        {/* Faixas de Resultado (on >= 10 -> ..., on 7..9 -> ...) */}
+        {ab.bands && ab.bands.length > 0 && (
+          <div className="rounded-md border border-[#29292e] bg-[#18181b] p-2 space-y-1">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-amber-300">
+              Faixas de Resultado
+            </div>
+            {ab.bands.map((band, bIdx) => (
+              <div
+                key={bIdx}
+                className="flex flex-wrap items-baseline gap-1.5 text-xs py-0.5 px-1 rounded bg-[#121214]/70"
+              >
+                <span className="px-1.5 py-0.2 rounded bg-amber-500/15 border border-amber-500/30 font-mono text-[10px] font-bold text-amber-200 shrink-0">
+                  {band.matcher}
+                </span>
+                {band.label && (
+                  <span className="text-[#e1e1e6] leading-snug">{band.label}</span>
+                )}
+                {band.effects.map((eff, eIdx) => (
+                  <span
+                    key={eIdx}
+                    className="px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-300 font-mono text-[10px]"
+                  >
+                    {eff}
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Botões de Execução de Rolagem (Teste & Dano/Cura) */}
         {(ab.testFormula || effectiveDamageFormula) && (
           <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -416,11 +464,19 @@ export function AbilitiesSection({
     );
   };
 
-  const customTitle = sheet.blockTitles.abilities;
+  const customTitle =
+    titleOverride ??
+    tabAbilities[0]?.blockTitle ??
+    sheet.blockTitles.abilities;
+
+  const listGridStyle: React.CSSProperties =
+    cols && cols > 1
+      ? { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }
+      : { gridTemplateColumns: '1fr' };
 
   return (
     <section
-      className="rounded-xl border p-3 space-y-2.5 transition-colors"
+      className={`rounded-xl border p-3 space-y-2.5 transition-colors ${isTall ? 'flex-1 flex flex-col' : ''}`}
       style={{
         backgroundColor: 'var(--sheet-card-bg, #18181b)',
         borderColor: 'var(--sheet-card-border, #29292e)',
@@ -575,7 +631,7 @@ export function AbilitiesSection({
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-2">
+      <div className="grid gap-2 content-start" style={listGridStyle}>
         {visibleAbilities.map(renderAbilityCard)}
       </div>
     </section>

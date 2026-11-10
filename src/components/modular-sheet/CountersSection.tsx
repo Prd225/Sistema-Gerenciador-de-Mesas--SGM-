@@ -1,110 +1,33 @@
 import React from 'react';
 import { Minus, Plus } from 'lucide-react';
 import type { EvaluatedCounterBlock, EvaluatedCounterItem } from '@/lib/sheet-dsl';
+import { resolveColorToHex } from './theme';
 
 interface CountersSectionProps {
   blocks: EvaluatedCounterBlock[];
   onSetCounterCurrent: (counterKey: string, current: number) => void;
+  cols?: number;
+  isTall?: boolean;
 }
 
-const COLOR_STYLES: Record<
-  string,
-  {
-    fill: string;
-    border: string;
-    svgFill: string;
-    svgStroke: string;
-    text: string;
-  }
-> = {
-  amber: {
-    fill: 'bg-amber-400',
-    border: 'border-amber-400',
-    svgFill: '#fbbf24',
-    svgStroke: '#f59e0b',
-    text: 'text-amber-300',
-  },
-  gold: {
-    fill: 'bg-amber-400',
-    border: 'border-amber-400',
-    svgFill: '#fbbf24',
-    svgStroke: '#f59e0b',
-    text: 'text-amber-300',
-  },
-  yellow: {
-    fill: 'bg-yellow-400',
-    border: 'border-yellow-400',
-    svgFill: '#facc15',
-    svgStroke: '#eab308',
-    text: 'text-yellow-300',
-  },
-  red: {
-    fill: 'bg-rose-500',
-    border: 'border-rose-500',
-    svgFill: '#f43f5e',
-    svgStroke: '#e11d48',
-    text: 'text-rose-300',
-  },
-  green: {
-    fill: 'bg-emerald-400',
-    border: 'border-emerald-400',
-    svgFill: '#34d399',
-    svgStroke: '#10b981',
-    text: 'text-emerald-300',
-  },
-  emerald: {
-    fill: 'bg-emerald-400',
-    border: 'border-emerald-400',
-    svgFill: '#34d399',
-    svgStroke: '#10b981',
-    text: 'text-emerald-300',
-  },
-  blue: {
-    fill: 'bg-sky-400',
-    border: 'border-sky-400',
-    svgFill: '#38bdf8',
-    svgStroke: '#0284c7',
-    text: 'text-sky-300',
-  },
-  cyan: {
-    fill: 'bg-cyan-400',
-    border: 'border-cyan-400',
-    svgFill: '#22d3ee',
-    svgStroke: '#06b6d4',
-    text: 'text-cyan-300',
-  },
-  purple: {
-    fill: 'bg-violet-400',
-    border: 'border-violet-400',
-    svgFill: '#a78bfa',
-    svgStroke: '#7c3aed',
-    text: 'text-violet-300',
-  },
-  violet: {
-    fill: 'bg-violet-400',
-    border: 'border-violet-400',
-    svgFill: '#a78bfa',
-    svgStroke: '#7c3aed',
-    text: 'text-violet-300',
-  },
-  pink: {
-    fill: 'bg-pink-400',
-    border: 'border-pink-400',
-    svgFill: '#f472b6',
-    svgStroke: '#db2777',
-    text: 'text-pink-300',
-  },
-  orange: {
-    fill: 'bg-orange-400',
-    border: 'border-orange-400',
-    svgFill: '#fb923c',
-    svgStroke: '#ea580c',
-    text: 'text-orange-300',
-  },
-};
+interface CounterPalette {
+  fillHex: string;
+  textStyle: React.CSSProperties;
+}
 
-function getPalette(color?: string) {
-  return COLOR_STYLES[(color || 'amber').toLowerCase()] ?? COLOR_STYLES.amber;
+function getCounterPalette(color?: string): CounterPalette {
+  if (!color || !color.trim()) {
+    return {
+      fillHex: 'var(--sheet-accent, #fbbf24)',
+      textStyle: { color: 'var(--sheet-accent-text, #fcd34d)' },
+    };
+  }
+
+  const resolved = resolveColorToHex(color) ?? color;
+  return {
+    fillHex: resolved,
+    textStyle: { color: resolved },
+  };
 }
 
 function buildPieSlicePath(
@@ -127,6 +50,8 @@ function buildPieSlicePath(
 export const CountersSection: React.FC<CountersSectionProps> = ({
   blocks,
   onSetCounterCurrent,
+  cols,
+  isTall = false,
 }) => {
   if (blocks.length === 0) return null;
 
@@ -142,7 +67,7 @@ export const CountersSection: React.FC<CountersSectionProps> = ({
 
   const renderCounterCard = (blockId: string, item: EvaluatedCounterItem) => {
     const counterKey = `${blockId}.${item.id}`;
-    const palette = getPalette(item.color);
+    const palette = getCounterPalette(item.color);
     const total = Math.max(1, Math.min(24, item.max));
 
     if (item.style === 'pie') {
@@ -161,11 +86,11 @@ export const CountersSection: React.FC<CountersSectionProps> = ({
             borderColor: 'var(--sheet-card-border, #29292e)',
           }}
         >
-          <div className="w-full flex items-center justify-between gap-2">
-            <span className="text-xs font-bold text-zinc-200 break-words leading-snug">
+          <div className="w-full flex items-center justify-between gap-2 min-w-0">
+            <span className="text-xs font-bold text-zinc-200 truncate leading-snug" title={item.label}>
               {item.label}
             </span>
-            <span className={`text-[11px] font-mono font-bold ${palette.text}`}>
+            <span className="text-[11px] font-mono font-bold shrink-0" style={palette.textStyle}>
               {item.current}/{item.max}
             </span>
           </div>
@@ -182,7 +107,7 @@ export const CountersSection: React.FC<CountersSectionProps> = ({
                   cx={cx}
                   cy={cy}
                   r={r}
-                  fill={item.current >= 1 ? palette.svgFill : '#09090b'}
+                  fill={item.current >= 1 ? palette.fillHex : '#09090b'}
                   stroke="#3f3f46"
                   strokeWidth={2.5}
                   className="cursor-pointer transition-colors hover:opacity-90"
@@ -197,7 +122,7 @@ export const CountersSection: React.FC<CountersSectionProps> = ({
                     <path
                       key={idx}
                       d={buildPieSlicePath(cx, cy, r, startDeg, endDeg)}
-                      fill={isFilled ? palette.svgFill : '#09090b'}
+                      fill={isFilled ? palette.fillHex : '#09090b'}
                       stroke="#27272a"
                       strokeWidth={2.5}
                       strokeLinejoin="round"
@@ -264,11 +189,11 @@ export const CountersSection: React.FC<CountersSectionProps> = ({
             borderColor: 'var(--sheet-card-border, #29292e)',
           }}
         >
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-bold text-zinc-200 break-words leading-snug">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <span className="text-xs font-bold text-zinc-200 truncate leading-snug" title={item.label}>
               {item.label}
             </span>
-            <span className={`text-[11px] font-mono font-bold ${palette.text}`}>
+            <span className="text-[11px] font-mono font-bold shrink-0" style={palette.textStyle}>
               {item.current}/{item.max}
             </span>
           </div>
@@ -285,9 +210,17 @@ export const CountersSection: React.FC<CountersSectionProps> = ({
                   }
                   title={`${item.label}: ${idx + 1}/${item.max}`}
                   className={`w-6 h-6 rounded-full border-2 transition-all cursor-pointer ${isFilled
-                      ? `${palette.fill} ${palette.border} scale-100`
-                      : 'bg-zinc-950 border-zinc-700 hover:border-zinc-500 scale-95'
+                    ? 'scale-100'
+                    : 'bg-zinc-950 border-zinc-700 hover:border-zinc-500 scale-95'
                     }`}
+                  style={
+                    isFilled
+                      ? {
+                        backgroundColor: palette.fillHex,
+                        borderColor: palette.fillHex,
+                      }
+                      : undefined
+                  }
                 />
               );
             })}
@@ -310,7 +243,7 @@ export const CountersSection: React.FC<CountersSectionProps> = ({
           <span className="text-xs font-bold text-zinc-200 break-words leading-snug">
             {item.label}
           </span>
-          <span className={`text-[11px] font-mono font-bold ${palette.text}`}>
+          <span className="text-[11px] font-mono font-bold" style={palette.textStyle}>
             {item.current}/{item.max}
           </span>
         </div>
@@ -333,9 +266,10 @@ export const CountersSection: React.FC<CountersSectionProps> = ({
                 }
                 title={`${item.label}: ${idx + 1}/${item.max}`}
                 className={`flex-1 transition-all cursor-pointer ${isFilled
-                    ? palette.fill
-                    : 'bg-transparent hover:bg-white/10'
+                  ? ''
+                  : 'bg-transparent hover:bg-white/10'
                   }`}
+                style={isFilled ? { backgroundColor: palette.fillHex } : undefined}
               />
             );
           })}
@@ -345,13 +279,24 @@ export const CountersSection: React.FC<CountersSectionProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${isTall ? 'flex-1 flex flex-col' : ''}`}>
       {blocks.map((block) => {
         if (block.items.length === 0) return null;
-        const hasPie = block.items.some((i) => i.style === 'pie');
+        const effectiveCols = block.cols ?? cols;
+        const effectiveTall = Boolean(block.tall || isTall);
+        const useStacked =
+          block.display === 'list' ||
+          block.display === 'stacked' ||
+          (effectiveTall && !effectiveCols);
+
+        const gridStyle: React.CSSProperties | undefined = useStacked
+          ? undefined
+          : effectiveCols && effectiveCols > 0
+            ? { gridTemplateColumns: `repeat(${effectiveCols}, minmax(0, 1fr))` }
+            : { gridTemplateColumns: 'repeat(auto-fit, minmax(175px, 1fr))' };
 
         return (
-          <div key={block.id} className="space-y-2">
+          <div key={block.id} className={`space-y-2 ${effectiveTall ? 'flex-1 flex flex-col' : ''}`}>
             {block.title && (
               <div className="px-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
@@ -362,12 +307,11 @@ export const CountersSection: React.FC<CountersSectionProps> = ({
 
             <div
               className={
-                block.display === 'list' || block.display === 'stacked'
-                  ? 'space-y-2.5'
-                  : hasPie && block.items.length > 1
-                    ? 'grid grid-cols-1 sm:grid-cols-2 gap-2.5 items-stretch'
-                    : 'grid grid-cols-1 sm:grid-cols-2 gap-2.5'
+                useStacked
+                  ? 'flex flex-col gap-2.5 flex-1'
+                  : 'grid gap-2.5 items-stretch content-start flex-1'
               }
+              style={gridStyle}
             >
               {block.items.map((item) => renderCounterCard(block.id, item))}
             </div>
@@ -377,4 +321,3 @@ export const CountersSection: React.FC<CountersSectionProps> = ({
     </div>
   );
 };
-

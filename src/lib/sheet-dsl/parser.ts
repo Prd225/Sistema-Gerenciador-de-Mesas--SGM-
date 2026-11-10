@@ -101,6 +101,12 @@ export class SheetParser {
   private pos = 0;
   private diagnostics: DSLDiagnostic[];
   private currentTabContext?: string;
+  private blockCounts: Record<string, number> = {};
+
+  private nextBlockId(kind: string): string {
+    this.blockCounts[kind] = (this.blockCounts[kind] ?? 0) + 1;
+    return `${kind}_${this.blockCounts[kind]}`;
+  }
 
   constructor(tokens: DSLToken[], lexerDiagnostics: DSLDiagnostic[] = []) {
     this.tokens = tokens;
@@ -200,7 +206,7 @@ export class SheetParser {
         break;
       }
       case 'roll': {
-        const res = this.parseResolutionDirective();
+        const res = this.parseResolutionDirective(doc);
         if (res) doc.resolutions.push(res);
         break;
       }
@@ -558,6 +564,8 @@ export class SheetParser {
       tab: header.tab,
       placement: header.placement,
       display: header.display,
+      tall: header.tall,
+      cols: header.cols,
       items,
       meta: header.meta,
       span: this.mergeSpans(startTok.span, this.previous().span),
@@ -660,10 +668,18 @@ export class SheetParser {
             ? meta.props.cor.name
             : undefined;
     } else {
-      for (const c of ['amber', 'gold', 'yellow', 'red', 'green', 'emerald', 'blue', 'cyan', 'purple', 'violet', 'pink', 'orange']) {
+      for (const c of ['amber', 'gold', 'yellow', 'red', 'crimson', 'rose', 'green', 'emerald', 'blue', 'cyan', 'purple', 'violet', 'pink', 'orange', 'dark']) {
         if (allItemTokens.has(c)) {
           color = c;
           break;
+        }
+      }
+      if (!color) {
+        for (const tag of meta.tags) {
+          if (/^#?(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(tag)) {
+            color = tag.startsWith('#') ? tag : `#${tag}`;
+            break;
+          }
         }
       }
     }
@@ -773,7 +789,7 @@ export class SheetParser {
    * 7..9  -> "Sucesso Parcial" [tier: "partial"]
    * <= 6  -> "Falha" [tier: "fail"]
    */
-  private parseResolutionDirective(): ASTResolutionDecl | null {
+  private parseResolutionDirective(doc?: ASTSheetDocument): ASTResolutionDecl | null {
     const startSpan = this.peek().span;
     const id = this.consumeIdentifierOrString('Esperado nome do perfil em @roll.');
     if (!id) return null;
@@ -789,10 +805,23 @@ export class SheetParser {
       this.consume('RPAREN', "Esperado ')' após parâmetros de @roll.");
     }
 
+    let rollExpr: ASTExpr = { type: 'DiceExpr', count: { type: 'NumberLit', value: 1, span: startSpan }, faces: { type: 'NumberLit', value: 20, span: startSpan }, modifiers: [], span: startSpan };
+    if (this.matchAny('ASSIGN_CALC', 'ASSIGN_PIN')) {
+      rollExpr = this.parseExpr(0);
+    }
+
+    const header = this.parseBlockHeader();
+    if (this.matchAny('ASSIGN_CALC', 'ASSIGN_PIN')) {
+      rollExpr = this.parseExpr(0);
+    }
+    if (doc && header.tab && !doc.tabs.some((t) => t.id === header.tab)) {
+      doc.tabs.push({ id: header.tab, label: header.tab });
+    }
+    const resolvedTitle = header.title === '__DEFAULT__' ? id : (header.title ?? id);
+
     this.matchAny('COLON', 'LBRACE');
     this.skipSeparators();
 
-    let rollExpr: ASTExpr = { type: 'DiceExpr', count: { type: 'NumberLit', value: 1, span: startSpan }, faces: { type: 'NumberLit', value: 20, span: startSpan }, modifiers: [], span: startSpan };
     const bands: ASTOutcomeBand[] = [];
 
     while (!this.isAtBlockEnd()) {
@@ -818,12 +847,17 @@ export class SheetParser {
     }
 
     this.match('RBRACE');
+    if (doc) {
+      this.registerModuleLayout(doc, 'roll', id, header, resolvedTitle);
+    }
     return {
       type: 'ResolutionDecl',
       id,
       params,
       rollExpr,
       bands,
+      tab: header.tab,
+      title: resolvedTitle,
       span: this.mergeSpans(startSpan, this.previous().span),
     };
   }
@@ -831,19 +865,21 @@ export class SheetParser {
   private parseOutcomeBand(): ASTOutcomeBand | null {
     const startSpan = this.peek().span;
     const matcher = this.parseMatcherExpr();
-    if (!this.match('ARROW')) {
+    if (!this.matchAny('ARROW', 'COLON')) {
       this.synchronizeToNextStatement();
       return null;
     }
 
     let label = '';
-    if (this.check('STRING') || this.check('IDENTIFIER')) {
+    if (this.check('STRING') || (this.check('IDENTIFIER') && !this.isEffectStatementStart())) {
       label = this.advance().value;
     }
     const meta = this.parseOptionalMetaAndFlags();
     const effects: ASTEffectStmt[] = [];
 
     if (this.match('ARROW') || this.check('LBRACE')) {
+      this.parseEffectsBlockInto(effects);
+    } else if (!label && this.isEffectStatementStart()) {
       this.parseEffectsBlockInto(effects);
     }
 
@@ -1302,6 +1338,7 @@ export class SheetParser {
     blockKind: 'attr' | 'stat',
     doc: ASTSheetDocument,
   ): void {
+    const blockId = this.nextBlockId(blockKind);
     const header = this.parseBlockHeader();
     if (header.tab && !doc.tabs.some((t) => t.id === header.tab)) {
       doc.tabs.push({ id: header.tab, label: header.tab });
@@ -1313,20 +1350,24 @@ export class SheetParser {
           : 'Status'
         : header.title;
     if (resolvedTitle) {
-      if (blockKind === 'attr') doc.blockTitles.attributes = resolvedTitle;
-      else doc.blockTitles.stats = resolvedTitle;
+      if (blockKind === 'attr' && !doc.blockTitles.attributes) doc.blockTitles.attributes = resolvedTitle;
+      else if (blockKind === 'stat' && !doc.blockTitles.stats) doc.blockTitles.stats = resolvedTitle;
     }
 
     this.match('LBRACE');
     this.skipSeparators();
 
+    const headerRoll = header.meta.props.roll ?? header.meta.props.rolagem;
+
     while (!this.isAtBlockEnd()) {
       const decl = this.parseStatDecl();
       if (decl) {
+        decl.blockId = blockId;
         if (header.tab) decl.tab = header.tab;
         if (resolvedTitle) decl.blockTitle = resolvedTitle;
-        if (!decl.meta.props.roll && header.meta.props.roll) {
-          decl.meta.props.roll = header.meta.props.roll;
+        if (!decl.meta.props.roll && !decl.meta.props.rolagem && headerRoll) {
+          decl.meta.props.roll = headerRoll;
+          decl.rollFromHeader = true;
         }
         targetList.push(decl);
       }
@@ -1335,7 +1376,7 @@ export class SheetParser {
 
     this.match('RBRACE');
 
-    this.registerModuleLayout(doc, blockKind, blockKind, header, resolvedTitle);
+    this.registerModuleLayout(doc, blockKind, blockId, header, resolvedTitle);
   }
 
   private parseStatDecl(): ASTStatDecl | null {
@@ -1399,12 +1440,13 @@ export class SheetParser {
    * Destino: counter(3)
    */
   private parseResourcesBlock(targetList: ASTResourceDecl[], doc: ASTSheetDocument): void {
+    const blockId = this.nextBlockId('res');
     const header = this.parseBlockHeader();
     if (header.tab && !doc.tabs.some((t) => t.id === header.tab)) {
       doc.tabs.push({ id: header.tab, label: header.tab });
     }
     const resolvedTitle = header.title === '__DEFAULT__' ? 'Recursos' : header.title;
-    if (resolvedTitle) {
+    if (resolvedTitle && !doc.blockTitles.resources) {
       doc.blockTitles.resources = resolvedTitle;
     }
 
@@ -1414,6 +1456,7 @@ export class SheetParser {
     while (!this.isAtBlockEnd()) {
       const res = this.parseResourceDecl();
       if (res) {
+        res.blockId = blockId;
         if (header.tab) res.tab = header.tab;
         if (resolvedTitle) res.blockTitle = resolvedTitle;
         targetList.push(res);
@@ -1423,7 +1466,7 @@ export class SheetParser {
 
     this.match('RBRACE');
 
-    this.registerModuleLayout(doc, 'res', 'res', header, resolvedTitle);
+    this.registerModuleLayout(doc, 'res', blockId, header, resolvedTitle);
   }
 
   private parseResourceDecl(): ASTResourceDecl | null {
@@ -1614,12 +1657,13 @@ export class SheetParser {
    *   consequence "Costela Trincada" = -2 [!active]
    */
   private parseDescriptorsBlock(targetList: ASTDescriptorDecl[], doc: ASTSheetDocument): void {
+    const blockId = this.nextBlockId('desc');
     const header = this.parseBlockHeader();
     if (header.tab && !doc.tabs.some((t) => t.id === header.tab)) {
       doc.tabs.push({ id: header.tab, label: header.tab });
     }
     const resolvedTitle = header.title === '__DEFAULT__' ? 'Descritores' : header.title;
-    if (resolvedTitle) {
+    if (resolvedTitle && !doc.blockTitles.descriptors) {
       doc.blockTitles.descriptors = resolvedTitle;
     }
 
@@ -1676,6 +1720,7 @@ export class SheetParser {
                 effects: [],
                 tab: header.tab,
                 blockTitle: resolvedTitle,
+                blockId,
                 span: this.mergeSpans(itemStart, this.previous().span),
               });
             }
@@ -1744,6 +1789,7 @@ export class SheetParser {
         effects,
         tab: header.tab,
         blockTitle: resolvedTitle,
+        blockId,
         span: this.mergeSpans(startTok.span, this.previous().span),
       });
 
@@ -1752,7 +1798,7 @@ export class SheetParser {
 
     if (hasBrace) this.match('RBRACE');
 
-    this.registerModuleLayout(doc, 'desc', 'desc', header, resolvedTitle);
+    this.registerModuleLayout(doc, 'desc', blockId, header, resolvedTitle);
   }
 
   /**
@@ -1761,18 +1807,18 @@ export class SheetParser {
    *   Ocultismo (INT): expert
    */
   private parseSkillsBlock(doc: ASTSheetDocument): void {
+    const blockId = this.nextBlockId('skill');
     const header = this.parseBlockHeader();
     if (header.tab && !doc.tabs.some((t) => t.id === header.tab)) {
       doc.tabs.push({ id: header.tab, label: header.tab });
     }
     const resolvedTitle = header.title === '__DEFAULT__' ? 'Perícias' : header.title;
-    if (resolvedTitle) {
+    if (resolvedTitle && !doc.blockTitles.skills) {
       doc.blockTitles.skills = resolvedTitle;
     }
-    if (header.meta.props.roll) {
-      doc.defaultSkillRoll = header.meta.props.roll;
-    } else if (header.meta.props.rolagem) {
-      doc.defaultSkillRoll = header.meta.props.rolagem;
+    const blockRoll = header.meta.props.roll ?? header.meta.props.rolagem;
+    if (blockRoll) {
+      doc.defaultSkillRoll = blockRoll;
     }
 
     const hasBrace = this.match('LBRACE');
@@ -1781,10 +1827,12 @@ export class SheetParser {
     while (!this.isAtBlockEnd() && !(hasBrace && this.check('RBRACE'))) {
       const skill = this.parseSkillDecl();
       if (skill) {
+        skill.blockId = blockId;
         if (header.tab) skill.tab = header.tab;
         if (resolvedTitle) skill.blockTitle = resolvedTitle;
-        if (!skill.rollOverride && doc.defaultSkillRoll) {
-          skill.rollOverride = doc.defaultSkillRoll;
+        if (!skill.rollOverride && (blockRoll ?? doc.defaultSkillRoll)) {
+          skill.rollOverride = blockRoll ?? doc.defaultSkillRoll;
+          skill.rollFromHeader = true;
         }
         doc.skills.push(skill);
       }
@@ -1793,7 +1841,7 @@ export class SheetParser {
 
     if (hasBrace) this.match('RBRACE');
 
-    this.registerModuleLayout(doc, 'skill', 'skill', header, resolvedTitle);
+    this.registerModuleLayout(doc, 'skill', blockId, header, resolvedTitle);
   }
 
   private parseSkillDecl(): ASTSkillDecl | null {
@@ -2023,12 +2071,13 @@ export class SheetParser {
    *     enhance "Discente" [cost: 2] -> damage: 3d8 + 2
    */
   private parseAbilitiesBlock(targetList: ASTAbilityDecl[], doc: ASTSheetDocument): void {
+    const blockId = this.nextBlockId('ability');
     const header = this.parseBlockHeader();
     if (header.tab && !doc.tabs.some((t) => t.id === header.tab)) {
       doc.tabs.push({ id: header.tab, label: header.tab });
     }
     const resolvedTitle = header.title === '__DEFAULT__' ? 'Habilidades' : header.title;
-    if (resolvedTitle) {
+    if (resolvedTitle && !doc.blockTitles.abilities) {
       doc.blockTitles.abilities = resolvedTitle;
     }
 
@@ -2038,6 +2087,7 @@ export class SheetParser {
     while (!this.isAtBlockEnd() && !(hasBrace && this.check('RBRACE'))) {
       const ab = this.parseAbilityDecl(false);
       if (ab) {
+        ab.blockId = blockId;
         if (header.tab) ab.tab = header.tab;
         if (resolvedTitle) ab.blockTitle = resolvedTitle;
         targetList.push(ab);
@@ -2047,7 +2097,7 @@ export class SheetParser {
 
     if (hasBrace) this.match('RBRACE');
 
-    this.registerModuleLayout(doc, 'ability', 'ability', header, resolvedTitle);
+    this.registerModuleLayout(doc, 'ability', blockId, header, resolvedTitle);
   }
 
   private parseAbilityDecl(insideItem = false): ASTAbilityDecl | null {
@@ -2140,17 +2190,18 @@ export class SheetParser {
         }
       } else if (this.check('IDENTIFIER') && word === 'on') {
         this.advance();
-        const matcher = this.parseMatcherExpr();
-        this.matchAny('ARROW', 'COLON');
-        const bandEffects: ASTEffectStmt[] = [];
-        this.parseEffectsBlockInto(bandEffects);
-        bands.push({
-          matcher,
-          label: '',
-          meta: this.emptyMeta(),
-          effects: bandEffects,
-          span: matcher.span,
-        });
+        const band = this.parseOutcomeBand();
+        if (band) bands.push(band);
+      } else if (
+        this.check('GTE') ||
+        this.check('LTE') ||
+        this.check('GT') ||
+        this.check('LT') ||
+        this.check('EQ') ||
+        this.check('NUMBER')
+      ) {
+        const band = this.parseOutcomeBand();
+        if (band) bands.push(band);
       } else if (this.isEffectStatementStart()) {
         // Efeito direto sem precisar de bloco effect { ... }
         const eff = this.parseEffectStmt();
@@ -2286,6 +2337,8 @@ export class SheetParser {
     return {
       type: 'DiagramDecl',
       id,
+      title: resolvedTitle,
+      tab: header.tab,
       meta,
       nodes,
       span: this.mergeSpans(startSpan, this.previous().span),
@@ -2358,9 +2411,13 @@ export class SheetParser {
    *   ? PV.current <= 0 -> DEF :! 0
    */
   private parseRulesBlock(targetList: ASTRuleDecl[], doc: ASTSheetDocument): void {
+    const blockId = this.nextBlockId('rule');
     const header = this.parseBlockHeader();
+    if (header.tab && !doc.tabs.some((t) => t.id === header.tab)) {
+      doc.tabs.push({ id: header.tab, label: header.tab });
+    }
     const resolvedTitle = header.title === '__DEFAULT__' ? 'Regras' : header.title;
-    if (resolvedTitle) {
+    if (resolvedTitle && !doc.blockTitles.rules) {
       doc.blockTitles.rules = resolvedTitle;
     }
 
@@ -2369,17 +2426,22 @@ export class SheetParser {
 
     while (!this.isAtBlockEnd() && !(hasBrace && this.check('RBRACE'))) {
       const rule = this.parseRuleDecl();
-      if (rule) targetList.push(rule);
+      if (rule) {
+        rule.tab = header.tab;
+        rule.blockId = blockId;
+        targetList.push(rule);
+      }
       this.skipSeparators();
     }
 
     if (hasBrace) this.match('RBRACE');
 
-    this.registerModuleLayout(doc, 'rule', 'rule', header, resolvedTitle);
+    this.registerModuleLayout(doc, 'rule', blockId, header, resolvedTitle);
   }
 
   private parseRuleDecl(): ASTRuleDecl | null {
     const startTok = this.peek();
+    let ruleId: string | undefined;
     if (this.check('IDENTIFIER')) {
       const w = this.peek().value.toLowerCase();
       if (w === 'when' || w === 'rule' || w === 'regra' || w === 'se') {
@@ -2389,13 +2451,28 @@ export class SheetParser {
       this.advance();
     }
 
+    if (this.check('STRING') && (this.peekNext().type === 'COLON' || this.peekNext().type === 'IDENTIFIER')) {
+      ruleId = this.advance().value;
+      this.match('COLON');
+    }
+
     const condition = this.parseExpr(0);
+    if (this.check('LBRACKET') || this.check('TAG') || this.check('FLAG')) {
+      const preMeta = this.parseOptionalMetaAndFlags();
+      if (!ruleId && preMeta.tags.length > 0) ruleId = `#${preMeta.tags[0]}`;
+    }
     this.matchAny('ARROW', 'COLON');
     const effects: ASTEffectStmt[] = [];
     this.parseEffectsBlockInto(effects);
 
+    if (this.check('LBRACKET') || this.check('TAG') || this.check('FLAG')) {
+      const postMeta = this.parseOptionalMetaAndFlags();
+      if (!ruleId && postMeta.tags.length > 0) ruleId = `#${postMeta.tags[0]}`;
+    }
+
     return {
       type: 'RuleDecl',
+      id: ruleId,
       condition,
       effects,
       span: this.mergeSpans(startTok.span, this.previous().span),
@@ -2468,18 +2545,69 @@ export class SheetParser {
         continue;
       }
 
-      // 2. Acesso a Membro: FOR.mod, PV.max (BP 70)
+      // 1b. Operador Infixo de Faces Dinâmicas: <countExpr> d(<facesExpr>) ou <countExpr>d(self)
+      // Ex: 1d(self), 2d(FOR), (self)d(attr)kh1
+      if (
+        tok.type === 'IDENTIFIER' &&
+        (tok.value === 'd' || tok.value === 'D') &&
+        this.peekNext().type === 'LPAREN' &&
+        60 >= minBp
+      ) {
+        this.advance(); // consome 'd'
+        this.advance(); // consome '('
+        const facesExpr = this.parseExpr(0);
+        const closeParen = this.consume('RPAREN', "Esperado ')' após faces do dado em d(...).");
+        left = this.parseDynamicDiceSuffix(left, facesExpr, closeParen.span);
+        continue;
+      }
+
+      // 1c. Operador de Quantidade sobre Expressão de Dado: <countExpr>(self.dice) ou 2(FOR.dice)
+      if (
+        tok.type === 'LPAREN' &&
+        left.type === 'NumberLit' &&
+        60 >= minBp
+      ) {
+        this.advance(); // consome '('
+        const inner = this.parseExpr(0);
+        const closeParen = this.consume('RPAREN', "Esperado ')' após expressão.");
+        left = {
+          type: 'DiceExpr',
+          count: left,
+          faces: inner,
+          modifiers: this.consumeDiceModifiersAfterSpan(closeParen.span).modifiers,
+          span: this.mergeSpans(left.span, closeParen.span),
+        };
+        continue;
+      }
+
+      // 2. Acesso a Membro: FOR.mod, FOR.dice, self.dice, PV.max (BP 70)
       if (tok.type === 'DOT' && 70 >= minBp) {
         this.advance();
         const propTok = this.peek();
         const propName = this.consumeIdentifierOrString('Esperado nome da propriedade após ".".') || '';
         if (left.type === 'Ident') {
-          left = {
+          const memberNode: ASTExpr = {
             type: 'MemberExpr',
             object: left.name,
             property: propName,
             span: this.mergeSpans(left.span, propTok.span),
           };
+          const propLow = propName.toLowerCase();
+          if (
+            (propLow === 'dice' || propLow === 'dado' || propLow === 'die') &&
+            this.hasImmediateDiceModifier()
+          ) {
+            const { modifiers, endSpan } = this.consumeDiceModifiersAfterSpan(propTok.span);
+            left = {
+              type: 'DiceExpr',
+              count: { type: 'NumberLit', value: 1, span: left.span },
+              faces: memberNode,
+              modifiers,
+              span: this.mergeSpans(left.span, endSpan),
+            };
+          } else {
+            left = memberNode;
+          }
         }
         continue;
       }
@@ -2624,10 +2752,18 @@ export class SheetParser {
       };
     }
 
-    // 8. Identificador ou Chamada de Função fn(a, b)
+    // 8. Identificador ou Chamada de Função fn(a, b) ou Dado Dinâmico d(self)
     if (tok.type === 'IDENTIFIER') {
       this.advance();
       if (this.match('LPAREN')) {
+        // Suporte a d(self), d(FOR), d(6) como dado de 1 unidade com faces dinâmicas:
+        if (tok.value === 'd' || tok.value === 'D') {
+          const facesExpr = this.parseExpr(0);
+          const close = this.consume('RPAREN', "Esperado ')' após faces do dado em d(...).");
+          const oneLit: ASTExpr = { type: 'NumberLit', value: 1, span: tok.span };
+          return this.parseDynamicDiceSuffix(oneLit, facesExpr, close.span);
+        }
+
         const args: ASTExpr[] = [];
         while (!this.check('RPAREN') && !this.isAtEnd()) {
           args.push(this.parseExpr(0));
@@ -2666,18 +2802,12 @@ export class SheetParser {
    * - Explosão: !, !!, !p, !>=9
    * - Tag de Dualidade / Fome: #hope, #fear, #hunger
    */
-  private parseDiceSuffix(countExpr: ASTExpr, dieTok: DSLToken): ASTExpr {
-    const faces: ASTExpr | 'F' =
-      dieTok.value === 'F'
-        ? 'F'
-        : {
-          type: 'NumberLit',
-          value: Number(dieTok.value),
-          span: dieTok.span,
-        };
-
+  private consumeDiceModifiersAfterSpan(initialEndSpan: SourceSpan): {
+    modifiers: DiceModifierNode[];
+    endSpan: SourceSpan;
+  } {
     const modifiers: DiceModifierNode[] = [];
-    let endSpan = dieTok.span;
+    let endSpan = initialEndSpan;
 
     while (!this.isAtEnd()) {
       const next = this.peek();
@@ -2729,6 +2859,36 @@ export class SheetParser {
 
       break;
     }
+
+    return { modifiers, endSpan };
+  }
+
+  private parseDynamicDiceSuffix(
+    countExpr: ASTExpr,
+    facesExpr: ASTExpr,
+    initialEndSpan: SourceSpan,
+  ): ASTExpr {
+    const { modifiers, endSpan } = this.consumeDiceModifiersAfterSpan(initialEndSpan);
+    return {
+      type: 'DiceExpr',
+      count: countExpr,
+      faces: facesExpr,
+      modifiers,
+      span: this.mergeSpans(countExpr.span, endSpan),
+    };
+  }
+
+  private parseDiceSuffix(countExpr: ASTExpr, dieTok: DSLToken): ASTExpr {
+    const faces: ASTExpr | 'F' =
+      dieTok.value === 'F'
+        ? 'F'
+        : {
+          type: 'NumberLit',
+          value: Number(dieTok.value),
+          span: dieTok.span,
+        };
+
+    const { modifiers, endSpan } = this.consumeDiceModifiersAfterSpan(dieTok.span);
 
     return {
       type: 'DiceExpr',

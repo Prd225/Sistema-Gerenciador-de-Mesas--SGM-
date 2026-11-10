@@ -209,6 +209,8 @@ export interface ASTStatDecl {
   children: ASTStatDecl[];
   tab?: string;
   blockTitle?: string;
+  blockId?: string;
+  rollFromHeader?: boolean;
   span: SourceSpan;
 }
 
@@ -225,6 +227,7 @@ export interface ASTResourceDecl {
   meta: ASTMetadataMap;
   tab?: string;
   blockTitle?: string;
+  blockId?: string;
   span: SourceSpan;
 }
 
@@ -263,6 +266,8 @@ export interface ASTResolutionDecl {
   params: string[];
   rollExpr: ASTExpr;
   bands: ASTOutcomeBand[];
+  tab?: string;
+  title?: string;
   span: SourceSpan;
 }
 
@@ -300,6 +305,7 @@ export interface ASTDescriptorDecl {
   effects: ASTEffectStmt[];
   tab?: string;
   blockTitle?: string;
+  blockId?: string;
   span: SourceSpan;
 }
 
@@ -311,10 +317,12 @@ export interface ASTSkillDecl {
   mode: AssignMode;
   expr: ASTExpr;
   rollOverride?: ASTExpr;
+  rollFromHeader?: boolean;
   meta: ASTMetadataMap;
   children: ASTStatDecl[];
   tab?: string;
   blockTitle?: string;
+  blockId?: string;
   span: SourceSpan;
 }
 
@@ -350,6 +358,7 @@ export interface ASTAbilityDecl {
   enhancements: ASTEnhancementDecl[]; // Aprimoramentos (+PE / +PM / Upcast)
   tab?: string;
   blockTitle?: string;
+  blockId?: string;
   span: SourceSpan;
 }
 
@@ -409,6 +418,7 @@ export interface ASTDiagramNodeDecl {
 export interface ASTDiagramDecl {
   type: 'DiagramDecl';
   id: string;
+  title?: string;
   meta: ASTMetadataMap;
   nodes: ASTDiagramNodeDecl[];
   tab?: string;
@@ -420,6 +430,8 @@ export interface ASTRuleDecl {
   id?: string;
   condition: ASTExpr;
   effects: ASTEffectStmt[];
+  tab?: string;
+  blockId?: string;
   span: SourceSpan;
 }
 
@@ -531,6 +543,7 @@ export interface EvaluatedStat {
   rollAst?: ASTExpr;
   tab?: string;
   blockTitle?: string;
+  blockId?: string;
 }
 
 export interface EvaluatedResource {
@@ -541,12 +554,15 @@ export interface EvaluatedResource {
   max: number;
   min: number;
   temp: number;
+  unbounded?: boolean;
+  poolDie?: string;
   states?: string[];
   boxes?: string[]; // Estado atual de cada caixa em um track
   color?: string;
   tags: string[];
   tab?: string;
   blockTitle?: string;
+  blockId?: string;
 }
 
 export interface EvaluatedSkill {
@@ -554,6 +570,7 @@ export interface EvaluatedSkill {
   label: string;
   baseAttr?: string;
   baseAttrValue?: EvaluatedValue;
+  rawValue?: EvaluatedValue;
   bonus: number;
   mode: AssignMode;
   locked: boolean;
@@ -564,6 +581,7 @@ export interface EvaluatedSkill {
   tags: string[];
   tab?: string;
   blockTitle?: string;
+  blockId?: string;
 }
 
 export interface EvaluatedItem {
@@ -573,6 +591,7 @@ export interface EvaluatedItem {
   qty: number;
   totalWeight: number;
   state: 'equipped' | 'carried' | 'stash';
+  consumable?: boolean;
   category?: number | string;
   desc?: string;
   effectSummaries: string[];
@@ -590,6 +609,12 @@ export interface EvaluatedEnhancement {
   damage?: string;
 }
 
+export interface EvaluatedAbilityBand {
+  matcher: string;
+  label?: string;
+  effects: string[];
+}
+
 export interface EvaluatedAbility {
   id: string;
   label: string;
@@ -605,11 +630,13 @@ export interface EvaluatedAbility {
   damageFormula?: string;
   damageAst?: ASTExpr;
   effectSummaries: string[];
+  bands?: EvaluatedAbilityBand[];
   choices: string[];
   enhancements: EvaluatedEnhancement[];
   tags: string[];
   tab?: string;
   blockTitle?: string;
+  blockId?: string;
 }
 
 export interface EvaluatedSlotItem {
@@ -655,6 +682,8 @@ export interface EvaluatedDiagramNode {
 
 export interface EvaluatedDiagram {
   id: string;
+  title?: string;
+  tab?: string;
   layout: string;
   hitRoll?: string;
   nodes: EvaluatedDiagramNode[];
@@ -666,6 +695,8 @@ export interface EvaluatedRule {
   isActive: boolean;
   effectSummaries: string[];
   source: 'global' | 'inventory' | 'diagram';
+  tab?: string;
+  blockId?: string;
 }
 
 export interface EvaluatedProfileBlock {
@@ -801,6 +832,7 @@ export interface CompiledSheet {
     tags: string[];
     tab?: string;
     blockTitle?: string;
+    blockId?: string;
   }>;
   skills: Record<string, EvaluatedSkill>;
   inventory: {
