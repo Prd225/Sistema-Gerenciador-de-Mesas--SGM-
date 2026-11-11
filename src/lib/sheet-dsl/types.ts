@@ -123,6 +123,7 @@ export type CanonicalBlockKind =
   | 'logic'      // @logic, @logica
   | 'step'       // @step, @passo, @etapa
   | 'gains'      // @gains, @ganhos, @gain
+  | 'choose'     // @choose, @escolha, @escolher, @opcao, @opcoes
   | 'branch'     // @branch, @caminho, @ramo, @bifurcacao
   | 'when'       // @when, @se, @caso
   | 'switch';    // @switch

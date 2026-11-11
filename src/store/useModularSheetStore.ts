@@ -7,11 +7,19 @@ import type { SheetRuntimeOverrides } from '@/lib/sheet-dsl';
 
 export type ModularSheetPresetChoice = 'ordem_paranormal' | 'tormenta20' | 'mausritter' | 'blank';
 
+export interface DSLPage {
+  id: string;
+  name: string;
+  content: string;
+}
+
 export interface ModularSheetRecord {
   id: string;
   name: string;
   dslSource: string;
-  logicSource?: string; // Folha Lógica da DSL (compartilha o mesmo escopo reativo)
+  pages?: DSLPage[]; // Páginas infinitas de DSL compartilhando o mesmo escopo reativo
+  activePageId?: string;
+  logicSource?: string; // Mantido para compatibilidade reversa
   presetId?: ModularSheetPresetChoice;
   assignedTokenIds: string[];
   runtimeOverrides: SheetRuntimeOverrides;
@@ -19,9 +27,77 @@ export interface ModularSheetRecord {
   updatedAt: number;
 }
 
-export function getCombinedSheetSource(rec: { dslSource: string; logicSource?: string }): string {
-  if (!rec.logicSource || !rec.logicSource.trim()) return rec.dslSource;
-  return `${rec.dslSource}\n\n# === FOLHA LÓGICA (ESCOPO COMPARTILHADO) ===\n${rec.logicSource}`;
+export function getSheetPages(rec: {
+  dslSource: string;
+  logicSource?: string;
+  pages?: DSLPage[];
+}): DSLPage[] {
+  if (rec.pages && rec.pages.length > 0) {
+    return rec.pages;
+  }
+  const pages: DSLPage[] = [
+    { id: 'page_main', name: 'Principal', content: rec.dslSource || '' },
+  ];
+  if (rec.logicSource && rec.logicSource.trim()) {
+    pages.push({
+      id: 'page_logic',
+      name: 'Lógica',
+      content: rec.logicSource,
+    });
+  }
+  return pages;
+}
+
+export function getCombinedSheetSource(rec: {
+  dslSource: string;
+  logicSource?: string;
+  pages?: DSLPage[];
+}): string {
+  const pages = getSheetPages(rec);
+  if (pages.length === 1) return pages[0].content;
+  return pages
+    .map((p) => `# === [PÁGINA: ${p.name || 'Sem Título'}] ===\n${p.content}`)
+    .join('\n\n');
+}
+
+export function splitCombinedSourceToPages(
+  combinedSource: string,
+  existingPages?: DSLPage[],
+): DSLPage[] {
+  const pageDelimiterRe = /# === \[PÁGINA:\s*(.*?)\] ===\n?/g;
+  const matches = [...combinedSource.matchAll(pageDelimiterRe)];
+
+  if (matches.length === 0) {
+    return [
+      {
+        id: existingPages?.[0]?.id ?? 'page_main',
+        name: existingPages?.[0]?.name ?? 'Principal',
+        content: combinedSource,
+      },
+    ];
+  }
+
+  const pages: DSLPage[] = [];
+  for (let i = 0; i < matches.length; i++) {
+    const match = matches[i];
+    const pageName = match[1]?.trim() || `Página ${i + 1}`;
+    const startIdx = (match.index ?? 0) + match[0].length;
+    const endIdx =
+      i + 1 < matches.length
+        ? (matches[i + 1].index ?? combinedSource.length)
+        : combinedSource.length;
+    const pageContent = combinedSource.slice(startIdx, endIdx).trimEnd();
+    const existing =
+      existingPages?.find((p) => p.name === pageName) || existingPages?.[i];
+
+    pages.push({
+      id: existing ? existing.id : `page_${i + 1}`,
+      name: pageName,
+      content: pageContent,
+    });
+  }
+
+  return pages;
 }
 
 export const BLANK_SHEET_DSL_TEMPLATE = `@meta "Novo Personagem" [archetype: "Aventureiro", system: "Sistema Customizado", level: 1, theme: "dark"]
@@ -86,18 +162,18 @@ interface ModularSheetState {
   isOpen: boolean;
   view: 'list' | 'create' | 'sheet';
   activeSheetId: string | null;
-  viewMode: 'visual' | 'split' | 'code' | 'logic';
+  viewMode: 'visual' | 'split' | 'code';
 
   // Navegação da Janela
   openManager: (initialView?: 'list' | 'create') => void;
   closeManager: () => void;
   setView: (view: 'list' | 'create' | 'sheet') => void;
-  setViewMode: (mode: 'visual' | 'split' | 'code' | 'logic') => void;
+  setViewMode: (mode: 'visual' | 'split' | 'code') => void;
   openSheet: (sheetId: string) => void;
   openSheetForToken: (tokenId: string) => boolean;
   getSheetByTokenId: (tokenId: string) => ModularSheetRecord | undefined;
 
-  // CRUD de Fichas
+  // CRUD de Fichas e Páginas da DSL
   createSheet: (params: {
     name?: string;
     presetId: ModularSheetPresetChoice;
@@ -105,6 +181,11 @@ interface ModularSheetState {
     assignTokenIds?: string[];
   }) => ModularSheetRecord;
   updateSheetSource: (sheetId: string, dslSource: string) => void;
+  updateSheetPageContent: (sheetId: string, pageId: string, content: string) => void;
+  addSheetPage: (sheetId: string, name?: string) => string;
+  removeSheetPage: (sheetId: string, pageId: string) => void;
+  renameSheetPage: (sheetId: string, pageId: string, newName: string) => void;
+  setActiveSheetPage: (sheetId: string, pageId: string) => void;
   updateSheetLogicSource: (sheetId: string, logicSource: string) => void;
   renameSheet: (sheetId: string, name: string) => void;
   duplicateSheet: (sheetId: string) => ModularSheetRecord | null;
@@ -356,10 +437,15 @@ export const useModularSheetStore = create<ModularSheetState>((set, get) => ({
         : defaultName);
 
     const now = Date.now();
+    const initialPages: DSLPage[] = [
+      { id: `page_${generateId()}`, name: 'Principal', content: finalSource },
+    ];
     const newRecord: ModularSheetRecord = {
       id: generateId(),
       name: resolvedName,
       dslSource: finalSource,
+      pages: initialPages,
+      activePageId: initialPages[0].id,
       presetId,
       assignedTokenIds: [...assignTokenIds],
       runtimeOverrides: {},
@@ -391,10 +477,40 @@ export const useModularSheetStore = create<ModularSheetState>((set, get) => ({
   },
 
   updateSheetSource: (sheetId, dslSource) => {
-    const compiled = compileSheetDSL(dslSource);
     set((state) => ({
       sheets: state.sheets.map((s) => {
         if (s.id !== sheetId) return s;
+
+        // Se dslSource contém delimitadores de páginas
+        if (/# === \[PÁGINA:\s*.*?\] ===/i.test(dslSource)) {
+          const updatedPages = splitCombinedSourceToPages(dslSource, s.pages);
+          const combined = getCombinedSheetSource({ dslSource, pages: updatedPages });
+          const compiled = compileSheetDSL(combined, s.runtimeOverrides);
+          const nextName =
+            compiled.meta.name && compiled.meta.name !== 'Sem Nome'
+              ? compiled.meta.name
+              : s.name;
+          return {
+            ...s,
+            name: nextName,
+            dslSource: combined,
+            pages: updatedPages,
+            updatedAt: Date.now(),
+          };
+        }
+
+        // Caso contrário, atualiza o conteúdo da página ativa:
+        const currentPages = getSheetPages(s);
+        const activeId =
+          s.activePageId && currentPages.some((p) => p.id === s.activePageId)
+            ? s.activePageId
+            : currentPages[0].id;
+
+        const updatedPages = currentPages.map((p) =>
+          p.id === activeId ? { ...p, content: dslSource } : p,
+        );
+        const combined = getCombinedSheetSource({ dslSource: s.dslSource, pages: updatedPages });
+        const compiled = compileSheetDSL(combined, s.runtimeOverrides);
         const nextName =
           compiled.meta.name && compiled.meta.name !== 'Sem Nome'
             ? compiled.meta.name
@@ -402,12 +518,130 @@ export const useModularSheetStore = create<ModularSheetState>((set, get) => ({
         return {
           ...s,
           name: nextName,
-          dslSource,
+          dslSource: combined,
+          pages: updatedPages,
+          activePageId: activeId,
           updatedAt: Date.now(),
         };
       }),
     }));
     triggerAutoSave();
+  },
+
+  updateSheetPageContent: (sheetId, pageId, content) => {
+    set((state) => ({
+      sheets: state.sheets.map((s) => {
+        if (s.id !== sheetId) return s;
+        const currentPages = getSheetPages(s);
+        const updatedPages = currentPages.map((p) =>
+          p.id === pageId ? { ...p, content } : p,
+        );
+        const combined = getCombinedSheetSource({ dslSource: s.dslSource, pages: updatedPages });
+        const compiled = compileSheetDSL(combined, s.runtimeOverrides);
+        const nextName =
+          compiled.meta.name && compiled.meta.name !== 'Sem Nome'
+            ? compiled.meta.name
+            : s.name;
+        return {
+          ...s,
+          name: nextName,
+          dslSource: combined,
+          pages: updatedPages,
+          activePageId: pageId,
+          updatedAt: Date.now(),
+        };
+      }),
+    }));
+    triggerAutoSave();
+  },
+
+  addSheetPage: (sheetId, name) => {
+    const newPageId = `page_${generateId()}`;
+    set((state) => ({
+      sheets: state.sheets.map((s) => {
+        if (s.id !== sheetId) return s;
+        const currentPages = getSheetPages(s);
+        const pageName =
+          name?.trim() ||
+          (currentPages.length === 1
+            ? 'Lógica'
+            : `Página ${currentPages.length + 1}`);
+        const newPage: DSLPage = {
+          id: newPageId,
+          name: pageName,
+          content: `# === ${pageName} ===\n\n`,
+        };
+        const updatedPages = [...currentPages, newPage];
+        const combined = getCombinedSheetSource({ dslSource: s.dslSource, pages: updatedPages });
+        return {
+          ...s,
+          pages: updatedPages,
+          activePageId: newPageId,
+          dslSource: combined,
+          updatedAt: Date.now(),
+        };
+      }),
+    }));
+    triggerAutoSave();
+    return newPageId;
+  },
+
+  removeSheetPage: (sheetId, pageId) => {
+    set((state) => ({
+      sheets: state.sheets.map((s) => {
+        if (s.id !== sheetId) return s;
+        const currentPages = getSheetPages(s);
+        if (currentPages.length <= 1) return s;
+        const updatedPages = currentPages.filter((p) => p.id !== pageId);
+        const nextActiveId =
+          s.activePageId === pageId
+            ? updatedPages[0].id
+            : (s.activePageId ?? updatedPages[0].id);
+        const combined = getCombinedSheetSource({ dslSource: s.dslSource, pages: updatedPages });
+        return {
+          ...s,
+          pages: updatedPages,
+          activePageId: nextActiveId,
+          dslSource: combined,
+          updatedAt: Date.now(),
+        };
+      }),
+    }));
+    triggerAutoSave();
+  },
+
+  renameSheetPage: (sheetId, pageId, newName) => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    set((state) => ({
+      sheets: state.sheets.map((s) => {
+        if (s.id !== sheetId) return s;
+        const currentPages = getSheetPages(s);
+        const updatedPages = currentPages.map((p) =>
+          p.id === pageId ? { ...p, name: trimmed } : p,
+        );
+        const combined = getCombinedSheetSource({ dslSource: s.dslSource, pages: updatedPages });
+        return {
+          ...s,
+          pages: updatedPages,
+          dslSource: combined,
+          updatedAt: Date.now(),
+        };
+      }),
+    }));
+    triggerAutoSave();
+  },
+
+  setActiveSheetPage: (sheetId, pageId) => {
+    set((state) => ({
+      sheets: state.sheets.map((s) => {
+        if (s.id !== sheetId) return s;
+        return {
+          ...s,
+          activePageId: pageId,
+        };
+      }),
+    }));
   },
 
   updateSheetLogicSource: (sheetId, logicSource) => {
@@ -447,10 +681,19 @@ export const useModularSheetStore = create<ModularSheetState>((set, get) => ({
     if (!orig) return null;
     const copyName = `${orig.name} (Cópia)`;
     const now = Date.now();
+    const origPages = getSheetPages(orig);
+    const copiedPages: DSLPage[] = origPages.map((p, idx) => ({
+      id: `page_${generateId()}`,
+      name: p.name,
+      content: idx === 0 ? replaceMetaTitleInDSL(p.content, copyName) : p.content,
+    }));
+    const combined = getCombinedSheetSource({ dslSource: orig.dslSource, pages: copiedPages });
     const copy: ModularSheetRecord = {
       id: generateId(),
       name: copyName,
-      dslSource: replaceMetaTitleInDSL(orig.dslSource, copyName),
+      dslSource: combined,
+      pages: copiedPages,
+      activePageId: copiedPages[0].id,
       presetId: orig.presetId,
       assignedTokenIds: [],
       runtimeOverrides: JSON.parse(JSON.stringify(orig.runtimeOverrides || {})),

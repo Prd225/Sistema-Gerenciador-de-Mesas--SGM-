@@ -22,14 +22,21 @@ import {
   ArrowUp,
   ArrowDown,
   X,
+  Plus,
+  FileCode,
 } from 'lucide-react';
 
 interface SheetDSLEditorProps {
   value: string;
   onChange: (nextSource: string) => void;
   compiledSheet: CompiledSheet;
-  quickSnippets?: Array<{ label: string; snippet: string }>;
   compactLayout?: boolean;
+  pages?: Array<{ id: string; name: string; content: string }>;
+  activePageId?: string;
+  onSelectPage?: (pageId: string) => void;
+  onAddPage?: (name?: string) => void;
+  onRenamePage?: (pageId: string, newName: string) => void;
+  onDeletePage?: (pageId: string) => void;
 }
 
 const LINE_HEIGHT = 20;
@@ -148,8 +155,13 @@ export function SheetDSLEditor({
   value,
   onChange,
   compiledSheet,
-  quickSnippets = [],
   compactLayout = false,
+  pages,
+  activePageId,
+  onSelectPage,
+  onAddPage,
+  onRenamePage,
+  onDeletePage,
 }: SheetDSLEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const backdropRef = useRef<HTMLDivElement | null>(null);
@@ -157,6 +169,16 @@ export function SheetDSLEditor({
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const measureSpanRef = useRef<HTMLSpanElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Páginas ativas no editor
+  const dslPages = useMemo(() => {
+    if (pages && pages.length > 0) return pages;
+    return [{ id: 'page_main', name: 'Principal', content: value }];
+  }, [pages, value]);
+
+  const currentActivePageId = activePageId || dslPages[0]?.id || 'page_main';
+  const [editingPageId, setEditingPageId] = useState<string | null>(null);
+  const [editingPageName, setEditingPageName] = useState<string>('');
 
   // Estado de blocos recolhidos (por chave estável)
   const [foldedIds, setFoldedIds] = useState<Set<string>>(() => new Set());
@@ -634,22 +656,6 @@ export function SheetDSLEditor({
     ],
   );
 
-  // Inserção de Quick Snippet no final ou na posição atual
-  const insertQuickSnippet = useCallback(
-    (snippet: string) => {
-      const nextFull = `${value.trimEnd()}\n${snippet}`;
-      onChange(nextFull);
-      requestAnimationFrame(() => {
-        const ta = textareaRef.current;
-        if (ta) {
-          ta.focus();
-          ta.scrollTop = ta.scrollHeight;
-        }
-      });
-    },
-    [value, onChange],
-  );
-
   // Coordenadas do popover de Autocomplete
   const completionPopoverStyle = useMemo((): React.CSSProperties => {
     if (!completionResult) return { display: 'none' };
@@ -747,66 +753,128 @@ export function SheetDSLEditor({
         MMMMMMMMMM
       </span>
 
-      {/* BARRA SUPERIOR 1: Snippets Rápidos + Status do Compilador */}
-      {quickSnippets.length > 0 && (
-        <div className="px-2.5 py-1 border-b border-[#242429] bg-[#141418] flex items-center justify-between gap-1.5 shrink-0">
-          {/* Versão Mobile: Dropdown compacto de 1 linha para não poluir */}
-          <div className="flex sm:hidden items-center gap-1.5 flex-1 min-w-0">
-            <select
-              defaultValue=""
-              onChange={(e) => {
-                if (e.target.value) {
-                  insertQuickSnippet(e.target.value);
-                  e.target.value = '';
-                }
-              }}
-              className="h-6 px-2 rounded bg-[#1c1c22] border border-[#2d2d35] text-[10px] font-mono text-[#c4b5fd] focus:outline-none max-w-[150px]"
-            >
-              <option value="" disabled>
-                + Inserir Bloco...
-              </option>
-              {quickSnippets.map((item) => (
-                <option key={item.label} value={item.snippet}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </div>
+      {/* BARRA SUPERIOR 1: Navegador de Páginas da DSL + Status do Compilador */}
+      <div className="px-2 py-1 border-b border-[#242429] bg-[#121216] flex items-center justify-between gap-1.5 shrink-0 min-h-[38px]">
+        {/* Navegador de Abas das Páginas */}
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar flex-1 min-w-0 py-0.5">
+          {dslPages.map((p) => {
+            const isActive = p.id === currentActivePageId;
+            const isEditingThis = editingPageId === p.id;
 
-          {/* Versão Desktop: Botões diretos */}
-          <div className="hidden sm:flex flex-wrap items-center gap-1">
-            {quickSnippets.map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                onClick={() => insertQuickSnippet(item.snippet)}
-                className="px-1.5 py-0.5 rounded bg-[#1c1c22] hover:bg-[#272730] border border-[#2d2d35] text-[10px] font-mono text-[#c4b5fd] transition-colors"
-                title={`Inserir modelo ${item.label} ao final do DSL`}
+            return (
+              <div
+                key={p.id}
+                onClick={() => {
+                  if (!isEditingThis && onSelectPage) {
+                    onSelectPage(p.id);
+                  }
+                }}
+                className={`group relative flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono select-none cursor-pointer transition-all border shrink-0 ${
+                  isActive
+                    ? 'bg-[#1e1e28] border-[#3b3b4f] text-[#f4f4f5] shadow-sm font-semibold'
+                    : 'bg-[#141419] border-transparent text-[#8b8b98] hover:text-[#d4d4d8] hover:bg-[#1a1a22]'
+                }`}
+                title={`${p.name} (Clique duplo para renomear)`}
               >
-                {item.label}
-              </button>
-            ))}
-          </div>
+                <FileCode className={`w-3.5 h-3.5 ${isActive ? 'text-[#a78bfa]' : 'text-[#6b7280]'}`} />
 
-          <button
-            type="button"
-            onClick={() => {
-              if (compiledSheet.diagnostics.length > 0) {
-                setShowDiagnostics((v) => !v);
-              }
-            }}
-            className={`px-2 py-0.5 rounded text-[10px] font-mono border shrink-0 ${
-              compiledSheet.diagnostics.length === 0
-                ? 'bg-[#0f2419] border-[#164e33] text-[#6ee7b7] cursor-default'
-                : 'bg-[#2b1f0e] border-[#78350f] text-[#fcd34d] hover:bg-[#382812] cursor-pointer'
-            }`}
-          >
-            {compiledSheet.diagnostics.length === 0
-              ? 'Compilado OK'
-              : `${compiledSheet.diagnostics.length} aviso(s)`}
-          </button>
+                {isEditingThis ? (
+                  <input
+                    type="text"
+                    autoFocus
+                    value={editingPageName}
+                    onChange={(e) => setEditingPageName(e.target.value)}
+                    onBlur={() => {
+                      if (editingPageName.trim() && onRenamePage) {
+                        onRenamePage(p.id, editingPageName.trim());
+                      }
+                      setEditingPageId(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        if (editingPageName.trim() && onRenamePage) {
+                          onRenamePage(p.id, editingPageName.trim());
+                        }
+                        setEditingPageId(null);
+                      } else if (e.key === 'Escape') {
+                        setEditingPageId(null);
+                      }
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-24 px-1 py-0.5 rounded bg-[#09090b] border border-[#a855f7] text-white text-xs font-mono outline-none"
+                  />
+                ) : (
+                  <span
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      setEditingPageId(p.id);
+                      setEditingPageName(p.name);
+                    }}
+                    className="truncate max-w-[130px] sm:max-w-[170px]"
+                  >
+                    {p.name}
+                  </span>
+                )}
+
+                {/* Botão de Excluir Página (se houver mais de 1 página) */}
+                {dslPages.length > 1 && !isEditingThis && onDeletePage && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const hasCode = p.content.replace(/#.*$/gm, '').trim().length > 0;
+                      if (hasCode) {
+                        const ok = window.confirm(`Deseja excluir a página "${p.name}"? Todo o código desta página será removido.`);
+                        if (!ok) return;
+                      }
+                      onDeletePage(p.id);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 hover:text-[#ef4444] text-[#71717a] p-0.5 rounded transition-opacity"
+                    title={`Excluir página ${p.name}`}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Botão + Nova Página */}
+          {onAddPage && (
+            <button
+              type="button"
+              onClick={() => {
+                const defaultName = dslPages.length === 1 ? 'Lógica' : `Página ${dslPages.length + 1}`;
+                onAddPage(defaultName);
+              }}
+              className="flex items-center gap-1 px-2 py-1 rounded text-xs font-mono bg-[#16161d] hover:bg-[#23232c] border border-[#2b2b38] hover:border-[#4f46e5] text-[#a78bfa] hover:text-[#c4b5fd] transition-colors shrink-0"
+              title="Adicionar nova página ao DSL (compartilha o mesmo contexto)"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Nova Página</span>
+            </button>
+          )}
         </div>
-      )}
+
+        {/* Status do Compilador no canto direito */}
+        <button
+          type="button"
+          onClick={() => {
+            if (compiledSheet.diagnostics.length > 0) {
+              setShowDiagnostics((v) => !v);
+            }
+          }}
+          className={`px-2 py-0.5 rounded text-[10px] font-mono border shrink-0 transition-colors ${
+            compiledSheet.diagnostics.length === 0
+              ? 'bg-[#0f2419] border-[#164e33] text-[#6ee7b7] cursor-default'
+              : 'bg-[#2b1f0e] border-[#78350f] text-[#fcd34d] hover:bg-[#382812] cursor-pointer'
+          }`}
+        >
+          {compiledSheet.diagnostics.length === 0
+            ? 'Compilado OK'
+            : `${compiledSheet.diagnostics.length} aviso(s)`}
+        </button>
+      </div>
 
       {/* BARRA SUPERIOR 2: Controles de Rastreio, Dobramento & Busca (Linha Única sem wrap) */}
       <div className="px-2.5 py-1 border-b border-[#242429] bg-[#16161b] flex items-center justify-between gap-2 shrink-0 overflow-x-auto no-scrollbar">

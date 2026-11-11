@@ -271,6 +271,12 @@ export class SheetParser {
       case 'gains':
         this.parseGainsDirective(doc);
         break;
+      case 'choose':
+        this.parseChooseDirective(doc);
+        break;
+      case 'branch':
+        this.parseBranchDirective(doc);
+        break;
     }
   }
 
@@ -1437,7 +1443,20 @@ export class SheetParser {
     const hasBrace = this.match('LBRACE');
     this.skipSeparators();
 
-    while (!this.isAtBlockEnd() && !(hasBrace && this.check('RBRACE'))) {
+    const isAtProgressionEnd = (): boolean => {
+      if (this.isAtEnd()) return true;
+      if (hasBrace) return this.check('RBRACE');
+      if (this.check('DIRECTIVE')) {
+        const v = this.peek().value;
+        if (['step', 'gains', 'choose', 'branch', 'caminho', 'when', 'se', 'switch'].includes(v)) {
+          return false;
+        }
+        return true;
+      }
+      return false;
+    };
+
+    while (!isAtProgressionEnd()) {
       // A. Diretiva @step ou identificador step/passo/etapa
       if (
         (this.check('DIRECTIVE') && this.peek().value === 'step') ||
@@ -1470,6 +1489,48 @@ export class SheetParser {
         continue;
       }
 
+      // C. Diretiva @choose ou identificador choose/escolha
+      if (
+        (this.check('DIRECTIVE') && this.peek().value === 'choose') ||
+        (this.check('IDENTIFIER') && ['choose', 'escolha', 'escolher', 'opcao', 'opcoes'].includes(this.peek().value.toLowerCase()))
+      ) {
+        const ch = this.parseProgressionChoiceDecl(currentStep?.targetModule);
+        if (ch) {
+          if (currentStep) currentStep.choices.push(ch);
+          else rootChoices.push(ch);
+        }
+        this.skipSeparators();
+        continue;
+      }
+
+      // D. Diretiva @branch ou identificador branch/caminho
+      if (
+        (this.check('DIRECTIVE') && (this.peek().value === 'branch' || this.peek().value === 'caminho')) ||
+        (this.check('IDENTIFIER') && ['branch', 'caminho', 'ramo', 'trilha'].includes(this.peek().value.toLowerCase()))
+      ) {
+        this.advance();
+        const br = this.parseProgressionBranchDecl(currentStep?.targetModule, header.placement);
+        if (br) {
+          if (!currentStep) {
+            currentStep = {
+              id: `step_${this.nextBlockId('step')}`,
+              title: title || 'Evolução',
+              gains: [],
+              choices: [],
+              branches: [],
+              isBifurcation: true,
+              placement: header.placement,
+            };
+            steps.push(currentStep);
+          }
+          if (!currentStep.branches) currentStep.branches = [];
+          currentStep.branches.push(br);
+          currentStep.isBifurcation = true;
+        }
+        this.skipSeparators();
+        continue;
+      }
+
       if (this.check('IDENTIFIER')) {
         const keyword = this.peek().value.toLowerCase();
 
@@ -1486,15 +1547,7 @@ export class SheetParser {
             cost = { amount: amt, resource: res };
           }
         }
-        // 2. Escolhas (choose <N> "<Titulo>" from [...])
-        else if (keyword === 'choose' || keyword === 'escolha' || keyword === 'escolher') {
-          const ch = this.parseProgressionChoiceDecl(currentStep?.targetModule);
-          if (ch) {
-            if (currentStep) currentStep.choices.push(ch);
-            else rootChoices.push(ch);
-          }
-        }
-        // 3. Item de ganho direto (ex: level += 1 ou "Pontos de Vida" [mod: PV + 5])
+        // 2. Item de ganho direto (ex: level += 1 ou "Pontos de Vida" [mod: PV + 5])
         else {
           const gain = this.parseSingleGainItem();
           if (gain) {
@@ -1628,6 +1681,47 @@ export class SheetParser {
     }
   }
 
+  private parseChooseDirective(doc: ASTSheetDocument): void {
+    const prog = this.ensureActiveProgression(doc);
+    let targetStep = prog.steps[prog.steps.length - 1];
+    if (!targetStep) {
+      targetStep = {
+        id: `step_${this.nextBlockId('step')}`,
+        title: 'Escolhas da Evolução',
+        gains: [],
+        choices: [],
+      };
+      prog.steps.push(targetStep);
+    }
+    const choice = this.parseProgressionChoiceDecl(targetStep.targetModule);
+    if (choice) {
+      targetStep.choices.push(choice);
+      if (!prog.choices.includes(choice)) prog.choices.push(choice);
+    }
+  }
+
+  private parseBranchDirective(doc: ASTSheetDocument): void {
+    const prog = this.ensureActiveProgression(doc);
+    let targetStep = prog.steps[prog.steps.length - 1];
+    if (!targetStep) {
+      targetStep = {
+        id: `step_${this.nextBlockId('step')}`,
+        title: 'Caminhos da Evolução',
+        gains: [],
+        choices: [],
+        branches: [],
+        isBifurcation: true,
+      };
+      prog.steps.push(targetStep);
+    }
+    const br = this.parseProgressionBranchDecl(targetStep.targetModule);
+    if (br) {
+      if (!targetStep.branches) targetStep.branches = [];
+      targetStep.branches.push(br);
+      targetStep.isBifurcation = true;
+    }
+  }
+
   private parseProgressionStepDecl(defaultTargetModule?: string): ASTProgressionStepDecl | null {
     const startSpan = this.peek().span;
     let title = 'Etapa';
@@ -1697,6 +1791,12 @@ export class SheetParser {
           this.skipSeparators();
           continue;
         }
+        if (d === 'choose') {
+          const ch = this.parseProgressionChoiceDecl(targetModule);
+          if (ch) choices.push(ch);
+          this.skipSeparators();
+          continue;
+        }
         if (d === 'branch' || d === 'caminho') {
           this.advance();
           const br = this.parseProgressionBranchDecl(targetModule, header.placement);
@@ -1710,6 +1810,8 @@ export class SheetParser {
           this.skipSeparators();
           continue;
         }
+        // Qualquer outra diretiva encerra a etapa atual (@step, @progression, @attr, etc.)
+        break;
       }
 
       if (this.check('IDENTIFIER')) {
@@ -1826,11 +1928,28 @@ export class SheetParser {
         }
       }
 
-      if (this.check('DIRECTIVE') && this.peek().value === 'gains') {
-        this.advance();
-        this.parseGainsBlockInto(gains, parentPlacement);
-        this.skipSeparators();
-        continue;
+      if (this.check('DIRECTIVE')) {
+        const d = this.peek().value;
+        if (d === 'gains') {
+          this.advance();
+          this.parseGainsBlockInto(gains, parentPlacement);
+          this.skipSeparators();
+          continue;
+        }
+        if (d === 'choose') {
+          const ch = this.parseProgressionChoiceDecl(branchTarget);
+          if (ch) choices.push(ch);
+          this.skipSeparators();
+          continue;
+        }
+        if (d === 'when' || d === 'se') {
+          this.advance();
+          this.parseWhenBlockInto(gains, choices, [], branchTarget, parentPlacement);
+          this.skipSeparators();
+          continue;
+        }
+        // Qualquer outra diretiva encerra esta branch (ex: próxima branch, @step, @attr)
+        break;
       }
 
       if (this.check('IDENTIFIER')) {
@@ -4248,6 +4367,7 @@ export class SheetParser {
   }
 
   private synchronizeToNextStatement(): void {
+    const startPos = this.pos;
     while (!this.isAtEnd()) {
       const t = this.peek().type;
       if (t === 'NEWLINE' || t === 'SEMICOLON' || t === 'PIPE') {
@@ -4255,6 +4375,11 @@ export class SheetParser {
         return;
       }
       if (t === 'RBRACE' || t === 'DIRECTIVE') {
+        // Se ainda não avançou nenhum token, consome obrigatoriamente 1 token
+        // para garantir progresso e eliminar loops infinitos no parser.
+        if (this.pos === startPos) {
+          this.advance();
+        }
         return;
       }
       this.advance();

@@ -208,7 +208,7 @@ export const DIRECTIVE_ALIASES: Record<string, CanonicalBlockKind> = {
   logica: 'logic',
   lógica: 'logic',
 
-  // Etapas e Ganhos Modulares de Progressão (@step, @gains)
+  // Etapas e Ganhos Modulares de Progressão (@step, @gains, @choose)
   step: 'step',
   passo: 'step',
   etapa: 'step',
@@ -217,6 +217,13 @@ export const DIRECTIVE_ALIASES: Record<string, CanonicalBlockKind> = {
   gain: 'gains',
   ganho: 'gains',
   ganhos: 'gains',
+  choose: 'choose',
+  escolha: 'choose',
+  escolher: 'choose',
+  opcao: 'choose',
+  opção: 'choose',
+  opcoes: 'choose',
+  opções: 'choose',
   branch: 'branch',
   caminho: 'branch',
   ramo: 'branch',
@@ -366,21 +373,32 @@ export class SheetLexer {
       return;
     }
 
-    // 5. Diretiva de Bloco (@attr, @res, @skill, @perícias, etc.)
+    // 5. Diretiva de Bloco (@attr, @res, @skill, @step, @choose, etc.)
     if (ch === '@') {
       this.advance(); // Consome '@'
       const rawName = this.readIdentifier();
+      if (rawName.length === 0) {
+        this.diagnostics.push({
+          severity: 'warning',
+          stage: 'lexer',
+          message: "Símbolo '@' incompleto sem identificador de diretiva.",
+          span: { start, end: this.currentPos() },
+          symbol: '@',
+        });
+        this.emit('TAG', '@', start);
+        return;
+      }
       const normalized = normalizeDirectiveKey(rawName);
       const canonical = DIRECTIVE_ALIASES[normalized];
       if (!canonical) {
         this.diagnostics.push({
           severity: 'warning',
           stage: 'lexer',
-          message: `Diretiva '@${rawName}' desconhecida. Assumindo bloco '@stat'.`,
+          message: `Diretiva '@${rawName}' desconhecida.`,
           span: { start, end: this.currentPos() },
           symbol: `@${rawName}`,
         });
-        this.emit('DIRECTIVE', 'stat', start);
+        this.emit('DIRECTIVE', (normalized as any) || 'stat', start);
       } else {
         this.emit('DIRECTIVE', canonical, start);
       }
