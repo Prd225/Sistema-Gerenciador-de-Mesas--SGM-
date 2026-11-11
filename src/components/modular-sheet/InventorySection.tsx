@@ -26,6 +26,7 @@ interface InventorySectionProps {
   titleOverride?: string;
   isTall?: boolean;
   isEditMode?: boolean;
+  isMobilePortrait?: boolean;
 }
 
 export function InventorySection({
@@ -36,6 +37,7 @@ export function InventorySection({
   titleOverride,
   isTall = false,
   isEditMode = false,
+  isMobilePortrait = false,
 }: InventorySectionProps) {
   const setItemState = useModularSheetStore((s) => s.setItemState);
   const setItemQty = useModularSheetStore((s) => s.setItemQty);
@@ -94,22 +96,26 @@ export function InventorySection({
         {
           value: 'equipped',
           label: 'Equipado',
-          icon: <Shield className="w-3 h-3" />,
+          icon: <Shield className="w-3 h-3 shrink-0" />,
         },
         {
           value: 'carried',
           label: 'Mochila',
-          icon: <Package className="w-3 h-3" />,
+          icon: <Package className="w-3 h-3 shrink-0" />,
         },
         {
           value: 'stash',
           label: 'Reserva',
-          icon: <Archive className="w-3 h-3" />,
+          icon: <Archive className="w-3 h-3 shrink-0" />,
         },
       ];
 
     return (
-      <div className="inline-flex rounded-md border border-[#323238] bg-[#18181b] p-0.5">
+      <div
+        className={`rounded-md border border-[#323238] bg-[#18181b] p-0.5 ${
+          isMobilePortrait ? 'flex w-full' : 'inline-flex'
+        }`}
+      >
         {options.map((opt) => {
           const selected = item.state === opt.value;
           return (
@@ -117,13 +123,15 @@ export function InventorySection({
               key={opt.value}
               type="button"
               onClick={() => setItemState(sheetId, item.id, opt.value)}
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${selected
-                  ? opt.value === 'equipped'
-                    ? 'text-white'
-                    : opt.value === 'carried'
-                      ? 'bg-[#323238] text-white'
-                      : 'bg-amber-600/30 text-amber-200'
-                  : 'text-[#8d8d99] hover:text-white'
+              className={`inline-flex items-center justify-center gap-1 py-1 rounded text-[10px] font-bold transition-colors ${
+                isMobilePortrait ? 'flex-1 px-1' : 'px-2'
+              } ${selected
+                ? opt.value === 'equipped'
+                  ? 'text-white'
+                  : opt.value === 'carried'
+                    ? 'bg-[#323238] text-white'
+                    : 'bg-amber-600/30 text-amber-200'
+                : 'text-[#8d8d99] hover:text-white'
                 }`}
               style={
                 selected && opt.value === 'equipped'
@@ -139,7 +147,7 @@ export function InventorySection({
               }
             >
               {opt.icon}
-              {opt.label}
+              <span className="truncate">{opt.label}</span>
             </button>
           );
         })}
@@ -151,7 +159,8 @@ export function InventorySection({
 
   return (
     <section
-      className={`rounded-xl border p-3 space-y-2.5 transition-colors ${isTall ? 'flex-1 flex flex-col' : ''}`}
+      className={`rounded-xl border p-3 space-y-2.5 transition-colors ${isTall && !isMobilePortrait ? 'flex-1 flex flex-col' : ''
+        }`}
       style={{
         backgroundColor: 'var(--sheet-card-bg, #18181b)',
         borderColor: 'var(--sheet-card-border, #29292e)',
@@ -285,10 +294,10 @@ export function InventorySection({
           >
             <div
               className={`h-full transition-all duration-300 ${inv.isOverloaded
-                  ? 'bg-gradient-to-r from-rose-600 to-red-500'
-                  : pct >= 85
-                    ? 'bg-gradient-to-r from-amber-500 to-orange-400'
-                    : ''
+                ? 'bg-gradient-to-r from-rose-600 to-red-500'
+                : pct >= 85
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-400'
+                  : ''
                 }`}
               style={{
                 width: `${inv.isOverloaded ? 100 : pct}%`,
@@ -333,17 +342,23 @@ export function InventorySection({
           <div
             key={item.id}
             className={`rounded-lg border p-3 space-y-2 transition-colors ${item.state === 'equipped'
-                ? 'border-[var(--sheet-accent)]'
-                : item.state === 'stash'
-                  ? 'opacity-75'
-                  : ''
+              ? 'border-[var(--sheet-accent)]'
+              : item.state === 'stash'
+                ? 'opacity-75'
+                : ''
               }`}
             style={{
               backgroundColor: 'var(--sheet-item-bg, #121214)',
               borderColor: item.state === 'equipped' ? undefined : 'var(--sheet-item-border, #29292e)',
             }}
           >
-            <div className="flex flex-wrap items-start justify-between gap-2">
+            <div
+              className={`flex gap-2.5 ${
+                isMobilePortrait
+                  ? 'flex-col items-stretch'
+                  : 'flex-wrap items-start justify-between'
+              }`}
+            >
               <div className="space-y-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span className="text-sm font-bold text-white">
@@ -385,8 +400,8 @@ export function InventorySection({
                       <span
                         key={idx}
                         className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${item.state === 'equipped'
-                            ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
-                            : 'bg-[#202024] text-[#8d8d99] line-through'
+                          ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
+                          : 'bg-[#202024] text-[#8d8d99] line-through'
                           }`}
                       >
                         {eff}
@@ -397,54 +412,68 @@ export function InventorySection({
               </div>
 
               {/* Controles de Estado e Quantidade */}
-              <div className="flex flex-wrap items-center gap-2 shrink-0">
-                {item.consumable && (
-                  <button
-                    type="button"
-                    disabled={item.qty <= 0}
-                    onClick={() => setItemQty(sheetId, item.id, Math.max(0, item.qty - 1))}
-                    className="h-6 px-2 rounded-md border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed text-[10px] font-bold text-emerald-200 transition-colors"
-                    title="Consumir 1 unidade"
-                  >
-                    Consumir (-1)
-                  </button>
-                )}
+              <div
+                className={`gap-2 ${
+                  isMobilePortrait
+                    ? 'flex flex-col w-full pt-1'
+                    : 'flex flex-wrap items-center shrink-0'
+                }`}
+              >
+                <div
+                  className={`flex items-center gap-2 ${
+                    isMobilePortrait ? 'w-full justify-between' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-1 rounded-md border border-[#323238] bg-[#18181b] px-1.5 py-0.5">
+                    <span className="text-[10px] text-[#8d8d99] mr-0.5">Qtd:</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setItemQty(sheetId, item.id, Math.max(0, item.qty - 1))
+                      }
+                      className="w-5 h-5 rounded hover:bg-white/10 flex items-center justify-center text-[#e1e1e6]"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <span className="min-w-[20px] text-center text-xs font-mono font-bold text-white">
+                      {item.qty}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setItemQty(sheetId, item.id, item.qty + 1)}
+                      className="w-5 h-5 rounded hover:bg-white/10 flex items-center justify-center text-[#e1e1e6]"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
 
-                <div className="flex items-center gap-1 rounded-md border border-[#323238] bg-[#18181b] px-1.5 py-0.5">
-                  <span className="text-[10px] text-[#8d8d99] mr-0.5">Qtd:</span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setItemQty(sheetId, item.id, Math.max(0, item.qty - 1))
-                    }
-                    className="w-5 h-5 rounded hover:bg-white/10 flex items-center justify-center text-[#e1e1e6]"
-                  >
-                    <Minus className="w-3 h-3" />
-                  </button>
-                  <span className="min-w-[20px] text-center text-xs font-mono font-bold text-white">
-                    {item.qty}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setItemQty(sheetId, item.id, item.qty + 1)}
-                    className="w-5 h-5 rounded hover:bg-white/10 flex items-center justify-center text-[#e1e1e6]"
-                  >
-                    <Plus className="w-3 h-3" />
-                  </button>
+                  {item.consumable && (
+                    <button
+                      type="button"
+                      disabled={item.qty <= 0}
+                      onClick={() => setItemQty(sheetId, item.id, Math.max(0, item.qty - 1))}
+                      className="h-6 px-2 rounded-md border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed text-[10px] font-bold text-emerald-200 transition-colors"
+                      title="Consumir 1 unidade"
+                    >
+                      Consumir (-1)
+                    </button>
+                  )}
+
+                  {isEditMode && (
+                    <button
+                      type="button"
+                      onClick={() => removeInventoryItem(sheetId, item.label)}
+                      className="p-1 rounded hover:bg-rose-500/20 text-zinc-500 hover:text-rose-400 transition-colors ml-auto sm:ml-0"
+                      title="Remover item"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
 
-                {renderStateSwitcher(item)}
-
-                {isEditMode && (
-                  <button
-                    type="button"
-                    onClick={() => removeInventoryItem(sheetId, item.label)}
-                    className="p-1 rounded hover:bg-rose-500/20 text-zinc-500 hover:text-rose-400 transition-colors"
-                    title="Remover item"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
+                <div className={isMobilePortrait ? 'w-full' : ''}>
+                  {renderStateSwitcher(item)}
+                </div>
               </div>
             </div>
 
@@ -454,7 +483,11 @@ export function InventorySection({
                 {item.actions.map((act) => (
                   <div
                     key={act.id}
-                    className="flex flex-wrap items-center justify-between gap-2 p-2 rounded bg-[#18181b] border border-[#29292e]"
+                    className={`gap-2 p-2 rounded bg-[#18181b] border border-[#29292e] ${
+                      isMobilePortrait
+                        ? 'flex flex-col items-stretch'
+                        : 'flex flex-wrap items-center justify-between'
+                    }`}
                   >
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-1.5">
@@ -480,7 +513,13 @@ export function InventorySection({
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div
+                      className={`gap-1.5 ${
+                        isMobilePortrait
+                          ? 'flex flex-col w-full pt-1'
+                          : 'flex items-center shrink-0'
+                      }`}
+                    >
                       {act.testFormula && (
                         <button
                           type="button"
@@ -491,11 +530,13 @@ export function InventorySection({
                               item.label,
                             )
                           }
-                          className="h-7 px-2.5 rounded bg-[#8257e5]/20 hover:bg-[#8257e5] border border-[#8257e5]/50 text-[#c4b5fd] hover:text-white text-xs font-bold flex items-center gap-1 transition-colors"
+                          className={`h-7 px-2.5 rounded bg-[#8257e5]/20 hover:bg-[#8257e5] border border-[#8257e5]/50 text-[#c4b5fd] hover:text-white text-xs font-bold flex items-center gap-1 transition-colors ${
+                            isMobilePortrait ? 'w-full justify-center' : ''
+                          }`}
                           title={`Teste: ${act.testFormula}`}
                         >
                           <Dices className="w-3.5 h-3.5" />
-                          Teste ({act.testFormula})
+                          <span>Teste ({act.testFormula})</span>
                         </button>
                       )}
                       {act.damageFormula && (
@@ -508,11 +549,13 @@ export function InventorySection({
                               item.label,
                             )
                           }
-                          className="h-7 px-2.5 rounded bg-rose-500/20 hover:bg-rose-600 border border-rose-500/50 text-rose-300 hover:text-white text-xs font-bold flex items-center gap-1 transition-colors"
+                          className={`h-7 px-2.5 rounded bg-rose-500/20 hover:bg-rose-600 border border-rose-500/50 text-rose-300 hover:text-white text-xs font-bold flex items-center gap-1 transition-colors ${
+                            isMobilePortrait ? 'w-full justify-center' : ''
+                          }`}
                           title={`Dano: ${act.damageFormula}`}
                         >
                           <Flame className="w-3.5 h-3.5" />
-                          Dano ({act.damageFormula})
+                          <span>Dano ({act.damageFormula})</span>
                         </button>
                       )}
                     </div>

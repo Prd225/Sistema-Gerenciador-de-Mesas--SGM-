@@ -27,4 +27,6 @@ test_desempenho/
 server/uploads/
 
 tunnel-url.txt
+public/sounds/dice/raw/
+
 

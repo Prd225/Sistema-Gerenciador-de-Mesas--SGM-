@@ -239,7 +239,7 @@ interface ModularSheetState {
   updateTabNavConfig: (
     sheetId: string,
     config: {
-      position?: 'top' | 'bottom' | 'left' | 'right' | 'hidden';
+      position?: import('@/lib/sheet-dsl').TabNavPosition;
       showLabels?: boolean;
       align?: 'left' | 'center' | 'right' | 'stretch';
     },
@@ -1345,6 +1345,27 @@ export const useModularSheetStore = create<ModularSheetState>((set, get) => ({
       return `${headerLine} [${key}: ${val}]`;
     };
 
+    // 1. Se já existir uma diretiva @tab_flow (ou aliases), atualiza diretamente nela
+    const tabFlowRegex = /(@(?:tab_flow|tabflow|fluxo_abas|controle_abas|nav|navegacao|tabbar|tabs_nav)\b[^\n]*)/i;
+    if (tabFlowRegex.test(src)) {
+      src = src.replace(tabFlowRegex, (line) => {
+        let updated = line;
+        if (config.position !== undefined) {
+          updated = upsertMetaBracketKey(updated, 'pos', `"${config.position}"`);
+        }
+        if (config.showLabels !== undefined) {
+          updated = upsertMetaBracketKey(updated, 'labels', config.showLabels ? 'true' : 'false');
+        }
+        if (config.align !== undefined) {
+          updated = upsertMetaBracketKey(updated, 'align', `"${config.align}"`);
+        }
+        return updated;
+      });
+      get().updateSheetSource(sheetId, src);
+      return;
+    }
+
+    // 2. Caso contrário, atualiza no @meta
     const metaRegex = /(@meta\b[^\n]*)/i;
     if (!metaRegex.test(src)) {
       src = `@meta "${rec.name}"\n\n${src}`;

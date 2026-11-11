@@ -31,6 +31,7 @@ interface ProfileSectionProps {
   profile: EvaluatedProfileBlock;
   onUpdateProfileImage?: (adj: ProfileImageAdjustments) => void;
   isEditMode?: boolean;
+  isMobilePortrait?: boolean;
 }
 
 export function resolveSheetImageUrl(rawUrl?: string): string {
@@ -56,6 +57,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   profile,
   onUpdateProfileImage,
   isEditMode = false,
+  isMobilePortrait = false,
 }) => {
   const updateCharacterLevel = useModularSheetStore((s) => s.updateCharacterLevel);
   const updateProfileFields = useModularSheetStore((s) => s.updateProfileFields);
@@ -222,9 +224,11 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
             ? 'w-40 min-h-[180px] rounded-2xl shrink-0'
             : 'w-32 min-h-[120px] rounded-xl shrink-0';
 
-  const boxInlineStyle: React.CSSProperties = {};
+  const boxInlineStyle: React.CSSProperties = isMobilePortrait
+    ? { maxWidth: '100%' }
+    : {};
   if (activeW !== undefined && activeW > 0) {
-    boxInlineStyle.width = `${activeW}px`;
+    boxInlineStyle.width = isMobilePortrait ? `min(${activeW}px, 100%)` : `${activeW}px`;
   }
   if (activeH !== undefined && activeH > 0) {
     boxInlineStyle.height = `${activeH}px`;
@@ -294,9 +298,8 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         setEditing((v) => !v);
       }}
       style={boxInlineStyle}
-      className={`group relative overflow-hidden border border-zinc-800 bg-zinc-950 flex items-center justify-center transition-colors ${
-        onUpdateProfileImage && isEditMode ? 'cursor-pointer hover:border-indigo-500/40' : ''
-      } ${defaultBoxClasses}`}
+      className={`group relative overflow-hidden border border-zinc-800 bg-zinc-950 flex items-center justify-center transition-colors ${onUpdateProfileImage && isEditMode ? 'cursor-pointer hover:border-indigo-500/40' : ''
+        } ${defaultBoxClasses}`}
       title={
         onUpdateProfileImage
           ? isEditMode
@@ -517,7 +520,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   ) : null;
 
   return (
-    <div className={`space-y-2 ${isTall ? 'flex-1 flex flex-col' : ''}`}>
+    <div className={`space-y-2 ${isTall && !isMobilePortrait ? 'flex-1 flex flex-col' : ''}`}>
       {profile.title && (
         <div className="px-1">
           <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
@@ -527,13 +530,14 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
       )}
 
       <div
-        className={`relative rounded-xl border p-3.5 transition-colors ${isTall ? 'flex-1 justify-center ' : ''}${activeTextPos === 'bottom' || isBanner
-          ? 'flex flex-col items-center gap-3.5'
-          : activeTextPos === 'top'
-            ? 'flex flex-col items-center gap-3.5'
-            : isAvatarOnly
-              ? 'flex flex-col items-center justify-center'
-              : 'flex flex-col sm:flex-row items-center gap-4'
+        className={`relative rounded-xl border p-3.5 transition-colors ${isTall && !isMobilePortrait ? 'flex-1 justify-center ' : ''
+          }${isMobilePortrait || activeTextPos === 'bottom' || isBanner
+            ? 'flex flex-col items-center gap-3.5 w-full'
+            : activeTextPos === 'top'
+              ? 'flex flex-col items-center gap-3.5 w-full'
+              : isAvatarOnly
+                ? 'flex flex-col items-center justify-center w-full'
+                : 'flex flex-col sm:flex-row items-center gap-4 w-full'
           }`}
         style={{
           backgroundColor: 'var(--sheet-card-bg, #18181b)',

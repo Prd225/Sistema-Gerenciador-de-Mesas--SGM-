@@ -386,7 +386,34 @@ export class SheetAnalyzer {
     ).toLowerCase();
 
     let tabPosition: import('./types').TabNavPosition = 'top';
+    let explicitPosition = Boolean(rawTabPos);
     if (
+      rawTabPos === 'semicircle' ||
+      rawTabPos === 'semicirculo' ||
+      rawTabPos === 'semi_circle' ||
+      rawTabPos === 'semi' ||
+      rawTabPos === 'arc' ||
+      rawTabPos === 'arco' ||
+      rawTabPos === 'radial' ||
+      rawTabPos === 'central' ||
+      rawTabPos === 'orb' ||
+      rawTabPos === 'wheel' ||
+      allMetaMarkers.has('semicircle') ||
+      allMetaMarkers.has('semicirculo') ||
+      allMetaMarkers.has('tabs_semicircle')
+    ) {
+      tabPosition = 'semicircle';
+      explicitPosition = true;
+    } else if (
+      rawTabPos === 'inline' ||
+      rawTabPos === 'flow' ||
+      rawTabPos === 'modulo' ||
+      allMetaMarkers.has('inline') ||
+      allMetaMarkers.has('flow')
+    ) {
+      tabPosition = 'inline';
+      explicitPosition = true;
+    } else if (
       rawTabPos === 'left' ||
       rawTabPos === 'esquerda' ||
       rawTabPos === 'esq' ||
@@ -395,6 +422,7 @@ export class SheetAnalyzer {
       allMetaMarkers.has('esquerda')
     ) {
       tabPosition = 'left';
+      explicitPosition = true;
     } else if (
       rawTabPos === 'right' ||
       rawTabPos === 'direita' ||
@@ -404,6 +432,7 @@ export class SheetAnalyzer {
       allMetaMarkers.has('direita')
     ) {
       tabPosition = 'right';
+      explicitPosition = true;
     } else if (
       rawTabPos === 'bottom' ||
       rawTabPos === 'baixo' ||
@@ -413,6 +442,17 @@ export class SheetAnalyzer {
       allMetaMarkers.has('abas_baixo')
     ) {
       tabPosition = 'bottom';
+      explicitPosition = true;
+    } else if (
+      rawTabPos === 'top' ||
+      rawTabPos === 'topo' ||
+      rawTabPos === 'cima' ||
+      rawTabPos === 'superior' ||
+      allMetaMarkers.has('tabs_top') ||
+      allMetaMarkers.has('abas_topo')
+    ) {
+      tabPosition = 'top';
+      explicitPosition = true;
     } else if (
       rawTabPos === 'hidden' ||
       rawTabPos === 'none' ||
@@ -422,6 +462,7 @@ export class SheetAnalyzer {
       allMetaMarkers.has('no_tabs')
     ) {
       tabPosition = 'hidden';
+      explicitPosition = true;
     }
 
     const rawLabelsProp =
@@ -473,6 +514,7 @@ export class SheetAnalyzer {
           position: tabPosition,
           showLabels,
           align: tabAlign,
+          explicitPosition,
         },
         props: metaProps,
         tags: this.ast.meta.tags,

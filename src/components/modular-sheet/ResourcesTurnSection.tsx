@@ -15,6 +15,7 @@ interface ResourcesTurnSectionProps {
   cols?: number;
   isTall?: boolean;
   onExecuteRoll?: OnExecuteRoll;
+  isMobilePortrait?: boolean;
 }
 
 interface ResourceVisualStyle {
@@ -156,6 +157,7 @@ export function ResourcesTurnSection({
   cols,
   isTall = false,
   onExecuteRoll,
+  isMobilePortrait = false,
 }: ResourcesTurnSectionProps) {
   const {
     setResourceCurrent,
@@ -195,7 +197,8 @@ export function ResourcesTurnSection({
     display === 'stacked' ||
     display === 'list' ||
     display === 'divided' ||
-    (isTall && !cols);
+    (isTall && !cols) ||
+    isMobilePortrait;
 
   const gridStyle: React.CSSProperties | undefined = useStacked
     ? undefined
@@ -221,7 +224,11 @@ export function ResourcesTurnSection({
           : 'Rodada';
 
   return (
-    <div className={`space-y-2.5 ${isTall ? 'flex-1 flex flex-col' : ''}`}>
+    <div
+      className={`space-y-2.5 w-full min-w-0 ${
+        isTall && !isMobilePortrait ? 'flex-1 flex flex-col' : ''
+      }`}
+    >
       {customTitle && (
         <h3 className="text-xs font-bold uppercase tracking-wider text-[#a8a8b3] px-0.5">
           {customTitle}
@@ -591,13 +598,26 @@ export function ResourcesTurnSection({
             borderColor: 'var(--sheet-card-border, #29292e)',
           }}
         >
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#8d8d99]">
-                Ações ({resetPolicyLabel}):
-              </span>
+          <div className={`flex ${isMobilePortrait ? 'flex-col gap-2.5' : 'flex-wrap items-center justify-between gap-2'}`}>
+            <div className={`flex ${isMobilePortrait ? 'flex-col gap-1.5' : 'flex-wrap items-center gap-2'} w-full sm:w-auto`}>
+              <div className="flex items-center justify-between w-full sm:w-auto gap-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#8d8d99]">
+                  Ações ({resetPolicyLabel}):
+                </span>
+                {isMobilePortrait && (
+                  <button
+                    type="button"
+                    onClick={() => resetTurnSlots(sheetId)}
+                    title={`Resetar ações (${resetPolicyLabel})`}
+                    className="px-2 py-0.5 rounded border border-[#323238] bg-[#121214] hover:bg-[#202024] text-[#a8a8b3] hover:text-white text-[10px] font-medium flex items-center gap-1 transition-colors shrink-0"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Resetar</span>
+                  </button>
+                )}
+              </div>
 
-              <div className="flex flex-wrap items-center gap-1.5">
+              <div className={`flex flex-wrap items-center gap-1.5 ${isMobilePortrait ? 'w-full' : ''}`}>
                 {turnSlots.map((slot) => {
                   const max = slot.max || 1;
                   const cur = slot.current;
@@ -610,7 +630,9 @@ export function ResourcesTurnSection({
                       onClick={() =>
                         setTurnSlotCurrent(sheetId, slot.id, cur > 0 ? cur - 1 : max)
                       }
-                      className={`px-2.5 py-1 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                      className={`${
+                        isMobilePortrait ? 'flex-1 min-w-[95px] justify-between' : ''
+                      } px-2.5 py-1 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
                         isReady
                           ? 'hover:opacity-90'
                           : 'border-[#323238] bg-[#18181b] text-[#71717a] line-through'
@@ -625,8 +647,8 @@ export function ResourcesTurnSection({
                           : undefined
                       }
                     >
-                      <span>{slot.label || slot.id}</span>
-                      <span className="font-mono text-[10px] font-bold">
+                      <span className="truncate">{slot.label || slot.id}</span>
+                      <span className="font-mono text-[10px] font-bold shrink-0">
                         {cur}/{max}
                       </span>
                     </button>
@@ -635,19 +657,21 @@ export function ResourcesTurnSection({
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => resetTurnSlots(sheetId)}
-              title={`Resetar ações (${resetPolicyLabel})`}
-              className="px-2 py-1 rounded border border-[#323238] bg-[#121214] hover:bg-[#202024] text-[#a8a8b3] hover:text-white text-[11px] font-medium flex items-center gap-1 transition-colors shrink-0"
-            >
-              <RotateCcw className="w-3 h-3" />
-              <span>Resetar</span>
-            </button>
+            {!isMobilePortrait && (
+              <button
+                type="button"
+                onClick={() => resetTurnSlots(sheetId)}
+                title={`Resetar ações (${resetPolicyLabel})`}
+                className="px-2 py-1 rounded border border-[#323238] bg-[#121214] hover:bg-[#202024] text-[#a8a8b3] hover:text-white text-[11px] font-medium flex items-center gap-1 transition-colors shrink-0"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Resetar</span>
+              </button>
+            )}
           </div>
 
           {turnConversions.length > 0 && (
-            <div className="pt-2 border-t border-[#29292e] flex flex-wrap items-center gap-1.5">
+            <div className={`pt-2 border-t border-[#29292e] flex ${isMobilePortrait ? 'flex-col gap-1.5' : 'flex-wrap items-center gap-1.5'}`}>
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#71717a] flex items-center gap-1 mr-1">
                 <ArrowRightLeft className="w-3 h-3" />
                 Compostas:
@@ -691,7 +715,9 @@ export function ResourcesTurnSection({
                         ? `Gastar ${costSummary}`
                         : `Requer disponível: ${costSummary}`
                     }
-                    className={`px-2.5 py-1 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                    className={`${
+                      isMobilePortrait ? 'w-full justify-between' : ''
+                    } px-2.5 py-1 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
                       canAfford
                         ? 'border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20'
                         : 'border-[#29292e] border-dashed bg-[#121214] text-[#71717a] opacity-60 cursor-not-allowed line-through'

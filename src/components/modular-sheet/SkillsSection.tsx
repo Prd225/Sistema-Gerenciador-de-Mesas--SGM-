@@ -21,6 +21,7 @@ interface SkillsSectionProps {
   cols?: number;
   isTall?: boolean;
   isEditMode?: boolean;
+  isMobilePortrait?: boolean;
 }
 
 export function SkillsSection({
@@ -34,6 +35,7 @@ export function SkillsSection({
   cols,
   isTall = false,
   isEditMode = false,
+  isMobilePortrait = false,
 }: SkillsSectionProps) {
   const addSkillItem = useModularSheetStore((s) => s.addSkillItem);
   const updateSkillBonus = useModularSheetStore((s) => s.updateSkillBonus);
@@ -109,7 +111,7 @@ export function SkillsSection({
   };
 
   const cardsGridStyle: React.CSSProperties =
-    display === 'stacked' || (isTall && !cols)
+    isMobilePortrait || display === 'stacked' || (isTall && !cols)
       ? { gridTemplateColumns: '1fr' }
       : cols && cols > 0
         ? { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }
@@ -117,7 +119,7 @@ export function SkillsSection({
 
   return (
     <section
-      className={`rounded-xl border p-3 space-y-2.5 transition-colors ${isTall ? 'flex-1 flex flex-col' : ''}`}
+      className={`rounded-xl border p-3 space-y-2.5 transition-colors w-full ${isTall && !isMobilePortrait ? 'flex-1 flex flex-col' : ''}`}
       style={{
         backgroundColor: 'var(--sheet-card-bg, #18181b)',
         borderColor: 'var(--sheet-card-border, #29292e)',

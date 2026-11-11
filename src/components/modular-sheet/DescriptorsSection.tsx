@@ -13,6 +13,7 @@ interface DescriptorsSectionProps {
   cols?: number;
   isTall?: boolean;
   isEditMode?: boolean;
+  isMobilePortrait?: boolean;
 }
 
 export function DescriptorsSection({
@@ -24,6 +25,7 @@ export function DescriptorsSection({
   cols,
   isTall = false,
   isEditMode = false,
+  isMobilePortrait = false,
 }: DescriptorsSectionProps) {
   const setToggleState = useModularSheetStore((s) => s.setToggleState);
   const addDescriptorItem = useModularSheetStore((s) => s.addDescriptorItem);
@@ -125,7 +127,8 @@ export function DescriptorsSection({
 
   return (
     <section
-      className={`rounded-xl border p-3 space-y-2.5 transition-colors ${isTall ? 'flex-1 flex flex-col' : ''}`}
+      className={`rounded-xl border p-3 space-y-2.5 transition-colors ${isTall && !isMobilePortrait ? 'flex-1 flex flex-col' : ''
+        }`}
       style={{
         backgroundColor: 'var(--sheet-card-bg, #18181b)',
         borderColor: 'var(--sheet-card-border, #29292e)',
@@ -268,9 +271,11 @@ export function DescriptorsSection({
         <div
           className="grid gap-2 content-start"
           style={
-            cols && cols > 0
-              ? { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }
-              : { gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))' }
+            isMobilePortrait
+              ? { gridTemplateColumns: '1fr' }
+              : cols && cols > 0
+                ? { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }
+                : { gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))' }
           }
         >
           {interactiveDescs.map((d) => {

@@ -8,11 +8,13 @@ import { Button } from '@/components/ui/button';
 interface TokenAssignmentPopoverProps {
   sheetId: string;
   assignedTokenIds: string[];
+  compact?: boolean;
 }
 
 export function TokenAssignmentPopover({
   sheetId,
   assignedTokenIds,
+  compact = false,
 }: TokenAssignmentPopoverProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -62,7 +64,9 @@ export function TokenAssignmentPopover({
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className={`flex items-center gap-2 h-8 px-3 rounded-md border text-xs font-semibold transition-colors ${
+        className={`flex items-center gap-1.5 transition-colors ${
+          compact ? 'h-7 px-2 rounded-md text-[11px]' : 'h-8 px-3 rounded-md text-xs'
+        } font-semibold border ${
           assignedTokens.length > 0
             ? 'border-[#8257e5]/60 bg-[#8257e5]/15 text-[#e1e1e6] hover:bg-[#8257e5]/25'
             : 'border-[#323238] bg-[#121214] text-[#a8a8b3] hover:text-[#e1e1e6] hover:border-[#8257e5]/40'
@@ -71,14 +75,18 @@ export function TokenAssignmentPopover({
       >
         <Users className="w-3.5 h-3.5 text-[#a78bfa] shrink-0" />
         <span className="whitespace-nowrap">
-          {assignedTokens.length === 0
-            ? 'Atribuir a Tokens'
-            : assignedTokens.length === 1
-              ? '1 Token Vinculado'
-              : `${assignedTokens.length} Tokens Vinculados`}
+          {compact ? (
+            assignedTokens.length === 0 ? 'Tokens' : `${assignedTokens.length} Token(s)`
+          ) : (
+            assignedTokens.length === 0
+              ? 'Atribuir a Tokens'
+              : assignedTokens.length === 1
+                ? '1 Token Vinculado'
+                : `${assignedTokens.length} Tokens Vinculados`
+          )}
         </span>
 
-        {assignedTokens.length > 0 && (
+        {assignedTokens.length > 0 && !compact && (
           <div className="flex items-center -space-x-1.5 ml-0.5">
             {assignedTokens.slice(0, 4).map((t) => (
               <div
@@ -112,7 +120,7 @@ export function TokenAssignmentPopover({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-10 z-50 w-80 rounded-lg border border-[#323238] bg-[#18181b] shadow-2xl p-3 text-[#e1e1e6]">
+        <div className="fixed inset-x-2 top-20 sm:absolute sm:inset-auto sm:right-0 sm:top-10 z-50 w-auto sm:w-80 max-w-[360px] mx-auto sm:mx-0 rounded-xl border border-[#323238] bg-[#18181b] shadow-2xl p-3 text-[#e1e1e6]">
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#323238]">
             <div>
               <h4 className="text-xs font-bold text-[#ffd700] uppercase tracking-wider">

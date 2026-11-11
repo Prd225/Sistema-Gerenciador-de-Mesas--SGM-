@@ -15,6 +15,7 @@ interface SlotsSectionProps {
   blockId?: string;
   isTall?: boolean;
   isEditMode?: boolean;
+  isMobilePortrait?: boolean;
 }
 
 export function SlotsSection({
@@ -24,6 +25,7 @@ export function SlotsSection({
   blockId,
   isTall = false,
   isEditMode = false,
+  isMobilePortrait = false,
 }: SlotsSectionProps) {
   const { cycleSlotState, setSlotCurrent } = useModularSheetStore();
 
@@ -38,7 +40,7 @@ export function SlotsSection({
   if (blocks.length === 0) return null;
 
   return (
-    <div className={`space-y-4 ${isTall ? 'flex-1 flex flex-col' : ''}`}>
+    <div className={`space-y-4 ${isTall && !isMobilePortrait ? 'flex-1 flex flex-col' : ''}`}>
       {blocks.map(({ block, originalIdx }) => (
         <SlotBlockGrid
           key={block.id}
@@ -47,6 +49,7 @@ export function SlotsSection({
           sheetId={sheetId}
           isTall={isTall}
           isEditMode={isEditMode}
+          isMobilePortrait={isMobilePortrait}
           onCycleSlot={(slot) => cycleSlotState(sheetId, `${block.id}.${slot.id}`, slot.state)}
           onSetCurrent={(slot, current) =>
             setSlotCurrent(sheetId, `${block.id}.${slot.id}`, current)
@@ -63,6 +66,7 @@ function SlotBlockGrid({
   sheetId,
   isTall,
   isEditMode,
+  isMobilePortrait = false,
   onCycleSlot,
   onSetCurrent,
 }: {
@@ -71,6 +75,7 @@ function SlotBlockGrid({
   sheetId: string;
   isTall: boolean;
   isEditMode: boolean;
+  isMobilePortrait?: boolean;
   onCycleSlot: (slot: EvaluatedSlotItem) => void;
   onSetCurrent: (slot: EvaluatedSlotItem, current: number) => void;
 }) {
@@ -87,7 +92,8 @@ function SlotBlockGrid({
   const [slotLabelDraft, setSlotLabelDraft] = useState('');
   const [slotContentDraft, setSlotContentDraft] = useState('');
 
-  const cols = Math.max(1, Math.min(6, block.cols || 3));
+  const rawCols = Math.max(1, Math.min(6, block.cols || 3));
+  const cols = isMobilePortrait ? Math.min(rawCols, 2) : rawCols;
 
   const handleConfirmAddSlot = () => {
     if (!newLabel.trim()) return;
@@ -106,7 +112,9 @@ function SlotBlockGrid({
 
   return (
     <section
-      className={`rounded-xl border p-3 space-y-2.5 transition-colors ${isTall ? 'flex-1 flex flex-col' : ''}`}
+      className={`rounded-xl border p-3 space-y-2.5 transition-colors ${
+        isTall && !isMobilePortrait ? 'flex-1 flex flex-col' : ''
+      }`}
       style={{
         backgroundColor: 'var(--sheet-card-bg, #18181b)',
         borderColor: 'var(--sheet-card-border, #29292e)',

@@ -19,7 +19,7 @@ import type {
  * Permite sintaxe enxuta e bilíngue sem duplicar lógica no Parser.
  */
 export const DIRECTIVE_ALIASES: Record<string, CanonicalBlockKind> = {
-  // Metadados da Ficha, Tema Hexadecimal e Meta-Módulo de Navegação de Abas
+  // Metadados da Ficha e Tema Hexadecimal
   meta: 'meta',
   sheet: 'meta',
   ficha: 'meta',
@@ -30,10 +30,16 @@ export const DIRECTIVE_ALIASES: Record<string, CanonicalBlockKind> = {
   palette: 'meta',
   estilo: 'meta',
   style: 'meta',
-  nav: 'meta',
-  navegacao: 'meta',
-  tabbar: 'meta',
-  tabs_nav: 'meta',
+
+  // Controle Modular de Abas (@tab_flow, @nav)
+  tab_flow: 'tab_flow',
+  tabflow: 'tab_flow',
+  fluxo_abas: 'tab_flow',
+  controle_abas: 'tab_flow',
+  nav: 'tab_flow',
+  navegacao: 'tab_flow',
+  tabbar: 'tab_flow',
+  tabs_nav: 'tab_flow',
 
   // Tabelas de Consulta (Lookups)
   table: 'table',

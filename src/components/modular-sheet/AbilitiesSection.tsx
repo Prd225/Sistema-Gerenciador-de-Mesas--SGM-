@@ -34,6 +34,7 @@ interface AbilitiesSectionProps {
   cols?: number;
   isTall?: boolean;
   isEditMode?: boolean;
+  isMobilePortrait?: boolean;
 }
 
 const CATEGORY_META: Record<
@@ -72,6 +73,7 @@ export function AbilitiesSection({
   cols,
   isTall = false,
   isEditMode = false,
+  isMobilePortrait = false,
 }: AbilitiesSectionProps) {
   const [categoryFilter, setCategoryFilter] = useState<'ALL' | AbilityCategory>('ALL');
   const [selectedEnhs, setSelectedEnhs] = useState<Record<string, string[]>>({});
@@ -424,7 +426,13 @@ export function AbilitiesSection({
 
         {/* Botões de Execução de Rolagem (Teste & Dano/Cura) */}
         {(ab.testFormula || effectiveDamageFormula) && (
-          <div className="flex flex-wrap items-center gap-2 pt-1">
+          <div
+            className={`pt-1 gap-2 ${
+              isMobilePortrait
+                ? 'flex flex-col w-full'
+                : 'flex flex-wrap items-center'
+            }`}
+          >
             {ab.testFormula && (
               <button
                 type="button"
@@ -435,10 +443,12 @@ export function AbilitiesSection({
                     catMeta.label,
                   )
                 }
-                className="h-7 px-3 rounded-md bg-[#8257e5]/20 hover:bg-[#8257e5] border border-[#8257e5]/60 text-[#c4b5fd] hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
+                className={`h-7 px-3 rounded-md bg-[#8257e5]/20 hover:bg-[#8257e5] border border-[#8257e5]/60 text-[#c4b5fd] hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors ${
+                  isMobilePortrait ? 'w-full justify-center' : ''
+                }`}
               >
                 <Dices className="w-3.5 h-3.5" />
-                Rolar Teste ({ab.testFormula})
+                <span>Rolar Teste ({ab.testFormula})</span>
               </button>
             )}
 
@@ -452,10 +462,12 @@ export function AbilitiesSection({
                     catMeta.label,
                   )
                 }
-                className="h-7 px-3 rounded-md bg-rose-500/20 hover:bg-rose-600 border border-rose-500/60 text-rose-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
+                className={`h-7 px-3 rounded-md bg-rose-500/20 hover:bg-rose-600 border border-rose-500/60 text-rose-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors ${
+                  isMobilePortrait ? 'w-full justify-center' : ''
+                }`}
               >
                 <Flame className="w-3.5 h-3.5" />
-                Rolar Dano/Efeito ({effectiveDamageFormula})
+                <span>Rolar Dano/Efeito ({effectiveDamageFormula})</span>
               </button>
             )}
           </div>
@@ -470,13 +482,17 @@ export function AbilitiesSection({
     sheet.blockTitles.abilities;
 
   const listGridStyle: React.CSSProperties =
-    cols && cols > 1
-      ? { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }
-      : { gridTemplateColumns: '1fr' };
+    isMobilePortrait
+      ? { gridTemplateColumns: '1fr' }
+      : cols && cols > 1
+        ? { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }
+        : { gridTemplateColumns: '1fr' };
 
   return (
     <section
-      className={`rounded-xl border p-3 space-y-2.5 transition-colors ${isTall ? 'flex-1 flex flex-col' : ''}`}
+      className={`rounded-xl border p-3 space-y-2.5 transition-colors ${
+        isTall && !isMobilePortrait ? 'flex-1 flex flex-col' : ''
+      }`}
       style={{
         backgroundColor: 'var(--sheet-card-bg, #18181b)',
         borderColor: 'var(--sheet-card-border, #29292e)',

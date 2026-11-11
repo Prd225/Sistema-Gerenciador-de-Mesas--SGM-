@@ -8,6 +8,7 @@ interface CountersSectionProps {
   onSetCounterCurrent: (counterKey: string, current: number) => void;
   cols?: number;
   isTall?: boolean;
+  isMobilePortrait?: boolean;
 }
 
 interface CounterPalette {
@@ -52,6 +53,7 @@ export const CountersSection: React.FC<CountersSectionProps> = ({
   onSetCounterCurrent,
   cols,
   isTall = false,
+  isMobilePortrait = false,
 }) => {
   if (blocks.length === 0) return null;
 
@@ -279,12 +281,13 @@ export const CountersSection: React.FC<CountersSectionProps> = ({
   };
 
   return (
-    <div className={`space-y-4 ${isTall ? 'flex-1 flex flex-col' : ''}`}>
+    <div className={`space-y-4 ${isTall && !isMobilePortrait ? 'flex-1 flex flex-col' : ''}`}>
       {blocks.map((block) => {
         if (block.items.length === 0) return null;
         const effectiveCols = block.cols ?? cols;
-        const effectiveTall = Boolean(block.tall || isTall);
+        const effectiveTall = !isMobilePortrait && Boolean(block.tall || isTall);
         const useStacked =
+          isMobilePortrait ||
           block.display === 'list' ||
           block.display === 'stacked' ||
           (effectiveTall && !effectiveCols);

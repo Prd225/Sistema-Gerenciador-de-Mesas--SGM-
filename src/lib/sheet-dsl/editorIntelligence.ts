@@ -61,9 +61,21 @@ const CONFIG_DIRECTIVES = new Set([
   'tabs',
   'navegacao',
   'navigation',
+  'tab_flow',
+  'tabflow',
+  'fluxo_abas',
+  'controle_abas',
+  'tabbar',
+  'tabs_nav',
 ]);
 
 const MODULE_DIRECTIVES = new Set([
+  'tab_flow',
+  'tabflow',
+  'fluxo_abas',
+  'controle_abas',
+  'tabbar',
+  'tabs_nav',
   'attr',
   'attrs',
   'attributes',
@@ -272,6 +284,16 @@ const LAYOUT_AND_STYLE_KEYWORDS = new Set([
   'nao',
   'top',
   'bottom',
+  'semicircle',
+  'semicirculo',
+  'inline',
+  'flow',
+  'cima',
+  'baixo',
+  'topo',
+  'rodape',
+  'inferior',
+  'superior',
   'side',
   'none',
   'center',
@@ -853,6 +875,10 @@ function extractHeaderLabel(line: string, directive: string): string {
     diagrama: 'Diagrama Corporal',
     table: 'Tabela de Consulta',
     tabela: 'Tabela de Consulta',
+    tab_flow: 'Fluxo de Abas & Navegação',
+    tabflow: 'Fluxo de Abas & Navegação',
+    fluxo_abas: 'Fluxo de Abas & Navegação',
+    controle_abas: 'Fluxo de Abas & Navegação',
   };
   return friendlyNames[norm] || directive;
 }
@@ -1389,6 +1415,12 @@ const DIRECTIVE_COMPLETIONS: StaticDirectiveCompletion[] = [
     detail: 'Configura posição e alinhamento da barra de abas',
     snippet: '@nav [pos: "top", labels: true, align: "left"]',
   },
+  {
+    directive: '@tab_flow',
+    label: '@tab_flow [pos: "semicircle", labels: true]',
+    detail: 'Controlador modular de fluxo de abas (semicircle, bottom, top, left, right, inline)',
+    snippet: '@tab_flow [pos: "semicircle", labels: true]',
+  },
 ];
 
 const BRACKET_META_COMPLETIONS: Array<{
@@ -1411,6 +1443,19 @@ const BRACKET_META_COMPLETIONS: Array<{
   { label: 'tall', insertText: 'tall', badge: 'layout', detail: 'Permite altura expandida para o módulo', headerOnly: true },
   { label: 'tab: "Geral"', insertText: 'tab: "Geral"', cursorBack: 1, badge: 'aba', detail: 'Vincula este módulo a uma aba específica', headerOnly: true },
   { label: 'cor: "#10b981"', insertText: 'cor: "#10b981"', cursorBack: 1, badge: 'cor', detail: 'Cor de destaque hexadecimal personalizada' },
+  // Controle de abas e navegação (@tab_flow / @nav / @meta)
+  { label: 'pos: "semicircle"', insertText: 'pos: "semicircle"', cursorBack: 1, badge: 'abas', detail: 'Semi-círculo central embaixo com menu radial em tela cheia', blocks: ['tab_flow', 'nav', 'meta'], headerOnly: true },
+  { label: 'pos: "bottom"', insertText: 'pos: "bottom"', cursorBack: 1, badge: 'abas', detail: 'Barra de abas fixada na parte inferior (padrão mobile)', blocks: ['tab_flow', 'nav', 'meta'], headerOnly: true },
+  { label: 'pos: "top"', insertText: 'pos: "top"', cursorBack: 1, badge: 'abas', detail: 'Barra de abas fixada no topo da ficha', blocks: ['tab_flow', 'nav', 'meta'], headerOnly: true },
+  { label: 'pos: "left"', insertText: 'pos: "left"', cursorBack: 1, badge: 'abas', detail: 'Barra de abas na lateral esquerda', blocks: ['tab_flow', 'nav', 'meta'], headerOnly: true },
+  { label: 'pos: "right"', insertText: 'pos: "right"', cursorBack: 1, badge: 'abas', detail: 'Barra de abas na lateral direita', blocks: ['tab_flow', 'nav', 'meta'], headerOnly: true },
+  { label: 'pos: "inline"', insertText: 'pos: "inline"', cursorBack: 1, badge: 'abas', detail: 'Barra de abas como módulo comum no fluxo da ficha', blocks: ['tab_flow', 'nav', 'meta'], headerOnly: true },
+  { label: 'semicircle', insertText: 'semicircle', badge: 'abas', detail: 'Posiciona navegação como semi-círculo central', blocks: ['tab_flow', 'nav', 'meta'], headerOnly: true },
+  { label: 'bottom', insertText: 'bottom', badge: 'abas', detail: 'Posiciona abas na parte inferior', blocks: ['tab_flow', 'nav', 'meta'], headerOnly: true },
+  { label: 'top', insertText: 'top', badge: 'abas', detail: 'Posiciona abas no topo', blocks: ['tab_flow', 'nav', 'meta'], headerOnly: true },
+  { label: 'inline', insertText: 'inline', badge: 'abas', detail: 'Exibe controle de abas inline na ficha', blocks: ['tab_flow', 'nav', 'meta'], headerOnly: true },
+  { label: 'labels: true', insertText: 'labels: true', badge: 'abas', detail: 'Exibe nomes das abas junto aos ícones', blocks: ['tab_flow', 'nav', 'meta'], headerOnly: true },
+  { label: 'labels: false', insertText: 'labels: false', badge: 'abas', detail: 'Exibe apenas ícones das abas', blocks: ['tab_flow', 'nav', 'meta'], headerOnly: true },
   // Propriedades de rolagem
   { label: 'roll: self', insertText: 'roll: self', badge: 'rolagem', detail: 'Rola diretamente o próprio dado/valor do atributo (ex: 1d6, d8)', blocks: ['attr', 'stat', 'skill'] },
   { label: 'roll: "1d20 + self"', insertText: 'roll: "1d20 + self"', cursorBack: 1, badge: 'rolagem', detail: 'Fórmula de rolagem ao clicar no atributo/status', blocks: ['attr', 'stat'] },

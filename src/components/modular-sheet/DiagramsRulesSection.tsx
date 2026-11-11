@@ -24,6 +24,7 @@ interface DiagramsRulesSectionProps {
   activeTab?: string;
   cols?: number;
   isTall?: boolean;
+  isMobilePortrait?: boolean;
 }
 
 function formatMatcherLabel(expr: ASTExpr): string {
@@ -72,6 +73,7 @@ export function DiagramsRulesSection({
   activeTab,
   cols,
   isTall = false,
+  isMobilePortrait = false,
 }: DiagramsRulesSectionProps) {
   const [highlightedNodes, setHighlightedNodes] = useState<
     Record<string, string | null>
@@ -118,12 +120,14 @@ export function DiagramsRulesSection({
   }
 
   const gridStyle = (minPx: number): React.CSSProperties =>
-    cols && cols > 0
-      ? { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }
-      : { gridTemplateColumns: `repeat(auto-fit, minmax(${minPx}px, 1fr))` };
+    isMobilePortrait
+      ? { gridTemplateColumns: '1fr' }
+      : cols && cols > 0
+        ? { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }
+        : { gridTemplateColumns: `repeat(auto-fit, minmax(${minPx}px, 1fr))` };
 
   return (
-    <div className={`space-y-4 ${isTall ? 'flex-1 flex flex-col' : ''}`}>
+    <div className={`space-y-4 ${isTall && !isMobilePortrait ? 'flex-1 flex flex-col' : ''}`}>
       {/* @diagram - DIAGRAMAS ANATÔMICOS / SUB-SISTEMAS */}
       {diagramList.map((diag) => {
         const struckNodeId = highlightedNodes[diag.id] ?? null;

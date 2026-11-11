@@ -116,6 +116,7 @@ export type CanonicalBlockKind =
   | 'diagram'    // @diagram, @quadro, @diagrama
   | 'rule'       // @rule, @rules, @regras
   | 'tab'        // @tab, @aba, @page, @pagina
+  | 'tab_flow'   // @tab_flow, @nav, @navegacao, @tabbar
   | 'slots'      // @slots, @segmentos, @segments, @caixas
   | 'text';      // @text, @texto, @note, @nota, @bio, @anotacoes
 
@@ -776,7 +777,14 @@ export interface SheetRuntimeOverrides {
 
 export type SheetTheme = 'dark' | 'purple' | 'red' | 'blue' | 'green' | 'amber';
 
-export type TabNavPosition = 'top' | 'bottom' | 'left' | 'right' | 'hidden';
+export type TabNavPosition =
+  | 'top'
+  | 'bottom'
+  | 'left'
+  | 'right'
+  | 'semicircle'
+  | 'inline'
+  | 'hidden';
 export type TabNavAlign = 'left' | 'center' | 'right' | 'stretch';
 
 export interface CustomThemeHexColors {
@@ -792,6 +800,7 @@ export interface CustomThemeHexColors {
 
 export interface TabNavMetaConfig {
   position: TabNavPosition;
+  explicitPosition?: boolean;
   showLabels: boolean;
   align: TabNavAlign;
 }

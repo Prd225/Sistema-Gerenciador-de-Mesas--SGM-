@@ -245,6 +245,9 @@ export class SheetParser {
       case 'tab':
         this.parseTabBlock(doc);
         break;
+      case 'tab_flow':
+        this.parseTabFlowDirective(doc);
+        break;
       case 'slots':
         this.parseSlotsBlock(doc);
         break;
@@ -264,7 +267,28 @@ export class SheetParser {
       const rawVal = nameTok.value.trim();
       const lowerVal = rawVal.toLowerCase();
       const isHex = /^#?[0-9a-fA-F]{6}$/.test(rawVal) || /^#[0-9a-fA-F]{3,8}$/.test(rawVal);
-      const isNavPos = ['top', 'bottom', 'left', 'right', 'topo', 'baixo', 'esquerda', 'direita', 'hidden', 'oculto'].includes(lowerVal);
+      const isNavPos = [
+        'top',
+        'bottom',
+        'left',
+        'right',
+        'topo',
+        'baixo',
+        'esquerda',
+        'direita',
+        'semicircle',
+        'semicirculo',
+        'semi',
+        'arc',
+        'arco',
+        'radial',
+        'central',
+        'orb',
+        'inline',
+        'flow',
+        'hidden',
+        'oculto',
+      ].includes(lowerVal);
 
       if (isHex) {
         doc.meta.props.color = {
@@ -1102,10 +1126,119 @@ export class SheetParser {
   }
 
   /**
-   * @tab "Nome da Aba"
-   * Sem chaves: define o contexto de aba ativa para todos os blocos seguintes até outra @tab.
-   * Com chaves (legado): aplica apenas dentro do bloco { ... }.
+   * @tab_flow [pos: "bottom" | "top" | "left" | "right" | "semicircle" | "inline", labels: true, align: "center"]
+   * Controlador modular de abas da ficha. Pode posicionar as abas nas bordas,
+   * no semi-círculo central inferior (com foco/overlay) ou inline no fluxo de módulos.
    */
+  private parseTabFlowDirective(doc: ASTSheetDocument): void {
+    const id = this.nextBlockId('tab_flow');
+    let inlinePosOrTitle: string | undefined;
+
+    if (this.check('STRING') || this.check('IDENTIFIER')) {
+      inlinePosOrTitle = this.advance().value.trim();
+    }
+
+    const header = this.parseBlockHeader();
+    const props: Record<string, ASTExpr> = { ...header.meta.props };
+
+    const hasBrace = this.match('LBRACE');
+    this.skipSeparators();
+
+    while (!this.isAtBlockEnd() && !(hasBrace && this.check('RBRACE'))) {
+      if (this.check('TAG')) {
+        header.meta.tags.push(this.advance().value);
+      } else if (this.check('FLAG')) {
+        header.meta.flags.push(this.advance().value);
+      } else if (this.check('IDENTIFIER')) {
+        const key = this.advance().value;
+        if (this.match('COLON') || this.match('ASSIGN_CALC') || this.match('ASSIGN_PIN')) {
+          props[key] = this.parseExpr(0);
+        } else {
+          header.meta.tags.push(key);
+        }
+      } else {
+        this.advance();
+      }
+      this.skipSeparators();
+    }
+
+    if (hasBrace) this.match('RBRACE');
+
+    const dummySpan = {
+      start: { line: 1, column: 1, offset: 0 },
+      end: { line: 1, column: 1, offset: 0 },
+    };
+
+    const allTags = [
+      ...(inlinePosOrTitle ? [inlinePosOrTitle.toLowerCase()] : []),
+      ...header.meta.tags.map((t) => t.toLowerCase()),
+      ...header.meta.flags.map((f) => f.toLowerCase()),
+    ];
+
+    for (const [k, v] of Object.entries(props)) {
+      const kLow = k.toLowerCase();
+      if (kLow === 'pos' || kLow === 'position' || kLow === 'posicao' || kLow === 'mode' || kLow === 'modo' || kLow === 'style' || kLow === 'estilo') {
+        doc.meta.props.tabs_pos = v;
+      } else if (kLow === 'labels' || kLow === 'nomes' || kLow === 'mostrar_nomes' || kLow === 'tabs_labels') {
+        doc.meta.props.tabs_labels = v;
+      } else if (kLow === 'align' || kLow === 'alinhamento' || kLow === 'tabs_align') {
+        doc.meta.props.tabs_align = v;
+      } else {
+        doc.meta.props[k] = v;
+      }
+    }
+
+    let resolvedPosTag: string | undefined;
+    for (const t of allTags) {
+      if (
+        [
+          'top', 'topo', 'cima', 'superior',
+          'bottom', 'baixo', 'inferior', 'rodape',
+          'left', 'esquerda', 'esq',
+          'right', 'direita', 'dir',
+          'semicircle', 'semicirculo', 'semi_circle', 'semi', 'arc', 'arco', 'radial', 'central', 'orb', 'wheel',
+          'inline', 'flow', 'modulo',
+          'hidden', 'none', 'oculto', 'sem_abas',
+        ].includes(t)
+      ) {
+        resolvedPosTag = t;
+        break;
+      }
+    }
+
+    // Se o usuário posicionou @tab_flow explicitamente como um módulo de coluna (ex: @tab_flow [col1] ou @tab_flow [inline])
+    const isInlineModule =
+      resolvedPosTag === 'inline' ||
+      resolvedPosTag === 'flow' ||
+      resolvedPosTag === 'modulo' ||
+      (!resolvedPosTag &&
+        !props.pos &&
+        !props.position &&
+        !props.tabs_pos &&
+        header.placement !== 'auto');
+
+    if (isInlineModule) {
+      doc.meta.props.tabs_pos = {
+        type: 'StringLit',
+        value: 'inline',
+        span: dummySpan,
+      };
+      this.registerModuleLayout(doc, 'tab_flow', id, header, header.title !== '__DEFAULT__' ? header.title : undefined);
+    } else if (resolvedPosTag) {
+      doc.meta.props.tabs_pos = {
+        type: 'StringLit',
+        value: resolvedPosTag,
+        span: dummySpan,
+      };
+    }
+
+    for (const t of header.meta.tags) {
+      if (!doc.meta.tags.includes(t)) doc.meta.tags.push(t);
+    }
+    for (const f of header.meta.flags) {
+      if (!doc.meta.flags.includes(f)) doc.meta.flags.push(f);
+    }
+  }
   private parseTabBlock(doc: ASTSheetDocument): void {
     let tabName = 'Aba';
     if (this.check('STRING') || this.check('IDENTIFIER')) {

@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   AlertCircle,
   Layers,
@@ -10,6 +10,8 @@ import {
   PanelBottom,
   PanelLeft,
   PanelRight,
+  CircleDot,
+  Compass,
 } from 'lucide-react';
 import {
   rollSheetFormula,
@@ -50,6 +52,7 @@ interface VisualSheetViewProps {
   onAddNewTab?: () => void;
   isEditMode?: boolean;
   compactLayout?: boolean;
+  isMobilePortrait?: boolean;
 }
 
 const DEFAULT_COL1_KINDS = new Set(['profile', 'attr', 'stat', 'desc', 'inv', 'text', 'rule']);
@@ -74,6 +77,7 @@ export function VisualSheetView({
   onAddNewTab,
   isEditMode = false,
   compactLayout = false,
+  isMobilePortrait = false,
 }: VisualSheetViewProps) {
   const {
     updateSheetSource,
@@ -210,6 +214,25 @@ export function VisualSheetView({
     [sheetId, sheet.meta.name, updateSheetSource],
   );
 
+  const [isSemicircleMenuOpen, setIsSemicircleMenuOpen] = useState(false);
+
+  const tabNav = sheet.meta.tabNav ?? {
+    position: 'top',
+    showLabels: true,
+    align: 'left',
+  };
+
+  // Se a posição não foi declarada explicitamente na DSL, no mobile portrait o padrão é 'bottom'
+  const effectiveTabPos: TabNavPosition =
+    tabNav.explicitPosition
+      ? tabNav.position
+      : isMobilePortrait
+        ? 'bottom'
+        : (tabNav.position ?? 'top');
+
+  const isVerticalTabs =
+    effectiveTabPos === 'left' || effectiveTabPos === 'right';
+
   // Deduplica apenas estruturas globais únicas por aba (inv / turn); todos os demais módulos renderizam por bloco
   const seenSingletonKinds = new Set<string>();
   const visibleModules: ASTModuleLayoutMeta[] = [];
@@ -219,6 +242,8 @@ export function VisualSheetView({
     if (!matchesTab) continue;
 
     if (mod.kind === 'meta' || mod.kind === 'tab') continue;
+    // Se o @tab_flow estiver configurado para uma posição de borda/radial, não renderiza como card duplicado
+    if (mod.kind === 'tab_flow' && effectiveTabPos !== 'inline') continue;
 
     if (mod.kind === 'inv' || mod.kind === 'turn') {
       if (!seenSingletonKinds.has(mod.kind)) {
@@ -230,7 +255,7 @@ export function VisualSheetView({
     }
   }
 
-  // Agrupa módulos em bandas de 2 Colunas (col1 / col2) intercaladas com módulos Full-Width
+  // Agrupa módulos em bandas de 2 Colunas (col1 / col2) intercaladas com módulos Full-Width (para desktop/landscape)
   const bands: LayoutSectionBand[] = [];
   for (const mod of visibleModules) {
     if (mod.placement === 'full') {
@@ -259,6 +284,28 @@ export function VisualSheetView({
     }
   }
 
+  // Ordenação por prioridade para Dispositivos Móveis (Mobile Portrait):
+  // 1º: Todos os módulos col1 / esquerda na ordem que foram declarados na DSL
+  // 2º: Todos os módulos col2 / direita na ordem que foram declarados na DSL
+  // 3º: Todos os módulos full na ordem que foram declarados na DSL
+  const isCol1 = (mod: ASTModuleLayoutMeta) =>
+    mod.placement === 'col1' || (mod.placement === 'auto' && DEFAULT_COL1_KINDS.has(mod.kind));
+
+  const isCol2 = (mod: ASTModuleLayoutMeta) =>
+    mod.placement === 'col2' || (mod.placement === 'auto' && !DEFAULT_COL1_KINDS.has(mod.kind));
+
+  const isFull = (mod: ASTModuleLayoutMeta) =>
+    mod.placement === 'full';
+
+  const mobileOrderedModules = useMemo(() => {
+    if (!isMobilePortrait) return [];
+    return [
+      ...visibleModules.filter(isCol1),
+      ...visibleModules.filter(isCol2),
+      ...visibleModules.filter(isFull),
+    ];
+  }, [isMobilePortrait, visibleModules]);
+
   const renderModuleContent = (mod: ASTModuleLayoutMeta): React.ReactNode => {
     switch (mod.kind) {
       case 'profile': {
@@ -270,6 +317,7 @@ export function VisualSheetView({
             profile={prof}
             onUpdateProfileImage={handleUpdateProfileImage}
             isEditMode={isEditMode}
+            isMobilePortrait={isMobilePortrait}
           />
         );
       }
@@ -281,6 +329,7 @@ export function VisualSheetView({
             blocks={[cntBlock]}
             cols={mod.cols}
             isTall={mod.tall}
+            isMobilePortrait={isMobilePortrait}
             onSetCounterCurrent={(counterKey, cur) =>
               setCounterCurrent(sheetId, counterKey, cur)
             }
@@ -301,6 +350,7 @@ export function VisualSheetView({
             cols={mod.cols}
             isTall={mod.tall}
             isEditMode={isEditMode}
+            isMobilePortrait={isMobilePortrait}
           />
         );
       case 'stat':
@@ -317,6 +367,7 @@ export function VisualSheetView({
             cols={mod.cols}
             isTall={mod.tall}
             isEditMode={isEditMode}
+            isMobilePortrait={isMobilePortrait}
           />
         );
       case 'res':
@@ -331,6 +382,7 @@ export function VisualSheetView({
             titleOverride={mod.title}
             cols={mod.cols}
             isTall={mod.tall}
+            isMobilePortrait={isMobilePortrait}
             onExecuteRoll={handleExecuteRoll}
           />
         );
@@ -344,6 +396,7 @@ export function VisualSheetView({
             displayOverride={mod.display}
             titleOverride={mod.title}
             isTall={mod.tall}
+            isMobilePortrait={isMobilePortrait}
           />
         );
       case 'slots': {
@@ -357,6 +410,7 @@ export function VisualSheetView({
             blockId={mod.id}
             isTall={mod.tall}
             isEditMode={isEditMode}
+            isMobilePortrait={isMobilePortrait}
           />
         );
       }
@@ -371,6 +425,7 @@ export function VisualSheetView({
             cols={mod.cols}
             isTall={mod.tall}
             isEditMode={isEditMode}
+            isMobilePortrait={isMobilePortrait}
           />
         );
       case 'skill':
@@ -386,6 +441,7 @@ export function VisualSheetView({
             cols={mod.cols}
             isTall={mod.tall}
             isEditMode={isEditMode}
+            isMobilePortrait={isMobilePortrait}
           />
         );
       case 'ability':
@@ -400,6 +456,7 @@ export function VisualSheetView({
             cols={mod.cols}
             isTall={mod.tall}
             isEditMode={isEditMode}
+            isMobilePortrait={isMobilePortrait}
           />
         );
       case 'inv':
@@ -412,6 +469,7 @@ export function VisualSheetView({
             titleOverride={mod.title}
             isTall={mod.tall}
             isEditMode={isEditMode}
+            isMobilePortrait={isMobilePortrait}
           />
         );
       case 'diagram':
@@ -426,6 +484,7 @@ export function VisualSheetView({
             activeTab={activeTab}
             cols={mod.cols}
             isTall={mod.tall}
+            isMobilePortrait={isMobilePortrait}
           />
         );
       case 'rule':
@@ -440,6 +499,7 @@ export function VisualSheetView({
             activeTab={activeTab}
             cols={mod.cols}
             isTall={mod.tall}
+            isMobilePortrait={isMobilePortrait}
           />
         );
       case 'roll':
@@ -454,6 +514,7 @@ export function VisualSheetView({
             activeTab={activeTab}
             cols={mod.cols}
             isTall={mod.tall}
+            isMobilePortrait={isMobilePortrait}
           />
         );
       case 'text': {
@@ -464,8 +525,12 @@ export function VisualSheetView({
             sheetId={sheetId}
             block={txtBlock}
             isEditMode={isEditMode}
+            isMobilePortrait={isMobilePortrait}
           />
         );
+      }
+      case 'tab_flow': {
+        return renderTabNavigationMetaModule(true);
       }
       default:
         return null;
@@ -476,7 +541,7 @@ export function VisualSheetView({
     const content = renderModuleContent(mod);
     if (!content) return null;
 
-    const wrapperClass = mod.tall ? 'flex-1 flex flex-col' : '';
+    const wrapperClass = !isMobilePortrait && mod.tall ? 'flex-1 flex flex-col' : '';
     const modColorVars = getModuleColorVars(mod.color);
     const currentModHex = resolveColorToHex(mod.color);
 
@@ -542,19 +607,12 @@ export function VisualSheetView({
   };
 
   const errorsAndWarnings = sheet.diagnostics;
-  const tabNav = sheet.meta.tabNav ?? {
-    position: 'top',
-    showLabels: true,
-    align: 'left',
-  };
-  const isVerticalTabs =
-    tabNav.position === 'left' || tabNav.position === 'right';
 
-  const renderTabNavigationMetaModule = () => {
-    if (!availableTabs || !onSelectTab || tabNav.position === 'hidden') {
+  const renderTabNavigationMetaModule = (isInline?: boolean) => {
+    if (!availableTabs || !onSelectTab || effectiveTabPos === 'hidden') {
       return null;
     }
-    if (!isEditMode && availableTabs.length <= 1) {
+    if (!isEditMode && availableTabs.length <= 1 && !isInline) {
       return null;
     }
 
@@ -571,10 +629,67 @@ export function VisualSheetView({
       title: string;
     }> = [
         { pos: 'top', icon: <PanelTop className="w-3 h-3" />, title: 'Abas no Topo' },
+        { pos: 'bottom', icon: <PanelBottom className="w-3 h-3" />, title: 'Abas na Base' },
         { pos: 'left', icon: <PanelLeft className="w-3 h-3" />, title: 'Abas à Esquerda' },
         { pos: 'right', icon: <PanelRight className="w-3 h-3" />, title: 'Abas à Direita' },
-        { pos: 'bottom', icon: <PanelBottom className="w-3 h-3" />, title: 'Abas na Base' },
+        { pos: 'semicircle', icon: <CircleDot className="w-3 h-3" />, title: 'Semi-círculo Central' },
+        { pos: 'inline', icon: <Layers className="w-3 h-3" />, title: 'Abas no Fluxo (Inline)' },
       ];
+
+    if (isInline) {
+      return (
+        <div
+          className="rounded-xl border p-3 flex flex-col gap-2.5 transition-colors"
+          style={{
+            backgroundColor: 'var(--sheet-card-bg, #18181b)',
+            borderColor: 'var(--sheet-card-border, #29292e)',
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-mono uppercase text-zinc-400 flex items-center gap-1.5 font-bold">
+              <Layers className="w-3.5 h-3.5 text-[var(--sheet-accent)]" />
+              <span>Controle de Abas</span>
+            </span>
+            {isEditMode && (
+              <span className="text-[10px] text-zinc-500 font-mono">@tab_flow inline</span>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {availableTabs.map((tab, idx) => {
+              const isActive = isTabMatching(tab.id, activeTab);
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => onSelectTab(tab.id)}
+                  title={tab.label}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-extrabold uppercase tracking-wide transition-colors flex items-center gap-1.5 ${
+                    isActive
+                      ? 'text-white border'
+                      : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
+                  }`}
+                  style={
+                    isActive
+                      ? {
+                          backgroundColor: 'var(--sheet-accent)',
+                          borderColor: 'var(--sheet-accent)',
+                        }
+                      : undefined
+                  }
+                >
+                  <Layers className="w-3.5 h-3.5 shrink-0" />
+                  {tabNav.showLabels ? (
+                    <span>{tab.label}</span>
+                  ) : (
+                    <span className="font-mono text-[11px]">{idx + 1}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
 
     if (isVerticalTabs) {
       return (
@@ -650,7 +765,7 @@ export function VisualSheetView({
                       updateTabNavConfig(sheetId, { position: b.pos })
                     }
                     title={b.title}
-                    className={`p-1 rounded transition-colors ${tabNav.position === b.pos
+                    className={`p-1 rounded transition-colors ${effectiveTabPos === b.pos
                       ? 'text-white bg-white/10'
                       : 'text-zinc-500 hover:text-zinc-300'
                       }`}
@@ -681,13 +796,90 @@ export function VisualSheetView({
       );
     }
 
+    if (effectiveTabPos === 'bottom' && isMobilePortrait) {
+      return (
+        <div
+          className="mt-auto sticky bottom-0 z-30 -mx-1 px-2.5 py-2 rounded-t-2xl bg-[#121214]/98 backdrop-blur-lg border-t border-[#29292e] shadow-2xl flex flex-col gap-1.5 w-[calc(100%+8px)] transition-all"
+        >
+          {/* Linha das Abas */}
+          <div className="flex items-center gap-1.5 w-full overflow-x-auto no-scrollbar">
+            {availableTabs.map((tab) => {
+              const isActive = isTabMatching(tab.id, activeTab);
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => onSelectTab(tab.id)}
+                  title={tab.label}
+                  className={`flex-1 min-w-[85px] py-2 px-2 rounded-xl text-xs font-extrabold uppercase tracking-wide transition-all flex items-center justify-center gap-1.5 shrink-0 ${
+                    isActive
+                      ? 'text-white border shadow-md'
+                      : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
+                  }`}
+                  style={
+                    isActive
+                      ? {
+                          backgroundColor: 'var(--sheet-accent)',
+                          borderColor: 'var(--sheet-accent)',
+                          boxShadow: '0 2px 10px rgba(0,0,0,0.4)',
+                        }
+                      : undefined
+                  }
+                >
+                  <Layers className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate max-w-[120px]">{tab.label}</span>
+                </button>
+              );
+            })}
+
+            {isEditMode && onAddNewTab && (
+              <button
+                type="button"
+                onClick={onAddNewTab}
+                title="Adicionar nova aba"
+                className="p-2 rounded-xl border border-dashed border-zinc-700 text-xs font-bold text-zinc-400 hover:text-white hover:bg-white/5 flex items-center justify-center shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Seletor de Posição em Modo Edição: sub-linha limpa e discreta */}
+          {isEditMode && (
+            <div className="flex items-center justify-between pt-1.5 border-t border-zinc-800 text-[10px] text-zinc-400 px-1">
+              <span className="font-mono">Posição das Abas:</span>
+              <div className="flex items-center gap-1">
+                {positionButtons.map((b) => (
+                  <button
+                    key={b.pos}
+                    type="button"
+                    onClick={() => updateTabNavConfig(sheetId, { position: b.pos })}
+                    title={b.title}
+                    className={`p-1.5 rounded-lg transition-colors ${
+                      effectiveTabPos === b.pos
+                        ? 'text-white bg-white/20'
+                        : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
+                  >
+                    {b.icon}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div
-        className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b"
+        className="pb-2.5 border-b flex items-center justify-between gap-2"
         style={{ borderColor: 'var(--sheet-card-border, #29292e)' }}
       >
         <div
-          className={`flex flex-wrap items-center gap-1.5 flex-1 min-w-0 ${alignCls}`}
+          className={`flex items-center gap-1.5 flex-1 min-w-0 ${alignCls} ${
+            isMobilePortrait ? 'overflow-x-auto pb-1 no-scrollbar' : 'flex-wrap'
+          }`}
         >
           {availableTabs.map((tab, idx) => {
             const isActive = isTabMatching(tab.id, activeTab);
@@ -750,7 +942,7 @@ export function VisualSheetView({
                 type="button"
                 onClick={() => updateTabNavConfig(sheetId, { position: b.pos })}
                 title={b.title}
-                className={`p-1 rounded transition-colors ${tabNav.position === b.pos
+                className={`p-1 rounded transition-colors ${effectiveTabPos === b.pos
                   ? 'text-white bg-white/10'
                   : 'text-zinc-500 hover:text-zinc-300'
                   }`}
@@ -787,7 +979,181 @@ export function VisualSheetView({
     );
   };
 
-  const mainBandsContent = (
+  const renderSemicircleNavigation = () => {
+    if (!availableTabs || !onSelectTab || effectiveTabPos !== 'semicircle') {
+      return null;
+    }
+    if (!isEditMode && availableTabs.length <= 1) {
+      return null;
+    }
+
+    const currentActiveTabObj =
+      availableTabs.find((t) => isTabMatching(t.id, activeTab)) ?? availableTabs[0];
+
+    const positionButtons: Array<{
+      pos: TabNavPosition;
+      icon: React.ReactNode;
+      title: string;
+    }> = [
+        { pos: 'top', icon: <PanelTop className="w-3 h-3" />, title: 'Abas no Topo' },
+        { pos: 'bottom', icon: <PanelBottom className="w-3 h-3" />, title: 'Abas na Base' },
+        { pos: 'left', icon: <PanelLeft className="w-3 h-3" />, title: 'Abas à Esquerda' },
+        { pos: 'right', icon: <PanelRight className="w-3 h-3" />, title: 'Abas à Direita' },
+        { pos: 'semicircle', icon: <CircleDot className="w-3 h-3" />, title: 'Semi-círculo Central' },
+        { pos: 'inline', icon: <Layers className="w-3 h-3" />, title: 'Abas no Fluxo (Inline)' },
+      ];
+
+    return (
+      <>
+        {/* Botão flutuante em formato de semi-círculo no centro inferior */}
+        <div className="sticky bottom-0 left-0 right-0 flex justify-center z-30 pointer-events-none pb-0">
+          <button
+            type="button"
+            onClick={() => setIsSemicircleMenuOpen((prev) => !prev)}
+            aria-label="Alternar abas"
+            className="pointer-events-auto w-24 h-11 rounded-t-full flex flex-col items-center justify-center pt-1.5 transition-all shadow-[0_-4px_24px_rgba(0,0,0,0.7)] border-t-2 border-x-2 active:scale-95 group hover:border-[var(--sheet-accent)]"
+            style={{
+              backgroundColor: 'var(--sheet-card-bg, #18181b)',
+              borderColor: isSemicircleMenuOpen ? 'var(--sheet-accent)' : 'var(--sheet-card-border, #3f3f46)',
+            }}
+          >
+            <Compass
+              className="w-4 h-4 transition-transform duration-300 group-hover:rotate-45"
+              style={{ color: 'var(--sheet-accent, #a78bfa)' }}
+            />
+            <span className="text-[10px] font-black uppercase tracking-wider text-white max-w-[80px] truncate leading-none mt-1">
+              {currentActiveTabObj?.label || 'Abas'}
+            </span>
+          </button>
+        </div>
+
+        {/* Modal / Menu de abas que tira o foco do fundo com desfoque completo */}
+        {isSemicircleMenuOpen && (
+          <div
+            className="fixed inset-0 z-[125] bg-black/80 backdrop-blur-md flex flex-col justify-end items-center p-4 animate-in fade-in duration-200"
+            onClick={() => setIsSemicircleMenuOpen(false)}
+          >
+            <div
+              className="w-full max-w-sm rounded-3xl border p-5 flex flex-col items-center gap-4 shadow-2xl animate-in slide-in-from-bottom-8 duration-200"
+              style={{
+                backgroundColor: 'var(--sheet-card-bg, #18181b)',
+                borderColor: 'var(--sheet-card-border, #3f3f46)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-12 h-1 rounded-full bg-zinc-700 -mt-1" />
+
+              <div className="text-center">
+                <h3 className="text-sm font-black uppercase text-white tracking-wider flex items-center justify-center gap-2">
+                  <Layers className="w-4 h-4" style={{ color: 'var(--sheet-accent, #a78bfa)' }} />
+                  Navegação de Abas
+                </h3>
+                <p className="text-[11px] text-zinc-400 mt-0.5">
+                  Selecione uma seção da sua ficha modular
+                </p>
+              </div>
+
+              {/* Lista/Grade de abas em cartões elegantes */}
+              <div className="grid grid-cols-2 gap-2.5 w-full max-h-72 overflow-y-auto">
+                {availableTabs.map((tab) => {
+                  const isActive = isTabMatching(tab.id, activeTab);
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => {
+                        onSelectTab(tab.id);
+                        setIsSemicircleMenuOpen(false);
+                      }}
+                      className={`p-3 rounded-2xl border text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all active:scale-95 ${
+                        isActive
+                          ? 'text-white border-transparent shadow-lg'
+                          : 'text-zinc-300 border-zinc-800 bg-zinc-900/70 hover:bg-zinc-800/80 hover:text-white'
+                      }`}
+                      style={
+                        isActive
+                          ? {
+                              backgroundColor: 'var(--sheet-accent, #8257e5)',
+                              boxShadow: '0 0 16px var(--sheet-accent, #8257e5)',
+                            }
+                          : undefined
+                      }
+                    >
+                      <div className={`p-2 rounded-xl ${isActive ? 'bg-white/20' : 'bg-zinc-800'}`}>
+                        <Layers className="w-4 h-4" />
+                      </div>
+                      <span className="truncate max-w-[120px] text-center font-extrabold uppercase tracking-wide">
+                        {tab.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Controles de edição no modo Personalizar */}
+              {isEditMode && (
+                <div className="w-full pt-3 border-t border-zinc-800 flex flex-col gap-2.5">
+                  {onAddNewTab && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onAddNewTab();
+                        setIsSemicircleMenuOpen(false);
+                      }}
+                      className="w-full py-2 rounded-xl border border-dashed border-zinc-700 hover:border-zinc-500 text-xs font-bold text-zinc-300 hover:text-white flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Adicionar Nova Aba</span>
+                    </button>
+                  )}
+
+                  <div className="flex items-center justify-between text-[11px] text-zinc-400 px-1">
+                    <span>Posição das Abas:</span>
+                    <div className="flex items-center gap-1">
+                      {positionButtons.map((b) => (
+                        <button
+                          key={b.pos}
+                          type="button"
+                          onClick={() => updateTabNavConfig(sheetId, { position: b.pos })}
+                          title={b.title}
+                          className={`p-1.5 rounded-lg transition-colors ${
+                            effectiveTabPos === b.pos
+                              ? 'text-white bg-white/20'
+                              : 'text-zinc-500 hover:text-zinc-300'
+                          }`}
+                        >
+                          {b.icon}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setIsSemicircleMenuOpen(false)}
+                className="w-full py-2 text-xs font-semibold text-zinc-400 hover:text-white transition-colors"
+              >
+                Fechar Navegação
+              </button>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  };
+
+  // Conteúdo dos módulos: se no mobile retrato, renderiza coluna única com ordenação por prioridade
+  const mainBandsContent = isMobilePortrait ? (
+    <div className="flex-1 min-w-0 space-y-3 w-full pb-16">
+      {mobileOrderedModules.map((mod) => (
+        <div key={`${mod.kind}_${mod.id ?? ''}_${mod.order}`} className="w-full">
+          {renderModule(mod)}
+        </div>
+      ))}
+    </div>
+  ) : (
     <div className="flex-1 min-w-0 space-y-4">
       {bands.map((band, idx) => {
         if (band.type === 'full') {
@@ -854,7 +1220,9 @@ export function VisualSheetView({
 
   return (
     <div
-      className="space-y-4 pb-8 max-w-[1400px] mx-auto w-full transition-colors"
+      className={`space-y-4 pb-8 max-w-[1400px] mx-auto w-full transition-colors ${
+        isMobilePortrait ? 'px-1 min-h-full flex flex-col justify-between' : ''
+      }`}
       data-theme={currentTheme.id}
       style={getThemeRootVars(
         sheet.meta.theme ?? 'purple',
@@ -878,19 +1246,21 @@ export function VisualSheetView({
         </div>
       )}
 
-      {tabNav.position === 'top' && renderTabNavigationMetaModule()}
+      {effectiveTabPos === 'top' && renderTabNavigationMetaModule()}
 
       {isVerticalTabs ? (
-        <div className="flex flex-col md:flex-row items-start gap-4">
-          {tabNav.position === 'left' && renderTabNavigationMetaModule()}
-          {mainBandsContent}
-          {tabNav.position === 'right' && renderTabNavigationMetaModule()}
+        <div className={`flex ${isMobilePortrait ? 'flex-row' : 'flex-col md:flex-row'} items-start gap-4 flex-1 w-full`}>
+          {effectiveTabPos === 'left' && renderTabNavigationMetaModule()}
+          <div className="flex-1 w-full min-w-0">{mainBandsContent}</div>
+          {effectiveTabPos === 'right' && renderTabNavigationMetaModule()}
         </div>
       ) : (
-        mainBandsContent
+        <div className="flex-1 w-full min-w-0">{mainBandsContent}</div>
       )}
 
-      {tabNav.position === 'bottom' && renderTabNavigationMetaModule()}
+      {effectiveTabPos === 'bottom' && renderTabNavigationMetaModule()}
+
+      {effectiveTabPos === 'semicircle' && renderSemicircleNavigation()}
     </div>
   );
 }

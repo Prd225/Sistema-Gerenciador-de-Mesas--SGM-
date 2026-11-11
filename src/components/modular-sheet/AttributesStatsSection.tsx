@@ -21,6 +21,7 @@ interface AttributesStatsSectionProps {
   cols?: number;
   isTall?: boolean;
   isEditMode?: boolean;
+  isMobilePortrait?: boolean;
 }
 
 const DIE_STEP_FACES = [4, 6, 8, 10, 12, 20] as const;
@@ -84,6 +85,7 @@ export function AttributesStatsSection({
   cols,
   isTall = false,
   isEditMode = false,
+  isMobilePortrait = false,
 }: AttributesStatsSectionProps) {
   const updateStatBaseValue = useModularSheetStore((s) => s.updateStatBaseValue);
   const addStatOrAttr = useModularSheetStore((s) => s.addStatOrAttr);
@@ -108,10 +110,10 @@ export function AttributesStatsSection({
       mode === 'stat'
         ? []
         : Object.values(sheet.attributes).filter(
-            (a) =>
-              isTabMatching(a.tab, activeTab) &&
-              (!blockId || a.blockId === blockId),
-          ),
+          (a) =>
+            isTabMatching(a.tab, activeTab) &&
+            (!blockId || a.blockId === blockId),
+        ),
     [sheet.attributes, mode, activeTab, blockId],
   );
 
@@ -120,11 +122,11 @@ export function AttributesStatsSection({
       mode === 'attr'
         ? []
         : Object.values(sheet.stats).filter((s) => {
-            if (!isTabMatching(s.tab, activeTab)) return false;
-            if (!blockId) return true;
-            if (s.blockId) return s.blockId === blockId;
-            return blockId === firstStatBlockIdOnTab;
-          }),
+          if (!isTabMatching(s.tab, activeTab)) return false;
+          if (!blockId) return true;
+          if (s.blockId) return s.blockId === blockId;
+          return blockId === firstStatBlockIdOnTab;
+        }),
     [sheet.stats, mode, activeTab, blockId, firstStatBlockIdOnTab],
   );
 
@@ -615,14 +617,21 @@ export function AttributesStatsSection({
     if (display === 'pyramid') {
       const rows = buildPyramidRows(items);
       return (
-        <div className={`flex flex-col items-center justify-center gap-2.5 ${isTall ? 'flex-1' : ''}`}>
+        <div className={`flex flex-col items-center justify-center gap-2.5 ${isTall && !isMobilePortrait ? 'flex-1' : ''}`}>
           {rows.map((row, rIdx) => (
             <div
               key={rIdx}
-              className="flex flex-wrap items-stretch justify-center gap-2.5 w-full"
+              className="flex flex-wrap items-stretch justify-center gap-2 w-full"
             >
               {row.map((item) => (
-                <div key={item.id} className="w-36 sm:w-40 max-w-full">
+                <div
+                  key={item.id}
+                  className={
+                    isMobilePortrait
+                      ? 'flex-1 min-w-[125px] max-w-[165px]'
+                      : 'w-36 sm:w-40 max-w-full'
+                  }
+                >
                   {renderCardItem(item, true)}
                 </div>
               ))}
@@ -710,14 +719,16 @@ export function AttributesStatsSection({
       const normalStats = items.filter((s) => !isTextNoteStat(s));
 
       const statGridStyle: React.CSSProperties =
-        isTall && !cols
+        isMobilePortrait
           ? { gridTemplateColumns: '1fr' }
-          : cols && cols > 0
-            ? { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }
-            : { gridTemplateColumns: 'repeat(auto-fit, minmax(175px, 1fr))' };
+          : isTall && !cols
+            ? { gridTemplateColumns: '1fr' }
+            : cols && cols > 0
+              ? { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }
+              : { gridTemplateColumns: 'repeat(auto-fit, minmax(175px, 1fr))' };
 
       return (
-        <div className={`space-y-2 ${isTall ? 'flex-1 flex flex-col' : ''}`}>
+        <div className={`space-y-2 ${isTall && !isMobilePortrait ? 'flex-1 flex flex-col' : ''}`}>
           {textNotes.length > 0 && (
             <div className="space-y-1.5 w-full">
               {textNotes.map((stat) => renderCardItem(stat, false))}
@@ -725,7 +736,7 @@ export function AttributesStatsSection({
           )}
 
           {normalStats.length > 0 && (
-            <div className="grid gap-2 content-start" style={statGridStyle}>
+            <div className="grid gap-2 content-start w-full" style={statGridStyle}>
               {normalStats.map((stat) => renderCardItem(stat, false))}
             </div>
           )}
@@ -734,15 +745,17 @@ export function AttributesStatsSection({
     }
 
     const attrGridStyle: React.CSSProperties =
-      isTall && !cols
-        ? { gridTemplateColumns: '1fr' }
-        : cols && cols > 0
-          ? { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }
-          : { gridTemplateColumns: 'repeat(auto-fit, minmax(136px, 1fr))' };
+      isMobilePortrait
+        ? { gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
+        : isTall && !cols
+          ? { gridTemplateColumns: '1fr' }
+          : cols && cols > 0
+            ? { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }
+            : { gridTemplateColumns: 'repeat(auto-fit, minmax(136px, 1fr))' };
 
     return (
       <div
-        className={`grid gap-2.5 content-start ${isTall ? 'flex-1' : ''}`}
+        className={`grid gap-2 sm:gap-2.5 content-start w-full ${isTall && !isMobilePortrait ? 'flex-1' : ''}`}
         style={attrGridStyle}
       >
         {items.map((attr) => renderCardItem(attr, true))}
@@ -807,9 +820,16 @@ export function AttributesStatsSection({
   };
 
   return (
-    <div className={`space-y-4 ${isTall ? 'flex-1 flex flex-col' : ''}`}>
+    <div
+      className={`space-y-4 w-full min-w-0 ${isTall && !isMobilePortrait ? 'flex-1 flex flex-col' : ''
+        }`}
+    >
       {attrGroups.map((group, idx) => (
-        <section key={`attr_grp_${idx}`} className={`space-y-2 ${isTall ? 'flex-1 flex flex-col' : ''}`}>
+        <section
+          key={`attr_grp_${idx}`}
+          className={`space-y-2 w-full min-w-0 ${isTall && !isMobilePortrait ? 'flex-1 flex flex-col' : ''
+            }`}
+        >
           <div className="flex items-center justify-between gap-2 px-0.5">
             {group.title ? (
               <h3 className="text-xs font-bold uppercase tracking-wider text-[#a8a8b3]">

@@ -7,6 +7,7 @@ interface TextSectionProps {
   sheetId?: string;
   block: EvaluatedTextBlock;
   isEditMode?: boolean;
+  isMobilePortrait?: boolean;
 }
 
 const LAYOUT_TAGS_SET = new Set([
@@ -36,6 +37,7 @@ export const TextSection: React.FC<TextSectionProps> = ({
   sheetId,
   block,
   isEditMode = false,
+  isMobilePortrait = false,
 }) => {
   const updateTextBlock = useModularSheetStore((s) => s.updateTextBlock);
   const [isEditing, setIsEditing] = useState(false);
@@ -64,7 +66,7 @@ export const TextSection: React.FC<TextSectionProps> = ({
   };
 
   return (
-    <div className={`space-y-2 ${isTall ? 'flex-1 flex flex-col' : ''}`}>
+    <div className={`space-y-2 ${isTall && !isMobilePortrait ? 'flex-1 flex flex-col' : ''}`}>
       <div className="px-1 flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
           <AlignLeft
@@ -97,8 +99,9 @@ export const TextSection: React.FC<TextSectionProps> = ({
         onDoubleClick={() => {
           if (sheetId && !isEditing) setIsEditing(true);
         }}
-        className={`relative rounded-xl border p-4 space-y-3 transition-colors ${isTall ? 'flex-1 flex flex-col' : ''
-          }`}
+        className={`relative rounded-xl border p-4 space-y-3 transition-colors ${
+          isTall && !isMobilePortrait ? 'flex-1 flex flex-col' : ''
+        }`}
         style={{
           backgroundColor: 'var(--sheet-card-bg, #18181b)',
           borderColor: 'var(--sheet-card-border, #29292e)',
