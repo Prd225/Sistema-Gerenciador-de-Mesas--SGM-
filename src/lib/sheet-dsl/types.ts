@@ -118,7 +118,11 @@ export type CanonicalBlockKind =
   | 'tab'        // @tab, @aba, @page, @pagina
   | 'tab_flow'   // @tab_flow, @nav, @navegacao, @tabbar
   | 'slots'      // @slots, @segmentos, @segments, @caixas
-  | 'text';      // @text, @texto, @note, @nota, @bio, @anotacoes
+  | 'text'       // @text, @texto, @note, @nota, @bio, @anotacoes
+  | 'progression'// @progression, @progressao, @upgrade, @level_up, @evolucao
+  | 'logic'      // @logic, @logica
+  | 'step'       // @step, @passo, @etapa
+  | 'gains';     // @gains, @ganhos, @gain
 
 // --- Marcadores de Disposição Global e Visual de Módulos ---
 
@@ -492,6 +496,64 @@ export interface ASTCounterBlockDecl {
   span: SourceSpan;
 }
 
+export interface ASTProgressionChoiceOption {
+  id: string;
+  label: string;
+  desc?: string;
+  req?: string;          // Pré-requisito (ex: "FOR >= 1", "level >= 2")
+  cost?: string;         // Custo de ativação (ex: "1 PM", "2 PM")
+  type?: string;         // Tipo de ação (ex: "Padrão", "Livre", "Passiva", "Reação")
+  tags?: string[];
+  apply?: string;        // Efeito automático imediato opcional (ex: "FOR += 1")
+  targetModule?: string; // Módulo de destino (ex: "@ability", "@skill", "@attr", "@res")
+  rawDslSnippet?: string;// Snippet DSL exato para injeção completa de bloco DSL
+  abilityAst?: ASTAbilityDecl; // Se declarado como bloco nativo ability "..."
+}
+
+export interface ASTProgressionChoice {
+  title: string;
+  count: number;
+  targetModule?: string; // ex: "@ability", "@skill", "@attr", "@res"
+  options: ASTProgressionChoiceOption[];
+}
+
+export interface ASTProgressionGain {
+  target: string;        // ex: "level", "PV.max", "PM.max", "FOR", etc.
+  label?: string;        // ex: "Pontos de Vida", "Avanço de Nível"
+  desc?: string;         // ex: "+5 PV por nível"
+  op: '+=' | '-=' | ':=';
+  expr: string | ASTExpr;
+  placement?: ModulePlacement;
+}
+
+export interface ASTProgressionStepDecl {
+  id: string;
+  title: string;
+  desc?: string;
+  targetModule?: string; // ex: "@ability", "@skill", "@attr", "@res"
+  gains: ASTProgressionGain[];
+  choices: ASTProgressionChoice[];
+  placement?: ModulePlacement;
+  span?: SourceSpan;
+}
+
+export interface ASTProgressionDecl {
+  type: 'ProgressionDecl';
+  id: string;
+  title: string;
+  buttonLabel?: string;
+  icon?: string;
+  trigger?: string;
+  repeatable?: boolean;
+  cost?: { amount: number; resource: string };
+  steps: ASTProgressionStepDecl[];
+  gains: ASTProgressionGain[];
+  choices: ASTProgressionChoice[];
+  tab?: string;
+  placement?: ModulePlacement;
+  span?: SourceSpan;
+}
+
 export interface ASTSheetDocument {
   meta: ASTMetadataMap;
   profiles: ASTProfileBlockDecl[];
@@ -512,6 +574,7 @@ export interface ASTSheetDocument {
   diagrams: ASTDiagramDecl[];
   rules: ASTRuleDecl[];
   slots: ASTSlotsBlockDecl[];
+  progressions: ASTProgressionDecl[];
   tabs: Array<{ id: string; label: string }>;
   blockTitles: Record<string, string>;
   moduleLayouts: ASTModuleLayoutMeta[];
@@ -764,6 +827,53 @@ export interface EvaluatedCounterBlock {
   items: EvaluatedCounterItem[];
 }
 
+export interface EvaluatedProgressionChoiceOption extends ASTProgressionChoiceOption {
+  isEligible: boolean;
+  requirementText?: string;
+}
+
+export interface EvaluatedProgressionChoice {
+  title: string;
+  count: number;
+  targetModule?: string;
+  options: EvaluatedProgressionChoiceOption[];
+}
+
+export interface EvaluatedProgressionGain {
+  target: string;
+  label?: string;
+  op: '+=' | '-=' | ':=';
+  exprString: string;
+  evaluatedValue: number | string;
+  description: string;
+  placement?: ModulePlacement;
+}
+
+export interface EvaluatedProgressionStep {
+  id: string;
+  title: string;
+  desc?: string;
+  targetModule?: string;
+  gains: EvaluatedProgressionGain[];
+  choices: EvaluatedProgressionChoice[];
+  placement?: ModulePlacement;
+}
+
+export interface EvaluatedProgression {
+  id: string;
+  title: string;
+  buttonLabel: string;
+  icon: string;
+  trigger: string;
+  repeatable: boolean;
+  cost?: { amount: number; resource: string };
+  steps: EvaluatedProgressionStep[];
+  gains: EvaluatedProgressionGain[];
+  choices: EvaluatedProgressionChoice[];
+  tab?: string;
+  placement?: ModulePlacement;
+}
+
 export interface SheetRuntimeOverrides {
   resources?: Record<string, { current?: number; temp?: number; boxes?: string[] }>;
   turnSlots?: Record<string, { current?: number }>;
@@ -860,6 +970,7 @@ export interface CompiledSheet {
   tables: Record<string, ASTTableDecl>;
   resolutions: Record<string, ASTResolutionDecl>;
   rules: EvaluatedRule[];
+  progressions: EvaluatedProgression[];
   tabs: Array<{ id: string; label: string }>;
   blockTitles: {
     attributes?: string;

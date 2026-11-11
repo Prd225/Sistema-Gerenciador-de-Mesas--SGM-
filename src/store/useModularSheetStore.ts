@@ -80,13 +80,13 @@ interface ModularSheetState {
   isOpen: boolean;
   view: 'list' | 'create' | 'sheet';
   activeSheetId: string | null;
-  viewMode: 'visual' | 'split' | 'code';
+  viewMode: 'visual' | 'split' | 'code' | 'logic';
 
   // Navegação da Janela
   openManager: (initialView?: 'list' | 'create') => void;
   closeManager: () => void;
   setView: (view: 'list' | 'create' | 'sheet') => void;
-  setViewMode: (mode: 'visual' | 'split' | 'code') => void;
+  setViewMode: (mode: 'visual' | 'split' | 'code' | 'logic') => void;
   openSheet: (sheetId: string) => void;
   openSheetForToken: (tokenId: string) => boolean;
   getSheetByTokenId: (tokenId: string) => ModularSheetRecord | undefined;
@@ -248,6 +248,18 @@ interface ModularSheetState {
     sheetId: string,
     modOrderIndex: number,
     color: string | undefined,
+  ) => void;
+
+  // Lógica de Consumo Dinâmico (Inventário / Recursos) e Progressão
+  consumeResourceOrItem: (
+    sheetId: string,
+    resourceOrItemName: string,
+    amount?: number,
+  ) => { success: boolean; type: 'resource' | 'item' | 'none'; remaining: number; label: string; error?: string };
+  applyProgressionUpgrade: (
+    sheetId: string,
+    progressionId: string,
+    selectedOptions: import('@/lib/sheet-dsl').ASTProgressionChoiceOption[],
   ) => void;
 }
 
@@ -1448,6 +1460,213 @@ export const useModularSheetStore = create<ModularSheetState>((set, get) => ({
     });
 
     get().updateSheetSource(sheetId, src);
+  },
+
+  consumeResourceOrItem: (sheetId, resourceOrItemName, amount = 1) => {
+    const rec = get().sheets.find((s) => s.id === sheetId);
+    if (!rec) {
+      return { success: false, type: 'none', remaining: 0, label: resourceOrItemName, error: 'Ficha não encontrada' };
+    }
+    const compiled = compileSheetDSL(rec.dslSource, rec.runtimeOverrides);
+    const targetLow = resourceOrItemName.trim().toLowerCase();
+
+    // 1. Tenta encontrar em recursos (sheet.resources)
+    const matchedRes = Object.values(compiled.resources).find(
+      (r) => r.id.toLowerCase() === targetLow || r.label.toLowerCase() === targetLow,
+    );
+
+    if (matchedRes) {
+      if (matchedRes.current < amount) {
+        return {
+          success: false,
+          type: 'resource',
+          remaining: matchedRes.current,
+          label: matchedRes.label,
+          error: `Recurso insuficiente: ${matchedRes.label} (${matchedRes.current}/${matchedRes.max})`,
+        };
+      }
+      const newCur = Math.max(0, matchedRes.current - amount);
+      get().setResourceCurrent(sheetId, matchedRes.id, newCur);
+      return {
+        success: true,
+        type: 'resource',
+        remaining: newCur,
+        label: matchedRes.label,
+      };
+    }
+
+    // 2. Tenta encontrar no inventário (sheet.inventory.items)
+    const matchedItem = compiled.inventory.items.find(
+      (item) =>
+        item.id.toLowerCase() === targetLow ||
+        item.label.toLowerCase() === targetLow ||
+        item.label.toLowerCase().includes(targetLow) ||
+        targetLow.includes(item.label.toLowerCase()),
+    );
+
+    if (matchedItem) {
+      const curQty = matchedItem.qty;
+      if (curQty < amount) {
+        return {
+          success: false,
+          type: 'item',
+          remaining: curQty,
+          label: matchedItem.label,
+          error: `Munição/Item insuficiente no inventário: ${matchedItem.label} (restam ${curQty})`,
+        };
+      }
+      const newQty = Math.max(0, curQty - amount);
+      get().setItemQty(sheetId, matchedItem.id, newQty);
+      return {
+        success: true,
+        type: 'item',
+        remaining: newQty,
+        label: matchedItem.label,
+      };
+    }
+
+    return {
+      success: false,
+      type: 'none',
+      remaining: 0,
+      label: resourceOrItemName,
+      error: `Recurso ou item '${resourceOrItemName}' não encontrado na ficha`,
+    };
+  },
+
+  applyProgressionUpgrade: (sheetId, progressionId, selectedOptions) => {
+    const rec = get().sheets.find((s) => s.id === sheetId);
+    if (!rec) return;
+
+    const compiled = compileSheetDSL(rec.dslSource, rec.runtimeOverrides);
+    const prog = compiled.progressions.find((p) => p.id === progressionId);
+    if (!prog) return;
+
+    // 1. Processa os ganhos automáticos de todos os steps e raiz
+    const allGains = [
+      ...prog.gains,
+      ...prog.steps.flatMap((s) => s.gains),
+    ];
+    // Remove duplicatas por target + exprString
+    const uniqueGains = allGains.filter(
+      (g, idx, arr) =>
+        arr.findIndex(
+          (other) => other.target === g.target && other.exprString === g.exprString,
+        ) === idx,
+    );
+
+    for (const gain of uniqueGains) {
+      const targetLower = gain.target.toLowerCase();
+      if (
+        targetLower === 'level' ||
+        targetLower === 'nivel' ||
+        targetLower === 'nível'
+      ) {
+        const curLvl =
+          typeof compiled.meta.level === 'number' ? compiled.meta.level : 1;
+        const addLvl =
+          typeof gain.evaluatedValue === 'number' ? gain.evaluatedValue : 1;
+        get().updateCharacterLevel(sheetId, curLvl + addLvl);
+      } else if (gain.target.includes('.')) {
+        // Alvo sub-propriedade, ex: PV.max, PM.max
+        const [resId, prop] = gain.target.split('.');
+        const matchedRes = Object.values(compiled.resources).find(
+          (r) => r.id.toLowerCase() === resId.toLowerCase(),
+        );
+        if (matchedRes && typeof gain.evaluatedValue === 'number') {
+          if (prop === 'max' || prop === 'maximo') {
+            const nextMax =
+              gain.op === '+='
+                ? matchedRes.max + gain.evaluatedValue
+                : gain.op === '-='
+                  ? matchedRes.max - gain.evaluatedValue
+                  : gain.evaluatedValue;
+            get().updateSheetSource(
+              sheetId,
+              get().sheets.find((s) => s.id === sheetId)?.dslSource ?? rec.dslSource,
+            );
+            // Atualiza runtime override se não for puramente derivado por fórmula
+            get().setResourceCurrent(sheetId, matchedRes.id, Math.min(matchedRes.current + gain.evaluatedValue, nextMax));
+          }
+        }
+      } else {
+        const statKey = gain.target;
+        const found = compiled.attributes[statKey] || compiled.stats[statKey];
+        if (
+          found &&
+          typeof found.baseValue === 'number' &&
+          typeof gain.evaluatedValue === 'number'
+        ) {
+          const nextVal =
+            gain.op === '+='
+              ? found.baseValue + gain.evaluatedValue
+              : gain.op === '-='
+                ? found.baseValue - gain.evaluatedValue
+                : gain.evaluatedValue;
+          get().updateStatBaseValue(sheetId, found.id, nextVal);
+        }
+      }
+    }
+
+    // 2. Se houver custo de progressão, consome
+    if (prog.cost && prog.cost.amount > 0) {
+      get().consumeResourceOrItem(sheetId, prog.cost.resource, prog.cost.amount);
+    }
+
+    // 3. Adiciona as opções de poderes / habilidades / itens aos módulos correspondentes
+    for (const opt of selectedOptions) {
+      // A. Efeito dinâmico imediato (apply: "pv_bonus_nivel += 1" ou "FOR += 1")
+      if (opt.apply) {
+        const m = opt.apply.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*(\+=|-=|=)\s*(\d+)$/);
+        if (m) {
+          const varName = m[1];
+          const op = m[2];
+          const num = Number(m[3]);
+          const found = compiled.attributes[varName] || compiled.stats[varName];
+          if (found && typeof found.baseValue === 'number') {
+            const nextVal =
+              op === '+=' ? found.baseValue + num : op === '-=' ? found.baseValue - num : num;
+            get().updateStatBaseValue(sheetId, found.id, nextVal);
+          } else {
+            // Se a variável não existir na ficha, injeta em @stat
+            let currSrc = get().sheets.find((s) => s.id === sheetId)?.dslSource ?? rec.dslSource;
+            if (!new RegExp(`\\b${varName}\\b`).test(currSrc)) {
+              const statRegex = /(@(?:stat|stats|status|defesas)\b[^\n]*\n)/i;
+              if (statRegex.test(currSrc)) {
+                currSrc = currSrc.replace(statRegex, `$1  ${varName} := ${num}\n`);
+              } else {
+                currSrc = `${currSrc.trimEnd()}\n\n@stat "Estatísticas"\n  ${varName} := ${num}\n`;
+              }
+              get().updateSheetSource(sheetId, currSrc);
+            }
+          }
+        }
+      }
+
+      // B. Injeção no módulo DSL correto
+      const targetMod = (opt.targetModule || '@ability').toLowerCase();
+
+      if (targetMod.includes('inv') || targetMod.includes('item')) {
+        get().addInventoryItem(sheetId, undefined, {
+          label: opt.label,
+          desc: opt.desc,
+          weight: 1,
+          qty: 1,
+          state: 'carried',
+        });
+      } else {
+        // Padrão: módulo @ability (ou quando explicitamente @ability / ability)
+        get().addAbilityItem(sheetId, undefined, {
+          category: 'ability',
+          label: opt.label,
+          actionType: opt.type || 'Padrão',
+          cost: opt.cost,
+          desc: opt.desc,
+        });
+      }
+    }
+
+    triggerAutoSave();
   },
 }));
 

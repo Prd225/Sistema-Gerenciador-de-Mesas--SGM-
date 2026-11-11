@@ -12,6 +12,8 @@ import {
   PanelRight,
   CircleDot,
   Compass,
+  Sparkles,
+  ArrowUpCircle,
 } from 'lucide-react';
 import {
   rollSheetFormula,
@@ -21,6 +23,7 @@ import {
   type ASTModuleLayoutMeta,
   type CompiledSheet,
   type TabNavPosition,
+  type EvaluatedProgression,
 } from '@/lib/sheet-dsl';
 import { useModularSheetStore } from '@/store/useModularSheetStore';
 import { useDiceTrayStore } from '@/store/useDiceTrayStore';
@@ -35,6 +38,7 @@ import { InventorySection } from './InventorySection';
 import { DiagramsRulesSection } from './DiagramsRulesSection';
 import { SlotsSection } from './SlotsSection';
 import { TextSection } from './TextSection';
+import { ProgressionUpgradeModal } from './ProgressionUpgradeModal';
 import {
   SHEET_THEMES,
   MODULE_COLOR_PALETTE,
@@ -55,7 +59,7 @@ interface VisualSheetViewProps {
   isMobilePortrait?: boolean;
 }
 
-const DEFAULT_COL1_KINDS = new Set(['profile', 'attr', 'stat', 'desc', 'inv', 'text', 'rule']);
+const DEFAULT_COL1_KINDS = new Set(['profile', 'attr', 'stat', 'desc', 'inv', 'text', 'rule', 'progression', 'logic']);
 
 type LayoutSectionBand =
   | {
@@ -215,6 +219,8 @@ export function VisualSheetView({
   );
 
   const [isSemicircleMenuOpen, setIsSemicircleMenuOpen] = useState(false);
+  const [activeProgressionModal, setActiveProgressionModal] =
+    useState<EvaluatedProgression | null>(null);
 
   const tabNav = sheet.meta.tabNav ?? {
     position: 'top',
@@ -532,9 +538,68 @@ export function VisualSheetView({
       case 'tab_flow': {
         return renderTabNavigationMetaModule(true);
       }
+      case 'progression':
+      case 'logic': {
+        const prog =
+          sheet.progressions.find((p) => p.id === mod.id) ||
+          sheet.progressions[0];
+        if (!prog) return null;
+        return renderProgressionModule(prog);
+      }
       default:
         return null;
     }
+  };
+
+  const renderProgressionModule = (prog: EvaluatedProgression) => {
+    return (
+      <div
+        className="rounded-xl border p-4 space-y-3 transition-colors shadow-sm"
+        style={{
+          backgroundColor: 'var(--sheet-card-bg, #18181b)',
+          borderColor: 'var(--sheet-card-border, #29292e)',
+        }}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border"
+              style={{
+                backgroundColor:
+                  'var(--sheet-accent-subtle, rgba(130, 87, 229, 0.2))',
+                borderColor:
+                  'var(--sheet-accent-border, rgba(130, 87, 229, 0.4))',
+                color: 'var(--sheet-accent-text, #c4b5fd)',
+              }}
+            >
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+                {prog.title}
+              </h4>
+              <span className="text-[10px] font-mono text-zinc-400">
+                {prog.gains
+                  .map((g) => `${g.target} ${g.op} ${g.evaluatedValue}`)
+                  .join(' • ')}
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setActiveProgressionModal(prog)}
+            className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1.5 shadow-md hover:scale-105 active:scale-95 transition-all shrink-0"
+            style={{
+              backgroundColor: 'var(--sheet-accent, #8257e5)',
+            }}
+          >
+            <ArrowUpCircle className="w-4 h-4" />
+            <span>{prog.buttonLabel || 'Evoluir'}</span>
+          </button>
+        </div>
+      </div>
+    );
   };
 
   const renderModule = (mod: ASTModuleLayoutMeta): React.ReactNode => {
@@ -1261,6 +1326,16 @@ export function VisualSheetView({
       {effectiveTabPos === 'bottom' && renderTabNavigationMetaModule()}
 
       {effectiveTabPos === 'semicircle' && renderSemicircleNavigation()}
+
+      {activeProgressionModal && (
+        <ProgressionUpgradeModal
+          isOpen={Boolean(activeProgressionModal)}
+          onClose={() => setActiveProgressionModal(null)}
+          sheetId={sheetId}
+          sheet={sheet}
+          progression={activeProgressionModal}
+        />
+      )}
     </div>
   );
 }

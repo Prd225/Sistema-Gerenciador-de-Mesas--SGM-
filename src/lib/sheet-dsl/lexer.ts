@@ -191,6 +191,32 @@ export const DIRECTIVE_ALIASES: Record<string, CanonicalBlockKind> = {
   lore: 'text',
   historia: 'text',
   história: 'text',
+
+  // Progressão, Lógica e Upgrades Automatizados (@progression, @logic, @upgrade)
+  progression: 'progression',
+  progressao: 'progression',
+  progressão: 'progression',
+  upgrade: 'progression',
+  upgrades: 'progression',
+  aprimoramento: 'progression',
+  aprimorar: 'progression',
+  level_up: 'progression',
+  subir_nivel: 'progression',
+  evolucao: 'progression',
+  evoluir: 'progression',
+  logic: 'logic',
+  logica: 'logic',
+  lógica: 'logic',
+
+  // Etapas e Ganhos Modulares de Progressão (@step, @gains)
+  step: 'step',
+  passo: 'step',
+  etapa: 'step',
+  fase: 'step',
+  gains: 'gains',
+  gain: 'gains',
+  ganho: 'gains',
+  ganhos: 'gains',
 };
 
 export function normalizeDirectiveKey(raw: string): string {

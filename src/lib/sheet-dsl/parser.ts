@@ -25,6 +25,11 @@ import type {
   ASTItemDecl,
   ASTMetadataMap,
   ASTOutcomeBand,
+  ASTProgressionChoice,
+  ASTProgressionChoiceOption,
+  ASTProgressionDecl,
+  ASTProgressionGain,
+  ASTProgressionStepDecl,
   ASTRankGroupDecl,
   ASTResolutionDecl,
   ASTResourceDecl,
@@ -141,6 +146,7 @@ export class SheetParser {
       diagrams: [],
       rules: [],
       slots: [],
+      progressions: [],
       tabs: [],
       blockTitles: {},
       moduleLayouts: [],
@@ -253,6 +259,16 @@ export class SheetParser {
         break;
       case 'text':
         this.parseTextBlock(doc);
+        break;
+      case 'progression':
+      case 'logic':
+        this.parseProgressionBlock(doc);
+        break;
+      case 'step':
+        this.parseStepDirective(doc);
+        break;
+      case 'gains':
+        this.parseGainsDirective(doc);
         break;
     }
   }
@@ -1341,6 +1357,717 @@ export class SheetParser {
     });
 
     this.registerModuleLayout(doc, 'slots', id, header, title);
+  }
+
+  /**
+   * @progression "Subir de Nível" [trigger: "level_up", button: "Subir de Nível", icon: "sparkles"]
+   *   cost: 1000 XP
+   *   gain:
+   *     level += 1
+   *     PV.max += 5 + CON
+   *     PM.max += 3
+   *   choose 1 "Poder de Classe ou Geral" from [
+   *     "Ataque Especial" { desc: "...", cost: "1 PM", tags: ["combate"] },
+   *     "Golpe Pessoal" { desc: "...", cost: "2 PM" }
+   *   ]
+   */
+  private parseProgressionBlock(doc: ASTSheetDocument): void {
+    const startTok = this.peek();
+    const blockId = this.nextBlockId('progression');
+    let customTitle: string | undefined;
+
+    if (this.check('STRING') || this.check('IDENTIFIER')) {
+      customTitle = this.advance().value.trim();
+    }
+
+    const header = this.parseBlockHeader();
+    const title: string =
+      customTitle ??
+      (header.title === '__DEFAULT__' || !header.title ? 'Progressão' : header.title);
+    const tab = header.tab;
+    if (tab && !doc.tabs.some((t) => t.id === tab)) {
+      doc.tabs.push({ id: tab, label: tab });
+    }
+
+    const steps: ASTProgressionStepDecl[] = [];
+    const rootGains: ASTProgressionGain[] = [];
+    const rootChoices: ASTProgressionChoice[] = [];
+    let currentStep: ASTProgressionStepDecl | null = null;
+    let cost: { amount: number; resource: string } | undefined;
+    let buttonLabel: string = title;
+    let icon = 'sparkles';
+    let trigger = 'level_up';
+    let repeatable = true;
+
+    if (header.meta.props.button) {
+      const b = header.meta.props.button;
+      if (b.type === 'StringLit') buttonLabel = b.value;
+      else if (b.type === 'Ident') buttonLabel = b.name;
+    } else if (header.meta.props.botao) {
+      const b = header.meta.props.botao;
+      if (b.type === 'StringLit') buttonLabel = b.value;
+      else if (b.type === 'Ident') buttonLabel = b.name;
+    }
+
+    if (header.meta.props.trigger) {
+      const t = header.meta.props.trigger;
+      if (t.type === 'StringLit') trigger = t.value;
+      else if (t.type === 'Ident') trigger = t.name;
+    } else if (header.meta.props.gatilho) {
+      const t = header.meta.props.gatilho;
+      if (t.type === 'StringLit') trigger = t.value;
+      else if (t.type === 'Ident') trigger = t.name;
+    }
+
+    if (header.meta.props.icon) {
+      const ic = header.meta.props.icon;
+      if (ic.type === 'StringLit') icon = ic.value;
+      else if (ic.type === 'Ident') icon = ic.name;
+    } else if (header.meta.props.icone) {
+      const ic = header.meta.props.icone;
+      if (ic.type === 'StringLit') icon = ic.value;
+      else if (ic.type === 'Ident') icon = ic.name;
+    }
+
+    if (header.meta.flags.includes('once') || header.meta.flags.includes('unico') || header.meta.flags.includes('único')) {
+      repeatable = false;
+    }
+
+    const hasBrace = this.match('LBRACE');
+    this.skipSeparators();
+
+    while (!this.isAtBlockEnd() && !(hasBrace && this.check('RBRACE'))) {
+      // A. Diretiva @step ou identificador step/passo/etapa
+      if (
+        (this.check('DIRECTIVE') && this.peek().value === 'step') ||
+        (this.check('IDENTIFIER') && ['step', 'passo', 'etapa', 'fase'].includes(this.peek().value.toLowerCase()))
+      ) {
+        if (this.check('DIRECTIVE')) this.advance();
+        else this.advance();
+        const st = this.parseProgressionStepDecl();
+        if (st) {
+          steps.push(st);
+          currentStep = st;
+        }
+        this.skipSeparators();
+        continue;
+      }
+
+      // B. Diretiva @gains ou identificador gain/gains/ganho/ganhos
+      if (
+        (this.check('DIRECTIVE') && this.peek().value === 'gains') ||
+        (this.check('IDENTIFIER') && ['gain', 'gains', 'ganho', 'ganhos'].includes(this.peek().value.toLowerCase()))
+      ) {
+        if (this.check('DIRECTIVE')) this.advance();
+        else {
+          this.advance();
+          this.match('COLON');
+        }
+        const targetList = currentStep ? currentStep.gains : rootGains;
+        this.parseGainsBlockInto(targetList);
+        this.skipSeparators();
+        continue;
+      }
+
+      if (this.check('IDENTIFIER')) {
+        const keyword = this.peek().value.toLowerCase();
+
+        // 1. Custo (cost / custo: 1000 XP)
+        if (keyword === 'cost' || keyword === 'custo') {
+          this.advance();
+          this.match('COLON');
+          if (this.check('NUMBER')) {
+            const amt = Number(this.advance().value);
+            let res = 'XP';
+            if (this.check('IDENTIFIER') || this.check('STRING')) {
+              res = this.advance().value;
+            }
+            cost = { amount: amt, resource: res };
+          }
+        }
+        // 2. Escolhas (choose <N> "<Titulo>" from [...])
+        else if (keyword === 'choose' || keyword === 'escolha' || keyword === 'escolher') {
+          const ch = this.parseProgressionChoiceDecl(currentStep?.targetModule);
+          if (ch) {
+            if (currentStep) currentStep.choices.push(ch);
+            else rootChoices.push(ch);
+          }
+        }
+        // 3. Item de ganho direto (ex: level += 1 ou "Pontos de Vida" [mod: PV + 5])
+        else {
+          const gain = this.parseSingleGainItem();
+          if (gain) {
+            if (currentStep) currentStep.gains.push(gain);
+            else rootGains.push(gain);
+          } else {
+            this.advance();
+          }
+        }
+      } else if (this.check('STRING')) {
+        // String literal como ganho: "Pontos de Vida" [desc: "+5 PV", mod: PV + 5]
+        const gain = this.parseSingleGainItem();
+        if (gain) {
+          if (currentStep) currentStep.gains.push(gain);
+          else rootGains.push(gain);
+        } else {
+          this.advance();
+        }
+      } else {
+        this.advance();
+      }
+      this.skipSeparators();
+    }
+
+    if (hasBrace) this.match('RBRACE');
+
+    if (steps.length === 0 && (rootGains.length > 0 || rootChoices.length > 0)) {
+      steps.push({
+        id: `step_${this.nextBlockId('step')}`,
+        title: title || 'Evolução',
+        gains: [...rootGains],
+        choices: [...rootChoices],
+        placement: header.placement,
+      });
+    }
+
+    const allGains: ASTProgressionGain[] = [...rootGains];
+    const allChoices: ASTProgressionChoice[] = [...rootChoices];
+    for (const st of steps) {
+      for (const g of st.gains) {
+        if (!allGains.includes(g)) allGains.push(g);
+      }
+      for (const c of st.choices) {
+        if (!allChoices.includes(c)) allChoices.push(c);
+      }
+    }
+
+    doc.progressions.push({
+      type: 'ProgressionDecl',
+      id: blockId,
+      title,
+      buttonLabel,
+      icon,
+      trigger,
+      repeatable,
+      cost,
+      steps,
+      gains: allGains,
+      choices: allChoices,
+      tab,
+      placement: header.placement,
+      span: this.mergeSpans(startTok.span, this.previous().span),
+    });
+
+    this.registerModuleLayout(doc, 'progression', blockId, header, title);
+  }
+
+  private ensureActiveProgression(doc: ASTSheetDocument): ASTProgressionDecl {
+    if (doc.progressions.length === 0) {
+      const blockId = this.nextBlockId('progression');
+      const prog: ASTProgressionDecl = {
+        type: 'ProgressionDecl',
+        id: blockId,
+        title: 'Progressão',
+        buttonLabel: 'Subir de Nível',
+        icon: 'sparkles',
+        trigger: 'level_up',
+        repeatable: true,
+        steps: [],
+        gains: [],
+        choices: [],
+        placement: 'col1',
+        span: this.peek().span,
+      };
+      doc.progressions.push(prog);
+      this.registerModuleLayout(
+        doc,
+        'progression',
+        blockId,
+        {
+          placement: 'col1',
+          display: 'cards',
+          tall: false,
+          meta: { flags: [], tags: [], props: {} },
+        },
+        'Progressão',
+      );
+    }
+    return doc.progressions[doc.progressions.length - 1];
+  }
+
+  private parseStepDirective(doc: ASTSheetDocument): void {
+    const prog = this.ensureActiveProgression(doc);
+    const step = this.parseProgressionStepDecl();
+    if (step) {
+      prog.steps.push(step);
+      for (const g of step.gains) {
+        if (!prog.gains.includes(g)) prog.gains.push(g);
+      }
+      for (const c of step.choices) {
+        if (!prog.choices.includes(c)) prog.choices.push(c);
+      }
+    }
+  }
+
+  private parseGainsDirective(doc: ASTSheetDocument): void {
+    const prog = this.ensureActiveProgression(doc);
+    let targetStep = prog.steps[prog.steps.length - 1];
+    if (!targetStep) {
+      targetStep = {
+        id: `step_${this.nextBlockId('step')}`,
+        title: 'Ganhos da Evolução',
+        gains: [],
+        choices: [],
+      };
+      prog.steps.push(targetStep);
+    }
+    this.parseGainsBlockInto(targetStep.gains);
+    for (const g of targetStep.gains) {
+      if (!prog.gains.includes(g)) prog.gains.push(g);
+    }
+  }
+
+  private parseProgressionStepDecl(defaultTargetModule?: string): ASTProgressionStepDecl | null {
+    const startSpan = this.peek().span;
+    let title = 'Etapa';
+    if (this.check('STRING') || this.check('IDENTIFIER')) {
+      title = this.advance().value.trim();
+    }
+    const header = this.parseBlockHeader();
+    if (header.title && header.title !== '__DEFAULT__') {
+      title = header.title;
+    }
+    const id = `step_${this.nextBlockId('step')}`;
+    const targetModule = header.meta.props.target
+      ? header.meta.props.target.type === 'StringLit'
+        ? header.meta.props.target.value
+        : header.meta.props.target.type === 'Ident'
+          ? header.meta.props.target.name
+          : defaultTargetModule
+      : defaultTargetModule;
+
+    const gains: ASTProgressionGain[] = [];
+    const choices: ASTProgressionChoice[] = [];
+    const hasBrace = this.match('LBRACE');
+    this.skipSeparators();
+
+    while (!this.isAtEnd()) {
+      if (hasBrace) {
+        if (this.check('RBRACE')) break;
+      } else {
+        if (this.check('DIRECTIVE')) {
+          const d = this.peek().value;
+          if (
+            d === 'step' ||
+            d === 'progression' ||
+            d === 'logic' ||
+            d === 'tab' ||
+            d === 'attr' ||
+            d === 'stat' ||
+            d === 'res' ||
+            d === 'skill' ||
+            d === 'ability' ||
+            d === 'inv'
+          ) {
+            break;
+          }
+        }
+        if (this.check('IDENTIFIER')) {
+          const kw = this.peek().value.toLowerCase();
+          if (kw === 'step' || kw === 'passo' || kw === 'etapa' || kw === 'fase') {
+            break;
+          }
+        }
+      }
+
+      if (this.check('DIRECTIVE')) {
+        const d = this.peek().value;
+        if (d === 'gains') {
+          this.advance();
+          this.parseGainsBlockInto(gains, header.placement);
+          this.skipSeparators();
+          continue;
+        }
+      }
+
+      if (this.check('IDENTIFIER')) {
+        const kw = this.peek().value.toLowerCase();
+        if (kw === 'gain' || kw === 'gains' || kw === 'ganho' || kw === 'ganhos') {
+          this.advance();
+          this.match('COLON');
+          this.parseGainsBlockInto(gains, header.placement);
+          this.skipSeparators();
+          continue;
+        }
+        if (kw === 'choose' || kw === 'escolha' || kw === 'escolher') {
+          const ch = this.parseProgressionChoiceDecl(targetModule);
+          if (ch) choices.push(ch);
+          this.skipSeparators();
+          continue;
+        }
+      }
+
+      const singleGain = this.parseSingleGainItem(header.placement);
+      if (singleGain) {
+        gains.push(singleGain);
+      } else {
+        this.synchronizeToNextStatement();
+      }
+      this.skipSeparators();
+    }
+
+    if (hasBrace) this.match('RBRACE');
+
+    return {
+      id,
+      title,
+      targetModule,
+      gains,
+      choices,
+      placement: header.placement,
+      span: this.mergeSpans(startSpan, this.previous().span),
+    };
+  }
+
+  private parseGainsBlockInto(
+    targetList: ASTProgressionGain[],
+    parentPlacement?: ModulePlacement,
+  ): void {
+    const meta = this.parseOptionalMetaAndFlags();
+    const placement: ModulePlacement =
+      meta.flags.includes('esq') || meta.flags.includes('col1')
+        ? 'col1'
+        : meta.flags.includes('dir') || meta.flags.includes('col2')
+          ? 'col2'
+          : meta.flags.includes('full')
+            ? 'full'
+            : (parentPlacement || 'col1');
+
+    const hasBrace = this.match('LBRACE');
+    this.skipSeparators();
+
+    while (!this.isAtEnd()) {
+      if (hasBrace) {
+        if (this.check('RBRACE')) break;
+      } else {
+        if (this.check('DIRECTIVE')) break;
+        if (this.check('IDENTIFIER')) {
+          const kw = this.peek().value.toLowerCase();
+          if (
+            kw === 'step' ||
+            kw === 'passo' ||
+            kw === 'etapa' ||
+            kw === 'choose' ||
+            kw === 'escolha' ||
+            kw === 'cost'
+          ) {
+            break;
+          }
+        }
+      }
+
+      const item = this.parseSingleGainItem(placement);
+      if (item) {
+        targetList.push(item);
+      } else {
+        break;
+      }
+      this.skipSeparators();
+    }
+
+    if (hasBrace) this.match('RBRACE');
+  }
+
+  private parseSingleGainItem(
+    parentPlacement?: ModulePlacement,
+  ): ASTProgressionGain | null {
+    // 1. Sintaxe com String: "Pontos de Vida" [desc: "+5 PV por nível", mod: PV + 5]
+    if (this.check('STRING')) {
+      const label = this.advance().value.trim();
+      const meta = this.parseOptionalMetaAndFlags();
+      const desc = meta.props.desc
+        ? meta.props.desc.type === 'StringLit'
+          ? meta.props.desc.value
+          : this.exprToRawCode(meta.props.desc)
+        : undefined;
+
+      let target = meta.props.target
+        ? meta.props.target.type === 'StringLit'
+          ? meta.props.target.value
+          : meta.props.target.type === 'Ident'
+            ? meta.props.target.name
+            : label
+        : label;
+
+      let op: '+=' | '-=' | ':=' = '+=';
+      let expr: ASTExpr = { type: 'NumberLit', value: 1, span: this.previous().span };
+
+      const modExpr =
+        meta.props.mod ??
+        meta.props.valor ??
+        meta.props.bonus ??
+        meta.props.value;
+      if (modExpr) {
+        if (
+          modExpr.type === 'BinaryExpr' &&
+          (modExpr.op === '+' || modExpr.op === '-')
+        ) {
+          if (modExpr.left.type === 'Ident') {
+            if (!meta.props.target) target = modExpr.left.name;
+            op = modExpr.op === '+' ? '+=' : '-=';
+            expr = modExpr.right;
+          } else {
+            expr = modExpr;
+          }
+        } else {
+          expr = modExpr;
+        }
+      }
+
+      const placement: ModulePlacement =
+        meta.flags.includes('esq') || meta.flags.includes('col1')
+          ? 'col1'
+          : meta.flags.includes('dir') || meta.flags.includes('col2')
+            ? 'col2'
+            : meta.flags.includes('full')
+              ? 'full'
+              : (parentPlacement || 'col1');
+      return { target, label, desc, op, expr, placement };
+    }
+
+    // 2. Sintaxe de Atribuição Direta: level += 1 [desc: "..."] ou PV.max += 5 + CON
+    if (this.check('IDENTIFIER')) {
+      let targetTok = this.advance().value;
+      while (this.match('DOT')) {
+        const sub = this.consumeIdentifierOrString('Esperado sub-propriedade.');
+        if (sub) targetTok += `.${sub}`;
+      }
+      let op: '+=' | '-=' | ':=' = '+=';
+      if (this.match('ASSIGN_ADD')) op = '+=';
+      else if (this.match('ASSIGN_SUB')) op = '-=';
+      else if (
+        this.match('ASSIGN_PIN') ||
+        this.match('ASSIGN_CALC') ||
+        this.match('COLON')
+      )
+        op = ':=';
+
+      const expr = this.parseExpr(0);
+      let desc: string | undefined;
+      let placement = parentPlacement;
+      if (this.check('LBRACKET')) {
+        const meta = this.parseMetadataBracket();
+        if (meta.props.desc) {
+          desc =
+            meta.props.desc.type === 'StringLit'
+              ? meta.props.desc.value
+              : this.exprToRawCode(meta.props.desc);
+        }
+        if (meta.flags.includes('esq') || meta.flags.includes('col1')) placement = 'col1';
+        else if (meta.flags.includes('dir') || meta.flags.includes('col2')) placement = 'col2';
+        else if (meta.flags.includes('full')) placement = 'full';
+      }
+
+      return {
+        target: targetTok,
+        label: targetTok,
+        desc,
+        op,
+        expr,
+        placement,
+      };
+    }
+
+    return null;
+  }
+
+  private parseProgressionChoiceDecl(
+    inheritedTargetModule?: string,
+  ): ASTProgressionChoice | null {
+    this.advance(); // consome 'choose' / 'escolha'
+    let count = 1;
+    if (this.check('NUMBER')) {
+      count = Number(this.advance().value);
+    }
+    let choiceTitle = 'Escolha um Poder';
+    if (this.check('STRING') || this.check('IDENTIFIER')) {
+      choiceTitle = this.advance().value;
+    }
+    const meta = this.parseOptionalMetaAndFlags();
+    let targetModule = meta.props.target
+      ? meta.props.target.type === 'StringLit'
+        ? meta.props.target.value
+        : meta.props.target.type === 'Ident'
+          ? meta.props.target.name
+          : inheritedTargetModule
+      : inheritedTargetModule;
+
+    if (
+      this.check('IDENTIFIER') &&
+      (this.peek().value.toLowerCase() === 'from' ||
+        this.peek().value.toLowerCase() === 'de')
+    ) {
+      this.advance();
+    }
+    this.match('COLON');
+
+    const options: ASTProgressionChoiceOption[] = [];
+    if (this.match('LBRACKET')) {
+      this.skipSeparators();
+      while (!this.check('RBRACKET') && !this.isAtEnd()) {
+        const word = this.peek().value?.toLowerCase();
+        if (this.check('IDENTIFIER') && ABILITY_CATEGORIES[word]) {
+          const ab = this.parseAbilityDecl(false);
+          if (ab) {
+            const costStr = ab.meta.props.cost
+              ? this.exprToRawCode(ab.meta.props.cost)
+              : undefined;
+            const reqStr = ab.meta.props.req
+              ? this.exprToRawCode(ab.meta.props.req)
+              : ab.meta.props.requires
+                ? this.exprToRawCode(ab.meta.props.requires)
+                : undefined;
+            const descStr = ab.props.desc
+              ? ab.props.desc.type === 'StringLit'
+                ? ab.props.desc.value
+                : this.exprToRawCode(ab.props.desc)
+              : undefined;
+            const applyStr = ab.props.apply
+              ? this.exprToRawCode(ab.props.apply)
+              : undefined;
+
+            const actionType = ab.props.type
+              ? ab.props.type.type === 'StringLit'
+                ? ab.props.type.value
+                : this.exprToRawCode(ab.props.type)
+              : ab.meta.props.type
+                ? ab.meta.props.type.type === 'StringLit'
+                  ? ab.meta.props.type.value
+                  : this.exprToRawCode(ab.meta.props.type)
+                : undefined;
+
+            options.push({
+              id: ab.id,
+              label: ab.label,
+              desc: descStr,
+              req: reqStr,
+              cost: costStr,
+              type: actionType,
+              tags: ab.meta.tags,
+              apply: applyStr,
+              targetModule: targetModule || '@ability',
+              abilityAst: ab,
+            });
+          }
+        } else {
+          const optLabel = this.consumeIdentifierOrString(
+            'Esperado nome da opção/poder.',
+          );
+          if (!optLabel) break;
+
+          let desc: string | undefined;
+          let req: string | undefined;
+          let optCost: string | undefined;
+          let optType: string | undefined;
+          let tags: string[] = [];
+          let apply: string | undefined;
+          let optTargetModule = targetModule;
+
+          if (this.check('LBRACKET')) {
+            const inlineMeta = this.parseMetadataBracket();
+            if (inlineMeta.tags.length > 0) tags.push(...inlineMeta.tags);
+            if (inlineMeta.props.cost)
+              optCost = this.exprToRawCode(inlineMeta.props.cost);
+            if (inlineMeta.props.req)
+              req = this.exprToRawCode(inlineMeta.props.req);
+            if (inlineMeta.props.target) {
+              optTargetModule =
+                inlineMeta.props.target.type === 'StringLit'
+                  ? inlineMeta.props.target.value
+                  : inlineMeta.props.target.type === 'Ident'
+                    ? inlineMeta.props.target.name
+                    : optTargetModule;
+            }
+          }
+
+          if (this.match('LBRACE')) {
+            this.skipSeparators();
+            while (!this.check('RBRACE') && !this.isAtEnd()) {
+              if (this.check('IDENTIFIER')) {
+                const propKey = this.advance().value.toLowerCase();
+                this.match('COLON');
+                if (
+                  propKey === 'desc' ||
+                  propKey === 'descricao' ||
+                  propKey === 'descrição'
+                ) {
+                  if (this.check('STRING')) desc = this.advance().value;
+                  else if (this.check('IDENTIFIER'))
+                    desc = this.advance().value;
+                } else if (propKey === 'req' || propKey === 'requisito') {
+                  if (this.check('STRING')) req = this.advance().value;
+                  else if (this.check('IDENTIFIER'))
+                    req = this.advance().value;
+                } else if (propKey === 'cost' || propKey === 'custo') {
+                  if (this.check('STRING')) optCost = this.advance().value;
+                  else if (this.check('IDENTIFIER'))
+                    optCost = this.advance().value;
+                } else if (propKey === 'type' || propKey === 'tipo') {
+                  if (this.check('STRING')) optType = this.advance().value;
+                  else if (this.check('IDENTIFIER'))
+                    optType = this.advance().value;
+                } else if (propKey === 'apply' || propKey === 'aplica') {
+                  if (this.check('STRING')) apply = this.advance().value;
+                  else if (this.check('IDENTIFIER'))
+                    apply = this.advance().value;
+                } else if (
+                  propKey === 'target' ||
+                  propKey === 'modulo' ||
+                  propKey === 'módulo'
+                ) {
+                  if (this.check('STRING'))
+                    optTargetModule = this.advance().value;
+                  else if (this.check('IDENTIFIER'))
+                    optTargetModule = this.advance().value;
+                } else if (propKey === 'tags') {
+                  tags = this.parseStringArray();
+                } else {
+                  this.parseExpr(0);
+                }
+              } else {
+                this.advance();
+              }
+              this.matchAny('COMMA', 'SEMICOLON', 'PIPE');
+              this.skipSeparators();
+            }
+            this.match('RBRACE');
+          }
+
+          options.push({
+            id: optLabel,
+            label: optLabel,
+            desc,
+            req,
+            cost: optCost,
+            type: optType,
+            tags,
+            apply,
+            targetModule: optTargetModule,
+          });
+        }
+
+        this.matchAny('COMMA', 'SEMICOLON', 'PIPE');
+        this.skipSeparators();
+      }
+      this.match('RBRACKET');
+    }
+
+    return {
+      title: choiceTitle,
+      count,
+      targetModule,
+      options,
+    };
   }
 
   private parseSlotItemDecl(): ASTSlotItemDecl | null {
@@ -3360,6 +4087,47 @@ export class SheetParser {
 
   private isAtEnd(): boolean {
     return this.peek().type === 'EOF';
+  }
+
+  private exprToRawCode(expr: ASTExpr): string {
+    switch (expr.type) {
+      case 'NumberLit':
+        return String(expr.value);
+      case 'StringLit':
+        return `"${expr.value}"`;
+      case 'StepDieLit':
+        return `d${expr.faces}`;
+      case 'Ident':
+        return expr.name;
+      case 'MemberExpr':
+        return `${expr.object}.${expr.property}`;
+      case 'UnaryExpr':
+        return `${expr.op}${this.exprToRawCode(expr.operand)}`;
+      case 'BinaryExpr':
+        return `${this.exprToRawCode(expr.left)} ${expr.op} ${this.exprToRawCode(expr.right)}`;
+      case 'RangeExpr':
+        return `${this.exprToRawCode(expr.min)}..${this.exprToRawCode(expr.max)}`;
+      case 'TernaryExpr':
+        return `${this.exprToRawCode(expr.condition)} ? ${this.exprToRawCode(expr.consequent)} : ${this.exprToRawCode(expr.alternate)}`;
+      case 'CallExpr':
+        return `${expr.callee}(${expr.args.map((a) => this.exprToRawCode(a)).join(', ')})`;
+      case 'ArrayExpr':
+        return `[${expr.elements.map((a) => this.exprToRawCode(a)).join(', ')}]`;
+      case 'DiceExpr': {
+        const count = this.exprToRawCode(expr.count);
+        const faces = expr.faces === 'F' ? 'F' : this.exprToRawCode(expr.faces);
+        let mods = '';
+        for (const m of expr.modifiers) {
+          if (m.kind === 'keep_highest') mods += `kh${m.count}`;
+          else if (m.kind === 'keep_lowest') mods += `kl${m.count}`;
+          else if (m.kind === 'drop_highest') mods += `dh${m.count}`;
+          else if (m.kind === 'drop_lowest') mods += `dl${m.count}`;
+          else if (m.kind === 'explode') mods += m.mode === 'compound' ? '!!' : m.mode === 'penetrating' ? '!p' : '!';
+          else if (m.kind === 'reroll') mods += `r${m.value}`;
+        }
+        return `${count}d${faces}${mods}`;
+      }
+    }
   }
 
   private error(token: DSLToken, message: string): void {

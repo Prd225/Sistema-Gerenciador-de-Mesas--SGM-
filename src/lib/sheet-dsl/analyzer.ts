@@ -578,6 +578,7 @@ export class SheetAnalyzer {
       tables: this.tableMap,
       resolutions: resolutionMap,
       rules: this.evaluatedRules,
+      progressions: this.evaluateProgressionBlocks(),
       tabs,
       blockTitles: {
         attributes: this.ast.blockTitles.attributes,
@@ -2013,10 +2014,22 @@ export class SheetAnalyzer {
     const fallbackResourceName = Object.keys(this.resources)[0] ?? '';
     let cost: { amount: number; resource: string } | undefined;
     const costExpr = decl.meta.props.cost ?? decl.meta.props.custo ?? decl.props.cost;
-    if (costExpr) {
-      const resProp = decl.meta.props.resource ?? decl.meta.props.recurso;
+    const ammoExpr =
+      decl.meta.props.ammo ??
+      decl.meta.props.municao ??
+      decl.meta.props.munição ??
+      decl.props.ammo ??
+      decl.props.municao;
+
+    if (costExpr || ammoExpr) {
+      const resProp =
+        decl.meta.props.resource ??
+        decl.meta.props.recurso ??
+        ammoExpr ??
+        decl.meta.props.ammo;
+      const amountVal = costExpr ? this.toNumber(this.evalExpr(costExpr)) : 1;
       cost = {
-        amount: this.toNumber(this.evalExpr(costExpr)),
+        amount: Math.max(1, amountVal),
         resource: resProp
           ? resProp.type === 'Ident'
             ? resProp.name
@@ -2773,6 +2786,213 @@ export class SheetAnalyzer {
   private evalBoolProp(expr: ASTExpr | undefined, fallback: boolean): boolean {
     if (!expr) return fallback;
     return this.isTruthy(this.evalExpr(expr));
+  }
+
+  private evaluateProgressionBlocks(): import('./types').EvaluatedProgression[] {
+    const list: import('./types').EvaluatedProgression[] = [];
+
+    for (const p of this.ast.progressions || []) {
+      const evaluatedGains: import('./types').EvaluatedProgressionGain[] = p.gains.map((g) => {
+        let evaluatedValue: number | string = 0;
+        const exprString = typeof g.expr === 'string' ? g.expr : this.exprToRawCode(g.expr);
+
+        try {
+          if (typeof g.expr === 'string') {
+            const num = Number(g.expr);
+            evaluatedValue = !Number.isNaN(num) ? num : g.expr;
+          } else {
+            const res = this.evalExpr(g.expr);
+            evaluatedValue = typeof res === 'number' || typeof res === 'string' ? res : 0;
+          }
+        } catch {
+          evaluatedValue = exprString;
+        }
+
+        const opLabel = g.op === '+=' ? 'Aumenta em' : g.op === '-=' ? 'Reduz em' : 'Define como';
+        const description = `${opLabel} ${evaluatedValue} (${exprString})`;
+
+        return {
+          target: g.target,
+          op: g.op,
+          exprString,
+          evaluatedValue,
+          description,
+        };
+      });
+
+      const evaluatedChoices: import('./types').EvaluatedProgressionChoice[] = p.choices.map((c) => {
+        const evaluatedOptions: import('./types').EvaluatedProgressionChoiceOption[] = c.options.map((opt) => {
+          let isEligible = true;
+          const requirementText = opt.req;
+
+          if (opt.req) {
+            isEligible = this.checkSimpleRequirement(opt.req);
+          }
+
+          return {
+            ...opt,
+            isEligible,
+            requirementText,
+          };
+        });
+
+        return {
+          title: c.title,
+          count: c.count,
+          options: evaluatedOptions,
+        };
+      });
+
+      const evaluatedSteps: import('./types').EvaluatedProgressionStep[] = (
+        p.steps || []
+      ).map((st) => {
+        const stepGains: import('./types').EvaluatedProgressionGain[] =
+          st.gains.map((g) => {
+            const exprString =
+              typeof g.expr === 'string'
+                ? g.expr
+                : this.exprToFormulaString(g.expr);
+            let evaluatedValue: number | string = 0;
+            try {
+              if (typeof g.expr === 'string') {
+                const num = Number(g.expr);
+                evaluatedValue = !Number.isNaN(num) ? num : g.expr;
+              } else {
+                const res = this.evalExpr(g.expr);
+                evaluatedValue =
+                  typeof res === 'number' || typeof res === 'string' ? res : 0;
+              }
+            } catch {
+              evaluatedValue = exprString;
+            }
+
+            const opLabel =
+              g.op === '+='
+                ? 'Aumenta em'
+                : g.op === '-='
+                  ? 'Reduz em'
+                  : 'Define como';
+            const description =
+              g.desc || `${opLabel} ${evaluatedValue} (${exprString})`;
+
+            return {
+              target: g.target,
+              label: g.label || g.target,
+              op: g.op,
+              exprString,
+              evaluatedValue,
+              description,
+              placement: g.placement,
+            };
+          });
+
+        const stepChoices: import('./types').EvaluatedProgressionChoice[] =
+          st.choices.map((c) => {
+            const evaluatedOptions: import('./types').EvaluatedProgressionChoiceOption[] =
+              c.options.map((opt) => {
+                let isEligible = true;
+                let unmetReason: string | undefined;
+                if (opt.req) {
+                  isEligible = this.checkSimpleRequirement(opt.req);
+                  if (!isEligible) {
+                    unmetReason = `Requer ${opt.req}`;
+                  }
+                }
+                return {
+                  ...opt,
+                  targetModule:
+                    opt.targetModule || c.targetModule || st.targetModule,
+                  isEligible,
+                  requirementText: opt.req,
+                  unmetReason,
+                };
+              });
+
+            return {
+              title: c.title,
+              count: c.count,
+              targetModule: c.targetModule || st.targetModule,
+              options: evaluatedOptions,
+            };
+          });
+
+        return {
+          id: st.id,
+          title: st.title,
+          desc: st.desc,
+          targetModule: st.targetModule,
+          gains: stepGains,
+          choices: stepChoices,
+          placement: st.placement,
+        };
+      });
+
+      if (
+        evaluatedSteps.length === 0 &&
+        (evaluatedGains.length > 0 || evaluatedChoices.length > 0)
+      ) {
+        evaluatedSteps.push({
+          id: 'step_default',
+          title: p.title || 'Evolução',
+          gains: evaluatedGains,
+          choices: evaluatedChoices,
+          placement: p.placement,
+        });
+      }
+
+      list.push({
+        id: p.id,
+        title: p.title,
+        buttonLabel: p.buttonLabel || p.title,
+        icon: p.icon || 'sparkles',
+        trigger: p.trigger || 'level_up',
+        repeatable: p.repeatable !== false,
+        cost: p.cost,
+        steps: evaluatedSteps,
+        gains: evaluatedGains,
+        choices: evaluatedChoices,
+        tab: p.tab,
+        placement: p.placement,
+      });
+    }
+
+    return list;
+  }
+
+  private checkSimpleRequirement(req: string): boolean {
+    const trimmed = req.trim();
+    // Exemplo: FOR >= 1, level >= 5, CON > 0, SAB >= 1
+    const m = trimmed.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*(>=|<=|>|<|==|!=)\s*(-?\d+)$/);
+    if (!m) return true;
+
+    const varName = m[1];
+    const op = m[2];
+    const targetVal = Number(m[3]);
+
+    let actualVal = 0;
+    if (varName.toLowerCase() === 'level' || varName.toLowerCase() === 'nivel' || varName.toLowerCase() === 'nível') {
+      const lvl = this.ast.meta.props.level;
+      if (typeof lvl === 'number') actualVal = lvl;
+      else if (this.symbolValues.level !== undefined && typeof this.symbolValues.level === 'number') actualVal = this.symbolValues.level;
+      else actualVal = 1;
+    } else {
+      const foundStat = this.attributes[varName] || this.stats[varName] || this.symbolValues[varName];
+      if (foundStat !== undefined) {
+        if (typeof foundStat === 'number') actualVal = foundStat;
+        else if (typeof (foundStat as any).finalValue === 'number') actualVal = (foundStat as any).finalValue;
+        else if (typeof (foundStat as any).baseValue === 'number') actualVal = (foundStat as any).baseValue;
+      }
+    }
+
+    switch (op) {
+      case '>=': return actualVal >= targetVal;
+      case '<=': return actualVal <= targetVal;
+      case '>':  return actualVal > targetVal;
+      case '<':  return actualVal < targetVal;
+      case '==': return actualVal === targetVal;
+      case '!=': return actualVal !== targetVal;
+      default: return true;
+    }
   }
 }
 

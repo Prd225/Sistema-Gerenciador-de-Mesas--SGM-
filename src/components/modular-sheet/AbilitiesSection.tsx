@@ -80,9 +80,11 @@ export function AbilitiesSection({
   const [checkedChoices, setCheckedChoices] = useState<Record<string, boolean>>({});
 
   const setToggleState = useModularSheetStore((s) => s.setToggleState);
-  const setResourceCurrent = useModularSheetStore((s) => s.setResourceCurrent);
   const addAbilityItem = useModularSheetStore((s) => s.addAbilityItem);
   const removeAbilityItem = useModularSheetStore((s) => s.removeAbilityItem);
+  const consumeResourceOrItem = useModularSheetStore(
+    (s) => s.consumeResourceOrItem,
+  );
 
   const [isAdding, setIsAdding] = useState(false);
   const [newCategory, setNewCategory] = useState<AbilityCategory>('ability');
@@ -161,9 +163,26 @@ export function AbilitiesSection({
       ab.cost?.resource ?? activeEnhObjs[0]?.resource ?? Object.keys(sheet.resources)[0] ?? '';
     const matchedResource =
       totalCost > 0 && costResourceName ? findSheetResource(costResourceName) : undefined;
-    const canAffordResource = matchedResource
+    const matchedInventoryItem =
+      totalCost > 0 && costResourceName
+        ? sheet.inventory.items.find((item) => {
+            const target = costResourceName.toLowerCase();
+            const id = item.id.toLowerCase();
+            const label = item.label.toLowerCase();
+            return (
+              id === target ||
+              label === target ||
+              label.includes(target) ||
+              target.includes(label)
+            );
+          })
+        : undefined;
+
+    const canAfford = matchedResource
       ? matchedResource.current >= totalCost
-      : true;
+      : matchedInventoryItem
+        ? matchedInventoryItem.qty >= totalCost
+        : true;
 
     // Se algum aprimoramento selecionado sobrescrever a fórmula de dano, usa a última selecionada
     const enhWithDamage = [...activeEnhObjs].reverse().find((e) => e.damage);
@@ -237,36 +256,35 @@ export function AbilitiesSection({
             {totalCost > 0 && (
               <button
                 type="button"
-                disabled={matchedResource ? !canAffordResource : false}
+                disabled={!canAfford}
                 onClick={() => {
-                  if (!matchedResource) return;
-                  setResourceCurrent(
-                    sheetId,
-                    matchedResource.id,
-                    Math.max(
-                      matchedResource.min,
-                      matchedResource.current - totalCost,
-                    ),
-                  );
+                  consumeResourceOrItem(sheetId, costResourceName, totalCost);
                 }}
-                className={`inline-flex items-center gap-1 h-7 px-2.5 rounded-md border text-xs font-bold transition-colors ${!matchedResource
-                  ? 'border-amber-500/40 bg-amber-500/15 text-amber-300 cursor-default'
-                  : canAffordResource
-                    ? 'border-amber-500/60 bg-amber-500/15 hover:bg-amber-500/30 text-amber-200 cursor-pointer'
-                    : 'border-rose-500/40 bg-rose-500/10 text-rose-400 cursor-not-allowed opacity-70'
-                  }`}
+                className={`inline-flex items-center gap-1 h-7 px-2.5 rounded-md border text-xs font-bold transition-colors ${
+                  !matchedResource && !matchedInventoryItem
+                    ? 'border-amber-500/40 bg-amber-500/15 text-amber-300 cursor-pointer hover:bg-amber-500/25'
+                    : canAfford
+                      ? 'border-amber-500/60 bg-amber-500/15 hover:bg-amber-500/30 text-amber-200 cursor-pointer'
+                      : 'border-rose-500/40 bg-rose-500/10 text-rose-400 cursor-not-allowed opacity-70'
+                }`}
                 title={
                   matchedResource
-                    ? canAffordResource
+                    ? canAfford
                       ? `Deduzir ${totalCost} de ${matchedResource.label} (Atual: ${matchedResource.current})`
                       : `${matchedResource.label} insuficiente (${matchedResource.current}/${totalCost})`
-                    : `Custo: ${totalCost} ${costResourceName}`
+                    : matchedInventoryItem
+                      ? canAfford
+                        ? `Consumir ${totalCost} de ${matchedInventoryItem.label} (No inventário: ${matchedInventoryItem.qty})`
+                        : `${matchedInventoryItem.label} insuficiente no inventário (${matchedInventoryItem.qty}/${totalCost})`
+                      : `Custo: ${totalCost} ${costResourceName}`
                 }
               >
                 <Zap className="w-3 h-3" />
                 {matchedResource
-                  ? `Gastar ${totalCost} ${costResourceName}`
-                  : `Custo: ${totalCost} ${costResourceName}`}
+                  ? `Gastar ${totalCost} ${matchedResource.label} (${matchedResource.current}/${matchedResource.max})`
+                  : matchedInventoryItem
+                    ? `Gastar ${totalCost} ${matchedInventoryItem.label} (${matchedInventoryItem.qty} inv)`
+                    : `Gastar ${totalCost} ${costResourceName}`}
               </button>
             )}
 
@@ -436,13 +454,16 @@ export function AbilitiesSection({
             {ab.testFormula && (
               <button
                 type="button"
-                onClick={() =>
+                onClick={() => {
+                  if (totalCost > 0 && costResourceName) {
+                    consumeResourceOrItem(sheetId, costResourceName, totalCost);
+                  }
                   onExecuteRoll(
                     `${ab.label} — Teste`,
                     ab.testFormula!,
                     catMeta.label,
-                  )
-                }
+                  );
+                }}
                 className={`h-7 px-3 rounded-md bg-[#8257e5]/20 hover:bg-[#8257e5] border border-[#8257e5]/60 text-[#c4b5fd] hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors ${
                   isMobilePortrait ? 'w-full justify-center' : ''
                 }`}

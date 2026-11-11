@@ -41,9 +41,10 @@ export const SHEET_DSL_PRESETS: Record<string, SheetDSLPreset> = {
   metade_nivel "Metade do Nível" = floor(level / 2)
   DEF "Defesa" = 10 + DES + metade_nivel
   Deslocamento := 9
+  pv_bonus_nivel := 0
 
 @res [col2]
-  PV "Pontos de Vida": 42 / (20 + CON + (level - 1) * (5 + CON)) [red]
+  PV "Pontos de Vida": 42 / (20 + CON + (level - 1) * (5 + CON + pv_bonus_nivel)) [red]
   PM "Pontos de Mana": 12 / (level * 3)                          [blue]
 
 @counter [col2, segments]
@@ -63,6 +64,7 @@ export const SHEET_DSL_PRESETS: Record<string, SheetDSLPreset> = {
 
 @skill [col2, roll: 1d20 + metade_nivel + attr + self]
   Luta (FOR)       = treinado + 2
+  Pontaria (DES)   = destreinado
   Fortitude (CON)  = treinado
   Iniciativa (DES) = destreinado
   Percepcao (SAB)  = treinado
@@ -88,6 +90,15 @@ export const SHEET_DSL_PRESETS: Record<string, SheetDSLPreset> = {
       damage: 1d8 + FOR
       desc: "Crítico 19..20 / x2"
 
+  item "Arco Longo" [weight: 1, qty: 1, !equipped, #arma]
+    action "Disparo com Arco" [type: "Padrão", ammo: "Flechas"]
+      test: 1d20 + metade_nivel + DES + Pontaria
+      damage: 1d8 + DES
+      desc: "Disparo à distância. Gasta 1 flecha do inventário."
+
+  item "Flechas" [weight: 1, qty: 20, !carried, !consumable]
+    desc: "Aljava com 20 flechas de ponta de aço."
+
   item "Bálsamo Restaurador" [weight: 1, qty: 3, !carried, !consumable]
     desc: "Cura 2d4 PV."
 
@@ -104,7 +115,36 @@ export const SHEET_DSL_PRESETS: Record<string, SheetDSLPreset> = {
 
   ability "Postura Defensiva" [type: "Movimento", active: false]
     desc: "Enquanto mantiver a postura defensiva erguida, recebe +2 na Defesa."
-    when active -> DEF += 2`,
+    when active -> DEF += 2
+
+@progression "Subir de Nível" [col1, trigger: "level_up", button: "Subir de Nível", icon: "sparkles"]
+  @step "Avanço de Nível & Estatísticas"
+    @gains [esq]
+      "Pontos de Vida" [desc: "+5 PV por nível (+ CON e bônus de talentos)", target: "PV.max", mod: 5 + CON + pv_bonus_nivel]
+      "Pontos de Mana" [desc: "+3 PM por nível", target: "PM.max", mod: 3]
+      level += 1
+
+  @step "Poder de Guerreiro ou Geral" [target: "@ability"]
+    choose 1 "Poder de Classe ou Geral" from [
+      ability "Golpe Pessoal" [type: "Padrão", cost: 2 PM] {
+        desc: "Você desfere um golpe com toda a sua força (+2d8 de dano)."
+        damage: 2d8 + FOR
+      }
+      ability "Ataque Poderoso" [type: "Livre", req: "FOR >= 2", #combate] {
+        desc: "Ao atacar, pode aplicar -2 no teste para causar +5 no dano."
+      }
+      ability "Vitalidade" [req: "CON >= 1", #destino] {
+        desc: "Você se torna mais resistente (+1 PV por nível e +2 em Fortitude)."
+        apply: "pv_bonus_nivel += 1"
+      }
+      ability "Sortudo" [#destino] {
+        desc: "Gasta 3 PM para rolar novamente um teste recém-realizado."
+        cost: 3 PM
+      }
+      ability "Foco em Arma" [#combate] {
+        desc: "Recebe +2 em testes de ataque com a arma escolhida."
+      }
+    ]`,
   },
 
   ordem_paranormal: {

@@ -13,6 +13,7 @@ import {
   Trash2,
   Check,
   X,
+  Zap,
 } from 'lucide-react';
 import { useModularSheetStore } from '@/store/useModularSheetStore';
 import { isTabMatching, type CompiledSheet, type EvaluatedItem } from '@/lib/sheet-dsl';
@@ -43,6 +44,7 @@ export function InventorySection({
   const setItemQty = useModularSheetStore((s) => s.setItemQty);
   const addInventoryItem = useModularSheetStore((s) => s.addInventoryItem);
   const removeInventoryItem = useModularSheetStore((s) => s.removeInventoryItem);
+  const consumeResourceOrItem = useModularSheetStore((s) => s.consumeResourceOrItem);
 
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState('');
@@ -505,6 +507,12 @@ export function InventorySection({
                             Alcance: {act.range}
                           </span>
                         )}
+                        {act.cost && (
+                          <span className="px-1.5 py-0.2 rounded bg-amber-500/15 border border-amber-500/30 text-[10px] text-amber-300 font-mono font-bold flex items-center gap-1">
+                            <Zap className="w-2.5 h-2.5" />
+                            {act.cost.amount} {act.cost.resource}
+                          </span>
+                        )}
                       </div>
                       {act.desc && (
                         <div className="text-[11px] text-[#8d8d99] mt-0.5">
@@ -520,20 +528,46 @@ export function InventorySection({
                           : 'flex items-center shrink-0'
                       }`}
                     >
+                      {act.cost && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            consumeResourceOrItem(
+                              sheetId,
+                              act.cost!.resource,
+                              act.cost!.amount,
+                            );
+                          }}
+                          className={`h-7 px-2 rounded bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-200 text-xs font-bold flex items-center gap-1 transition-colors ${
+                            isMobilePortrait ? 'w-full justify-center' : ''
+                          }`}
+                          title={`Gastar ${act.cost.amount} ${act.cost.resource} do estoque`}
+                        >
+                          <Zap className="w-3 h-3 text-amber-400" />
+                          <span>Gastar ({act.cost.amount})</span>
+                        </button>
+                      )}
                       {act.testFormula && (
                         <button
                           type="button"
-                          onClick={() =>
+                          onClick={() => {
+                            if (act.cost) {
+                              consumeResourceOrItem(
+                                sheetId,
+                                act.cost.resource,
+                                act.cost.amount,
+                              );
+                            }
                             onExecuteRoll(
                               `${act.label} — Teste`,
                               act.testFormula!,
                               item.label,
-                            )
-                          }
+                            );
+                          }}
                           className={`h-7 px-2.5 rounded bg-[#8257e5]/20 hover:bg-[#8257e5] border border-[#8257e5]/50 text-[#c4b5fd] hover:text-white text-xs font-bold flex items-center gap-1 transition-colors ${
                             isMobilePortrait ? 'w-full justify-center' : ''
                           }`}
-                          title={`Teste: ${act.testFormula}`}
+                          title={`Teste: ${act.testFormula}${act.cost ? ` (Consome ${act.cost.amount} ${act.cost.resource})` : ''}`}
                         >
                           <Dices className="w-3.5 h-3.5" />
                           <span>Teste ({act.testFormula})</span>

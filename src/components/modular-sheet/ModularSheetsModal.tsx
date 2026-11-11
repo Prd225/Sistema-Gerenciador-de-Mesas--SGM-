@@ -30,10 +30,12 @@ import {
   X,
   Palette,
   SlidersHorizontal,
+  Cpu,
 } from 'lucide-react';
 import { TokenAssignmentPopover } from './TokenAssignmentPopover';
 import { VisualSheetView } from './VisualSheetView';
 import { SheetDSLEditor } from './SheetDSLEditor';
+import { LogicSheetView } from './LogicSheetView';
 import { SHEET_THEMES, getThemeRootVars, type SheetTheme, type ThemeColors } from './theme';
 
 const DSL_QUICK_SNIPPETS: Array<{ label: string; snippet: string }> = [
@@ -594,6 +596,18 @@ export default function ModularSheetsModal() {
                   <Code2 className="w-3.5 h-3.5" />
                   <span>DSL</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('logic')}
+                  className={`inline-flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded text-xs font-bold transition-colors ${viewMode === 'logic'
+                      ? currentTheme.buttonActive
+                      : 'text-[#a8a8b3] hover:text-white'
+                    }`}
+                  title="Folha Lógica: Progressão, Upgrades e Automações de Munição"
+                >
+                  <Cpu className="w-3.5 h-3.5" />
+                  <span>Lógica</span>
+                </button>
               </div>
 
               {!viewport.isMobilePortrait && (
@@ -1066,6 +1080,20 @@ export default function ModularSheetsModal() {
                     onAddNewTab={handleAddNewTab}
                     isEditMode={isEditMode}
                     compactLayout={viewMode === 'split'}
+                    isMobilePortrait={viewport.isMobilePortrait}
+                  />
+                </div>
+              )}
+
+              {/* Painel da Folha Lógica */}
+              {viewMode === 'logic' && (
+                <div
+                  className="flex-1 min-h-0 overflow-y-auto w-full h-full transition-colors"
+                  style={{ backgroundColor: 'var(--sheet-bg)' }}
+                >
+                  <LogicSheetView
+                    sheetId={activeSheet.id}
+                    sheet={compiledActiveSheet}
                     isMobilePortrait={viewport.isMobilePortrait}
                   />
                 </div>
