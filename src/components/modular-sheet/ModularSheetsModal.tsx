@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import {
   useModularSheetStore,
   BLANK_SHEET_DSL_TEMPLATE,
+  getCombinedSheetSource,
   type ModularSheetPresetChoice,
 } from '@/store/useModularSheetStore';
 import { useTokenStore } from '@/store/useTokenStore';
@@ -35,8 +36,47 @@ import {
 import { TokenAssignmentPopover } from './TokenAssignmentPopover';
 import { VisualSheetView } from './VisualSheetView';
 import { SheetDSLEditor } from './SheetDSLEditor';
-import { LogicSheetView } from './LogicSheetView';
 import { SHEET_THEMES, getThemeRootVars, type SheetTheme, type ThemeColors } from './theme';
+
+const DEFAULT_LOGIC_SHEET_TEMPLATE = `# ==============================================================================
+# FOLHA LÓGICA & PROGRESSÃO MODULAR (SGM-SDL)
+# Esta folha compartilha todo o escopo de variáveis, atributos e recursos
+# definidos na Folha Principal (DSL).
+# ==============================================================================
+
+@progression "Subir de Nível" [trigger: "level_up", button: "Subir de Nível", icon: "sparkles"]
+  @step "Avanço de Nível"
+    @gains [esq]
+      "Pontos de Vida" [desc: "+5 PV por nível", mod: 5 + CON, target: "PV.max"]
+      level += 1
+`;
+
+const LOGIC_QUICK_SNIPPETS: Array<{ label: string; snippet: string }> = [
+  {
+    label: '+ @progression',
+    snippet: `\n@progression "Subir de Nível" [trigger: "level_up", button: "Subir de Nível", icon: "sparkles"]\n  @step "Avanço de Nível"\n    @gains [esq]\n      level += 1\n`,
+  },
+  {
+    label: '+ @step',
+    snippet: `\n  @step "Novo Passo de Evolução"\n    @gains [esq]\n      level += 1\n`,
+  },
+  {
+    label: '+ branch [bifurcação]',
+    snippet: `\n  @step "Escolha de Caminho" [bifurcacao]\n    branch "Guerreiro" [desc: "Foco marcial e armas"] {\n      @gains [esq]\n        "Pontos de Vida" [desc: "+5 PV", mod: 5 + CON, target: "PV.max"]\n        level_guerreiro += 1\n        level += 1\n      choose 1 "Poder de Guerreiro" [target: "@ability"] from [\n        ability "Golpe Pessoal" [cost: 2 PM] { desc: "Golpe com +2d8 dano" }\n      ]\n    }\n    branch "Nobre" [desc: "Liderança e influência social"] {\n      @gains [esq]\n        "Pontos de Vida" [desc: "+4 PV", mod: 4 + CON, target: "PV.max"]\n        level_nobre += 1\n        level += 1\n      choose 1 "Poder de Nobre" [target: "@ability"] from [\n        ability "Autoconfiança" { desc: "Soma Carisma na Defesa" }\n      ]\n    }\n`,
+  },
+  {
+    label: '+ @gains',
+    snippet: `\n    @gains [esq]\n      "Pontos de Vida" [desc: "+5 PV por nível", mod: 5 + CON, target: "PV.max"]\n      "Pontos de Mana" [desc: "+3 PM por nível", mod: 3, target: "PM.max"]\n`,
+  },
+  {
+    label: '+ choose [poderes]',
+    snippet: `\n    choose 1 "Poder Geral ou de Classe" [target: "@ability"] from [\n      ability "Vitalidade" [req: "CON >= 1"] {\n        desc: "Você recebe +1 PV por nível."\n        apply: "pv_bonus_nivel += 1"\n      }\n      ability "Sortudo" {\n        desc: "Gasta 3 PM para rolar novamente um teste recém-realizado."\n        cost: 3 PM\n      }\n    ]\n`,
+  },
+  {
+    label: '+ when [condicional]',
+    snippet: `\n    when archetype == "Guerreiro" {\n      branch "Mestre de Armas" [desc: "Aprimoramento avançado para Guerreiros"] {\n        @gains [esq]\n          dano_bonus += 2\n      }\n    }\n`,
+  },
+];
 
 const DSL_QUICK_SNIPPETS: Array<{ label: string; snippet: string }> = [
   {
@@ -194,6 +234,7 @@ export default function ModularSheetsModal() {
   const openSheet = useModularSheetStore((s) => s.openSheet);
   const createSheet = useModularSheetStore((s) => s.createSheet);
   const updateSheetSource = useModularSheetStore((s) => s.updateSheetSource);
+  const updateSheetLogicSource = useModularSheetStore((s) => s.updateSheetLogicSource);
   const duplicateSheet = useModularSheetStore((s) => s.duplicateSheet);
   const deleteSheet = useModularSheetStore((s) => s.deleteSheet);
   const resetRuntimeOverrides = useModularSheetStore(
@@ -268,8 +309,9 @@ export default function ModularSheetsModal() {
 
   const compiledActiveSheet = useMemo(() => {
     if (!activeSheet) return null;
+    const fullSource = getCombinedSheetSource(activeSheet);
     return compileSheetDSL(
-      activeSheet.dslSource,
+      fullSource,
       activeSheet.runtimeOverrides,
     );
   }, [activeSheet]);
@@ -1085,16 +1127,21 @@ export default function ModularSheetsModal() {
                 </div>
               )}
 
-              {/* Painel da Folha Lógica */}
+              {/* Painel da Folha Lógica (Editor DSL de Lógica com Escopo Compartilhado) */}
               {viewMode === 'logic' && (
                 <div
-                  className="flex-1 min-h-0 overflow-y-auto w-full h-full transition-colors"
-                  style={{ backgroundColor: 'var(--sheet-bg)' }}
+                  className="flex flex-col min-h-0 w-full h-full"
+                  style={{
+                    backgroundColor: 'var(--sheet-code-bg)',
+                    borderColor: 'var(--sheet-card-border)',
+                  }}
                 >
-                  <LogicSheetView
-                    sheetId={activeSheet.id}
-                    sheet={compiledActiveSheet}
-                    isMobilePortrait={viewport.isMobilePortrait}
+                  <SheetDSLEditor
+                    key={`${activeSheet.id}_logic`}
+                    value={activeSheet.logicSource ?? DEFAULT_LOGIC_SHEET_TEMPLATE}
+                    onChange={(next) => updateSheetLogicSource(activeSheet.id, next)}
+                    compiledSheet={compiledActiveSheet}
+                    quickSnippets={LOGIC_QUICK_SNIPPETS}
                   />
                 </div>
               )}

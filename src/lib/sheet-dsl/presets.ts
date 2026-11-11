@@ -118,33 +118,54 @@ export const SHEET_DSL_PRESETS: Record<string, SheetDSLPreset> = {
     when active -> DEF += 2
 
 @progression "Subir de Nível" [col1, trigger: "level_up", button: "Subir de Nível", icon: "sparkles"]
-  @step "Avanço de Nível & Estatísticas"
-    @gains [esq]
-      "Pontos de Vida" [desc: "+5 PV por nível (+ CON e bônus de talentos)", target: "PV.max", mod: 5 + CON + pv_bonus_nivel]
-      "Pontos de Mana" [desc: "+3 PM por nível", target: "PM.max", mod: 3]
-      level += 1
+  @step "Avanço de Nível & Caminho de Classe" [bifurcacao]
+    branch "Guerreiro" [desc: "Especialista marcial focado em combate, vigor físico e maestria em armas"] {
+      @gains [esq]
+        "Pontos de Vida" [desc: "+5 PV por nível (+ CON e talentos)", target: "PV.max", mod: 5 + CON + pv_bonus_nivel]
+        "Pontos de Mana" [desc: "+3 PM por nível", target: "PM.max", mod: 3]
+        level += 1
 
-  @step "Poder de Guerreiro ou Geral" [target: "@ability"]
-    choose 1 "Poder de Classe ou Geral" from [
-      ability "Golpe Pessoal" [type: "Padrão", cost: 2 PM] {
-        desc: "Você desfere um golpe com toda a sua força (+2d8 de dano)."
-        damage: 2d8 + FOR
-      }
-      ability "Ataque Poderoso" [type: "Livre", req: "FOR >= 2", #combate] {
-        desc: "Ao atacar, pode aplicar -2 no teste para causar +5 no dano."
-      }
-      ability "Vitalidade" [req: "CON >= 1", #destino] {
-        desc: "Você se torna mais resistente (+1 PV por nível e +2 em Fortitude)."
-        apply: "pv_bonus_nivel += 1"
-      }
-      ability "Sortudo" [#destino] {
-        desc: "Gasta 3 PM para rolar novamente um teste recém-realizado."
-        cost: 3 PM
-      }
-      ability "Foco em Arma" [#combate] {
-        desc: "Recebe +2 em testes de ataque com a arma escolhida."
-      }
-    ]`,
+      choose 1 "Poder de Guerreiro" [target: "@ability"] from [
+        ability "Golpe Pessoal" [type: "Padrão", cost: 2 PM] {
+          desc: "Você desfere um golpe com toda a sua força (+2d8 de dano)."
+          damage: 2d8 + FOR
+        }
+        ability "Ataque Poderoso" [type: "Livre", req: "FOR >= 2", #combate] {
+          desc: "Ao atacar, pode aplicar -2 no teste para causar +5 no dano."
+        }
+        ability "Vitalidade" [req: "CON >= 1", #destino] {
+          desc: "Você se torna mais resistente (+1 PV por nível e +2 em Fortitude)."
+          apply: "pv_bonus_nivel += 1"
+        }
+        ability "Sortudo" [#destino] {
+          desc: "Gasta 3 PM para rolar novamente um teste recém-realizado."
+          cost: 3 PM
+        }
+        ability "Foco em Arma" [#combate] {
+          desc: "Recebe +2 em testes de ataque com a arma escolhida."
+        }
+      ]
+    }
+
+    branch "Nobre" [desc: "Líder e estrategista diplomático focado em influência, oratória e comando"] {
+      @gains [esq]
+        "Pontos de Vida" [desc: "+4 PV por nível (+ CON)", target: "PV.max", mod: 4 + CON + pv_bonus_nivel]
+        "Pontos de Mana" [desc: "+4 PM por nível", target: "PM.max", mod: 4]
+        level += 1
+
+      choose 1 "Poder de Nobre" [target: "@ability"] from [
+        ability "Autoconfiança" {
+          desc: "Você pode somar seu Carisma em vez de Destreza na Defesa."
+        }
+        ability "Grito de Ordem" [type: "Movimento", cost: 2 PM] {
+          desc: "Concede uma ação padrão adicional imediata para um aliado próximo."
+        }
+        ability "Vitalidade" [req: "CON >= 1", #destino] {
+          desc: "Você se torna mais resistente (+1 PV por nível e +2 em Fortitude)."
+          apply: "pv_bonus_nivel += 1"
+        }
+      ]
+    }`,
   },
 
   ordem_paranormal: {

@@ -11,11 +11,17 @@ export interface ModularSheetRecord {
   id: string;
   name: string;
   dslSource: string;
+  logicSource?: string; // Folha Lógica da DSL (compartilha o mesmo escopo reativo)
   presetId?: ModularSheetPresetChoice;
   assignedTokenIds: string[];
   runtimeOverrides: SheetRuntimeOverrides;
   createdAt: number;
   updatedAt: number;
+}
+
+export function getCombinedSheetSource(rec: { dslSource: string; logicSource?: string }): string {
+  if (!rec.logicSource || !rec.logicSource.trim()) return rec.dslSource;
+  return `${rec.dslSource}\n\n# === FOLHA LÓGICA (ESCOPO COMPARTILHADO) ===\n${rec.logicSource}`;
 }
 
 export const BLANK_SHEET_DSL_TEMPLATE = `@meta "Novo Personagem" [archetype: "Aventureiro", system: "Sistema Customizado", level: 1, theme: "dark"]
@@ -99,6 +105,7 @@ interface ModularSheetState {
     assignTokenIds?: string[];
   }) => ModularSheetRecord;
   updateSheetSource: (sheetId: string, dslSource: string) => void;
+  updateSheetLogicSource: (sheetId: string, logicSource: string) => void;
   renameSheet: (sheetId: string, name: string) => void;
   duplicateSheet: (sheetId: string) => ModularSheetRecord | null;
   deleteSheet: (sheetId: string) => void;
@@ -260,6 +267,7 @@ interface ModularSheetState {
     sheetId: string,
     progressionId: string,
     selectedOptions: import('@/lib/sheet-dsl').ASTProgressionChoiceOption[],
+    selectedBranchIds?: Record<string, string>,
   ) => void;
 }
 
@@ -395,6 +403,20 @@ export const useModularSheetStore = create<ModularSheetState>((set, get) => ({
           ...s,
           name: nextName,
           dslSource,
+          updatedAt: Date.now(),
+        };
+      }),
+    }));
+    triggerAutoSave();
+  },
+
+  updateSheetLogicSource: (sheetId, logicSource) => {
+    set((state) => ({
+      sheets: state.sheets.map((s) => {
+        if (s.id !== sheetId) return s;
+        return {
+          ...s,
+          logicSource,
           updatedAt: Date.now(),
         };
       }),
@@ -1467,7 +1489,8 @@ export const useModularSheetStore = create<ModularSheetState>((set, get) => ({
     if (!rec) {
       return { success: false, type: 'none', remaining: 0, label: resourceOrItemName, error: 'Ficha não encontrada' };
     }
-    const compiled = compileSheetDSL(rec.dslSource, rec.runtimeOverrides);
+    const fullSource = getCombinedSheetSource(rec);
+    const compiled = compileSheetDSL(fullSource, rec.runtimeOverrides);
     const targetLow = resourceOrItemName.trim().toLowerCase();
 
     // 1. Tenta encontrar em recursos (sheet.resources)
@@ -1534,18 +1557,31 @@ export const useModularSheetStore = create<ModularSheetState>((set, get) => ({
     };
   },
 
-  applyProgressionUpgrade: (sheetId, progressionId, selectedOptions) => {
+  applyProgressionUpgrade: (sheetId, progressionId, selectedOptions, selectedBranchIds = {}) => {
     const rec = get().sheets.find((s) => s.id === sheetId);
     if (!rec) return;
 
-    const compiled = compileSheetDSL(rec.dslSource, rec.runtimeOverrides);
+    const fullSource = getCombinedSheetSource(rec);
+    const compiled = compileSheetDSL(fullSource, rec.runtimeOverrides);
     const prog = compiled.progressions.find((p) => p.id === progressionId);
     if (!prog) return;
 
-    // 1. Processa os ganhos automáticos de todos os steps e raiz
+    // 1. Processa os ganhos automáticos de todos os steps, branches selecionados e raiz
+    const branchGains: import('@/lib/sheet-dsl').EvaluatedProgressionGain[] = [];
+    for (const st of prog.steps) {
+      if (st.branches && st.branches.length > 0) {
+        const chosenBranchId = selectedBranchIds[st.id] || selectedBranchIds[st.title];
+        const chosenBranch = st.branches.find((b) => b.id === chosenBranchId) || st.branches[0];
+        if (chosenBranch) {
+          branchGains.push(...chosenBranch.gains);
+        }
+      }
+    }
+
     const allGains = [
       ...prog.gains,
       ...prog.steps.flatMap((s) => s.gains),
+      ...branchGains,
     ];
     // Remove duplicatas por target + exprString
     const uniqueGains = allGains.filter(

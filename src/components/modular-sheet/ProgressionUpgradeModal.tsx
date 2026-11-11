@@ -10,6 +10,7 @@ import {
   ChevronRight,
   ArrowRight,
   Layers,
+  GitBranch,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useModularSheetStore } from '@/store/useModularSheetStore';
@@ -54,6 +55,30 @@ export const ProgressionUpgradeModal: React.FC<ProgressionUpgradeModalProps> = (
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const activeStep = steps[currentStepIndex] ?? steps[0];
+
+  // Armazena a bifurcação / branch selecionada por step id
+  const [selectedBranchByStep, setSelectedBranchByStep] = useState<
+    Record<string, string>
+  >({});
+
+  const activeBranch =
+    activeStep.branches?.find(
+      (b) =>
+        b.id ===
+        (selectedBranchByStep[activeStep.id] || activeStep.branches?.[0]?.id),
+    ) || activeStep.branches?.[0];
+
+  // Ganhos efetivos (da etapa + da bifurcação ativa)
+  const effectiveGains = [
+    ...activeStep.gains,
+    ...(activeBranch?.gains ?? []),
+  ];
+
+  // Escolhas efetivas (da etapa + da bifurcação ativa)
+  const effectiveChoices = [
+    ...activeStep.choices,
+    ...(activeBranch?.choices ?? []),
+  ];
 
   // Armazena as opções selecionadas por step + índice de escolha
   // chave: `${stepIndex}_${choiceIndex}`
@@ -106,9 +131,16 @@ export const ProgressionUpgradeModal: React.FC<ProgressionUpgradeModalProps> = (
     });
   };
 
-  // Validação: todas as escolhas de todos os steps com opções obrigatórias devem estar completas
+  // Validação: todas as escolhas com opções obrigatórias devem estar completas
   const isAllRequiredSelected = steps.every((st, sIdx) => {
-    return st.choices.every((c, cIdx) => {
+    const chosenBranch = st.branches?.find(
+      (b) => b.id === (selectedBranchByStep[st.id] || st.branches?.[0]?.id),
+    );
+    const stepChoicesToCheck = [
+      ...st.choices,
+      ...(chosenBranch?.choices ?? []),
+    ];
+    return stepChoicesToCheck.every((c, cIdx) => {
       const key = `${sIdx}_${cIdx}`;
       const selected = selectedByGroup[key] ?? [];
       return selected.length >= Math.min(c.count, c.options.length);
@@ -119,28 +151,45 @@ export const ProgressionUpgradeModal: React.FC<ProgressionUpgradeModalProps> = (
     const allSelectedOptions: EvaluatedProgressionChoiceOption[] = [];
 
     steps.forEach((st, sIdx) => {
-      st.choices.forEach((c, cIdx) => {
+      const chosenBranch = st.branches?.find(
+        (b) => b.id === (selectedBranchByStep[st.id] || st.branches?.[0]?.id),
+      );
+      const stepChoicesToCheck = [
+        ...st.choices,
+        ...(chosenBranch?.choices ?? []),
+      ];
+
+      stepChoicesToCheck.forEach((c, cIdx) => {
         const key = `${sIdx}_${cIdx}`;
         const selectedIds = selectedByGroup[key] ?? [];
         c.options.forEach((opt) => {
           if (selectedIds.includes(opt.id)) {
             allSelectedOptions.push({
               ...opt,
-              targetModule: opt.targetModule || c.targetModule || st.targetModule,
+              targetModule:
+                opt.targetModule ||
+                c.targetModule ||
+                chosenBranch?.targetModule ||
+                st.targetModule,
             });
           }
         });
       });
     });
 
-    applyProgressionUpgrade(sheetId, progression.id, allSelectedOptions);
+    applyProgressionUpgrade(
+      sheetId,
+      progression.id,
+      allSelectedOptions,
+      selectedBranchByStep,
+    );
     onClose();
   };
 
   // Coleta tags únicas de opções da etapa ativa para filtro
   const activeStepTags = Array.from(
     new Set(
-      activeStep.choices.flatMap((c) =>
+      effectiveChoices.flatMap((c) =>
         c.options.flatMap((opt) => opt.tags ?? []),
       ),
     ),
@@ -270,8 +319,99 @@ export const ProgressionUpgradeModal: React.FC<ProgressionUpgradeModalProps> = (
 
         {/* CORPO DO PASSO ATIVO */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 min-h-0">
-          {/* 1. SEÇÃO DE GANHOS DO PASSO (@gains) */}
-          {activeStep.gains.length > 0 && (
+          {/* SEÇÃO DE BIFURCAÇÃO / CAMINHOS ALTERNATIVOS (branch "Guerreiro" vs branch "Nobre") */}
+          {activeStep.branches && activeStep.branches.length > 0 && (
+            <div
+              className="rounded-xl border p-4 space-y-3 transition-colors"
+              style={{
+                backgroundColor: 'var(--sheet-item-bg, #18181b)',
+                borderColor: 'var(--sheet-item-border, #29292e)',
+              }}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                  <GitBranch className="w-4 h-4" />
+                  Bifurcação de Progressão: Escolha seu Caminho
+                </span>
+                <span className="text-[10px] font-mono text-zinc-400">
+                  Selecione 1 caminho para este avanço
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                {activeStep.branches.map((br) => {
+                  const isSelected = activeBranch?.id === br.id;
+                  const isEligible = br.isEligible;
+
+                  return (
+                    <button
+                      key={br.id}
+                      type="button"
+                      disabled={!isEligible}
+                      onClick={() =>
+                        setSelectedBranchByStep((prev) => ({
+                          ...prev,
+                          [activeStep.id]: br.id,
+                        }))
+                      }
+                      className={`text-left p-3.5 rounded-xl border flex flex-col justify-between space-y-2.5 transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-[var(--sheet-accent,#8257e5)] bg-[var(--sheet-accent,#8257e5)]/15 shadow-lg ring-1 ring-[var(--sheet-accent,#8257e5)]'
+                          : isEligible
+                            ? 'border-zinc-800 bg-zinc-950/80 hover:border-zinc-700 hover:bg-zinc-900/60'
+                            : 'border-zinc-800/40 bg-zinc-950/40 opacity-50 cursor-not-allowed'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                          <span className="text-sm font-bold text-white flex items-center gap-1.5">
+                            {br.title}
+                          </span>
+                          {isSelected && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-[var(--sheet-accent,#8257e5)] text-white">
+                              ✓ Selecionado
+                            </span>
+                          )}
+                        </div>
+                        {br.desc && (
+                          <p className="text-xs text-zinc-400 leading-snug line-clamp-2">
+                            {br.desc}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="pt-2 border-t border-zinc-900 flex items-center justify-between gap-1">
+                        {br.req ? (
+                          <span
+                            className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                              isEligible
+                                ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/60'
+                                : 'bg-rose-950/60 text-rose-400 border border-rose-800/60'
+                            }`}
+                          >
+                            {isEligible ? '✓ Qualificado' : `Requer ${br.req}`}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-mono text-zinc-500">
+                            Disponível
+                          </span>
+                        )}
+
+                        {br.targetModule && (
+                          <span className="text-[9px] font-mono text-indigo-400">
+                            {br.targetModule}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 1. SEÇÃO DE GANHOS DO PASSO (@gains + bifurcação ativa) */}
+          {effectiveGains.length > 0 && (
             <div
               className="rounded-xl border p-4 space-y-3 transition-colors"
               style={{
@@ -281,18 +421,18 @@ export const ProgressionUpgradeModal: React.FC<ProgressionUpgradeModalProps> = (
             >
               <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4" />
-                Ganhos Automáticos desta Etapa:
+                Ganhos Automáticos desta Etapa{activeBranch ? ` (${activeBranch.title})` : ''}:
               </span>
 
               <div
                 className={`grid gap-3 pt-1 ${
                   activeStep.placement === 'col2' ||
-                  activeStep.gains[0]?.placement === 'col2'
+                  effectiveGains[0]?.placement === 'col2'
                     ? 'grid-cols-1 sm:grid-cols-2'
                     : 'grid-cols-1 sm:grid-cols-3'
                 }`}
               >
-                {activeStep.gains.map((gain, i) => (
+                {effectiveGains.map((gain, i) => (
                   <div
                     key={i}
                     className="p-3 rounded-xl border bg-zinc-950/80 border-zinc-800 flex flex-col justify-between space-y-2 hover:border-zinc-700 transition-colors"
@@ -375,7 +515,7 @@ export const ProgressionUpgradeModal: React.FC<ProgressionUpgradeModalProps> = (
           )}
 
           {/* 3. ESCOLHAS DO PASSO ATIVO (choose ... from [...]) */}
-          {activeStep.choices.map((choice, cIdx) => {
+          {effectiveChoices.map((choice, cIdx) => {
             const groupKey = `${currentStepIndex}_${cIdx}`;
             const selected = selectedByGroup[groupKey] ?? [];
             const filteredOptions = choice.options.filter(

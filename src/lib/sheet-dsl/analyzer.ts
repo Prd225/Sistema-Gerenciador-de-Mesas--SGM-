@@ -2916,11 +2916,91 @@ export class SheetAnalyzer {
             };
           });
 
+        const evaluatedBranches: import('./types').EvaluatedProgressionBranch[] = (
+          st.branches || []
+        ).map((br) => {
+          let isEligible = true;
+          let requirementText = br.req;
+          if (br.req) {
+            isEligible = this.checkSimpleRequirement(br.req);
+          }
+
+          const branchGains: import('./types').EvaluatedProgressionGain[] = br.gains.map((g) => {
+            const exprString =
+              typeof g.expr === 'string'
+                ? g.expr
+                : this.exprToFormulaString(g.expr);
+            let evaluatedValue: number | string = 0;
+            try {
+              if (typeof g.expr === 'string') {
+                const num = Number(g.expr);
+                evaluatedValue = !Number.isNaN(num) ? num : g.expr;
+              } else {
+                const res = this.evalExpr(g.expr);
+                evaluatedValue =
+                  typeof res === 'number' || typeof res === 'string' ? res : 0;
+              }
+            } catch {
+              evaluatedValue = exprString;
+            }
+            const opLabel =
+              g.op === '+=' ? 'Aumenta em' : g.op === '-=' ? 'Reduz em' : 'Define como';
+            const description = g.desc || `${opLabel} ${evaluatedValue} (${exprString})`;
+
+            return {
+              target: g.target,
+              label: g.label || g.target,
+              op: g.op,
+              exprString,
+              evaluatedValue,
+              description,
+              placement: g.placement,
+            };
+          });
+
+          const branchChoices: import('./types').EvaluatedProgressionChoice[] = br.choices.map((c) => {
+            const evaluatedOptions: import('./types').EvaluatedProgressionChoiceOption[] = c.options.map((opt) => {
+              let optEligible = true;
+              if (opt.req) {
+                optEligible = this.checkSimpleRequirement(opt.req);
+              }
+              return {
+                ...opt,
+                targetModule: opt.targetModule || c.targetModule || br.targetModule || st.targetModule,
+                isEligible: optEligible,
+                requirementText: opt.req,
+              };
+            });
+            return {
+              title: c.title,
+              count: c.count,
+              targetModule: c.targetModule || br.targetModule || st.targetModule,
+              options: evaluatedOptions,
+            };
+          });
+
+          return {
+            id: br.id,
+            title: br.title,
+            desc: br.desc,
+            req: br.req,
+            isEligible,
+            requirementText,
+            icon: br.icon,
+            targetModule: br.targetModule || st.targetModule,
+            tags: br.tags,
+            gains: branchGains,
+            choices: branchChoices,
+          };
+        });
+
         return {
           id: st.id,
           title: st.title,
           desc: st.desc,
           targetModule: st.targetModule,
+          isBifurcation: st.isBifurcation || evaluatedBranches.length > 0,
+          branches: evaluatedBranches,
           gains: stepGains,
           choices: stepChoices,
           placement: st.placement,
@@ -2961,7 +3041,39 @@ export class SheetAnalyzer {
 
   private checkSimpleRequirement(req: string): boolean {
     const trimmed = req.trim();
-    // Exemplo: FOR >= 1, level >= 5, CON > 0, SAB >= 1
+    if (!trimmed) return true;
+
+    // Se houver condições compostas por '&&', todas devem ser verdadeiras
+    if (trimmed.includes('&&')) {
+      const parts = trimmed.split('&&');
+      return parts.every((p) => this.checkSimpleRequirement(p.trim()));
+    }
+
+    // 1. Comparação de string: archetype == "Guerreiro" ou classe == "Nobre"
+    const strMatch = trimmed.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*(==|!=)\s*["']([^"']+)["']$/);
+    if (strMatch) {
+      const varName = strMatch[1];
+      const op = strMatch[2];
+      const targetStr = strMatch[3].toLowerCase();
+
+      let actualStr = '';
+      if (this.ast.profiles?.[0]?.props?.[varName]) {
+        const p = this.ast.profiles[0].props[varName];
+        actualStr = p.type === 'StringLit' ? p.value : this.exprToRawCode(p);
+      } else if (this.ast.meta.props?.[varName]) {
+        const p = this.ast.meta.props[varName];
+        actualStr = p.type === 'StringLit' ? p.value : this.exprToRawCode(p);
+      } else if (this.symbolValues[varName] !== undefined) {
+        actualStr = String(this.symbolValues[varName]);
+      }
+      actualStr = actualStr.toLowerCase();
+
+      if (op === '==') return actualStr === targetStr || actualStr.includes(targetStr);
+      if (op === '!=') return actualStr !== targetStr && !actualStr.includes(targetStr);
+      return true;
+    }
+
+    // 2. Comparação numérica: FOR >= 1, level >= 5, CON > 0, SAB >= 1
     const m = trimmed.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*(>=|<=|>|<|==|!=)\s*(-?\d+)$/);
     if (!m) return true;
 

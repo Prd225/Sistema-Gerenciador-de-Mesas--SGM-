@@ -25,6 +25,7 @@ import type {
   ASTItemDecl,
   ASTMetadataMap,
   ASTOutcomeBand,
+  ASTProgressionBranch,
   ASTProgressionChoice,
   ASTProgressionChoiceOption,
   ASTProgressionDecl,
@@ -1646,8 +1647,16 @@ export class SheetParser {
           : defaultTargetModule
       : defaultTargetModule;
 
+    const isBifurcation =
+      header.meta.flags.includes('bifurcacao') ||
+      header.meta.flags.includes('bifurcação') ||
+      header.meta.flags.includes('branch') ||
+      header.meta.flags.includes('switch') ||
+      header.meta.flags.includes('caminho');
+
     const gains: ASTProgressionGain[] = [];
     const choices: ASTProgressionChoice[] = [];
+    const branches: ASTProgressionBranch[] = [];
     const hasBrace = this.match('LBRACE');
     this.skipSeparators();
 
@@ -1688,6 +1697,19 @@ export class SheetParser {
           this.skipSeparators();
           continue;
         }
+        if (d === 'branch' || d === 'caminho') {
+          this.advance();
+          const br = this.parseProgressionBranchDecl(targetModule, header.placement);
+          if (br) branches.push(br);
+          this.skipSeparators();
+          continue;
+        }
+        if (d === 'when' || d === 'se') {
+          this.advance();
+          this.parseWhenBlockInto(gains, choices, branches, targetModule, header.placement);
+          this.skipSeparators();
+          continue;
+        }
       }
 
       if (this.check('IDENTIFIER')) {
@@ -1702,6 +1724,19 @@ export class SheetParser {
         if (kw === 'choose' || kw === 'escolha' || kw === 'escolher') {
           const ch = this.parseProgressionChoiceDecl(targetModule);
           if (ch) choices.push(ch);
+          this.skipSeparators();
+          continue;
+        }
+        if (kw === 'branch' || kw === 'caminho' || kw === 'ramo' || kw === 'trilha') {
+          this.advance();
+          const br = this.parseProgressionBranchDecl(targetModule, header.placement);
+          if (br) branches.push(br);
+          this.skipSeparators();
+          continue;
+        }
+        if (kw === 'when' || kw === 'se' || kw === 'caso' || kw === 'if') {
+          this.advance();
+          this.parseWhenBlockInto(gains, choices, branches, targetModule, header.placement);
           this.skipSeparators();
           continue;
         }
@@ -1722,11 +1757,199 @@ export class SheetParser {
       id,
       title,
       targetModule,
+      isBifurcation: isBifurcation || branches.length > 0,
+      branches,
       gains,
       choices,
       placement: header.placement,
       span: this.mergeSpans(startSpan, this.previous().span),
     };
+  }
+
+  private parseProgressionBranchDecl(
+    defaultTargetModule?: string,
+    parentPlacement?: ModulePlacement,
+  ): ASTProgressionBranch | null {
+    let title = 'Caminho';
+    if (this.check('STRING') || this.check('IDENTIFIER')) {
+      title = this.advance().value.trim();
+    }
+    const meta = this.parseOptionalMetaAndFlags();
+    const reqStr = meta.props.req
+      ? meta.props.req.type === 'StringLit'
+        ? meta.props.req.value
+        : this.exprToRawCode(meta.props.req)
+      : meta.props.requires
+        ? meta.props.requires.type === 'StringLit'
+          ? meta.props.requires.value
+          : this.exprToRawCode(meta.props.requires)
+        : undefined;
+
+    const descStr = meta.props.desc
+      ? meta.props.desc.type === 'StringLit'
+        ? meta.props.desc.value
+        : this.exprToRawCode(meta.props.desc)
+      : undefined;
+
+    const iconStr = meta.props.icon
+      ? meta.props.icon.type === 'StringLit'
+        ? meta.props.icon.value
+        : this.exprToRawCode(meta.props.icon)
+      : undefined;
+
+    const branchTarget = meta.props.target
+      ? meta.props.target.type === 'StringLit'
+        ? meta.props.target.value
+        : meta.props.target.type === 'Ident'
+          ? meta.props.target.name
+          : defaultTargetModule
+      : defaultTargetModule;
+
+    const gains: ASTProgressionGain[] = [];
+    const choices: ASTProgressionChoice[] = [];
+    const id = `branch_${this.nextBlockId('branch')}`;
+
+    const hasBrace = this.match('LBRACE');
+    this.skipSeparators();
+
+    while (!this.isAtEnd()) {
+      if (hasBrace) {
+        if (this.check('RBRACE')) break;
+      } else {
+        if (this.check('DIRECTIVE')) {
+          const d = this.peek().value;
+          if (['branch', 'caminho', 'step', 'passo', 'progression', 'logic'].includes(d)) break;
+        }
+        if (this.check('IDENTIFIER')) {
+          const kw = this.peek().value.toLowerCase();
+          if (['branch', 'caminho', 'ramo', 'step', 'passo', 'etapa'].includes(kw)) break;
+        }
+      }
+
+      if (this.check('DIRECTIVE') && this.peek().value === 'gains') {
+        this.advance();
+        this.parseGainsBlockInto(gains, parentPlacement);
+        this.skipSeparators();
+        continue;
+      }
+
+      if (this.check('IDENTIFIER')) {
+        const kw = this.peek().value.toLowerCase();
+        if (kw === 'gain' || kw === 'gains' || kw === 'ganho' || kw === 'ganhos') {
+          this.advance();
+          this.match('COLON');
+          this.parseGainsBlockInto(gains, parentPlacement);
+          this.skipSeparators();
+          continue;
+        }
+        if (kw === 'choose' || kw === 'escolha' || kw === 'escolher') {
+          const ch = this.parseProgressionChoiceDecl(branchTarget);
+          if (ch) choices.push(ch);
+          this.skipSeparators();
+          continue;
+        }
+      }
+
+      const singleGain = this.parseSingleGainItem(parentPlacement);
+      if (singleGain) {
+        gains.push(singleGain);
+      } else {
+        this.synchronizeToNextStatement();
+      }
+      this.skipSeparators();
+    }
+
+    if (hasBrace) this.match('RBRACE');
+
+    return {
+      id,
+      title,
+      desc: descStr,
+      req: reqStr,
+      icon: iconStr,
+      targetModule: branchTarget,
+      tags: meta.tags,
+      gains,
+      choices,
+    };
+  }
+
+  private parseWhenBlockInto(
+    _parentGains: ASTProgressionGain[],
+    parentChoices: ASTProgressionChoice[],
+    parentBranches: ASTProgressionBranch[],
+    targetModule?: string,
+    parentPlacement?: ModulePlacement,
+  ): void {
+    const condExpr = this.parseExpr(0);
+    const condStr = this.exprToRawCode(condExpr);
+
+    const hasBrace = this.match('LBRACE');
+    this.skipSeparators();
+
+    while (!this.isAtEnd()) {
+      if (hasBrace) {
+        if (this.check('RBRACE')) break;
+      } else {
+        if (this.check('DIRECTIVE') || this.check('IDENTIFIER')) {
+          const kw = this.peek().value.toLowerCase();
+          if (['step', 'passo', 'branch', 'caminho', 'when', 'se'].includes(kw)) break;
+        }
+      }
+
+      if (this.check('DIRECTIVE') && (this.peek().value === 'branch' || this.peek().value === 'caminho')) {
+        this.advance();
+        const br = this.parseProgressionBranchDecl(targetModule, parentPlacement);
+        if (br) {
+          br.req = br.req ? `(${condStr}) && (${br.req})` : condStr;
+          parentBranches.push(br);
+        }
+        this.skipSeparators();
+        continue;
+      }
+
+      if (this.check('IDENTIFIER')) {
+        const kw = this.peek().value.toLowerCase();
+        if (kw === 'branch' || kw === 'caminho' || kw === 'ramo') {
+          this.advance();
+          const br = this.parseProgressionBranchDecl(targetModule, parentPlacement);
+          if (br) {
+            br.req = br.req ? `(${condStr}) && (${br.req})` : condStr;
+            parentBranches.push(br);
+          }
+          this.skipSeparators();
+          continue;
+        }
+        if (kw === 'choose' || kw === 'escolha') {
+          const ch = this.parseProgressionChoiceDecl(targetModule);
+          if (ch) {
+            for (const opt of ch.options) {
+              opt.req = opt.req ? `(${condStr}) && (${opt.req})` : condStr;
+            }
+            parentChoices.push(ch);
+          }
+          this.skipSeparators();
+          continue;
+        }
+      }
+
+      const singleGain = this.parseSingleGainItem(parentPlacement);
+      if (singleGain) {
+        const br: ASTProgressionBranch = {
+          id: `branch_${this.nextBlockId('branch')}`,
+          title: `Condicional: ${condStr}`,
+          req: condStr,
+          gains: [singleGain],
+          choices: [],
+        };
+        parentBranches.push(br);
+      } else {
+        this.synchronizeToNextStatement();
+      }
+      this.skipSeparators();
+    }
+
+    if (hasBrace) this.match('RBRACE');
   }
 
   private parseGainsBlockInto(

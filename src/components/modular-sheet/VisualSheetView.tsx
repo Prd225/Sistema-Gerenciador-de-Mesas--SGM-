@@ -324,6 +324,8 @@ export function VisualSheetView({
             onUpdateProfileImage={handleUpdateProfileImage}
             isEditMode={isEditMode}
             isMobilePortrait={isMobilePortrait}
+            progressions={sheet.progressions}
+            onTriggerProgression={setActiveProgressionModal}
           />
         );
       }

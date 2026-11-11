@@ -217,6 +217,16 @@ export const DIRECTIVE_ALIASES: Record<string, CanonicalBlockKind> = {
   gain: 'gains',
   ganho: 'gains',
   ganhos: 'gains',
+  branch: 'branch',
+  caminho: 'branch',
+  ramo: 'branch',
+  trilha: 'branch',
+  bifurcacao: 'branch',
+  bifurcação: 'branch',
+  when: 'when',
+  se: 'when',
+  caso: 'when',
+  switch: 'switch',
 };
 
 export function normalizeDirectiveKey(raw: string): string {

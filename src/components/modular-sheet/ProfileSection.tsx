@@ -10,8 +10,9 @@ import {
   Plus,
   Minus,
   Trash2,
+  Sparkles,
 } from 'lucide-react';
-import type { EvaluatedProfileBlock } from '@/lib/sheet-dsl';
+import type { EvaluatedProfileBlock, EvaluatedProgression } from '@/lib/sheet-dsl';
 import { generateId } from '@/lib/uuid';
 import { useModularSheetStore } from '@/store/useModularSheetStore';
 
@@ -32,6 +33,8 @@ interface ProfileSectionProps {
   onUpdateProfileImage?: (adj: ProfileImageAdjustments) => void;
   isEditMode?: boolean;
   isMobilePortrait?: boolean;
+  progressions?: EvaluatedProgression[];
+  onTriggerProgression?: (prog: EvaluatedProgression) => void;
 }
 
 export function resolveSheetImageUrl(rawUrl?: string): string {
@@ -58,6 +61,8 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   onUpdateProfileImage,
   isEditMode = false,
   isMobilePortrait = false,
+  progressions,
+  onTriggerProgression,
 }) => {
   const updateCharacterLevel = useModularSheetStore((s) => s.updateCharacterLevel);
   const updateProfileFields = useModularSheetStore((s) => s.updateProfileFields);
@@ -411,6 +416,23 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                 )}
               </div>
             )}
+
+            {/* Botão de Ativação da Progressão / Evolução (Acessível no Perfil/Meta) */}
+            {progressions && progressions.length > 0 && onTriggerProgression && (
+              <button
+                type="button"
+                onClick={() => onTriggerProgression(progressions[0])}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold text-white shadow-sm hover:scale-105 active:scale-95 transition-all shrink-0 animate-pulse hover:animate-none cursor-pointer"
+                style={{
+                  backgroundColor: 'var(--sheet-accent, #8257e5)',
+                }}
+                title={progressions[0].title || 'Subir de Nível'}
+              >
+                <Sparkles className="w-3 h-3 text-amber-300" />
+                <span>{progressions[0].buttonLabel || 'Subir de Nível'}</span>
+              </button>
+            )}
+
             {isEditMode && sheetId && !editingFields && (
               <button
                 type="button"

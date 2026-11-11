@@ -122,7 +122,10 @@ export type CanonicalBlockKind =
   | 'progression'// @progression, @progressao, @upgrade, @level_up, @evolucao
   | 'logic'      // @logic, @logica
   | 'step'       // @step, @passo, @etapa
-  | 'gains';     // @gains, @ganhos, @gain
+  | 'gains'      // @gains, @ganhos, @gain
+  | 'branch'     // @branch, @caminho, @ramo, @bifurcacao
+  | 'when'       // @when, @se, @caso
+  | 'switch';    // @switch
 
 // --- Marcadores de Disposição Global e Visual de Módulos ---
 
@@ -526,11 +529,25 @@ export interface ASTProgressionGain {
   placement?: ModulePlacement;
 }
 
+export interface ASTProgressionBranch {
+  id: string;
+  title: string;              // ex: "Guerreiro", "Nobre", "Caminho da Lâmina"
+  desc?: string;               // Descrição do caminho / arquétipo
+  req?: string;                // Condição / pré-requisito (ex: "level >= 2", "FOR >= 2")
+  icon?: string;               // Ícone opcional
+  targetModule?: string;       // ex: "@ability"
+  tags?: string[];
+  gains: ASTProgressionGain[];
+  choices: ASTProgressionChoice[];
+}
+
 export interface ASTProgressionStepDecl {
   id: string;
   title: string;
   desc?: string;
   targetModule?: string; // ex: "@ability", "@skill", "@attr", "@res"
+  isBifurcation?: boolean;
+  branches?: ASTProgressionBranch[];
   gains: ASTProgressionGain[];
   choices: ASTProgressionChoice[];
   placement?: ModulePlacement;
@@ -849,11 +866,27 @@ export interface EvaluatedProgressionGain {
   placement?: ModulePlacement;
 }
 
+export interface EvaluatedProgressionBranch {
+  id: string;
+  title: string;
+  desc?: string;
+  req?: string;
+  isEligible: boolean;
+  requirementText?: string;
+  icon?: string;
+  targetModule?: string;
+  tags?: string[];
+  gains: EvaluatedProgressionGain[];
+  choices: EvaluatedProgressionChoice[];
+}
+
 export interface EvaluatedProgressionStep {
   id: string;
   title: string;
   desc?: string;
   targetModule?: string;
+  isBifurcation?: boolean;
+  branches?: EvaluatedProgressionBranch[];
   gains: EvaluatedProgressionGain[];
   choices: EvaluatedProgressionChoice[];
   placement?: ModulePlacement;
