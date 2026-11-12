@@ -41,10 +41,10 @@ export const SHEET_DSL_PRESETS: Record<string, SheetDSLPreset> = {
   metade_nivel "Metade do Nível" = floor(level / 2)
   DEF "Defesa" = 10 + DES + metade_nivel
   Deslocamento := 9
-  pv_bonus_nivel := 0
+  _pv_por_nivel := 0 [hidden]
 
 @res [col2]
-  PV "Pontos de Vida": 42 / (20 + CON + (level - 1) * (5 + CON + pv_bonus_nivel)) [red]
+  PV "Pontos de Vida": 42 / (20 + CON + (level - 1) * (5 + CON) + (level * _pv_por_nivel)) [red]
   PM "Pontos de Mana": 12 / (level * 3)                          [blue]
 
 @counter [col2, segments]
@@ -117,55 +117,37 @@ export const SHEET_DSL_PRESETS: Record<string, SheetDSLPreset> = {
     desc: "Enquanto mantiver a postura defensiva erguida, recebe +2 na Defesa."
     when active -> DEF += 2
 
-@progression "Subir de Nível" [col1, trigger: "level_up", button: "Subir de Nível", icon: "sparkles"]
-  @step "Avanço de Nível & Caminho de Classe" [bifurcacao]
-    branch "Guerreiro" [desc: "Especialista marcial focado em combate, vigor físico e maestria em armas"] {
-      @gains [esq]
-        "Pontos de Vida" [desc: "+5 PV por nível (+ CON e talentos)", target: "PV.max", mod: 5 + CON + pv_bonus_nivel]
+@progression "Subir de Nível" [col1, trigger: "level_up", button: "Subir de Nível", icon: "trending-up"]:
+  @step "Avanço de Nível & Caminho de Classe" [bifurcacao, subtitle: "Nível {level} → {level + 1}", branch_title: "Caminho de Classe", gains_title: "Ganhos Automáticos"]:
+    branch "Guerreiro" [desc: "Especialista marcial focado em combate, vigor físico e maestria em armas"]:
+      @gains [esq]:
+        "Pontos de Vida" [desc: "+5 PV por nível (+ CON e talentos)", target: "PV.max", mod: 5 + CON + _pv_por_nivel]
         "Pontos de Mana" [desc: "+3 PM por nível", target: "PM.max", mod: 3]
         level += 1
 
-      choose 1 "Poder de Guerreiro" [target: "@ability"] from [
-        ability "Golpe Pessoal" [type: "Padrão", cost: 2 PM] {
-          desc: "Você desfere um golpe com toda a sua força (+2d8 de dano)."
-          damage: 2d8 + FOR
-        }
-        ability "Ataque Poderoso" [type: "Livre", req: "FOR >= 2", #combate] {
-          desc: "Ao atacar, pode aplicar -2 no teste para causar +5 no dano."
-        }
-        ability "Vitalidade" [req: "CON >= 1", #destino] {
-          desc: "Você se torna mais resistente (+1 PV por nível e +2 em Fortitude)."
-          apply: "pv_bonus_nivel += 1"
-        }
-        ability "Sortudo" [#destino] {
-          desc: "Gasta 3 PM para rolar novamente um teste recém-realizado."
-          cost: 3 PM
-        }
-        ability "Foco em Arma" [#combate] {
-          desc: "Recebe +2 em testes de ataque com a arma escolhida."
-        }
-      ]
-    }
+      ability "Vitalidade" [req: "CON >= 1", req_text: "Constituição 1", #destino]:
+        desc: "Você se torna mais resistente (+1 PV por nível e +2 em Fortitude)."
+        _pv_por_nivel += 1
+        Fortitude += 2
 
-    branch "Nobre" [desc: "Líder e estrategista diplomático focado em influência, oratória e comando"] {
-      @gains [esq]
-        "Pontos de Vida" [desc: "+4 PV por nível (+ CON)", target: "PV.max", mod: 4 + CON + pv_bonus_nivel]
+      choose 1 "Poder de Combate":
+        "Ataque Poderoso" [req: "FOR >= 1", req_text: "Força 1", cost: "-2 Ataque", type: "Combate", #combate]:
+          desc: "Ao atacar corpo a corpo, receba -2 no teste e cause +5 de dano."
+        "Estilo de Uma Arma" [req: "DES >= 1", req_text: "Destreza 1", #combate]:
+          desc: "+2 na Defesa quando usar apenas uma arma leve ou ágil."
+          DEF += 2
+        "Duro de Matar" [req: "CON >= 2", req_text: "Constituição 2", #destino]:
+          desc: "Ganha +2 em Fortitude para resistir a dano e fadiga."
+          Fortitude += 2
+
+    branch "Nobre" [desc: "Líder e estrategista diplomático focado em influência, oratória e comando"]:
+      @gains [esq]:
+        "Pontos de Vida" [desc: "+4 PV por nível (+ CON e talentos)", target: "PV.max", mod: 4 + CON + _pv_por_nivel]
         "Pontos de Mana" [desc: "+4 PM por nível", target: "PM.max", mod: 4]
         level += 1
 
-      choose 1 "Poder de Nobre" [target: "@ability"] from [
-        ability "Autoconfiança" {
-          desc: "Você pode somar seu Carisma em vez de Destreza na Defesa."
-        }
-        ability "Grito de Ordem" [type: "Movimento", cost: 2 PM] {
-          desc: "Concede uma ação padrão adicional imediata para um aliado próximo."
-        }
-        ability "Vitalidade" [req: "CON >= 1", #destino] {
-          desc: "Você se torna mais resistente (+1 PV por nível e +2 em Fortitude)."
-          apply: "pv_bonus_nivel += 1"
-        }
-      ]
-    }`,
+      ability "Autoconfiança" [#social]:
+        desc: "Você pode somar seu Carisma em vez de Destreza na Defesa."`,
   },
 
   ordem_paranormal: {

@@ -547,8 +547,13 @@ export function SheetDSLEditor({
           );
           return;
         }
+        const curPos = ta.selectionStart ?? 0;
+        const curLineStart = ta.value.lastIndexOf('\n', curPos - 1) + 1;
+        const beforeCursorOnLine = ta.value.slice(curLineStart, curPos);
+        const isAtLeadingWhitespace = /^[ \t]*$/.test(beforeCursorOnLine);
+
         if (
-          e.key === 'Tab' ||
+          (e.key === 'Tab' && !e.shiftKey && !isAtLeadingWhitespace && (completionResult.query.length > 0 || hasNavigatedCompletion)) ||
           (e.key === 'Enter' && (completionResult.query.length > 0 || hasNavigatedCompletion))
         ) {
           e.preventDefault();
@@ -565,9 +570,13 @@ export function SheetDSLEditor({
         }
       }
 
-      // Indentação com Tab / Shift+Tab
+      // Indentação com Tab / Shift+Tab (sempre funciona para tabular código sem chaves)
       if (e.key === 'Tab') {
         e.preventDefault();
+        setCompletionOpen(false);
+        setForceCompletion(false);
+        setHasNavigatedCompletion(false);
+
         const start = ta.selectionStart ?? 0;
         const end = ta.selectionEnd ?? 0;
         const src = ta.value;
@@ -578,7 +587,7 @@ export function SheetDSLEditor({
           return;
         }
 
-        // Indent / Outdent em múltiplas linhas
+        // Indent / Outdent em linha única ou múltiplas linhas
         const lineStart = src.lastIndexOf('\n', start - 1) + 1;
         const blockText = src.slice(lineStart, end);
         const blockLines = blockText.split('\n');
@@ -607,13 +616,13 @@ export function SheetDSLEditor({
           let nextIndent = indentMatch ? indentMatch[1] : '';
           const trimmed = currentLineUpToCursor.trim();
 
-          // Indenta +2 espaços ao abrir bloco @module (exceto @tab/@nav/@tema) ou sub-bloco item/ability/action/spell/enhance
+          // Indenta +2 espaços ao terminar em ":" ou "{", ao abrir diretiva @bloco (exceto @tab/@nav/@tema) ou sub-blocos
           if (
-            /^@(?!tab\b|aba\b|nav\b|tema\b|theme\b)[a-zA-Z0-9_\u00C0-\u017F-]+/i.test(trimmed) &&
-            nextIndent.length === 0
+            trimmed.endsWith(':') ||
+            trimmed.endsWith('{') ||
+            /^@(?!tab\b|aba\b|nav\b|tema\b|theme\b)[a-zA-Z0-9_\u00C0-\u017F-]+/i.test(trimmed) ||
+            /^(item|ability|habilidade|action|acao|spell|magia|ritual|move|enhance|branch|caminho|ramo|trilha|choose|escolha|escolher|step|passo|etapa|when|se|if|gains|ganhos)\b/i.test(trimmed)
           ) {
-            nextIndent = '  ';
-          } else if (/^(item|ability|habilidade|action|acao|spell|magia|ritual|move|enhance)\b/i.test(trimmed)) {
             nextIndent = `${nextIndent}  `;
           }
 
@@ -769,11 +778,10 @@ export function SheetDSLEditor({
                     onSelectPage(p.id);
                   }
                 }}
-                className={`group relative flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono select-none cursor-pointer transition-all border shrink-0 ${
-                  isActive
+                className={`group relative flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono select-none cursor-pointer transition-all border shrink-0 ${isActive
                     ? 'bg-[#1e1e28] border-[#3b3b4f] text-[#f4f4f5] shadow-sm font-semibold'
                     : 'bg-[#141419] border-transparent text-[#8b8b98] hover:text-[#d4d4d8] hover:bg-[#1a1a22]'
-                }`}
+                  }`}
                 title={`${p.name} (Clique duplo para renomear)`}
               >
                 <FileCode className={`w-3.5 h-3.5 ${isActive ? 'text-[#a78bfa]' : 'text-[#6b7280]'}`} />
@@ -864,11 +872,10 @@ export function SheetDSLEditor({
               setShowDiagnostics((v) => !v);
             }
           }}
-          className={`px-2 py-0.5 rounded text-[10px] font-mono border shrink-0 transition-colors ${
-            compiledSheet.diagnostics.length === 0
+          className={`px-2 py-0.5 rounded text-[10px] font-mono border shrink-0 transition-colors ${compiledSheet.diagnostics.length === 0
               ? 'bg-[#0f2419] border-[#164e33] text-[#6ee7b7] cursor-default'
               : 'bg-[#2b1f0e] border-[#78350f] text-[#fcd34d] hover:bg-[#382812] cursor-pointer'
-          }`}
+            }`}
         >
           {compiledSheet.diagnostics.length === 0
             ? 'Compilado OK'
@@ -882,11 +889,10 @@ export function SheetDSLEditor({
           <button
             type="button"
             onClick={() => setShowOutlinePanel((v) => !v)}
-            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border transition-colors shrink-0 ${
-              showOutlinePanel
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border transition-colors shrink-0 ${showOutlinePanel
                 ? 'bg-[#272730] border-[#3f3f4a] text-[#f4f4f5]'
                 : 'bg-[#1a1a20] border-[#27272f] text-[#a1a1aa] hover:text-[#e4e4e7]'
-            }`}
+              }`}
             title="Mostrar/ocultar Mapa Estrutural de Abas e Módulos"
           >
             <ListTree className="w-3.5 h-3.5" />
@@ -1062,119 +1068,118 @@ export function SheetDSLEditor({
                 </div>
               </div>
 
-            <div className="flex-1 overflow-y-auto py-1 px-1 space-y-1">
-              {filteredOutlineGroups.length === 0 ? (
-                <div className="px-2 py-3 text-[11px] text-[#71717a] font-mono">
-                  Nenhum bloco @ declarado.
-                </div>
-              ) : (
-                filteredOutlineGroups.map((group) => {
-                  const isTabFolded = Boolean(group.tabBlock && foldedIds.has(group.tabBlock.id));
-                  return (
-                    <div key={group.tabName} className="space-y-0.5">
-                      {/* Cabeçalho da Aba no Mapa */}
-                      <div className="flex items-center gap-0.5 rounded bg-[#19191f] border border-[#25252d] px-1 py-0.5">
-                        {group.tabBlock ? (
+              <div className="flex-1 overflow-y-auto py-1 px-1 space-y-1">
+                {filteredOutlineGroups.length === 0 ? (
+                  <div className="px-2 py-3 text-[11px] text-[#71717a] font-mono">
+                    Nenhum bloco @ declarado.
+                  </div>
+                ) : (
+                  filteredOutlineGroups.map((group) => {
+                    const isTabFolded = Boolean(group.tabBlock && foldedIds.has(group.tabBlock.id));
+                    return (
+                      <div key={group.tabName} className="space-y-0.5">
+                        {/* Cabeçalho da Aba no Mapa */}
+                        <div className="flex items-center gap-0.5 rounded bg-[#19191f] border border-[#25252d] px-1 py-0.5">
+                          {group.tabBlock ? (
+                            <button
+                              type="button"
+                              onClick={() => toggleFoldBlock(group.tabBlock!.id)}
+                              className="p-0.5 text-[#f59e0b] hover:bg-[#272730] rounded shrink-0"
+                              title={
+                                isTabFolded
+                                  ? `Expandir aba ${group.tabName}`
+                                  : `Minimizar aba ${group.tabName}`
+                              }
+                            >
+                              {isTabFolded ? (
+                                <ChevronRight className="w-3 h-3" />
+                              ) : (
+                                <ChevronDown className="w-3 h-3" />
+                              )}
+                            </button>
+                          ) : (
+                            <span className="w-4 shrink-0 text-center text-[10px] text-[#f59e0b]">•</span>
+                          )}
+
                           <button
                             type="button"
-                            onClick={() => toggleFoldBlock(group.tabBlock!.id)}
-                            className="p-0.5 text-[#f59e0b] hover:bg-[#272730] rounded shrink-0"
-                            title={
-                              isTabFolded
-                                ? `Expandir aba ${group.tabName}`
-                                : `Minimizar aba ${group.tabName}`
+                            onClick={() =>
+                              jumpToRealLine(group.tabBlock ? group.tabBlock.startLine : 0)
                             }
+                            className="flex-1 text-left truncate text-[11px] font-mono text-[#fbbf24] hover:underline"
+                            title={`Ir para aba "${group.tabName}"`}
                           >
-                            {isTabFolded ? (
-                              <ChevronRight className="w-3 h-3" />
-                            ) : (
-                              <ChevronDown className="w-3 h-3" />
-                            )}
+                            {group.tabName}
                           </button>
-                        ) : (
-                          <span className="w-4 shrink-0 text-center text-[10px] text-[#f59e0b]">•</span>
-                        )}
 
-                        <button
-                          type="button"
-                          onClick={() =>
-                            jumpToRealLine(group.tabBlock ? group.tabBlock.startLine : 0)
-                          }
-                          className="flex-1 text-left truncate text-[11px] font-mono text-[#fbbf24] hover:underline"
-                          title={`Ir para aba "${group.tabName}"`}
-                        >
-                          {group.tabName}
-                        </button>
+                          {group.tabBlock && (
+                            <span className="text-[9px] font-mono text-[#6b7280] shrink-0 pr-0.5">
+                              L{group.tabBlock.startLine + 1}
+                            </span>
+                          )}
+                        </div>
 
-                        {group.tabBlock && (
-                          <span className="text-[9px] font-mono text-[#6b7280] shrink-0 pr-0.5">
-                            L{group.tabBlock.startLine + 1}
-                          </span>
-                        )}
+                        {/* Módulos pertencentes a esta Aba */}
+                        {!isTabFolded &&
+                          group.childModules.map((mod: DSLFoldableBlock) => {
+                            const isModFolded = foldedIds.has(mod.id);
+                            const isCursorInside =
+                              currentRealLineNumber - 1 >= mod.startLine &&
+                              currentRealLineNumber - 1 <= mod.endLine;
+
+                            return (
+                              <div
+                                key={mod.id}
+                                className={`flex items-center gap-0.5 pl-2 pr-1 py-0.5 rounded text-[11px] font-mono transition-colors ${isCursorInside
+                                    ? 'bg-[#252530] text-[#f4f4f5]'
+                                    : 'text-[#a1a1aa] hover:bg-[#1b1b22] hover:text-[#e4e4e7]'
+                                  }`}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => toggleFoldBlock(mod.id)}
+                                  className="p-0.5 text-[#8e8e98] hover:text-[#e4e4e7] rounded shrink-0"
+                                  title={
+                                    isModFolded
+                                      ? `Expandir ${mod.directive}`
+                                      : `Minimizar ${mod.directive}`
+                                  }
+                                >
+                                  {isModFolded ? (
+                                    <ChevronRight className="w-3 h-3" />
+                                  ) : (
+                                    <ChevronDown className="w-3 h-3" />
+                                  )}
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => jumpToRealLine(mod.startLine)}
+                                  className="flex-1 text-left truncate"
+                                  title={`${mod.directive} — ${mod.label} (Linha ${mod.startLine + 1})`}
+                                >
+                                  <span className="text-[#c084fc]">{mod.directive}</span>
+                                  {mod.label && mod.label !== mod.directive && (
+                                    <span className="text-[#8e8e98] ml-1 text-[10px]">
+                                      {mod.label}
+                                    </span>
+                                  )}
+                                </button>
+
+                                <span className="text-[9px] text-[#52525b] shrink-0">
+                                  {mod.startLine + 1}
+                                </span>
+                              </div>
+                            );
+                          })}
                       </div>
-
-                      {/* Módulos pertencentes a esta Aba */}
-                      {!isTabFolded &&
-                        group.childModules.map((mod: DSLFoldableBlock) => {
-                          const isModFolded = foldedIds.has(mod.id);
-                          const isCursorInside =
-                            currentRealLineNumber - 1 >= mod.startLine &&
-                            currentRealLineNumber - 1 <= mod.endLine;
-
-                          return (
-                            <div
-                              key={mod.id}
-                              className={`flex items-center gap-0.5 pl-2 pr-1 py-0.5 rounded text-[11px] font-mono transition-colors ${
-                                isCursorInside
-                                  ? 'bg-[#252530] text-[#f4f4f5]'
-                                  : 'text-[#a1a1aa] hover:bg-[#1b1b22] hover:text-[#e4e4e7]'
-                              }`}
-                            >
-                              <button
-                                type="button"
-                                onClick={() => toggleFoldBlock(mod.id)}
-                                className="p-0.5 text-[#8e8e98] hover:text-[#e4e4e7] rounded shrink-0"
-                                title={
-                                  isModFolded
-                                    ? `Expandir ${mod.directive}`
-                                    : `Minimizar ${mod.directive}`
-                                }
-                              >
-                                {isModFolded ? (
-                                  <ChevronRight className="w-3 h-3" />
-                                ) : (
-                                  <ChevronDown className="w-3 h-3" />
-                                )}
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => jumpToRealLine(mod.startLine)}
-                                className="flex-1 text-left truncate"
-                                title={`${mod.directive} — ${mod.label} (Linha ${mod.startLine + 1})`}
-                              >
-                                <span className="text-[#c084fc]">{mod.directive}</span>
-                                {mod.label && mod.label !== mod.directive && (
-                                  <span className="text-[#8e8e98] ml-1 text-[10px]">
-                                    {mod.label}
-                                  </span>
-                                )}
-                              </button>
-
-                              <span className="text-[9px] text-[#52525b] shrink-0">
-                                {mod.startLine + 1}
-                              </span>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </aside>
-        </>
-      )}
+                    );
+                  })
+                )}
+              </div>
+            </aside>
+          </>
+        )}
 
         {/* GUTTER SINCRONIZADO (Números de Linha Reais + Botões de Fold + Indicador de Aviso) */}
         <div
@@ -1199,9 +1204,8 @@ export function SheetDSLEditor({
             return (
               <div
                 key={info.projectedIndex}
-                className={`flex items-center justify-end pr-1.5 gap-0.5 font-mono text-[11px] ${
-                  isActive ? 'bg-[#1d1d24] text-[#e4e4e7]' : 'text-[#52525b]'
-                }`}
+                className={`flex items-center justify-end pr-1.5 gap-0.5 font-mono text-[11px] ${isActive ? 'bg-[#1d1d24] text-[#e4e4e7]' : 'text-[#52525b]'
+                  }`}
                 style={{ height: `${LINE_HEIGHT}px`, lineHeight: `${LINE_HEIGHT}px` }}
               >
                 {hasDiag && !info.isFoldPlaceholder && (
@@ -1222,13 +1226,12 @@ export function SheetDSLEditor({
                   <button
                     type="button"
                     onClick={() => toggleFoldBlock(block.id)}
-                    className={`w-3.5 h-3.5 flex items-center justify-center rounded hover:bg-[#2c2c36] shrink-0 ${
-                      block.kind === 'tab'
+                    className={`w-3.5 h-3.5 flex items-center justify-center rounded hover:bg-[#2c2c36] shrink-0 ${block.kind === 'tab'
                         ? 'text-[#f59e0b]'
                         : block.kind === 'module'
                           ? 'text-[#c084fc]'
                           : 'text-[#8e8e98]'
-                    }`}
+                      }`}
                     title={
                       info.isHeaderFolded
                         ? `Expandir ${block.directive} (${block.lineCount} linhas)`
@@ -1278,63 +1281,62 @@ export function SheetDSLEditor({
             }}
           >
             <div className="inline-block min-w-full">
-            {highlightedLines.map((tokens, lineIdx) => {
-              const info = projection.lineMap[lineIdx];
-              const isActive = lineIdx === activeProjectedLine;
-              const isTabHeader =
-                !info?.isFoldPlaceholder && info?.headerBlock?.kind === 'tab';
-              const isModuleHeader =
-                !info?.isFoldPlaceholder && info?.headerBlock?.kind === 'module';
-              const hasDiag =
-                !info?.isFoldPlaceholder &&
-                Boolean(info && diagnosticsByRealLine.has(info.realLineNumber));
+              {highlightedLines.map((tokens, lineIdx) => {
+                const info = projection.lineMap[lineIdx];
+                const isActive = lineIdx === activeProjectedLine;
+                const isTabHeader =
+                  !info?.isFoldPlaceholder && info?.headerBlock?.kind === 'tab';
+                const isModuleHeader =
+                  !info?.isFoldPlaceholder && info?.headerBlock?.kind === 'module';
+                const hasDiag =
+                  !info?.isFoldPlaceholder &&
+                  Boolean(info && diagnosticsByRealLine.has(info.realLineNumber));
 
-              let rowBg = '';
-              if (info?.isFoldPlaceholder) {
-                rowBg = 'bg-[#1b1b22] border-y border-[#2b2b36]';
-              } else if (isTabHeader) {
-                rowBg = 'bg-[#f59e0b]/[0.07] border-t border-[#f59e0b]/25';
-              } else if (isActive) {
-                rowBg = 'bg-[#18181f]';
-              } else if (isModuleHeader) {
-                rowBg = 'bg-[#c084fc]/[0.03]';
-              }
+                let rowBg = '';
+                if (info?.isFoldPlaceholder) {
+                  rowBg = 'bg-[#1b1b22] border-y border-[#2b2b36]';
+                } else if (isTabHeader) {
+                  rowBg = 'bg-[#f59e0b]/[0.07] border-t border-[#f59e0b]/25';
+                } else if (isActive) {
+                  rowBg = 'bg-[#18181f]';
+                } else if (isModuleHeader) {
+                  rowBg = 'bg-[#c084fc]/[0.03]';
+                }
 
-              return (
-                <div
-                  key={lineIdx}
-                  className={`min-w-full ${rowBg} ${
-                    hasDiag ? 'underline decoration-wavy decoration-[#f59e0b]' : ''
-                  }`}
-                  style={{ height: `${LINE_HEIGHT}px`, lineHeight: `${LINE_HEIGHT}px` }}
-                >
-                  {tokens.length === 0 ? (
-                    '\u200B'
-                  ) : (
-                    tokens.map((tok, tIdx) => (
-                      <span
-                        key={tIdx}
-                        className={getTokenColorClass(tok)}
-                        style={
-                          tok.hexColor
-                            ? {
+                return (
+                  <div
+                    key={lineIdx}
+                    className={`min-w-full ${rowBg} ${hasDiag ? 'underline decoration-wavy decoration-[#f59e0b]' : ''
+                      }`}
+                    style={{ height: `${LINE_HEIGHT}px`, lineHeight: `${LINE_HEIGHT}px` }}
+                  >
+                    {tokens.length === 0 ? (
+                      '\u200B'
+                    ) : (
+                      tokens.map((tok, tIdx) => (
+                        <span
+                          key={tIdx}
+                          className={getTokenColorClass(tok)}
+                          style={
+                            tok.hexColor
+                              ? {
                                 textDecoration: 'underline',
                                 textDecorationColor: tok.hexColor,
                                 textDecorationThickness: '2px',
                                 textUnderlineOffset: '2px',
                               }
-                            : undefined
-                        }
-                      >
-                        {searchQuery
-                          ? renderTextWithSearchHighlight(tok.text, searchQuery)
-                          : tok.text}
-                      </span>
-                    ))
-                  )}
-                </div>
-              );
-            })}
+                              : undefined
+                          }
+                        >
+                          {searchQuery
+                            ? renderTextWithSearchHighlight(tok.text, searchQuery)
+                            : tok.text}
+                        </span>
+                      ))
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -1409,11 +1411,10 @@ export function SheetDSLEditor({
                       type="button"
                       onMouseEnter={() => setSelectedCompletionIdx(idx)}
                       onClick={() => acceptCompletion(item)}
-                      className={`w-full px-2 py-0.5 sm:py-1 text-left flex items-center justify-between gap-1.5 text-[10px] sm:text-[11px] font-mono transition-colors ${
-                        isSelected
+                      className={`w-full px-2 py-0.5 sm:py-1 text-left flex items-center justify-between gap-1.5 text-[10px] sm:text-[11px] font-mono transition-colors ${isSelected
                           ? 'bg-[#272733] text-[#f4f4f5]'
                           : 'bg-[#18181d] text-[#d4d4d8] hover:bg-[#202028]'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-1.5 min-w-0">
                         <span

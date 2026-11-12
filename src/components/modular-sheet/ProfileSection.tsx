@@ -10,7 +10,6 @@ import {
   Plus,
   Minus,
   Trash2,
-  Sparkles,
 } from 'lucide-react';
 import type { EvaluatedProfileBlock, EvaluatedProgression } from '@/lib/sheet-dsl';
 import { generateId } from '@/lib/uuid';
@@ -422,13 +421,13 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
               <button
                 type="button"
                 onClick={() => onTriggerProgression(progressions[0])}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold text-white shadow-sm hover:scale-105 active:scale-95 transition-all shrink-0 animate-pulse hover:animate-none cursor-pointer"
+                className="inline-flex items-center justify-center px-3 py-1 rounded-md text-[11px] font-bold text-white shadow-lg ring-1 ring-white/20 hover:ring-white/40 hover:scale-105 active:scale-95 transition-all shrink-0 animate-pulse hover:animate-none cursor-pointer"
                 style={{
                   backgroundColor: 'var(--sheet-accent, #8257e5)',
+                  boxShadow: '0 0 14px var(--sheet-accent, rgba(130, 87, 229, 0.5))',
                 }}
                 title={progressions[0].title || 'Subir de Nível'}
               >
-                <Sparkles className="w-3 h-3 text-amber-300" />
                 <span>{progressions[0].buttonLabel || 'Subir de Nível'}</span>
               </button>
             )}

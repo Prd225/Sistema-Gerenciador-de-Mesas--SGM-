@@ -1436,10 +1436,32 @@ export class SheetParser {
       else if (ic.type === 'Ident') icon = ic.name;
     }
 
+    let subtitle: string | undefined;
+    if (header.meta.props.subtitle) {
+      subtitle = header.meta.props.subtitle.type === 'StringLit'
+        ? header.meta.props.subtitle.value
+        : this.exprToRawCode(header.meta.props.subtitle);
+    } else if (header.meta.props.subtitulo) {
+      subtitle = header.meta.props.subtitulo.type === 'StringLit'
+        ? header.meta.props.subtitulo.value
+        : this.exprToRawCode(header.meta.props.subtitulo);
+    }
+
+    let desc: string | undefined;
+    if (header.meta.props.desc) {
+      desc = header.meta.props.desc.type === 'StringLit'
+        ? header.meta.props.desc.value
+        : this.exprToRawCode(header.meta.props.desc);
+    } else if (header.meta.props.descricao || header.meta.props.descrição) {
+      const d = header.meta.props.descricao || header.meta.props.descrição;
+      desc = d.type === 'StringLit' ? d.value : this.exprToRawCode(d);
+    }
+
     if (header.meta.flags.includes('once') || header.meta.flags.includes('unico') || header.meta.flags.includes('único')) {
       repeatable = false;
     }
 
+    this.match('COLON');
     const hasBrace = this.match('LBRACE');
     this.skipSeparators();
 
@@ -1462,9 +1484,8 @@ export class SheetParser {
         (this.check('DIRECTIVE') && this.peek().value === 'step') ||
         (this.check('IDENTIFIER') && ['step', 'passo', 'etapa', 'fase'].includes(this.peek().value.toLowerCase()))
       ) {
-        if (this.check('DIRECTIVE')) this.advance();
-        else this.advance();
-        const st = this.parseProgressionStepDecl();
+        const stepTok = this.advance();
+        const st = this.parseProgressionStepDecl(undefined, stepTok.span.start);
         if (st) {
           steps.push(st);
           currentStep = st;
@@ -1478,13 +1499,10 @@ export class SheetParser {
         (this.check('DIRECTIVE') && this.peek().value === 'gains') ||
         (this.check('IDENTIFIER') && ['gain', 'gains', 'ganho', 'ganhos'].includes(this.peek().value.toLowerCase()))
       ) {
-        if (this.check('DIRECTIVE')) this.advance();
-        else {
-          this.advance();
-          this.match('COLON');
-        }
+        const gainsTok = this.advance();
+        if (gainsTok.type === 'IDENTIFIER') this.match('COLON');
         const targetList = currentStep ? currentStep.gains : rootGains;
-        this.parseGainsBlockInto(targetList);
+        this.parseGainsBlockInto(targetList, header.placement, gainsTok.span.start);
         this.skipSeparators();
         continue;
       }
@@ -1508,8 +1526,8 @@ export class SheetParser {
         (this.check('DIRECTIVE') && (this.peek().value === 'branch' || this.peek().value === 'caminho')) ||
         (this.check('IDENTIFIER') && ['branch', 'caminho', 'ramo', 'trilha'].includes(this.peek().value.toLowerCase()))
       ) {
-        this.advance();
-        const br = this.parseProgressionBranchDecl(currentStep?.targetModule, header.placement);
+        const brTok = this.advance();
+        const br = this.parseProgressionBranchDecl(currentStep?.targetModule, header.placement, brTok.span.start);
         if (br) {
           if (!currentStep) {
             currentStep = {
@@ -1526,6 +1544,25 @@ export class SheetParser {
           if (!currentStep.branches) currentStep.branches = [];
           currentStep.branches.push(br);
           currentStep.isBifurcation = true;
+        }
+        this.skipSeparators();
+        continue;
+      }
+
+      // E. Habilidade declarada diretamente no bloco raiz @progression (Ganho automático implícito)
+      if (this.isAtAbilityHeader()) {
+        const ab = this.parseAbilityDecl(false);
+        if (ab) {
+          const opt = this.convertAbilityDeclToChoiceOption(ab, currentStep?.targetModule);
+          const targetList = currentStep ? currentStep.gains : rootGains;
+          targetList.push({
+            target: '@ability',
+            label: ab.label,
+            desc: opt.desc || (opt.apply ? `Aplica: ${opt.apply}` : undefined),
+            op: '+=',
+            expr: ab.label,
+            abilityOption: opt,
+          });
         }
         this.skipSeparators();
         continue;
@@ -1599,6 +1636,8 @@ export class SheetParser {
       type: 'ProgressionDecl',
       id: blockId,
       title,
+      subtitle,
+      desc,
       buttonLabel,
       icon,
       trigger,
@@ -1651,7 +1690,7 @@ export class SheetParser {
 
   private parseStepDirective(doc: ASTSheetDocument): void {
     const prog = this.ensureActiveProgression(doc);
-    const step = this.parseProgressionStepDecl();
+    const step = this.parseProgressionStepDecl(undefined, this.previous().span.start);
     if (step) {
       prog.steps.push(step);
       for (const g of step.gains) {
@@ -1665,6 +1704,7 @@ export class SheetParser {
 
   private parseGainsDirective(doc: ASTSheetDocument): void {
     const prog = this.ensureActiveProgression(doc);
+    const gainsPos = this.previous().span.start;
     let targetStep = prog.steps[prog.steps.length - 1];
     if (!targetStep) {
       targetStep = {
@@ -1675,7 +1715,7 @@ export class SheetParser {
       };
       prog.steps.push(targetStep);
     }
-    this.parseGainsBlockInto(targetStep.gains);
+    this.parseGainsBlockInto(targetStep.gains, undefined, gainsPos);
     for (const g of targetStep.gains) {
       if (!prog.gains.includes(g)) prog.gains.push(g);
     }
@@ -1693,7 +1733,7 @@ export class SheetParser {
       };
       prog.steps.push(targetStep);
     }
-    const choice = this.parseProgressionChoiceDecl(targetStep.targetModule);
+    const choice = this.parseProgressionChoiceDecl(targetStep.targetModule, this.previous().span.start);
     if (choice) {
       targetStep.choices.push(choice);
       if (!prog.choices.includes(choice)) prog.choices.push(choice);
@@ -1702,6 +1742,7 @@ export class SheetParser {
 
   private parseBranchDirective(doc: ASTSheetDocument): void {
     const prog = this.ensureActiveProgression(doc);
+    const brPos = this.previous().span.start;
     let targetStep = prog.steps[prog.steps.length - 1];
     if (!targetStep) {
       targetStep = {
@@ -1714,7 +1755,7 @@ export class SheetParser {
       };
       prog.steps.push(targetStep);
     }
-    const br = this.parseProgressionBranchDecl(targetStep.targetModule);
+    const br = this.parseProgressionBranchDecl(targetStep.targetModule, undefined, brPos);
     if (br) {
       if (!targetStep.branches) targetStep.branches = [];
       targetStep.branches.push(br);
@@ -1722,10 +1763,16 @@ export class SheetParser {
     }
   }
 
-  private parseProgressionStepDecl(defaultTargetModule?: string): ASTProgressionStepDecl | null {
+  private parseProgressionStepDecl(
+    defaultTargetModule?: string,
+    headerPos?: { line: number; column: number },
+  ): ASTProgressionStepDecl | null {
     const startSpan = this.peek().span;
+    const stepLine = headerPos?.line ?? startSpan.start.line;
+    const stepIndent = headerPos?.column ?? startSpan.start.column;
+
     let title = 'Etapa';
-    if (this.check('STRING') || this.check('IDENTIFIER')) {
+    if ((this.check('STRING') || this.check('IDENTIFIER')) && this.peek().span.start.line === stepLine) {
       title = this.advance().value.trim();
     }
     const header = this.parseBlockHeader();
@@ -1748,9 +1795,49 @@ export class SheetParser {
       header.meta.flags.includes('switch') ||
       header.meta.flags.includes('caminho');
 
+    let subtitle: string | undefined;
+    if (header.meta.props.subtitle) {
+      subtitle = header.meta.props.subtitle.type === 'StringLit'
+        ? header.meta.props.subtitle.value
+        : this.exprToRawCode(header.meta.props.subtitle);
+    } else if (header.meta.props.subtitulo) {
+      subtitle = header.meta.props.subtitulo.type === 'StringLit'
+        ? header.meta.props.subtitulo.value
+        : this.exprToRawCode(header.meta.props.subtitulo);
+    }
+
+    let desc: string | undefined;
+    if (header.meta.props.desc) {
+      desc = header.meta.props.desc.type === 'StringLit'
+        ? header.meta.props.desc.value
+        : this.exprToRawCode(header.meta.props.desc);
+    } else if (header.meta.props.descricao || header.meta.props.descrição || header.meta.props.text || header.meta.props.texto) {
+      const d = header.meta.props.descricao || header.meta.props.descrição || header.meta.props.text || header.meta.props.texto;
+      desc = d.type === 'StringLit' ? d.value : this.exprToRawCode(d);
+    }
+
+    let branchTitle: string | undefined;
+    if (header.meta.props.branch_title || header.meta.props.branchTitle || header.meta.props.bifurcacao_title) {
+      const bt = header.meta.props.branch_title || header.meta.props.branchTitle || header.meta.props.bifurcacao_title;
+      branchTitle = bt.type === 'StringLit' ? bt.value : this.exprToRawCode(bt);
+    }
+
+    let branchDesc: string | undefined;
+    if (header.meta.props.branch_desc || header.meta.props.branchDesc || header.meta.props.bifurcacao_desc) {
+      const bd = header.meta.props.branch_desc || header.meta.props.branchDesc || header.meta.props.bifurcacao_desc;
+      branchDesc = bd.type === 'StringLit' ? bd.value : this.exprToRawCode(bd);
+    }
+
+    let gainsTitle: string | undefined;
+    if (header.meta.props.gains_title || header.meta.props.gainsTitle || header.meta.props.ganhos_title) {
+      const gt = header.meta.props.gains_title || header.meta.props.gainsTitle || header.meta.props.ganhos_title;
+      gainsTitle = gt.type === 'StringLit' ? gt.value : this.exprToRawCode(gt);
+    }
+
     const gains: ASTProgressionGain[] = [];
     const choices: ASTProgressionChoice[] = [];
     const branches: ASTProgressionBranch[] = [];
+    const hasColon = this.match('COLON');
     const hasBrace = this.match('LBRACE');
     this.skipSeparators();
 
@@ -1758,6 +1845,10 @@ export class SheetParser {
       if (hasBrace) {
         if (this.check('RBRACE')) break;
       } else {
+        const curTok = this.peek();
+        if (hasColon && curTok.span.start.line > stepLine && curTok.span.start.column <= stepIndent) {
+          break;
+        }
         if (this.check('DIRECTIVE')) {
           const d = this.peek().value;
           if (
@@ -1786,8 +1877,17 @@ export class SheetParser {
       if (this.check('DIRECTIVE')) {
         const d = this.peek().value;
         if (d === 'gains') {
-          this.advance();
-          this.parseGainsBlockInto(gains, header.placement);
+          const gainsTok = this.advance();
+          let customGainsTitle: string | undefined;
+          if ((this.check('STRING') || this.check('IDENTIFIER')) && this.peek().span.start.line === gainsTok.span.start.line) {
+            customGainsTitle = this.advance().value.trim();
+          }
+          const gHeader = this.parseBlockHeader();
+          if (gHeader.title && gHeader.title !== '__DEFAULT__') {
+            customGainsTitle = gHeader.title;
+          }
+          if (customGainsTitle) gainsTitle = customGainsTitle;
+          this.parseGainsBlockInto(gains, gHeader.placement || header.placement, gainsTok.span.start);
           this.skipSeparators();
           continue;
         }
@@ -1798,15 +1898,15 @@ export class SheetParser {
           continue;
         }
         if (d === 'branch' || d === 'caminho') {
-          this.advance();
-          const br = this.parseProgressionBranchDecl(targetModule, header.placement);
+          const brTok = this.advance();
+          const br = this.parseProgressionBranchDecl(targetModule, header.placement, brTok.span.start);
           if (br) branches.push(br);
           this.skipSeparators();
           continue;
         }
         if (d === 'when' || d === 'se') {
-          this.advance();
-          this.parseWhenBlockInto(gains, choices, branches, targetModule, header.placement);
+          const wTok = this.advance();
+          this.parseWhenBlockInto(gains, choices, branches, targetModule, header.placement, wTok.span.start);
           this.skipSeparators();
           continue;
         }
@@ -1817,9 +1917,18 @@ export class SheetParser {
       if (this.check('IDENTIFIER')) {
         const kw = this.peek().value.toLowerCase();
         if (kw === 'gain' || kw === 'gains' || kw === 'ganho' || kw === 'ganhos') {
-          this.advance();
+          const gainsTok = this.advance();
           this.match('COLON');
-          this.parseGainsBlockInto(gains, header.placement);
+          let customGainsTitle: string | undefined;
+          if ((this.check('STRING') || this.check('IDENTIFIER')) && this.peek().span.start.line === gainsTok.span.start.line) {
+            customGainsTitle = this.advance().value.trim();
+          }
+          const gHeader = this.parseBlockHeader();
+          if (gHeader.title && gHeader.title !== '__DEFAULT__') {
+            customGainsTitle = gHeader.title;
+          }
+          if (customGainsTitle) gainsTitle = customGainsTitle;
+          this.parseGainsBlockInto(gains, gHeader.placement || header.placement, gainsTok.span.start);
           this.skipSeparators();
           continue;
         }
@@ -1830,18 +1939,35 @@ export class SheetParser {
           continue;
         }
         if (kw === 'branch' || kw === 'caminho' || kw === 'ramo' || kw === 'trilha') {
-          this.advance();
-          const br = this.parseProgressionBranchDecl(targetModule, header.placement);
+          const brTok = this.advance();
+          const br = this.parseProgressionBranchDecl(targetModule, header.placement, brTok.span.start);
           if (br) branches.push(br);
           this.skipSeparators();
           continue;
         }
         if (kw === 'when' || kw === 'se' || kw === 'caso' || kw === 'if') {
-          this.advance();
-          this.parseWhenBlockInto(gains, choices, branches, targetModule, header.placement);
+          const wTok = this.advance();
+          this.parseWhenBlockInto(gains, choices, branches, targetModule, header.placement, wTok.span.start);
           this.skipSeparators();
           continue;
         }
+      }
+
+      if (this.isAtAbilityHeader()) {
+        const ab = this.parseAbilityDecl(false);
+        if (ab) {
+          const opt = this.convertAbilityDeclToChoiceOption(ab, targetModule);
+          gains.push({
+            target: '@ability',
+            label: ab.label,
+            desc: opt.desc || (opt.apply ? `Aplica: ${opt.apply}` : undefined),
+            op: '+=',
+            expr: ab.label,
+            abilityOption: opt,
+          });
+        }
+        this.skipSeparators();
+        continue;
       }
 
       const singleGain = this.parseSingleGainItem(header.placement);
@@ -1858,6 +1984,11 @@ export class SheetParser {
     return {
       id,
       title,
+      subtitle,
+      desc,
+      branchTitle,
+      branchDesc,
+      gainsTitle,
       targetModule,
       isBifurcation: isBifurcation || branches.length > 0,
       branches,
@@ -1871,9 +2002,14 @@ export class SheetParser {
   private parseProgressionBranchDecl(
     defaultTargetModule?: string,
     parentPlacement?: ModulePlacement,
+    headerPos?: { line: number; column: number },
   ): ASTProgressionBranch | null {
+    const fallbackStart = this.previous().span.start;
+    const branchLine = headerPos?.line ?? fallbackStart.line;
+    const branchIndent = headerPos?.column ?? fallbackStart.column;
+
     let title = 'Caminho';
-    if (this.check('STRING') || this.check('IDENTIFIER')) {
+    if ((this.check('STRING') || this.check('IDENTIFIER')) && this.peek().span.start.line === branchLine) {
       title = this.advance().value.trim();
     }
     const meta = this.parseOptionalMetaAndFlags();
@@ -1886,6 +2022,20 @@ export class SheetParser {
           ? meta.props.requires.value
           : this.exprToRawCode(meta.props.requires)
         : undefined;
+
+    const reqTextStr = meta.props.req_text
+      ? meta.props.req_text.type === 'StringLit'
+        ? meta.props.req_text.value
+        : this.exprToRawCode(meta.props.req_text)
+      : meta.props.req_label
+        ? meta.props.req_label.type === 'StringLit'
+          ? meta.props.req_label.value
+          : this.exprToRawCode(meta.props.req_label)
+        : meta.props.text
+          ? meta.props.text.type === 'StringLit'
+            ? meta.props.text.value
+            : this.exprToRawCode(meta.props.text)
+          : undefined;
 
     const descStr = meta.props.desc
       ? meta.props.desc.type === 'StringLit'
@@ -1911,6 +2061,7 @@ export class SheetParser {
     const choices: ASTProgressionChoice[] = [];
     const id = `branch_${this.nextBlockId('branch')}`;
 
+    this.match('COLON');
     const hasBrace = this.match('LBRACE');
     this.skipSeparators();
 
@@ -1918,21 +2069,24 @@ export class SheetParser {
       if (hasBrace) {
         if (this.check('RBRACE')) break;
       } else {
+        const curTok = this.peek();
+        if (curTok.span.start.line > branchLine && curTok.span.start.column <= branchIndent) break;
+        if (this.check('RBRACE')) break;
         if (this.check('DIRECTIVE')) {
           const d = this.peek().value;
           if (['branch', 'caminho', 'step', 'passo', 'progression', 'logic'].includes(d)) break;
         }
         if (this.check('IDENTIFIER')) {
           const kw = this.peek().value.toLowerCase();
-          if (['branch', 'caminho', 'ramo', 'step', 'passo', 'etapa'].includes(kw)) break;
+          if (['branch', 'caminho', 'ramo', 'trilha', 'step', 'passo', 'etapa'].includes(kw)) break;
         }
       }
 
       if (this.check('DIRECTIVE')) {
         const d = this.peek().value;
         if (d === 'gains') {
-          this.advance();
-          this.parseGainsBlockInto(gains, parentPlacement);
+          const gTok = this.advance();
+          this.parseGainsBlockInto(gains, parentPlacement, gTok.span.start);
           this.skipSeparators();
           continue;
         }
@@ -1943,8 +2097,8 @@ export class SheetParser {
           continue;
         }
         if (d === 'when' || d === 'se') {
-          this.advance();
-          this.parseWhenBlockInto(gains, choices, [], branchTarget, parentPlacement);
+          const wTok = this.advance();
+          this.parseWhenBlockInto(gains, choices, [], branchTarget, parentPlacement, wTok.span.start);
           this.skipSeparators();
           continue;
         }
@@ -1955,9 +2109,9 @@ export class SheetParser {
       if (this.check('IDENTIFIER')) {
         const kw = this.peek().value.toLowerCase();
         if (kw === 'gain' || kw === 'gains' || kw === 'ganho' || kw === 'ganhos') {
-          this.advance();
+          const gTok = this.advance();
           this.match('COLON');
-          this.parseGainsBlockInto(gains, parentPlacement);
+          this.parseGainsBlockInto(gains, parentPlacement, gTok.span.start);
           this.skipSeparators();
           continue;
         }
@@ -1967,6 +2121,29 @@ export class SheetParser {
           this.skipSeparators();
           continue;
         }
+        if (kw === 'when' || kw === 'se' || kw === 'caso' || kw === 'if') {
+          const wTok = this.advance();
+          this.parseWhenBlockInto(gains, choices, [], branchTarget, parentPlacement, wTok.span.start);
+          this.skipSeparators();
+          continue;
+        }
+      }
+
+      if (this.isAtAbilityHeader()) {
+        const ab = this.parseAbilityDecl(false);
+        if (ab) {
+          const opt = this.convertAbilityDeclToChoiceOption(ab, branchTarget);
+          gains.push({
+            target: '@ability',
+            label: ab.label,
+            desc: opt.desc || (opt.apply ? `Aplica: ${opt.apply}` : undefined),
+            op: '+=',
+            expr: ab.label,
+            abilityOption: opt,
+          });
+        }
+        this.skipSeparators();
+        continue;
       }
 
       const singleGain = this.parseSingleGainItem(parentPlacement);
@@ -1985,6 +2162,7 @@ export class SheetParser {
       title,
       desc: descStr,
       req: reqStr,
+      reqText: reqTextStr,
       icon: iconStr,
       targetModule: branchTarget,
       tags: meta.tags,
@@ -1994,15 +2172,21 @@ export class SheetParser {
   }
 
   private parseWhenBlockInto(
-    _parentGains: ASTProgressionGain[],
+    parentGains: ASTProgressionGain[],
     parentChoices: ASTProgressionChoice[],
     parentBranches: ASTProgressionBranch[],
     targetModule?: string,
     parentPlacement?: ModulePlacement,
+    headerPos?: { line: number; column: number },
   ): void {
+    const fallbackStart = this.previous().span.start;
+    const whenLine = headerPos?.line ?? fallbackStart.line;
+    const whenIndent = headerPos?.column ?? fallbackStart.column;
+
     const condExpr = this.parseExpr(0);
     const condStr = this.exprToRawCode(condExpr);
 
+    this.match('COLON');
     const hasBrace = this.match('LBRACE');
     this.skipSeparators();
 
@@ -2010,6 +2194,9 @@ export class SheetParser {
       if (hasBrace) {
         if (this.check('RBRACE')) break;
       } else {
+        const curTok = this.peek();
+        if (curTok.span.start.line > whenLine && curTok.span.start.column <= whenIndent) break;
+        if (this.check('RBRACE')) break;
         if (this.check('DIRECTIVE') || this.check('IDENTIFIER')) {
           const kw = this.peek().value.toLowerCase();
           if (['step', 'passo', 'branch', 'caminho', 'when', 'se'].includes(kw)) break;
@@ -2017,8 +2204,8 @@ export class SheetParser {
       }
 
       if (this.check('DIRECTIVE') && (this.peek().value === 'branch' || this.peek().value === 'caminho')) {
-        this.advance();
-        const br = this.parseProgressionBranchDecl(targetModule, parentPlacement);
+        const brTok = this.advance();
+        const br = this.parseProgressionBranchDecl(targetModule, parentPlacement, brTok.span.start);
         if (br) {
           br.req = br.req ? `(${condStr}) && (${br.req})` : condStr;
           parentBranches.push(br);
@@ -2027,11 +2214,30 @@ export class SheetParser {
         continue;
       }
 
+      // E. Habilidade declarada diretamente dentro de um bloco when (Ganho condicional implícito)
+      if (this.isAtAbilityHeader()) {
+        const ab = this.parseAbilityDecl(false);
+        if (ab) {
+          const opt = this.convertAbilityDeclToChoiceOption(ab, targetModule);
+          opt.req = opt.req ? `(${condStr}) && (${opt.req})` : condStr;
+          parentGains.push({
+            target: '@ability',
+            label: ab.label,
+            desc: opt.desc || (opt.apply ? `Aplica: ${opt.apply}` : undefined),
+            op: '+=',
+            expr: ab.label,
+            abilityOption: opt,
+          });
+        }
+        this.skipSeparators();
+        continue;
+      }
+
       if (this.check('IDENTIFIER')) {
         const kw = this.peek().value.toLowerCase();
         if (kw === 'branch' || kw === 'caminho' || kw === 'ramo') {
-          this.advance();
-          const br = this.parseProgressionBranchDecl(targetModule, parentPlacement);
+          const brTok = this.advance();
+          const br = this.parseProgressionBranchDecl(targetModule, parentPlacement, brTok.span.start);
           if (br) {
             br.req = br.req ? `(${condStr}) && (${br.req})` : condStr;
             parentBranches.push(br);
@@ -2074,7 +2280,12 @@ export class SheetParser {
   private parseGainsBlockInto(
     targetList: ASTProgressionGain[],
     parentPlacement?: ModulePlacement,
+    headerPos?: { line: number; column: number },
   ): void {
+    const fallbackStart = this.previous().span.start;
+    const gainsLine = headerPos?.line ?? fallbackStart.line;
+    const gainsIndent = headerPos?.column ?? fallbackStart.column;
+
     const meta = this.parseOptionalMetaAndFlags();
     const placement: ModulePlacement =
       meta.flags.includes('esq') || meta.flags.includes('col1')
@@ -2085,6 +2296,7 @@ export class SheetParser {
             ? 'full'
             : (parentPlacement || 'col1');
 
+    this.match('COLON');
     const hasBrace = this.match('LBRACE');
     this.skipSeparators();
 
@@ -2092,7 +2304,11 @@ export class SheetParser {
       if (hasBrace) {
         if (this.check('RBRACE')) break;
       } else {
+        const curTok = this.peek();
+        if (curTok.span.start.line > gainsLine && curTok.span.start.column <= gainsIndent) break;
+        if (this.check('RBRACE')) break;
         if (this.check('DIRECTIVE')) break;
+        if (this.isAtAbilityHeader()) break;
         if (this.check('IDENTIFIER')) {
           const kw = this.peek().value.toLowerCase();
           if (
@@ -2101,7 +2317,17 @@ export class SheetParser {
             kw === 'etapa' ||
             kw === 'choose' ||
             kw === 'escolha' ||
-            kw === 'cost'
+            kw === 'escolher' ||
+            kw === 'cost' ||
+            kw === 'custo' ||
+            kw === 'branch' ||
+            kw === 'caminho' ||
+            kw === 'ramo' ||
+            kw === 'when' ||
+            kw === 'se' ||
+            kw === 'action' ||
+            kw === 'desc' ||
+            Boolean(ABILITY_CATEGORIES[kw])
           ) {
             break;
           }
@@ -2179,20 +2405,45 @@ export class SheetParser {
 
     // 2. Sintaxe de Atribuição Direta: level += 1 [desc: "..."] ou PV.max += 5 + CON
     if (this.check('IDENTIFIER')) {
+      const w = this.peek().value.toLowerCase();
+      // Palavras-chave estruturais ou de habilidades nunca são ganhos de recurso
+      if (
+        ABILITY_CATEGORIES[w] ||
+        w === 'action' ||
+        w === 'desc' ||
+        w === 'cost' ||
+        w === 'custo' ||
+        w === 'choose' ||
+        w === 'escolha' ||
+        w === 'branch' ||
+        w === 'step'
+      ) {
+        return null;
+      }
+
+      const savedPos = this.pos;
       let targetTok = this.advance().value;
       while (this.match('DOT')) {
         const sub = this.consumeIdentifierOrString('Esperado sub-propriedade.');
         if (sub) targetTok += `.${sub}`;
       }
-      let op: '+=' | '-=' | ':=' = '+=';
+
+      let op: '+=' | '-=' | ':=' | null = null;
       if (this.match('ASSIGN_ADD')) op = '+=';
       else if (this.match('ASSIGN_SUB')) op = '-=';
       else if (
         this.match('ASSIGN_PIN') ||
-        this.match('ASSIGN_CALC') ||
-        this.match('COLON')
-      )
+        this.match('ASSIGN_CALC')
+      ) {
         op = ':=';
+      } else if (this.match('COLON')) {
+        op = ':=';
+      }
+
+      if (!op) {
+        this.pos = savedPos;
+        return null;
+      }
 
       const expr = this.parseExpr(0);
       let desc: string | undefined;
@@ -2223,16 +2474,291 @@ export class SheetParser {
     return null;
   }
 
+  private convertAbilityDeclToChoiceOption(
+    ab: ASTAbilityDecl,
+    targetModule?: string,
+  ): ASTProgressionChoiceOption {
+    const costStr = ab.meta.props.cost
+      ? this.exprToRawCode(ab.meta.props.cost)
+      : undefined;
+    const reqStr = ab.meta.props.req
+      ? this.exprToRawCode(ab.meta.props.req)
+      : ab.meta.props.requires
+        ? this.exprToRawCode(ab.meta.props.requires)
+        : undefined;
+    const reqTextStr = ab.meta.props.req_text
+      ? ab.meta.props.req_text.type === 'StringLit'
+        ? ab.meta.props.req_text.value
+        : this.exprToRawCode(ab.meta.props.req_text)
+      : ab.meta.props.req_label
+        ? ab.meta.props.req_label.type === 'StringLit'
+          ? ab.meta.props.req_label.value
+          : this.exprToRawCode(ab.meta.props.req_label)
+        : ab.meta.props.text
+          ? ab.meta.props.text.type === 'StringLit'
+            ? ab.meta.props.text.value
+            : this.exprToRawCode(ab.meta.props.text)
+          : ab.props.req_text
+            ? ab.props.req_text.type === 'StringLit'
+              ? ab.props.req_text.value
+              : this.exprToRawCode(ab.props.req_text)
+            : ab.props.req_label
+              ? ab.props.req_label.type === 'StringLit'
+                ? ab.props.req_label.value
+                : this.exprToRawCode(ab.props.req_label)
+              : ab.props.text
+                ? ab.props.text.type === 'StringLit'
+                  ? ab.props.text.value
+                  : this.exprToRawCode(ab.props.text)
+                : undefined;
+    const descStr = ab.props.desc
+      ? ab.props.desc.type === 'StringLit'
+        ? ab.props.desc.value
+        : this.exprToRawCode(ab.props.desc)
+      : undefined;
+    let applyStr = ab.props.apply
+      ? this.exprToRawCode(ab.props.apply)
+      : ab.meta.props.apply
+        ? this.exprToRawCode(ab.meta.props.apply)
+        : undefined;
+
+    if (ab.passiveEffects && ab.passiveEffects.length > 0) {
+      const effectStmts = ab.passiveEffects.map((eff) => {
+        const opStr =
+          eff.op === 'add'
+            ? '+='
+            : eff.op === 'sub'
+              ? '-='
+              : eff.op === 'pin'
+                ? ':='
+                : eff.op === 'lock'
+                  ? ':!'
+                  : '=';
+        return `${eff.target} ${opStr} ${this.exprToRawCode(eff.expr)}`;
+      });
+      applyStr = applyStr
+        ? `${applyStr}, ${effectStmts.join(', ')}`
+        : effectStmts.join(', ');
+    }
+    const actionType = ab.props.type
+      ? ab.props.type.type === 'StringLit'
+        ? ab.props.type.value
+        : this.exprToRawCode(ab.props.type)
+      : ab.meta.props.type
+        ? ab.meta.props.type.type === 'StringLit'
+          ? ab.meta.props.type.value
+          : this.exprToRawCode(ab.meta.props.type)
+        : undefined;
+
+    return {
+      id: ab.id,
+      label: ab.label,
+      desc: descStr,
+      req: reqStr,
+      reqText: reqTextStr,
+      cost: costStr,
+      type: actionType,
+      tags: ab.meta.tags,
+      apply: applyStr,
+      targetModule: targetModule || '@ability',
+      abilityAst: ab,
+    };
+  }
+
+  private parseProgressionChoiceOption(
+    inheritedTargetModule?: string,
+    hasEnclosingBracket = false,
+  ): ASTProgressionChoiceOption | null {
+    const word = this.peek().value?.toLowerCase();
+    if (this.check('IDENTIFIER') && ABILITY_CATEGORIES[word]) {
+      const ab = this.parseAbilityDecl(false);
+      return ab ? this.convertAbilityDeclToChoiceOption(ab, inheritedTargetModule) : null;
+    }
+
+    const optStartTok = this.peek();
+    const optLine = optStartTok.span.start.line;
+    const optIndent = optStartTok.span.start.column;
+
+    const optLabel = this.consumeIdentifierOrString('Esperado nome da opção/poder.');
+    if (!optLabel) return null;
+
+    let desc: string | undefined;
+    let req: string | undefined;
+    let reqText: string | undefined;
+    let optCost: string | undefined;
+    let optType: string | undefined;
+    let tags: string[] = [];
+    let apply: string | undefined;
+    const effectStmts: string[] = [];
+    let optTargetModule = inheritedTargetModule;
+
+    if (this.check('LBRACKET')) {
+      const inlineMeta = this.parseMetadataBracket();
+      if (inlineMeta.tags.length > 0) tags.push(...inlineMeta.tags);
+      if (inlineMeta.props.desc) {
+        desc =
+          inlineMeta.props.desc.type === 'StringLit'
+            ? inlineMeta.props.desc.value
+            : this.exprToRawCode(inlineMeta.props.desc);
+      }
+      if (inlineMeta.props.cost) optCost = this.exprToRawCode(inlineMeta.props.cost);
+      if (inlineMeta.props.type) {
+        optType =
+          inlineMeta.props.type.type === 'StringLit'
+            ? inlineMeta.props.type.value
+            : this.exprToRawCode(inlineMeta.props.type);
+      }
+      if (inlineMeta.props.req) req = this.exprToRawCode(inlineMeta.props.req);
+      if (inlineMeta.props.req_text) {
+        reqText =
+          inlineMeta.props.req_text.type === 'StringLit'
+            ? inlineMeta.props.req_text.value
+            : this.exprToRawCode(inlineMeta.props.req_text);
+      } else if (inlineMeta.props.req_label) {
+        reqText =
+          inlineMeta.props.req_label.type === 'StringLit'
+            ? inlineMeta.props.req_label.value
+            : this.exprToRawCode(inlineMeta.props.req_label);
+      } else if (inlineMeta.props.text) {
+        reqText =
+          inlineMeta.props.text.type === 'StringLit'
+            ? inlineMeta.props.text.value
+            : this.exprToRawCode(inlineMeta.props.text);
+      }
+      if (inlineMeta.props.apply) {
+        apply =
+          inlineMeta.props.apply.type === 'StringLit'
+            ? inlineMeta.props.apply.value
+            : this.exprToRawCode(inlineMeta.props.apply);
+      }
+      if (inlineMeta.props.target) {
+        optTargetModule =
+          inlineMeta.props.target.type === 'StringLit'
+            ? inlineMeta.props.target.value
+            : inlineMeta.props.target.type === 'Ident'
+              ? inlineMeta.props.target.name
+              : optTargetModule;
+      }
+    }
+
+    const optHasColon = this.match('COLON');
+    const optHasBrace = this.match('LBRACE');
+    const hasIndentedBody =
+      !hasEnclosingBracket &&
+      !optHasBrace &&
+      this.peek().span.start.line > optLine &&
+      this.peek().span.start.column > optIndent;
+
+    if (optHasColon || optHasBrace || hasIndentedBody) {
+      this.skipSeparators();
+      while (!this.isAtEnd()) {
+        if (optHasBrace) {
+          if (this.check('RBRACE')) break;
+        } else {
+          if (this.isAtBlockEnd()) break;
+          if (hasEnclosingBracket && this.check('RBRACKET')) break;
+          const innerTok = this.peek();
+          if (innerTok.span.start.line > optLine && innerTok.span.start.column <= optIndent) {
+            break;
+          }
+          if (this.check('MINUS') || this.check('STAR') || this.check('STRING')) break;
+        }
+
+        if (this.isEffectStatementStart()) {
+          const eff = this.parseEffectStmt();
+          if (eff) {
+            const opStr =
+              eff.op === 'add'
+                ? '+='
+                : eff.op === 'sub'
+                  ? '-='
+                  : eff.op === 'pin'
+                    ? ':='
+                    : eff.op === 'lock'
+                      ? ':!'
+                      : '=';
+            effectStmts.push(`${eff.target} ${opStr} ${this.exprToRawCode(eff.expr)}`);
+          }
+        } else if (this.check('IDENTIFIER')) {
+          const propKey = this.advance().value.toLowerCase();
+          this.match('COLON');
+          if (propKey === 'desc' || propKey === 'descricao' || propKey === 'descrição') {
+            if (this.check('STRING')) desc = this.advance().value;
+            else if (this.check('IDENTIFIER')) desc = this.advance().value;
+          } else if (propKey === 'req' || propKey === 'requisito') {
+            if (this.check('STRING')) req = this.advance().value;
+            else if (this.check('IDENTIFIER')) req = this.advance().value;
+          } else if (
+            propKey === 'req_text' ||
+            propKey === 'req_label' ||
+            propKey === 'text' ||
+            propKey === 'texto'
+          ) {
+            if (this.check('STRING')) reqText = this.advance().value;
+            else if (this.check('IDENTIFIER')) reqText = this.advance().value;
+          } else if (propKey === 'cost' || propKey === 'custo') {
+            if (this.check('STRING')) optCost = this.advance().value;
+            else if (this.check('IDENTIFIER')) optCost = this.advance().value;
+          } else if (propKey === 'type' || propKey === 'tipo') {
+            if (this.check('STRING')) optType = this.advance().value;
+            else if (this.check('IDENTIFIER')) optType = this.advance().value;
+          } else if (propKey === 'apply' || propKey === 'aplica') {
+            if (this.check('STRING')) apply = this.advance().value;
+            else if (this.check('IDENTIFIER')) apply = this.advance().value;
+          } else if (propKey === 'target' || propKey === 'modulo' || propKey === 'módulo') {
+            if (this.check('STRING')) optTargetModule = this.advance().value;
+            else if (this.check('IDENTIFIER')) optTargetModule = this.advance().value;
+          } else if (propKey === 'tags') {
+            tags = this.parseStringArray();
+          } else {
+            this.parseExpr(0);
+          }
+        } else {
+          this.advance();
+        }
+        this.matchAny('COMMA', 'SEMICOLON', 'PIPE');
+        this.skipSeparators();
+      }
+      if (optHasBrace) this.match('RBRACE');
+    }
+
+    if (effectStmts.length > 0) {
+      apply = apply ? `${apply}, ${effectStmts.join(', ')}` : effectStmts.join(', ');
+    }
+
+    return {
+      id: optLabel,
+      label: optLabel,
+      desc,
+      req,
+      reqText,
+      cost: optCost,
+      type: optType,
+      tags,
+      apply,
+      targetModule: optTargetModule,
+    };
+  }
+
   private parseProgressionChoiceDecl(
     inheritedTargetModule?: string,
+    headerPos?: { line: number; column: number },
   ): ASTProgressionChoice | null {
-    this.advance(); // consome 'choose' / 'escolha'
+    const chooseTok = this.advance(); // consome 'choose' / 'escolha'
+    const chooseLine = headerPos?.line ?? chooseTok.span.start.line;
+    const chooseIndent = headerPos?.column ?? chooseTok.span.start.column;
+
     let count = 1;
-    if (this.check('NUMBER')) {
+    if (this.check('NUMBER') && this.peek().span.start.line === chooseLine) {
       count = Number(this.advance().value);
     }
     let choiceTitle = 'Escolha um Poder';
-    if (this.check('STRING') || this.check('IDENTIFIER')) {
+    if (
+      this.peek().span.start.line === chooseLine &&
+      (this.check('STRING') ||
+        (this.check('IDENTIFIER') &&
+          !['from', 'de'].includes(this.peek().value.toLowerCase())))
+    ) {
       choiceTitle = this.advance().value;
     }
     const meta = this.parseOptionalMetaAndFlags();
@@ -2251,157 +2777,72 @@ export class SheetParser {
     ) {
       this.advance();
     }
-    this.match('COLON');
+    const hasColon = this.match('COLON');
 
     const options: ASTProgressionChoiceOption[] = [];
     if (this.match('LBRACKET')) {
       this.skipSeparators();
       while (!this.check('RBRACKET') && !this.isAtEnd()) {
-        const word = this.peek().value?.toLowerCase();
-        if (this.check('IDENTIFIER') && ABILITY_CATEGORIES[word]) {
-          const ab = this.parseAbilityDecl(false);
-          if (ab) {
-            const costStr = ab.meta.props.cost
-              ? this.exprToRawCode(ab.meta.props.cost)
-              : undefined;
-            const reqStr = ab.meta.props.req
-              ? this.exprToRawCode(ab.meta.props.req)
-              : ab.meta.props.requires
-                ? this.exprToRawCode(ab.meta.props.requires)
-                : undefined;
-            const descStr = ab.props.desc
-              ? ab.props.desc.type === 'StringLit'
-                ? ab.props.desc.value
-                : this.exprToRawCode(ab.props.desc)
-              : undefined;
-            const applyStr = ab.props.apply
-              ? this.exprToRawCode(ab.props.apply)
-              : undefined;
-
-            const actionType = ab.props.type
-              ? ab.props.type.type === 'StringLit'
-                ? ab.props.type.value
-                : this.exprToRawCode(ab.props.type)
-              : ab.meta.props.type
-                ? ab.meta.props.type.type === 'StringLit'
-                  ? ab.meta.props.type.value
-                  : this.exprToRawCode(ab.meta.props.type)
-                : undefined;
-
-            options.push({
-              id: ab.id,
-              label: ab.label,
-              desc: descStr,
-              req: reqStr,
-              cost: costStr,
-              type: actionType,
-              tags: ab.meta.tags,
-              apply: applyStr,
-              targetModule: targetModule || '@ability',
-              abilityAst: ab,
-            });
-          }
-        } else {
-          const optLabel = this.consumeIdentifierOrString(
-            'Esperado nome da opção/poder.',
-          );
-          if (!optLabel) break;
-
-          let desc: string | undefined;
-          let req: string | undefined;
-          let optCost: string | undefined;
-          let optType: string | undefined;
-          let tags: string[] = [];
-          let apply: string | undefined;
-          let optTargetModule = targetModule;
-
-          if (this.check('LBRACKET')) {
-            const inlineMeta = this.parseMetadataBracket();
-            if (inlineMeta.tags.length > 0) tags.push(...inlineMeta.tags);
-            if (inlineMeta.props.cost)
-              optCost = this.exprToRawCode(inlineMeta.props.cost);
-            if (inlineMeta.props.req)
-              req = this.exprToRawCode(inlineMeta.props.req);
-            if (inlineMeta.props.target) {
-              optTargetModule =
-                inlineMeta.props.target.type === 'StringLit'
-                  ? inlineMeta.props.target.value
-                  : inlineMeta.props.target.type === 'Ident'
-                    ? inlineMeta.props.target.name
-                    : optTargetModule;
-            }
-          }
-
-          if (this.match('LBRACE')) {
-            this.skipSeparators();
-            while (!this.check('RBRACE') && !this.isAtEnd()) {
-              if (this.check('IDENTIFIER')) {
-                const propKey = this.advance().value.toLowerCase();
-                this.match('COLON');
-                if (
-                  propKey === 'desc' ||
-                  propKey === 'descricao' ||
-                  propKey === 'descrição'
-                ) {
-                  if (this.check('STRING')) desc = this.advance().value;
-                  else if (this.check('IDENTIFIER'))
-                    desc = this.advance().value;
-                } else if (propKey === 'req' || propKey === 'requisito') {
-                  if (this.check('STRING')) req = this.advance().value;
-                  else if (this.check('IDENTIFIER'))
-                    req = this.advance().value;
-                } else if (propKey === 'cost' || propKey === 'custo') {
-                  if (this.check('STRING')) optCost = this.advance().value;
-                  else if (this.check('IDENTIFIER'))
-                    optCost = this.advance().value;
-                } else if (propKey === 'type' || propKey === 'tipo') {
-                  if (this.check('STRING')) optType = this.advance().value;
-                  else if (this.check('IDENTIFIER'))
-                    optType = this.advance().value;
-                } else if (propKey === 'apply' || propKey === 'aplica') {
-                  if (this.check('STRING')) apply = this.advance().value;
-                  else if (this.check('IDENTIFIER'))
-                    apply = this.advance().value;
-                } else if (
-                  propKey === 'target' ||
-                  propKey === 'modulo' ||
-                  propKey === 'módulo'
-                ) {
-                  if (this.check('STRING'))
-                    optTargetModule = this.advance().value;
-                  else if (this.check('IDENTIFIER'))
-                    optTargetModule = this.advance().value;
-                } else if (propKey === 'tags') {
-                  tags = this.parseStringArray();
-                } else {
-                  this.parseExpr(0);
-                }
-              } else {
-                this.advance();
-              }
-              this.matchAny('COMMA', 'SEMICOLON', 'PIPE');
-              this.skipSeparators();
-            }
-            this.match('RBRACE');
-          }
-
-          options.push({
-            id: optLabel,
-            label: optLabel,
-            desc,
-            req,
-            cost: optCost,
-            type: optType,
-            tags,
-            apply,
-            targetModule: optTargetModule,
-          });
-        }
-
+        const opt = this.parseProgressionChoiceOption(targetModule, true);
+        if (!opt) break;
+        options.push(opt);
         this.matchAny('COMMA', 'SEMICOLON', 'PIPE');
         this.skipSeparators();
       }
       this.match('RBRACKET');
+    } else {
+      const hasBrace = this.match('LBRACE');
+      this.skipSeparators();
+      while (!this.isAtEnd()) {
+        if (hasBrace) {
+          if (this.check('RBRACE')) break;
+        } else {
+          if (this.isAtBlockEnd()) break;
+          const curTok = this.peek();
+          if (
+            curTok.span.start.line > chooseLine &&
+            curTok.span.start.column <= chooseIndent
+          ) {
+            break;
+          }
+          if (!hasColon && curTok.span.start.line > chooseLine && curTok.span.start.column <= chooseIndent) {
+            break;
+          }
+          if (this.check('IDENTIFIER')) {
+            const kw = curTok.value.toLowerCase();
+            if (
+              [
+                'step',
+                'passo',
+                'etapa',
+                'branch',
+                'caminho',
+                'ramo',
+                'trilha',
+                'choose',
+                'escolha',
+                'escolher',
+                'when',
+                'se',
+                'gains',
+                'ganhos',
+                'cost',
+                'custo',
+              ].includes(kw)
+            ) {
+              break;
+            }
+          }
+        }
+
+        this.matchAny('MINUS', 'STAR');
+        const opt = this.parseProgressionChoiceOption(targetModule, false);
+        if (!opt) break;
+        options.push(opt);
+        this.matchAny('COMMA', 'SEMICOLON', 'PIPE');
+        this.skipSeparators();
+      }
+      if (hasBrace) this.match('RBRACE');
     }
 
     return {
@@ -3329,13 +3770,21 @@ export class SheetParser {
     const choices: string[] = [];
     const enhancements: ASTEnhancementDecl[] = [];
 
+    const abilityLine = startTok.span.start.line;
+    const abilityIndent = startTok.span.start.column;
+
     if (this.match('ARROW')) {
       const targetEffects = meta.flags.includes('active') ? activeEffects : passiveEffects;
       this.parseEffectsBlockInto(targetEffects);
     }
 
+    const hasColon = this.match('COLON');
     const hasBrace = this.match('LBRACE');
     this.skipSeparators();
+
+    const PROGRESSION_STOP_WORDS = new Set([
+      'branch', 'caminho', 'choose', 'escolha', 'step', 'passo', 'gains', 'ganhos',
+    ]);
 
     while (!this.isAtEnd()) {
       if (hasBrace) {
@@ -3344,6 +3793,16 @@ export class SheetParser {
         if (this.isAtBlockEnd()) break;
         if (insideItem && this.isAtItemBoundary()) break;
         if (this.isAtAbilityHeader(insideItem)) break;
+        const curTok = this.peek();
+        const curWord = curTok.value.toLowerCase();
+        if (curTok.span.start.line > abilityLine && curTok.span.start.column <= abilityIndent) {
+          if (hasColon || (this.check('IDENTIFIER') && PROGRESSION_STOP_WORDS.has(curWord))) {
+            break;
+          }
+        }
+        if (this.check('IDENTIFIER') && PROGRESSION_STOP_WORDS.has(curWord)) {
+          break;
+        }
       }
 
       const word = this.peek().value.toLowerCase();

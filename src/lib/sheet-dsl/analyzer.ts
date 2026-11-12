@@ -2681,6 +2681,88 @@ export class SheetAnalyzer {
     }
   }
 
+  private formatCalcNode(
+    expr: ASTExpr,
+    ctx?: Record<string, EvaluatedValue>,
+  ): { str: string; isZero: boolean; hasBreakdown: boolean } {
+    switch (expr.type) {
+      case 'NumberLit':
+        return { str: String(expr.value), isZero: expr.value === 0, hasBreakdown: false };
+      case 'Ident':
+      case 'MemberExpr': {
+        const val = this.evalExpr(expr, ctx);
+        const valStr = this.valueToFormulaToken(val);
+        const rawName =
+          expr.type === 'Ident'
+            ? expr.name
+            : `${expr.object}.${expr.property}`;
+        const isZero = val === 0 || valStr === '0';
+        const displayName = rawName.startsWith('_') ? '' : ` (${rawName})`;
+        return {
+          str: `${valStr}${displayName}`,
+          isZero,
+          hasBreakdown: !rawName.startsWith('_'),
+        };
+      }
+      case 'UnaryExpr': {
+        const inner = this.formatCalcNode(expr.operand, ctx);
+        if (inner.isZero) return { str: '0', isZero: true, hasBreakdown: false };
+        if (expr.op === '-') {
+          return {
+            str: inner.str.startsWith('-') ? inner.str.slice(1).trim() : `-${inner.str}`,
+            isZero: false,
+            hasBreakdown: inner.hasBreakdown,
+          };
+        }
+        if (expr.op === '+') return inner;
+        return { str: `${expr.op}${inner.str}`, isZero: false, hasBreakdown: inner.hasBreakdown };
+      }
+      case 'BinaryExpr': {
+        const left = this.formatCalcNode(expr.left, ctx);
+        const right = this.formatCalcNode(expr.right, ctx);
+        if (expr.op === '+') {
+          if (left.isZero && right.isZero) return { str: '0', isZero: true, hasBreakdown: false };
+          if (right.isZero) return left;
+          if (left.isZero) return right;
+          const combined = right.str.startsWith('-')
+            ? `${left.str} - ${right.str.slice(1).trim()}`
+            : `${left.str} + ${right.str}`;
+          return { str: combined, isZero: false, hasBreakdown: true };
+        }
+        if (expr.op === '-') {
+          if (left.isZero && right.isZero) return { str: '0', isZero: true, hasBreakdown: false };
+          if (right.isZero) return left;
+          if (left.isZero) {
+            return {
+              str: right.str.startsWith('-') ? right.str.slice(1).trim() : `-${right.str}`,
+              isZero: false,
+              hasBreakdown: true,
+            };
+          }
+          const combined = right.str.startsWith('-')
+            ? `${left.str} + ${right.str.slice(1).trim()}`
+            : `${left.str} - ${right.str}`;
+          return { str: combined, isZero: false, hasBreakdown: true };
+        }
+        const total = this.evalExpr(expr, ctx);
+        return {
+          str: `${left.str} ${expr.op} ${right.str}`,
+          isZero: total === 0,
+          hasBreakdown: true,
+        };
+      }
+      default: {
+        const str = this.exprToFormulaString(expr, ctx);
+        return { str, isZero: str === '0', hasBreakdown: false };
+      }
+    }
+  }
+
+  private exprToOrganizedCalc(expr: ASTExpr, ctx?: Record<string, EvaluatedValue>): string | undefined {
+    const res = this.formatCalcNode(expr, ctx);
+    return res.hasBreakdown ? res.str : undefined;
+  }
+
   private interpolateText(text: string): string {
     const withBraces = text.replace(/\{([^{}]+)\}/g, (_, innerExpr: string) => {
       try {
@@ -2788,202 +2870,161 @@ export class SheetAnalyzer {
     return this.isTruthy(this.evalExpr(expr));
   }
 
-  private evaluateProgressionBlocks(): import('./types').EvaluatedProgression[] {
-    const list: import('./types').EvaluatedProgression[] = [];
-
-    for (const p of this.ast.progressions || []) {
-      const evaluatedGains: import('./types').EvaluatedProgressionGain[] = p.gains.map((g) => {
+  private evaluateProgressionGainList(
+    gains: import('./types').ASTProgressionGain[],
+    isPseudoGain: (target: string, hasOption?: boolean) => boolean,
+  ): import('./types').EvaluatedProgressionGain[] {
+    return gains
+      .filter((g) => !isPseudoGain(g.target, Boolean(g.abilityOption) || g.target === '@ability'))
+      .map((g) => {
         let evaluatedValue: number | string = 0;
+        let calcText: string | undefined;
         const exprString = typeof g.expr === 'string' ? g.expr : this.exprToRawCode(g.expr);
 
-        try {
-          if (typeof g.expr === 'string') {
-            const num = Number(g.expr);
-            evaluatedValue = !Number.isNaN(num) ? num : g.expr;
-          } else {
-            const res = this.evalExpr(g.expr);
-            evaluatedValue = typeof res === 'number' || typeof res === 'string' ? res : 0;
+        if (g.abilityOption || g.target === '@ability') {
+          evaluatedValue = 'Novo Poder';
+        } else {
+          try {
+            if (typeof g.expr === 'string') {
+              const num = Number(g.expr);
+              evaluatedValue = !Number.isNaN(num) ? num : g.expr;
+            } else {
+              const res = this.evalExpr(g.expr);
+              evaluatedValue = typeof res === 'number' || typeof res === 'string' ? res : 0;
+              calcText = this.exprToOrganizedCalc(g.expr);
+            }
+          } catch {
+            evaluatedValue = exprString;
           }
-        } catch {
-          evaluatedValue = exprString;
         }
 
-        const opLabel = g.op === '+=' ? 'Aumenta em' : g.op === '-=' ? 'Reduz em' : 'Define como';
-        const description = `${opLabel} ${evaluatedValue} (${exprString})`;
+        const lowerTarget = g.target.trim().toLowerCase();
+        const isLevelTarget = lowerTarget === 'level' || lowerTarget === 'nivel';
+        const displayLabel = g.label
+          ? this.interpolateText(g.label)
+          : isLevelTarget
+            ? 'Nível'
+            : g.target;
+
+        let description: string;
+        if (g.abilityOption) {
+          const rawAbilityDesc =
+            g.desc ||
+            g.abilityOption.desc ||
+            (g.abilityOption.apply ? `Aplica: ${g.abilityOption.apply}` : 'Habilidade concedida na evolução');
+          description = this.interpolateText(rawAbilityDesc);
+        } else if (g.desc) {
+          description = this.interpolateText(g.desc);
+        } else if (calcText) {
+          description = calcText;
+        } else {
+          description = '';
+        }
 
         return {
           target: g.target,
+          label: displayLabel,
           op: g.op,
           exprString,
+          calcText,
           evaluatedValue,
           description,
+          placement: g.placement,
+          abilityOption: g.abilityOption
+            ? {
+                ...g.abilityOption,
+                desc: g.abilityOption.desc ? this.interpolateText(g.abilityOption.desc) : undefined,
+                isEligible: true,
+                requirementText: this.formatRequirementDisplay(g.abilityOption.req, g.abilityOption.reqText),
+              }
+            : undefined,
         };
       });
+  }
 
-      const evaluatedChoices: import('./types').EvaluatedProgressionChoice[] = p.choices.map((c) => {
-        const evaluatedOptions: import('./types').EvaluatedProgressionChoiceOption[] = c.options.map((opt) => {
-          let isEligible = true;
-          const requirementText = opt.req;
-
-          if (opt.req) {
-            isEligible = this.checkSimpleRequirement(opt.req);
+  private evaluateProgressionChoiceList(
+    choices: import('./types').ASTProgressionChoice[],
+    inheritedTargetModule?: string,
+  ): import('./types').EvaluatedProgressionChoice[] {
+    return choices.map((c) => {
+      const evaluatedOptions: import('./types').EvaluatedProgressionChoiceOption[] = c.options.map((opt) => {
+        let isEligible = true;
+        const requirementText = this.formatRequirementDisplay(opt.req, opt.reqText);
+        let unmetReason: string | undefined;
+        if (opt.req) {
+          isEligible = this.checkSimpleRequirement(opt.req);
+          if (!isEligible) {
+            unmetReason = `Requer ${requirementText}`;
           }
-
-          return {
-            ...opt,
-            isEligible,
-            requirementText,
-          };
-        });
-
+        }
         return {
-          title: c.title,
-          count: c.count,
-          options: evaluatedOptions,
+          ...opt,
+          desc: opt.desc ? this.interpolateText(opt.desc) : undefined,
+          targetModule: opt.targetModule || c.targetModule || inheritedTargetModule,
+          isEligible,
+          requirementText,
+          unmetReason,
         };
       });
+
+      return {
+        title: this.interpolateText(c.title),
+        count: c.count,
+        targetModule: c.targetModule || inheritedTargetModule,
+        options: evaluatedOptions,
+      };
+    });
+  }
+
+  private evaluateProgressionBlocks(): import('./types').EvaluatedProgression[] {
+    const list: import('./types').EvaluatedProgression[] = [];
+    const isPseudoGain = (target: string, hasOption?: boolean) => {
+      if (hasOption) return false;
+      const t = target.trim().toLowerCase();
+      return (
+        t === 'desc' ||
+        t === 'action' ||
+        t === 'cost' ||
+        t === 'custo' ||
+        t === 'choose' ||
+        t === 'branch' ||
+        t === 'step' ||
+        t === 'ability' ||
+        t === ''
+      );
+    };
+
+    for (const p of this.ast.progressions || []) {
+      const evaluatedGains = this.evaluateProgressionGainList(p.gains, isPseudoGain);
+      const evaluatedChoices = this.evaluateProgressionChoiceList(p.choices);
 
       const evaluatedSteps: import('./types').EvaluatedProgressionStep[] = (
         p.steps || []
       ).map((st) => {
-        const stepGains: import('./types').EvaluatedProgressionGain[] =
-          st.gains.map((g) => {
-            const exprString =
-              typeof g.expr === 'string'
-                ? g.expr
-                : this.exprToFormulaString(g.expr);
-            let evaluatedValue: number | string = 0;
-            try {
-              if (typeof g.expr === 'string') {
-                const num = Number(g.expr);
-                evaluatedValue = !Number.isNaN(num) ? num : g.expr;
-              } else {
-                const res = this.evalExpr(g.expr);
-                evaluatedValue =
-                  typeof res === 'number' || typeof res === 'string' ? res : 0;
-              }
-            } catch {
-              evaluatedValue = exprString;
-            }
-
-            const opLabel =
-              g.op === '+='
-                ? 'Aumenta em'
-                : g.op === '-='
-                  ? 'Reduz em'
-                  : 'Define como';
-            const description =
-              g.desc || `${opLabel} ${evaluatedValue} (${exprString})`;
-
-            return {
-              target: g.target,
-              label: g.label || g.target,
-              op: g.op,
-              exprString,
-              evaluatedValue,
-              description,
-              placement: g.placement,
-            };
-          });
-
-        const stepChoices: import('./types').EvaluatedProgressionChoice[] =
-          st.choices.map((c) => {
-            const evaluatedOptions: import('./types').EvaluatedProgressionChoiceOption[] =
-              c.options.map((opt) => {
-                let isEligible = true;
-                let unmetReason: string | undefined;
-                if (opt.req) {
-                  isEligible = this.checkSimpleRequirement(opt.req);
-                  if (!isEligible) {
-                    unmetReason = `Requer ${opt.req}`;
-                  }
-                }
-                return {
-                  ...opt,
-                  targetModule:
-                    opt.targetModule || c.targetModule || st.targetModule,
-                  isEligible,
-                  requirementText: opt.req,
-                  unmetReason,
-                };
-              });
-
-            return {
-              title: c.title,
-              count: c.count,
-              targetModule: c.targetModule || st.targetModule,
-              options: evaluatedOptions,
-            };
-          });
+        const stepGains = this.evaluateProgressionGainList(st.gains, isPseudoGain);
+        const stepChoices = this.evaluateProgressionChoiceList(st.choices, st.targetModule);
 
         const evaluatedBranches: import('./types').EvaluatedProgressionBranch[] = (
           st.branches || []
         ).map((br) => {
           let isEligible = true;
-          let requirementText = br.req;
+          const requirementText = this.formatRequirementDisplay(br.req, br.reqText);
           if (br.req) {
             isEligible = this.checkSimpleRequirement(br.req);
           }
 
-          const branchGains: import('./types').EvaluatedProgressionGain[] = br.gains.map((g) => {
-            const exprString =
-              typeof g.expr === 'string'
-                ? g.expr
-                : this.exprToFormulaString(g.expr);
-            let evaluatedValue: number | string = 0;
-            try {
-              if (typeof g.expr === 'string') {
-                const num = Number(g.expr);
-                evaluatedValue = !Number.isNaN(num) ? num : g.expr;
-              } else {
-                const res = this.evalExpr(g.expr);
-                evaluatedValue =
-                  typeof res === 'number' || typeof res === 'string' ? res : 0;
-              }
-            } catch {
-              evaluatedValue = exprString;
-            }
-            const opLabel =
-              g.op === '+=' ? 'Aumenta em' : g.op === '-=' ? 'Reduz em' : 'Define como';
-            const description = g.desc || `${opLabel} ${evaluatedValue} (${exprString})`;
-
-            return {
-              target: g.target,
-              label: g.label || g.target,
-              op: g.op,
-              exprString,
-              evaluatedValue,
-              description,
-              placement: g.placement,
-            };
-          });
-
-          const branchChoices: import('./types').EvaluatedProgressionChoice[] = br.choices.map((c) => {
-            const evaluatedOptions: import('./types').EvaluatedProgressionChoiceOption[] = c.options.map((opt) => {
-              let optEligible = true;
-              if (opt.req) {
-                optEligible = this.checkSimpleRequirement(opt.req);
-              }
-              return {
-                ...opt,
-                targetModule: opt.targetModule || c.targetModule || br.targetModule || st.targetModule,
-                isEligible: optEligible,
-                requirementText: opt.req,
-              };
-            });
-            return {
-              title: c.title,
-              count: c.count,
-              targetModule: c.targetModule || br.targetModule || st.targetModule,
-              options: evaluatedOptions,
-            };
-          });
+          const branchGains = this.evaluateProgressionGainList(br.gains, isPseudoGain);
+          const branchChoices = this.evaluateProgressionChoiceList(
+            br.choices,
+            br.targetModule || st.targetModule,
+          );
 
           return {
             id: br.id,
-            title: br.title,
-            desc: br.desc,
+            title: this.interpolateText(br.title),
+            desc: br.desc ? this.interpolateText(br.desc) : undefined,
             req: br.req,
+            reqText: br.reqText,
             isEligible,
             requirementText,
             icon: br.icon,
@@ -2996,8 +3037,12 @@ export class SheetAnalyzer {
 
         return {
           id: st.id,
-          title: st.title,
-          desc: st.desc,
+          title: this.interpolateText(st.title),
+          subtitle: st.subtitle ? this.interpolateText(st.subtitle) : undefined,
+          desc: st.desc ? this.interpolateText(st.desc) : undefined,
+          branchTitle: st.branchTitle ? this.interpolateText(st.branchTitle) : undefined,
+          branchDesc: st.branchDesc ? this.interpolateText(st.branchDesc) : undefined,
+          gainsTitle: st.gainsTitle ? this.interpolateText(st.gainsTitle) : undefined,
           targetModule: st.targetModule,
           isBifurcation: st.isBifurcation || evaluatedBranches.length > 0,
           branches: evaluatedBranches,
@@ -3007,13 +3052,18 @@ export class SheetAnalyzer {
         };
       });
 
+      const progTitle = this.interpolateText(p.title);
+      const progSubtitle = p.subtitle ? this.interpolateText(p.subtitle) : undefined;
+      const progDesc = p.desc ? this.interpolateText(p.desc) : undefined;
+
       if (
         evaluatedSteps.length === 0 &&
         (evaluatedGains.length > 0 || evaluatedChoices.length > 0)
       ) {
         evaluatedSteps.push({
           id: 'step_default',
-          title: p.title || 'Evolução',
+          title: progTitle || 'Evolução',
+          subtitle: progSubtitle,
           gains: evaluatedGains,
           choices: evaluatedChoices,
           placement: p.placement,
@@ -3022,7 +3072,9 @@ export class SheetAnalyzer {
 
       list.push({
         id: p.id,
-        title: p.title,
+        title: progTitle,
+        subtitle: progSubtitle,
+        desc: progDesc,
         buttonLabel: p.buttonLabel || p.title,
         icon: p.icon || 'sparkles',
         trigger: p.trigger || 'level_up',
@@ -3037,6 +3089,44 @@ export class SheetAnalyzer {
     }
 
     return list;
+  }
+
+  private formatRequirementDisplay(rawReq?: string, explicitReqText?: string): string {
+    if (explicitReqText && explicitReqText.trim()) {
+      return explicitReqText.replace(/["']/g, '').trim();
+    }
+    if (!rawReq) return '';
+    const clean = rawReq.replace(/["']/g, '').trim();
+    if (!clean) return '';
+
+    const attrNames: Record<string, string> = {
+      for: 'Força',
+      des: 'Destreza',
+      con: 'Constituição',
+      int: 'Inteligência',
+      sab: 'Sabedoria',
+      car: 'Carisma',
+      vig: 'Vigor',
+      agi: 'Agilidade',
+      pre: 'Presença',
+      lut: 'Luta',
+      pont: 'Pontaria',
+      fort: 'Fortitude',
+      level: 'Nível',
+      nivel: 'Nível',
+      nível: 'Nível',
+    };
+
+    // Caso simples: VAR >= N ou VAR > N ou VAR == N ou VAR = N
+    const m = clean.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:>=|>|==|=)\s*(\d+)$/);
+    if (m) {
+      const varKey = m[1].toLowerCase();
+      const num = m[2];
+      const friendlyName = attrNames[varKey] || m[1];
+      return `${friendlyName} ${num}`;
+    }
+
+    return clean.replace(/>=/g, '≥').replace(/<=/g, '≤');
   }
 
   private checkSimpleRequirement(req: string): boolean {

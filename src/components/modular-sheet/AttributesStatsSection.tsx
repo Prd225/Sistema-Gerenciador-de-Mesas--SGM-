@@ -73,6 +73,31 @@ function buildPyramidRows<T>(items: T[]): T[][] {
   return rows;
 }
 
+function isInternalHiddenItem(item: { id: string; label?: string; tags?: string[] }): boolean {
+  if (
+    item.tags &&
+    (item.tags.includes('hidden') ||
+      item.tags.includes('interno') ||
+      item.tags.includes('internal'))
+  ) {
+    return true;
+  }
+  if (item.id.startsWith('_')) return true;
+  if (item.label && item.label.startsWith('_')) return true;
+  const idLow = item.id.toLowerCase();
+  const labelLow = (item.label || '').toLowerCase();
+  if (
+    idLow.includes('bonus_nivel') ||
+    idLow.includes('por_nivel') ||
+    idLow.endsWith('_internal') ||
+    labelLow.includes('bonus_nivel') ||
+    labelLow.includes('por_nivel')
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export function AttributesStatsSection({
   sheetId,
   sheet,
@@ -112,7 +137,8 @@ export function AttributesStatsSection({
         : Object.values(sheet.attributes).filter(
           (a) =>
             isTabMatching(a.tab, activeTab) &&
-            (!blockId || a.blockId === blockId),
+            (!blockId || a.blockId === blockId) &&
+            !isInternalHiddenItem(a),
         ),
     [sheet.attributes, mode, activeTab, blockId],
   );
@@ -123,6 +149,7 @@ export function AttributesStatsSection({
         ? []
         : Object.values(sheet.stats).filter((s) => {
           if (!isTabMatching(s.tab, activeTab)) return false;
+          if (isInternalHiddenItem(s)) return false;
           if (!blockId) return true;
           if (s.blockId) return s.blockId === blockId;
           return blockId === firstStatBlockIdOnTab;

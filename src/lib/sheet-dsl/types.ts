@@ -505,6 +505,7 @@ export interface ASTProgressionChoiceOption {
   label: string;
   desc?: string;
   req?: string;          // Pré-requisito (ex: "FOR >= 1", "level >= 2")
+  reqText?: string;      // Texto customizado para exibição do pré-requisito (ex: "Constituição 1")
   cost?: string;         // Custo de ativação (ex: "1 PM", "2 PM")
   type?: string;         // Tipo de ação (ex: "Padrão", "Livre", "Passiva", "Reação")
   tags?: string[];
@@ -522,19 +523,21 @@ export interface ASTProgressionChoice {
 }
 
 export interface ASTProgressionGain {
-  target: string;        // ex: "level", "PV.max", "PM.max", "FOR", etc.
+  target: string;        // ex: "level", "PV.max", "PM.max", "FOR", "@ability", etc.
   label?: string;        // ex: "Pontos de Vida", "Avanço de Nível"
   desc?: string;         // ex: "+5 PV por nível"
   op: '+=' | '-=' | ':=';
   expr: string | ASTExpr;
   placement?: ModulePlacement;
+  abilityOption?: ASTProgressionChoiceOption;
 }
 
 export interface ASTProgressionBranch {
   id: string;
   title: string;              // ex: "Guerreiro", "Nobre", "Caminho da Lâmina"
   desc?: string;               // Descrição do caminho / arquétipo
-  req?: string;                // Condição / pré-requisito (ex: "level >= 2", "FOR >= 2")
+  req?: string;                // Condição / pré-requisito mecânico (ex: "level >= 2", "FOR >= 2")
+  reqText?: string;            // Texto customizado para exibição do pré-requisito (ex: "Constituição 1")
   icon?: string;               // Ícone opcional
   targetModule?: string;       // ex: "@ability"
   tags?: string[];
@@ -545,7 +548,11 @@ export interface ASTProgressionBranch {
 export interface ASTProgressionStepDecl {
   id: string;
   title: string;
+  subtitle?: string;
   desc?: string;
+  branchTitle?: string;
+  branchDesc?: string;
+  gainsTitle?: string;
   targetModule?: string; // ex: "@ability", "@skill", "@attr", "@res"
   isBifurcation?: boolean;
   branches?: ASTProgressionBranch[];
@@ -559,6 +566,8 @@ export interface ASTProgressionDecl {
   type: 'ProgressionDecl';
   id: string;
   title: string;
+  subtitle?: string;
+  desc?: string;
   buttonLabel?: string;
   icon?: string;
   trigger?: string;
@@ -862,9 +871,11 @@ export interface EvaluatedProgressionGain {
   label?: string;
   op: '+=' | '-=' | ':=';
   exprString: string;
+  calcText?: string;
   evaluatedValue: number | string;
   description: string;
   placement?: ModulePlacement;
+  abilityOption?: EvaluatedProgressionChoiceOption;
 }
 
 export interface EvaluatedProgressionBranch {
@@ -872,6 +883,7 @@ export interface EvaluatedProgressionBranch {
   title: string;
   desc?: string;
   req?: string;
+  reqText?: string;
   isEligible: boolean;
   requirementText?: string;
   icon?: string;
@@ -884,7 +896,11 @@ export interface EvaluatedProgressionBranch {
 export interface EvaluatedProgressionStep {
   id: string;
   title: string;
+  subtitle?: string;
   desc?: string;
+  branchTitle?: string;
+  branchDesc?: string;
+  gainsTitle?: string;
   targetModule?: string;
   isBifurcation?: boolean;
   branches?: EvaluatedProgressionBranch[];
@@ -896,6 +912,8 @@ export interface EvaluatedProgressionStep {
 export interface EvaluatedProgression {
   id: string;
   title: string;
+  subtitle?: string;
+  desc?: string;
   buttonLabel: string;
   icon: string;
   trigger: string;

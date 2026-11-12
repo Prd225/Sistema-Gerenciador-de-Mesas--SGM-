@@ -304,6 +304,7 @@ interface ModularSheetState {
         desc?: string;
         testFormula?: string;
         damageFormula?: string;
+        effects?: string[];
       },
     maybeAbility?: {
       category?: string;
@@ -313,6 +314,7 @@ interface ModularSheetState {
       desc?: string;
       testFormula?: string;
       damageFormula?: string;
+      effects?: string[];
     },
   ) => void;
   removeAbilityItem: (sheetId: string, abilityLabel: string) => void;
@@ -1520,6 +1522,10 @@ export const useModularSheetStore = create<ModularSheetState>((set, get) => ({
     const rec = get().sheets.find((s) => s.id === sheetId);
     if (!rec) return;
     const safeLabel = (ability.label.trim() || 'Nova Habilidade').replace(/"/g, '\\"');
+    const existingAbilityRe = new RegExp(`ability\\s+"${safeLabel}"`, 'i');
+    if (existingAbilityRe.test(rec.dslSource)) {
+      return;
+    }
     const metaParts: string[] = [];
     if (ability.actionType?.trim()) {
       metaParts.push(`type: "${ability.actionType.trim().replace(/"/g, '\\"')}"`);
@@ -1537,6 +1543,13 @@ export const useModularSheetStore = create<ModularSheetState>((set, get) => ({
     }
     if (ability.desc?.trim()) {
       lines.push(`    desc: "${ability.desc.trim().replace(/"/g, '\\"')}"`);
+    }
+    if (ability.effects && ability.effects.length > 0) {
+      for (const eff of ability.effects) {
+        if (typeof eff === 'string' && eff.trim()) {
+          lines.push(`    ${eff.trim()}`);
+        }
+      }
     }
 
     const snippet = lines.join('\n');
@@ -1834,6 +1847,124 @@ export const useModularSheetStore = create<ModularSheetState>((set, get) => ({
         ) === idx,
     );
 
+    // Processador de efeitos declarados em habilidades / ganhos (ex: "_pv_por_nivel += 1, Fortitude += 2")
+    const processApplyStatements = (applyStr: string) => {
+      const rawStmts = applyStr.split(/[,;\n]+/).map((s) => s.trim()).filter(Boolean);
+      for (const stmt of rawStmts) {
+        const m = stmt.match(/^([a-zA-Z_][a-zA-Z0-9_.]*)\s*(\+=|-=|=|\:=)\s*(.+)$/);
+        if (!m) continue;
+        const varName = m[1];
+        const op = m[2] === '=' || m[2] === ':=' ? ':=' : (m[2] as '+=' | '-=');
+        const exprStr = m[3].trim().replace(/^"(.*)"$/, '$1');
+
+        // 1. Caso: target é uma Perícia declarada (ex: Fortitude += 2, Luta += 1)
+        const matchedSkill = Object.values(compiled.skills).find(
+          (sk) => sk.id.toLowerCase() === varName.toLowerCase() || (sk.label && sk.label.toLowerCase() === varName.toLowerCase()),
+        );
+        if (matchedSkill) {
+          const numDelta = Number(exprStr);
+          if (!Number.isNaN(numDelta)) {
+            let currSrc = get().sheets.find((s) => s.id === sheetId)?.dslSource ?? rec.dslSource;
+            const escapedId = matchedSkill.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const skillRe = new RegExp(
+              `^([ \\t]*${escapedId}(?:\\s+"[^"]*")?(?:\\s*\\([^)]*\\))?\\s*(?::=|=|:)\\s*)([^\\[\\n#]+)(.*)$`,
+              'm',
+            );
+            if (skillRe.test(currSrc)) {
+              currSrc = currSrc.replace(skillRe, (_match, prefix: string, oldExpr: string, suffix: string) => {
+                const trimmedOld = oldExpr.trim();
+                let newExpr = trimmedOld;
+                if (op === ':=') {
+                  newExpr = String(numDelta);
+                } else if (/^-?\d+$/.test(trimmedOld)) {
+                  const cur = Number(trimmedOld);
+                  newExpr = String(op === '+=' ? cur + numDelta : cur - numDelta);
+                } else {
+                  const matchAdd = trimmedOld.match(/^(.*?)\s*([+-])\s*(\d+)$/);
+                  if (matchAdd) {
+                    const base = matchAdd[1].trim();
+                    const sign = matchAdd[2];
+                    const curVal = Number(matchAdd[3]) * (sign === '-' ? -1 : 1);
+                    const finalVal = op === '+=' ? curVal + numDelta : curVal - numDelta;
+                    if (finalVal === 0) newExpr = base;
+                    else newExpr = finalVal > 0 ? `${base} + ${finalVal}` : `${base} - ${Math.abs(finalVal)}`;
+                  } else {
+                    newExpr = op === '+=' ? `${trimmedOld} + ${numDelta}` : `${trimmedOld} - ${numDelta}`;
+                  }
+                }
+                const cleanSuffix = suffix.trim() ? ` ${suffix.trim()}` : '';
+                return `${prefix}${newExpr}${cleanSuffix}`;
+              });
+              get().updateSheetSource(sheetId, currSrc);
+            }
+          }
+          continue;
+        }
+
+        // 2. Caso: target é sub-propriedade de recurso (ex: PV.max += 5, PM.max += 2)
+        if (varName.includes('.')) {
+          const [resId, prop] = varName.split('.');
+          const matchedRes = Object.values(compiled.resources).find(
+            (r) => r.id.toLowerCase() === resId.toLowerCase(),
+          );
+          if (matchedRes && (prop === 'max' || prop === 'maximo')) {
+            let numDelta = Number(exprStr);
+            if (Number.isNaN(numDelta) && (exprStr === 'level' || exprStr === 'nivel' || exprStr === 'nível')) {
+              numDelta = typeof compiled.meta.level === 'number' ? compiled.meta.level : 1;
+            }
+            if (!Number.isNaN(numDelta)) {
+              const nextMax = op === '+=' ? matchedRes.max + numDelta : op === '-=' ? matchedRes.max - numDelta : numDelta;
+              get().setResourceCurrent(sheetId, matchedRes.id, Math.min(matchedRes.current + numDelta, nextMax));
+            }
+          }
+          continue;
+        }
+
+        // 3. Caso: target é Atributo ou Estatística / Variável Interna (ex: _pv_por_nivel += 1, FOR += 1)
+        const found = compiled.attributes[varName] || compiled.stats[varName];
+        let numDelta = Number(exprStr);
+        if (Number.isNaN(numDelta) && (exprStr === 'level' || exprStr === 'nivel' || exprStr === 'nível')) {
+          numDelta = typeof compiled.meta.level === 'number' ? compiled.meta.level : 1;
+        }
+
+        // Se a variável é _pv_por_nivel ou pv_bonus_nivel e a fórmula de PV não a contém, atualiza a fórmula de PV!
+        if (varName === '_pv_por_nivel' || varName === 'pv_bonus_nivel' || varName === '_pv_bonus_nivel') {
+          let currSrc = get().sheets.find((s) => s.id === sheetId)?.dslSource ?? rec.dslSource;
+          if (
+            !currSrc.includes(varName) &&
+            /PV\b[^\n\/]*\/\s*\([^)\n]*(?:level|nivel)[^)\n]*\)/i.test(currSrc)
+          ) {
+            currSrc = currSrc.replace(
+              /(PV\b[^\n\/]*\/\s*\([^)\n]+)(\))/i,
+              `$1 + (level * ${varName})$2`,
+            );
+            get().updateSheetSource(sheetId, currSrc);
+          }
+        }
+
+        if (found && typeof found.baseValue === 'number' && !Number.isNaN(numDelta)) {
+          const nextVal =
+            op === '+=' ? found.baseValue + numDelta : op === '-=' ? found.baseValue - numDelta : numDelta;
+          get().updateStatBaseValue(sheetId, found.id, nextVal);
+        } else {
+          // Se a variável não existir na ficha, injeta em @stat com [hidden]
+          let currSrc = get().sheets.find((s) => s.id === sheetId)?.dslSource ?? rec.dslSource;
+          const initVal = !Number.isNaN(numDelta) ? (op === '-=' ? -numDelta : numDelta) : 1;
+          const isHidden = varName.startsWith('_') || varName.includes('nivel') || varName.includes('level');
+          const hiddenTag = isHidden ? ' [hidden]' : '';
+          if (!new RegExp(`\\b${varName}\\b`).test(currSrc)) {
+            const statRegex = /(@(?:stat|stats|status|defesas)\b[^\n]*\n)/i;
+            if (statRegex.test(currSrc)) {
+              currSrc = currSrc.replace(statRegex, `$1  ${varName} := ${initVal}${hiddenTag}\n`);
+            } else {
+              currSrc = `${currSrc.trimEnd()}\n\n@stat "Estatísticas"\n  ${varName} := ${initVal}${hiddenTag}\n`;
+            }
+            get().updateSheetSource(sheetId, currSrc);
+          }
+        }
+      }
+    };
+
     for (const gain of uniqueGains) {
       const targetLower = gain.target.toLowerCase();
       if (
@@ -1868,6 +1999,22 @@ export const useModularSheetStore = create<ModularSheetState>((set, get) => ({
             get().setResourceCurrent(sheetId, matchedRes.id, Math.min(matchedRes.current + gain.evaluatedValue, nextMax));
           }
         }
+      } else if (gain.target === '@ability' || gain.abilityOption) {
+        // Aplicação automática de habilidade concedida na evolução (implícita)
+        const opt = gain.abilityOption;
+        const abLabel = opt?.label || gain.label || 'Nova Habilidade';
+        const applyStr = opt?.apply;
+        if (applyStr) {
+          processApplyStatements(applyStr);
+        }
+        get().addAbilityItem(sheetId, undefined, {
+          category: 'ability',
+          label: abLabel,
+          actionType: opt?.type || 'Padrão',
+          cost: opt?.cost,
+          desc: opt?.desc || gain.description,
+          effects: applyStr ? applyStr.split(/[,;\n]+/).map((s) => s.trim()) : undefined,
+        });
       } else {
         const statKey = gain.target;
         const found = compiled.attributes[statKey] || compiled.stats[statKey];
@@ -1892,37 +2039,14 @@ export const useModularSheetStore = create<ModularSheetState>((set, get) => ({
       get().consumeResourceOrItem(sheetId, prog.cost.resource, prog.cost.amount);
     }
 
-    // 3. Adiciona as opções de poderes / habilidades / itens aos módulos correspondentes
+    // 3. Adiciona as opções de escolhas explícitas aos módulos correspondentes (se houver)
     for (const opt of selectedOptions) {
-      // A. Efeito dinâmico imediato (apply: "pv_bonus_nivel += 1" ou "FOR += 1")
+      // Efeito dinâmico da escolha (apply)
       if (opt.apply) {
-        const m = opt.apply.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*(\+=|-=|=)\s*(\d+)$/);
-        if (m) {
-          const varName = m[1];
-          const op = m[2];
-          const num = Number(m[3]);
-          const found = compiled.attributes[varName] || compiled.stats[varName];
-          if (found && typeof found.baseValue === 'number') {
-            const nextVal =
-              op === '+=' ? found.baseValue + num : op === '-=' ? found.baseValue - num : num;
-            get().updateStatBaseValue(sheetId, found.id, nextVal);
-          } else {
-            // Se a variável não existir na ficha, injeta em @stat
-            let currSrc = get().sheets.find((s) => s.id === sheetId)?.dslSource ?? rec.dslSource;
-            if (!new RegExp(`\\b${varName}\\b`).test(currSrc)) {
-              const statRegex = /(@(?:stat|stats|status|defesas)\b[^\n]*\n)/i;
-              if (statRegex.test(currSrc)) {
-                currSrc = currSrc.replace(statRegex, `$1  ${varName} := ${num}\n`);
-              } else {
-                currSrc = `${currSrc.trimEnd()}\n\n@stat "Estatísticas"\n  ${varName} := ${num}\n`;
-              }
-              get().updateSheetSource(sheetId, currSrc);
-            }
-          }
-        }
+        processApplyStatements(opt.apply);
       }
 
-      // B. Injeção no módulo DSL correto
+      // Injeção no módulo DSL correto
       const targetMod = (opt.targetModule || '@ability').toLowerCase();
 
       if (targetMod.includes('inv') || targetMod.includes('item')) {
@@ -1934,13 +2058,18 @@ export const useModularSheetStore = create<ModularSheetState>((set, get) => ({
           state: 'carried',
         });
       } else {
-        // Padrão: módulo @ability (ou quando explicitamente @ability / ability)
+        const effectLines: string[] = [];
+        if (opt.apply) {
+          const rawStmts = opt.apply.split(/[,;\n]+/).map((s) => s.trim()).filter(Boolean);
+          effectLines.push(...rawStmts);
+        }
         get().addAbilityItem(sheetId, undefined, {
           category: 'ability',
           label: opt.label,
           actionType: opt.type || 'Padrão',
           cost: opt.cost,
           desc: opt.desc,
+          effects: effectLines.length > 0 ? effectLines : undefined,
         });
       }
     }
